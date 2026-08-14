@@ -92,24 +92,39 @@ reproducing their observable effect or proving that a no-op produces no
 user-visible difference. Xwayland clients should receive the closest possible
 ICCCM-compatible behavior.
 
+### Progress tracking
+
+The checkboxes in this section are the project's authoritative progress record.
+Work through Milestones 0–10 in order. Within the current milestone, complete
+implementation work and its associated testing before treating an exit
+criterion as satisfied. Change `[ ]` to `[x]` only after the work is implemented,
+verified by the required tests, and documented where applicable. Update the
+checkbox in the same feature-focused commit as the completed work. Leave
+partially completed or blocked items unchecked and record the remaining work in
+the task report.
+
+The definition-of-parity items below are global release gates, not the execution
+queue. Track them as the milestone work progresses, but select day-to-day work
+from the earliest milestone that still has unchecked tasks.
+
 ### Definition of full parity
 
 A release can claim full `twm` parity only when:
 
-- Every directive and action accepted by the reference `twm` is recorded in a
+- [ ] Every directive and action accepted by the reference `twm` is recorded in a
   machine-readable compatibility ledger.
-- Every valid reference `.twmrc` parses successfully.
-- Every recognized feature is classified as an exact implementation, a
+- [ ] Every valid reference `.twmrc` parses successfully.
+- [ ] Every recognized feature is classified as an exact implementation, a
   behaviorally equivalent Wayland implementation, or a verified no-op with no
   observable effect.
-- No feature remains merely “parsed,” “partial,” or “pending.”
-- Window geometry, stacking, focus, input behavior, menus, icons, and
+- [ ] No feature remains merely “parsed,” “partial,” or “pending.”
+- [ ] Window geometry, stacking, focus, input behavior, menus, icons, and
   decorations match the reference implementation in differential tests.
-- Configuration matching works for both Xwayland and native Wayland
+- [ ] Configuration matching works for both Xwayland and native Wayland
   applications.
-- Experienced `twm` users cannot reliably distinguish the implementations in
+- [ ] Experienced `twm` users cannot reliably distinguish the implementations in
   controlled A/B testing.
-- Installation and removal do not modify, replace, or require removal of the
+- [ ] Installation and removal do not modify, replace, or require removal of the
   system's existing Wayland compositor.
 
 The initial reference implementation will be `twm` 1.0.13.1. Changing the
@@ -135,34 +150,34 @@ specification.
 
 Implementation work:
 
-- Freeze the upstream `twm` source, manual, default bindings, and sample
+- [ ] Freeze the upstream `twm` source, manual, default bindings, and sample
   configurations used as the reference.
-- Inventory every configuration directive, color and monochrome option,
+- [ ] Inventory every configuration directive, color and monochrome option,
   window-list directive, mouse and key binding form, context and modifier,
   built-in function, menu construct, icon and icon-manager option, cursor,
   pixmap, font, placement option, and title-button option.
-- Create a machine-readable compatibility ledger containing syntax support,
+- [ ] Create a machine-readable compatibility ledger containing syntax support,
   runtime support, native Wayland behavior, Xwayland behavior, test coverage,
   and known visual or semantic differences.
-- Audit the current implementation against that ledger.
-- Preserve representative real-world `.twmrc` files as regression fixtures.
+- [ ] Audit the current implementation against that ledger.
+- [ ] Preserve representative real-world `.twmrc` files as regression fixtures.
 
 Testing:
 
-- Build the reference `twm` in a controlled X11 environment.
-- Record its parsed configuration, window geometry, focus, stacking order, and
+- [ ] Build the reference `twm` in a controlled X11 environment.
+- [ ] Record its parsed configuration, window geometry, focus, stacking order, and
   screenshots.
-- Establish canonical test applications for normal windows, dialogs and
+- [ ] Establish canonical test applications for normal windows, dialogs and
   transients, fixed-size windows, resize-increment and aspect-ratio hints, long
   and changing titles, icon names and icon bitmaps, urgency and focus behavior,
   override-redirect windows, and legacy X11 applications.
 
 Exit criteria:
 
-- One hundred percent of upstream syntax and actions are represented in the
+- [ ] One hundred percent of upstream syntax and actions are represented in the
   ledger.
-- Every existing project feature is mapped to at least one test.
-- The reference environment can produce repeatable results from a clean VM
+- [ ] Every existing project feature is mapped to at least one test.
+- [ ] The reference environment can produce repeatable results from a clean VM
   snapshot.
 
 ### Milestone 1: Establish the build and test platforms
@@ -171,41 +186,41 @@ Use several environments rather than relying on a single VM.
 
 Development environments:
 
-- Host-native unit tests for the parser and platform-independent logic.
-- A Debian ARM64 VM under UTM for interactive development on Apple Silicon.
-- A headless wlroots backend for automated compositor tests.
-- A nested Wayland session for rapid visual testing.
-- A full VM login session using the DRM backend for realistic startup, input,
+- [ ] Host-native unit tests for the parser and platform-independent logic.
+- [ ] A Debian ARM64 VM under UTM for interactive development on Apple Silicon.
+- [ ] A headless wlroots backend for automated compositor tests.
+- [ ] A nested Wayland session for rapid visual testing.
+- [ ] A full VM login session using the DRM backend for realistic startup, input,
   and session testing.
-- At least one physical Linux system before a parity release.
+- [ ] At least one physical Linux system before a parity release.
 
 Automation:
 
-- Provide a script or image definition that provisions the reference VM.
-- Build debug, release, AddressSanitizer, and UndefinedBehaviorSanitizer
+- [ ] Provide a script or image definition that provisions the reference VM.
+- [ ] Build debug, release, AddressSanitizer, and UndefinedBehaviorSanitizer
   configurations.
-- Add CI builds on x86-64 and ARM64.
-- Introduce a test-only control interface that can create deterministic virtual
+- [ ] Add CI builds on x86-64 and ARM64.
+- [ ] Introduce a test-only control interface that can create deterministic virtual
   outputs, inject pointer and keyboard input, query focus, geometry, stacking,
   icons, and menus, wait for a stable frame, capture compositor output, and
   terminate a test cleanly.
-- Add deterministic test controls for animation timing, placement, cursor
+- [ ] Add deterministic test controls for animation timing, placement, cursor
   position, and font selection.
 
 Testing:
 
-- Start the compositor headlessly and map a native Wayland test client.
-- Start it nested inside another compositor.
-- Start it as the VM's login compositor.
-- Verify that a failed launch returns the user to a usable session.
-- Run package install, upgrade, uninstall, and reinstall tests.
+- [ ] Start the compositor headlessly and map a native Wayland test client.
+- [ ] Start it nested inside another compositor.
+- [ ] Start it as the VM's login compositor.
+- [ ] Verify that a failed launch returns the user to a usable session.
+- [ ] Run package install, upgrade, uninstall, and reinstall tests.
 
 Exit criteria:
 
-- A clean checkout builds and passes tests without manual configuration.
-- Headless tests are stable over at least 100 consecutive runs.
-- The compositor works in headless, nested, and DRM-backed VM sessions.
-- Installation adds a separate session entry and does not alter the existing
+- [ ] A clean checkout builds and passes tests without manual configuration.
+- [ ] Headless tests are stable over at least 100 consecutive runs.
+- [ ] The compositor works in headless, nested, and DRM-backed VM sessions.
+- [ ] Installation adds a separate session entry and does not alter the existing
   compositor.
 
 ### Milestone 2: Complete `.twmrc` language compatibility
@@ -215,38 +230,38 @@ implementation is considered complete.
 
 Implementation work:
 
-- Match reference lexical behavior for comments, quoting, escapes, case
+- [ ] Match reference lexical behavior for comments, quoting, escapes, case
   handling, aliases, and errors.
-- Implement every scalar, flag, list, color-list, menu, function, cursor,
+- [ ] Implement every scalar, flag, list, color-list, menu, function, cursor,
   pixmap, icon-region, icon-manager, and title-button construct.
-- Match configuration search order, including screen-specific files and system
+- [ ] Match configuration search order, including screen-specific files and system
   defaults.
-- Match name, resource-name, resource-class, and wildcard selection behavior.
-- Preserve directive ordering and last-assignment behavior where it affects
+- [ ] Match name, resource-name, resource-class, and wildcard selection behavior.
+- [ ] Preserve directive ordering and last-assignment behavior where it affects
   results.
-- Make configuration reload atomic: retain the current configuration if a
+- [ ] Make configuration reload atomic: retain the current configuration if a
   replacement fails.
-- Produce filename and line-number diagnostics for invalid configurations.
-- Distinguish unsupported syntax from accepted Wayland translations; never
+- [ ] Produce filename and line-number diagnostics for invalid configurations.
+- [ ] Distinguish unsupported syntax from accepted Wayland translations; never
   silently ignore a recognized directive.
 
 Testing:
 
-- Parse upstream examples and a corpus of real `.twmrc` files.
-- Compare normalized parser output with the reference parser.
-- Add a fixture for every grammar production.
-- Test malformed and truncated input.
-- Fuzz the lexer and parser.
-- Test repeated reloads and failed reload rollback.
-- Test matching against X11 `WM_NAME`, `WM_CLASS`, and native Wayland `title`
+- [ ] Parse upstream examples and a corpus of real `.twmrc` files.
+- [ ] Compare normalized parser output with the reference parser.
+- [ ] Add a fixture for every grammar production.
+- [ ] Test malformed and truncated input.
+- [ ] Fuzz the lexer and parser.
+- [ ] Test repeated reloads and failed reload rollback.
+- [ ] Test matching against X11 `WM_NAME`, `WM_CLASS`, and native Wayland `title`
   and `app_id`.
 
 Exit criteria:
 
-- Every valid reference configuration in the corpus parses.
-- Every upstream directive has a test.
-- Recognized directives are never silently discarded.
-- The parser survives a sustained fuzzing run without crashes, leaks, or hangs.
+- [ ] Every valid reference configuration in the corpus parses.
+- [ ] Every upstream directive has a test.
+- [ ] Recognized directives are never silently discarded.
+- [ ] The parser survives a sustained fuzzing run without crashes, leaks, or hangs.
 
 ### Milestone 3: Complete the client model and Xwayland integration
 
@@ -255,180 +270,180 @@ comparison with the original `twm`.
 
 Implementation work:
 
-- Manage native `xdg-shell` toplevels and popups correctly.
-- Integrate Xwayland lifecycle management and `DISPLAY` export.
-- Implement an X window-manager bridge for names and classes, transient
+- [ ] Manage native `xdg-shell` toplevels and popups correctly.
+- [ ] Integrate Xwayland lifecycle management and `DISPLAY` export.
+- [ ] Implement an X window-manager bridge for names and classes, transient
   relationships, normal and size hints, delete-window requests, forced client
   termination, icon names and supplied icons, urgency and input hints,
   override-redirect windows, stacking, and configure requests.
-- Apply `.twmrc` window lists identically to Xwayland clients.
-- Define a documented mapping from native `app_id` and title to `twm` name/class
+- [ ] Apply `.twmrc` window lists identically to Xwayland clients.
+- [ ] Define a documented mapping from native `app_id` and title to `twm` name/class
   rules.
-- Implement clipboard and selection interoperation where legacy actions require
+- [ ] Implement clipboard and selection interoperation where legacy actions require
   it.
-- Ensure popups, menus, and unmanaged X11 windows stack correctly.
+- [ ] Ensure popups, menus, and unmanaged X11 windows stack correctly.
 
 Testing:
 
-- Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
+- [ ] Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
   test clients.
-- Exercise changing titles, classes, hints, transients, icons, and resize
+- [ ] Exercise changing titles, classes, hints, transients, icons, and resize
   constraints.
-- Compare Xwayland client results with the same clients under reference `twm`.
-- Mix native Wayland and Xwayland clients in the same session.
-- Test clients that crash, hang, ignore close requests, or rapidly map and unmap
+- [ ] Compare Xwayland client results with the same clients under reference `twm`.
+- [ ] Mix native Wayland and Xwayland clients in the same session.
+- [ ] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
   windows.
 
 Exit criteria:
 
-- Xwayland applications receive the same visible management behavior as under
+- [ ] Xwayland applications receive the same visible management behavior as under
   `twm`.
-- Native and Xwayland applications can coexist without incorrect focus or
+- [ ] Native and Xwayland applications can coexist without incorrect focus or
   stacking.
-- `f.delete` requests a graceful close.
-- `f.destroy` forcibly disconnects or terminates the selected client with
+- [ ] `f.delete` requests a graceful close.
+- [ ] `f.destroy` forcibly disconnects or terminates the selected client with
   appropriate safeguards.
 
 ### Milestone 4: Match core window-management behavior
 
 Implementation work:
 
-- Match frame geometry, client geometry, border calculations, and title
+- [ ] Match frame geometry, client geometry, border calculations, and title
   extents.
-- Honor minimum, maximum, base-size, resize-increment, and aspect-ratio
+- [ ] Honor minimum, maximum, base-size, resize-increment, and aspect-ratio
   constraints.
-- Implement exact move and resize interaction, including outline and opaque
+- [ ] Implement exact move and resize interaction, including outline and opaque
   movement, `MoveDelta`, `ConstrainedMoveTime`, `DontMoveOff`,
   `AutoRelativeResize`, `f.forcemove`, and `f.deltastop`.
-- Match focus behavior for root, frame, title, icon, menu, and client contexts.
-- Implement `NoTitleFocus`, click-to-focus, pointer focus, focus/unfocus, and
+- [ ] Match focus behavior for root, frame, title, icon, menu, and client contexts.
+- [ ] Implement `NoTitleFocus`, click-to-focus, pointer focus, focus/unfocus, and
   auto-raise semantics.
-- Match raise, lower, raise-or-lower, and circulation order.
-- Implement initial placement, random placement, position-hint handling,
+- [ ] Match raise, lower, raise-or-lower, and circulation order.
+- [ ] Implement initial placement, random placement, position-hint handling,
   maximum window sizes, and transient placement.
-- Handle map, unmap, remap, destruction, and title changes without stale
+- [ ] Handle map, unmap, remap, destruction, and title changes without stale
   compositor state.
 
 Testing:
 
-- Record geometry and stacking after every input event.
-- Replay identical input traces against reference `twm` and the Wayland
+- [ ] Record geometry and stacking after every input event.
+- [ ] Replay identical input traces against reference `twm` and the Wayland
   implementation.
-- Test every combination of title, border, transient, and size-hint state.
-- Test focus transitions across windows, menus, icons, and empty root space.
-- Run randomized window lifecycle and stacking model tests.
+- [ ] Test every combination of title, border, transient, and size-hint state.
+- [ ] Test focus transitions across windows, menus, icons, and empty root space.
+- [ ] Run randomized window lifecycle and stacking model tests.
 
 Exit criteria:
 
-- Geometry matches the reference exactly in the canonical 1× profile.
-- Focus and stacking traces contain no unexplained differences.
-- Every move, resize, placement, and focus option has an integration test.
+- [ ] Geometry matches the reference exactly in the canonical 1× profile.
+- [ ] Focus and stacking traces contain no unexplained differences.
+- [ ] Every move, resize, placement, and focus option has an integration test.
 
 ### Milestone 5: Achieve pixel-level visual parity
 
 Implementation work:
 
-- Match title height, padding, borders, button indentation, spacing, menu
+- [ ] Match title height, padding, borders, button indentation, spacing, menu
   borders, and shadows.
-- Implement XBM loading for title buttons, icons, cursors, and other monochrome
+- [ ] Implement XBM loading for title buttons, icons, cursors, and other monochrome
   assets.
-- Match title-button ordering, hit areas, pressed state, and highlight state.
-- Implement title squeezing and justification.
-- Match focused and unfocused border tiling and highlight behavior.
-- Support the complete color and monochrome configuration model.
-- Match menu typography, per-entry colors, interpolation, separators, disabled
+- [ ] Match title-button ordering, hit areas, pressed state, and highlight state.
+- [ ] Implement title squeezing and justification.
+- [ ] Match focused and unfocused border tiling and highlight behavior.
+- [ ] Support the complete color and monochrome configuration model.
+- [ ] Match menu typography, per-entry colors, interpolation, separators, disabled
   entries, submenus, and shadows.
-- Reproduce classic cursor shapes and configured foreground/background colors.
-- Provide a bitmap-compatible font path for canonical parity, including
+- [ ] Reproduce classic cursor shapes and configured foreground/background colors.
+- [ ] Provide a bitmap-compatible font path for canonical parity, including
   practical XLFD mapping.
-- Define deterministic scaling rules for HiDPI and fractional-scale displays.
+- [ ] Define deterministic scaling rules for HiDPI and fractional-scale displays.
 
 Testing:
 
-- Capture screenshots for every focus, title, border, menu, icon, and button
+- [ ] Capture screenshots for every focus, title, border, menu, icon, and button
   state.
-- Compare screenshots with masks only for genuinely nondeterministic client
+- [ ] Compare screenshots with masks only for genuinely nondeterministic client
   content.
-- Separately compare geometry, color, and font rasterization.
-- Test color, grayscale, and monochrome configurations.
-- Test long, empty, non-ASCII, and rapidly changing titles.
+- [ ] Separately compare geometry, color, and font rasterization.
+- [ ] Test color, grayscale, and monochrome configurations.
+- [ ] Test long, empty, non-ASCII, and rapidly changing titles.
 
 Exit criteria:
 
-- Frame and menu geometry differ by zero pixels in the canonical profile.
-- Configured colors match exactly after the defined color conversion.
-- Golden-image differences are either eliminated or individually reviewed and
+- [ ] Frame and menu geometry differ by zero pixels in the canonical profile.
+- [ ] Configured colors match exactly after the defined color conversion.
+- [ ] Golden-image differences are either eliminated or individually reviewed and
   documented.
-- A blind reviewer cannot identify the compositor from decorations alone.
+- [ ] A blind reviewer cannot identify the compositor from decorations alone.
 
 ### Milestone 6: Complete menus, bindings, and built-in functions
 
 Implementation work:
 
-- Reproduce exact key and pointer binding behavior for all modifiers and
+- [ ] Reproduce exact key and pointer binding behavior for all modifiers and
   contexts.
-- Match press, drag, threshold, release, cancellation, and submenu interaction.
-- Implement nested menus and named functions with reference ordering and
+- [ ] Match press, drag, threshold, release, cancellation, and submenu interaction.
+- [ ] Implement nested menus and named functions with reference ordering and
   interruption behavior.
-- Complete every built-in function family: raise, lower, move, resize, focus,
+- [ ] Complete every built-in function family: raise, lower, move, resize, focus,
   delete, destroy, iconify, circulation, raise-or-lower, all zoom variants and
   aliases, warp-to-window, warp-ring, warp-screen, icon-manager navigation,
   menu, function, title, no-op, delta-stop, execute, priority, quit, restart,
   reload, start-window-manager, identify, version, beep, refresh,
   window-refresh, and the legacy cut-buffer, file, colormap, and save-yourself
   actions.
-- Reproduce `DefaultFunction` and `WindowFunction`.
-- Preserve exact command execution and quoting behavior without invoking an
+- [ ] Reproduce `DefaultFunction` and `WindowFunction`.
+- [ ] Preserve exact command execution and quoting behavior without invoking an
   unnecessary shell.
 
 Testing:
 
-- Give every function an initial-state, input-sequence, and expected-state test.
-- Test functions both directly and from nested named functions.
-- Test all root, window, title, frame, icon, icon-manager, and all-context
+- [ ] Give every function an initial-state, input-sequence, and expected-state test.
+- [ ] Test functions both directly and from nested named functions.
+- [ ] Test all root, window, title, frame, icon, icon-manager, and all-context
   bindings.
-- Test modifier-lock handling, repeated input, canceled gestures, and
+- [ ] Test modifier-lock handling, repeated input, canceled gestures, and
   simultaneous client changes.
-- Compare function traces with reference `twm`.
+- [ ] Compare function traces with reference `twm`.
 
 Exit criteria:
 
-- Every upstream function is effective, behaviorally equivalent, or a verified
+- [ ] Every upstream function is effective, behaviorally equivalent, or a verified
   no-op.
-- Every binding context and modifier combination has automated coverage.
-- No function remains in a parser-only state.
+- [ ] Every binding context and modifier combination has automated coverage.
+- [ ] No function remains in a parser-only state.
 
 ### Milestone 7: Complete icons and icon managers
 
 Implementation work:
 
-- Implement compositor-owned icon windows with reference text, borders, colors,
+- [ ] Implement compositor-owned icon windows with reference text, borders, colors,
   and images.
-- Complete `IconifyByUnmapping`, icon-window mapping, `ForceIcons`,
+- [ ] Complete `IconifyByUnmapping`, icon-window mapping, `ForceIcons`,
   `UnknownIcon`, and `IconDirectory`.
-- Implement icon regions, gravity, placement direction, grid behavior, and
+- [ ] Implement icon regions, gravity, placement direction, grid behavior, and
   collision handling.
-- Implement per-window icon selection and supplied client icons.
-- Complete single and multiple icon managers, including window matching,
+- [ ] Implement per-window icon selection and supplied client icons.
+- [ ] Complete single and multiple icon managers, including window matching,
   geometry and columns, sorting, show and hide rules, active-row highlighting,
   focus and pointer interaction, and all directional and cross-manager
   navigation functions.
-- Match `StartIconified`, iconify/deiconify animation, and associated raise
+- [ ] Match `StartIconified`, iconify/deiconify animation, and associated raise
   behavior.
 
 Testing:
 
-- Compare icon placement for identical creation and destruction sequences.
-- Exercise full and partially occupied icon regions.
-- Test multiple icon managers across outputs.
-- Compare icon and icon-manager screenshots and navigation traces.
-- Repeatedly iconify, deiconify, close, and recreate large window sets.
+- [ ] Compare icon placement for identical creation and destruction sequences.
+- [ ] Exercise full and partially occupied icon regions.
+- [ ] Test multiple icon managers across outputs.
+- [ ] Compare icon and icon-manager screenshots and navigation traces.
+- [ ] Repeatedly iconify, deiconify, close, and recreate large window sets.
 
 Exit criteria:
 
-- Icon placement and manager ordering match reference `twm`.
-- Every icon-related directive and action is covered.
-- Long-running icon lifecycle tests produce no stale entries or overlapping
+- [ ] Icon placement and manager ordering match reference `twm`.
+- [ ] Every icon-related directive and action is covered.
+- [ ] Long-running icon lifecycle tests produce no stale entries or overlapping
   allocations.
 
 ### Milestone 8: Reconcile Wayland-specific lifecycle and screen behavior
@@ -438,77 +453,77 @@ implementation.
 
 Required mappings:
 
-- `f.twmrc` becomes an atomic full configuration reload.
-- `f.restart` reloads compositor state in place so existing clients are not
+- [ ] `f.twmrc` becomes an atomic full configuration reload.
+- [ ] `f.restart` reloads compositor state in place so existing clients are not
   disconnected.
-- `f.startwm` supports a safe configured handoff where possible, and reports
+- [ ] `f.startwm` supports a safe configured handoff where possible, and reports
   unsupported handoffs without destroying the session.
-- `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
+- [ ] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
   that can be restored safely.
-- Backing-store, save-under, and server-grab options become verified no-ops
+- [ ] Backing-store, save-under, and server-grab options become verified no-ops
   unless they have a visible compatibility effect.
-- Colormap actions operate for relevant Xwayland clients and become a documented
+- [ ] Colormap actions operate for relevant Xwayland clients and become a documented
   no-op for native true-color Wayland clients.
-- Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
+- [ ] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
   mechanism.
-- X screen-specific configuration maps predictably to Wayland outputs.
+- [ ] X screen-specific configuration maps predictably to Wayland outputs.
 
 Implementation work:
 
-- Implement output-aware placement and per-output root behavior.
-- Complete warp-to-screen behavior and screen history.
-- Handle output addition, removal, scale changes, and mode changes.
-- Restore windows safely when an output disappears.
-- Support input hotplugging and multiple keyboards and pointers.
-- Define session startup, logout, failure recovery, and state-file behavior.
+- [ ] Implement output-aware placement and per-output root behavior.
+- [ ] Complete warp-to-screen behavior and screen history.
+- [ ] Handle output addition, removal, scale changes, and mode changes.
+- [ ] Restore windows safely when an output disappears.
+- [ ] Support input hotplugging and multiple keyboards and pointers.
+- [ ] Define session startup, logout, failure recovery, and state-file behavior.
 
 Testing:
 
-- Reload good and invalid configurations while clients are active.
-- Exercise output hotplug and rearrangement.
-- Test one-output and multi-output screen-specific configurations.
-- Verify lifecycle translations with both native and Xwayland clients.
-- Confirm that every X11-only directive has no unexplained visible consequence.
+- [ ] Reload good and invalid configurations while clients are active.
+- [ ] Exercise output hotplug and rearrangement.
+- [ ] Test one-output and multi-output screen-specific configurations.
+- [ ] Verify lifecycle translations with both native and Xwayland clients.
+- [ ] Confirm that every X11-only directive has no unexplained visible consequence.
 
 Exit criteria:
 
-- All compatibility translations are documented and tested.
-- Reload and restart-style operations preserve active clients.
-- Output changes cannot strand or permanently hide a managed window.
+- [ ] All compatibility translations are documented and tested.
+- [ ] Reload and restart-style operations preserve active clients.
+- [ ] Output changes cannot strand or permanently hide a managed window.
 
 ### Milestone 9: Hardening, packaging, and long-duration testing
 
 Implementation work:
 
-- Validate all Wayland request serials and client-supplied sizes.
-- Harden configuration parsing, bitmap decoding, command execution, and Xwayland
+- [ ] Validate all Wayland request serials and client-supplied sizes.
+- [ ] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
   metadata handling.
-- Eliminate compositor crashes caused by malformed or hostile clients.
-- Add structured logging and an optional diagnostic state dump.
-- Complete manual pages, sample configurations, migration notes, and
+- [ ] Eliminate compositor crashes caused by malformed or hostile clients.
+- [ ] Add structured logging and an optional diagnostic state dump.
+- [ ] Complete manual pages, sample configurations, migration notes, and
   troubleshooting documentation.
-- Produce packages for the initially supported distributions.
-- Ship a session file under a distinct name; never replace the user's default
+- [ ] Produce packages for the initially supported distributions.
+- [ ] Ship a session file under a distinct name; never replace the user's default
   desktop automatically.
 
 Testing:
 
-- Run sanitizers, parser fuzzing, and protocol fuzzing.
-- Run rapid map/unmap, popup, resize, title-change, and client-crash stress
+- [ ] Run sanitizers, parser fuzzing, and protocol fuzzing.
+- [ ] Run rapid map/unmap, popup, resize, title-change, and client-crash stress
   tests.
-- Test hundreds of simultaneously managed windows.
-- Run at least a 72-hour mixed native/Xwayland soak test.
-- Test GPU and software rendering.
-- Test clean installation, upgrade from each prior release, removal, and
+- [ ] Test hundreds of simultaneously managed windows.
+- [ ] Run at least a 72-hour mixed native/Xwayland soak test.
+- [ ] Test GPU and software rendering.
+- [ ] Test clean installation, upgrade from each prior release, removal, and
   rollback.
-- Perform physical-machine tests across representative AMD, Intel, and ARM
+- [ ] Perform physical-machine tests across representative AMD, Intel, and ARM
   systems where available.
 
 Exit criteria:
 
-- No known crash, hang, protocol violation, or unbounded resource leak.
-- Packages pass clean-system installation and removal tests.
-- A compositor failure returns the user to a recoverable login state.
+- [ ] No known crash, hang, protocol violation, or unbounded resource leak.
+- [ ] Packages pass clean-system installation and removal tests.
+- [ ] A compositor failure returns the user to a recoverable login state.
 
 ### Milestone 10: Differential parity certification
 
@@ -517,42 +532,42 @@ Wayland implementation.
 
 The differential harness will compare:
 
-- Parsed configuration.
-- Window position and dimensions.
-- Frame extents.
-- Focus owner.
-- Stacking order.
-- Pointer location.
-- Menu state.
-- Icon and icon-manager state.
-- Commands launched.
-- Client close and destruction behavior.
-- Screenshots after every significant action.
+- [ ] Parsed configuration.
+- [ ] Window position and dimensions.
+- [ ] Frame extents.
+- [ ] Focus owner.
+- [ ] Stacking order.
+- [ ] Pointer location.
+- [ ] Menu state.
+- [ ] Icon and icon-manager state.
+- [ ] Commands launched.
+- [ ] Client close and destruction behavior.
+- [ ] Screenshots after every significant action.
 
 The certification corpus will include:
 
-- Upstream sample configurations.
-- The project's exhaustive generated configurations.
-- Collected real-world `.twmrc` files.
-- Legacy X11 applications.
-- Native Wayland equivalents.
-- Single-output, multi-output, monochrome, and color scenarios.
-- Keyboard-driven, mouse-driven, and mixed workflows.
+- [ ] Upstream sample configurations.
+- [ ] The project's exhaustive generated configurations.
+- [ ] Collected real-world `.twmrc` files.
+- [ ] Legacy X11 applications.
+- [ ] Native Wayland equivalents.
+- [ ] Single-output, multi-output, monochrome, and color scenarios.
+- [ ] Keyboard-driven, mouse-driven, and mixed workflows.
 
 Final 1.0 release gates:
 
-- One hundred percent grammar coverage.
-- One hundred percent built-in action coverage.
-- No “partial,” “parsed only,” or unexplained compatibility entries.
-- Zero geometry differences in the canonical profile.
-- Zero unexplained focus or stacking differences.
-- No unreviewed golden-image differences.
-- Successful 72-hour soak testing.
-- Successful package tests on every supported distribution and architecture.
-- Successful testing in nested, VM login, and physical hardware environments.
-- Blind A/B evaluation by experienced `twm` users, with no repeatable
+- [ ] One hundred percent grammar coverage.
+- [ ] One hundred percent built-in action coverage.
+- [ ] No “partial,” “parsed only,” or unexplained compatibility entries.
+- [ ] Zero geometry differences in the canonical profile.
+- [ ] Zero unexplained focus or stacking differences.
+- [ ] No unreviewed golden-image differences.
+- [ ] Successful 72-hour soak testing.
+- [ ] Successful package tests on every supported distribution and architecture.
+- [ ] Successful testing in nested, VM login, and physical hardware environments.
+- [ ] Blind A/B evaluation by experienced `twm` users, with no repeatable
   distinguishing behavior in the canonical profile.
-- All unavoidable Wayland translations documented in the manual and
+- [ ] All unavoidable Wayland translations documented in the manual and
   compatibility ledger.
 
 Only after these gates pass should the project describe itself as providing
