@@ -1,0 +1,36 @@
+.TH WTWM 1 "August 2026" "wtwm 0.1.0" "User Commands"
+.SH NAME
+wtwm \- a twm-compatible Wayland compositor
+.SH SYNOPSIS
+.B wtwm
+.RB [ \-d ]
+.RB [ \-f " twmrc" ]
+.RB [ \-s " command" ]
+.SH DESCRIPTION
+.B wtwm
+is a wlroots-based Wayland compositor that uses twm configuration syntax and
+classic server-side title bars.  It installs alongside X11 twm and appears as
+a separate login session.
+.PP
+Without
+.BR \-f ,
+configuration is read from ~/.twmrc.0, then ~/.twmrc, then the packaged
+system.twmrc.  Run
+.B wtwm-config
+to inspect how a file is interpreted.
+.SH OPTIONS
+.TP
+.B \-d
+Enable debug logging.
+.TP
+.BI \-f " file"
+Read the named twm configuration file.
+.TP
+.BI \-s " command"
+Run a shell command after the Wayland socket starts.
+.TP
+.B \-h
+Show usage.
+.SH NOTES
+Alt+Escape is an emergency compositor exit.  Wayland-native applications are
+supported in this release; see the project compatibility document for gaps.

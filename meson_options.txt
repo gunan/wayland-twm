@@ -1,0 +1,6 @@
+option(
+  'compositor',
+  type: 'feature',
+  value: 'auto',
+  description: 'Build the Linux wlroots compositor (portable parser tools are always built)',
+)

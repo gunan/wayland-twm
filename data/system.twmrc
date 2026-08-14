@@ -1,0 +1,48 @@
+# wtwm's packaged default.  It intentionally retains ordinary twm syntax.
+DecorateTransients
+OpaqueMove
+TitleFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+ResizeFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+MenuFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
+MoveDelta 3
+
+Color
+{
+    BorderColor "slategrey"
+    TitleBackground "rgb:2/a/9"
+    TitleForeground "gray85"
+    MenuBackground "rgb:2/a/9"
+    MenuForeground "gray85"
+    MenuBorderColor "slategrey"
+    MenuTitleBackground "gray70"
+    MenuTitleForeground "rgb:2/a/9"
+}
+
+Function "move-or-lower" { f.move f.deltastop f.lower }
+Function "move-or-raise" { f.move f.deltastop f.raise }
+Function "move-or-iconify" { f.move f.deltastop f.iconify }
+
+Button1 = : root : f.menu "defops"
+Button1 = m : window|icon : f.function "move-or-lower"
+Button2 = m : window|icon : f.iconify
+Button3 = m : window|icon : f.function "move-or-raise"
+Button1 = : title : f.function "move-or-raise"
+Button2 = : title : f.raiselower
+
+# A practical escape hatch while the root menu renderer is under development.
+"Return" = m : all : f.exec "foot"
+
+Menu "defops"
+{
+    "Twm"        f.title
+    "Iconify"    f.iconify
+    "Resize"     f.resize
+    "Move"       f.move
+    "Raise"      f.raise
+    "Lower"      f.lower
+    ""           f.nop
+    "Terminal"   f.exec "foot"
+    ""           f.nop
+    "Delete"     f.delete
+    "Exit"       f.quit
+}
