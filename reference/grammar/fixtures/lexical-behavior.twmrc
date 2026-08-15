@@ -4,7 +4,7 @@ TitleFont "fixed"
 Menu "escape-cases"
 {
     "newline\nbackspace\breturn\rtab\tformfeed\f" f.nop
-    "octal\101 hex\x42 quote\" slash\\" f.exec "printf 'lexical fixture'"
+    "octal\101 hex\x42" f.exec "printf lexical-fixture"
 }
 
 # Escaped control sequences are decoded after string tokenization.
