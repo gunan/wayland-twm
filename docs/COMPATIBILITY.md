@@ -56,18 +56,19 @@ is counted and reported rather than silently truncated.
 
 Parsing and loading are transactional. A successful parse replaces the prior
 model; any lexical, syntactic, I/O, or allocation failure destroys only the
-candidate and leaves the active configuration intact. Repeated named menu and
-function definitions append entries as reference `GetRoot` does. Numeric,
+candidate and leaves the active configuration intact. Repeated menu and
+function definitions with the same case-sensitive name append entries as
+reference `GetRoot` does; differently cased names remain distinct. Numeric,
 string, and base-color assignments are last-assignment-wins. Later bindings
 replace only overlapping indexed trigger/modifier/context slots, and ordered
 generic records retain the original declaration sequence.
 
-Search uses the reference precedence: an explicit file, then
-`$HOME/.twmrc.<screen>`, `$HOME/.twmrc`, the packaged system file, and finally
-the substantive compiled-in frozen system defaults. A missing explicit file
-therefore falls through rather than becoming an immediate fatal error. The
-screen-aware API makes the screen suffix explicit; the original load API is a
-screen-zero wrapper.
+Without an explicit path, search uses the reference precedence:
+`$HOME/.twmrc.<screen>`, `$HOME/.twmrc`, the packaged system file, then the
+substantive compiled-in frozen system defaults. An explicit path suppresses
+both home-file probes; if missing, it falls directly to the system file and
+then built-in defaults. The screen-aware API makes the screen suffix explicit;
+the original load API is a screen-zero wrapper.
 
 Reference window lists do not provide shell wildcards: matching is an exact,
 case-sensitive comparison against X11 `WM_NAME`, then resource name, then

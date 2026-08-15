@@ -500,7 +500,7 @@ static bool same_trigger(const struct wtwm_binding *a, const struct wtwm_binding
 	if (a->type != b->type || a->modifiers != b->modifiers ||
 		strcmp(a->window_name, b->window_name) != 0) return false;
 	if (a->type == WTWM_BINDING_BUTTON) return a->button == b->button;
-	return strcasecmp(a->key, b->key) == 0;
+	return strcmp(a->key, b->key) == 0;
 }
 
 static bool add_binding(struct parser *parser, struct wtwm_binding *binding) {
@@ -561,7 +561,7 @@ static bool parse_binding_tail(struct parser *parser, struct wtwm_binding *bindi
 static bool parse_button(struct parser *parser) {
 	int number = 0;
 	if (!take_number(parser, &number)) return false;
-	if (number < 1 || number > 5) return fail(parser, "button number must be 1-5");
+	if (number < 1 || number > 16) return fail(parser, "button number must be 1-16");
 	struct wtwm_binding binding = {
 		.type = WTWM_BINDING_BUTTON,
 		.button = (unsigned)number,
@@ -598,7 +598,7 @@ static bool parse_menu_colors(struct parser *parser, char *foreground,
 
 static struct wtwm_menu *get_menu(struct parser *parser, const char *name) {
 	for (size_t i = 0; i < parser->config->menu_count; ++i)
-		if (equal_ci(parser->config->menus[i].name, name)) return &parser->config->menus[i];
+		if (strcmp(parser->config->menus[i].name, name) == 0) return &parser->config->menus[i];
 	struct wtwm_menu *items = grow_array(parser->config->menus,
 		parser->config->menu_count + 1, sizeof(*items));
 	if (items == NULL) {
@@ -641,7 +641,7 @@ static bool parse_menu(struct parser *parser) {
 
 static struct wtwm_function *get_function(struct parser *parser, const char *name) {
 	for (size_t i = 0; i < parser->config->function_count; ++i)
-		if (equal_ci(parser->config->functions[i].name, name))
+		if (strcmp(parser->config->functions[i].name, name) == 0)
 			return &parser->config->functions[i];
 	struct wtwm_function *items = grow_array(parser->config->functions,
 		parser->config->function_count + 1, sizeof(*items));
@@ -873,8 +873,8 @@ static bool parse_save_color(struct parser *parser) {
 
 static bool cursor_role(const char *name) {
 	static const char *const roles[] = {
-		"Frame", "Title", "Icon", "IconMgr", "Button", "Move", "Resize",
-		"Wait", "Menu", "Select", "Destroy",
+		"F", "Frame", "T", "Title", "I", "Icon", "IconMgr", "M", "Meta",
+		"Mod", "Button", "Move", "Resize", "Wait", "Menu", "Select", "Destroy",
 	};
 	for (size_t i = 0; i < sizeof(roles) / sizeof(roles[0]); ++i)
 		if (equal_ci(name, roles[i])) return true;
@@ -966,12 +966,15 @@ static bool parse_icon_managers(struct parser *parser) {
 		struct wtwm_icon_manager *manager = &items[0];
 		++parser->config->icon_manager_count;
 		memset(manager, 0, sizeof(*manager));
+		char second[WTWM_NAME_MAX];
 		if (!take_string(parser, manager->window_name, sizeof(manager->window_name)) ||
-			!take_string(parser, manager->icon_name, sizeof(manager->icon_name))) return false;
-		if (parser->token.type == TOK_STRING &&
-			!take_string(parser, manager->geometry, sizeof(manager->geometry))) return false;
-		else if (parser->token.type != TOK_NUMBER)
-			copy_text(manager->geometry, sizeof(manager->geometry), manager->icon_name);
+			!take_string(parser, second, sizeof(second))) return false;
+		if (parser->token.type == TOK_STRING) {
+			copy_text(manager->icon_name, sizeof(manager->icon_name), second);
+			if (!take_string(parser, manager->geometry, sizeof(manager->geometry))) return false;
+		} else {
+			copy_text(manager->geometry, sizeof(manager->geometry), second);
+		}
 		if (!take_number(parser, &manager->columns)) return false;
 	}
 	return next_token(parser);
@@ -1111,7 +1114,7 @@ static bool parse_statement_body(struct parser *parser, const char *keyword,
 		}
 	}
 	return fail_at(parser, parser->record ? parser->record->line : parser->token.line,
-		"unknown or misplaced keyword '%s'", keyword);
+		"unknown keyword '%s'", keyword);
 }
 
 static bool parse_statement(struct parser *parser) {
@@ -1136,10 +1139,10 @@ void wtwm_config_init(struct wtwm_config *config) {
 	memset(config, 0, sizeof(*config));
 	config->border_width = 2;
 	config->title_button_border_width = 1;
-	config->title_padding = 5;
+	config->title_padding = 8;
 	config->frame_padding = 2;
 	config->button_indent = 1;
-	config->move_delta = 3;
+	config->move_delta = 1;
 	config->constrained_move_time = 400;
 	config->menu_border_width = 2;
 	config->icon_border_width = 2;
@@ -1326,7 +1329,12 @@ bool wtwm_config_load_for_screen(struct wtwm_config *config, const char *path,
 	const char *system_override = getenv("WTWM_SYSTEM_CONFIG");
 	const char *system_path = system_override && system_override[0] ?
 		system_override : WTWM_SYSTEM_CONFIG;
-	const char *candidates[] = {path, screen_path, general_path, system_path};
+	const char *candidates[] = {
+		path,
+		path == NULL ? screen_path : NULL,
+		path == NULL ? general_path : NULL,
+		system_path,
+	};
 	for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
 		const char *candidate = candidates[i];
 		if (candidate == NULL || candidate[0] == '\0') continue;
@@ -1441,6 +1449,9 @@ void wtwm_config_dump(const struct wtwm_config *config, FILE *stream) {
 	fprintf(stream, "icon-border-width=%d\npriority=%d\nxor-value=%d\nzoom=%d\nzoom-count=%d\n",
 		config->icon_border_width, config->priority, config->xor_value,
 		config->zoom, config->zoom_count);
+	fprintf(stream, "no-defaults=%d\nno-grab-server=%d\nno-icon-managers=%d\ntitle-focus=%d\n",
+		config->no_defaults, config->no_grab_server, config->no_icon_managers,
+		!config->no_title_focus);
 #define DUMP_BOOL(field) fprintf(stream, #field "=%d\n", config->field)
 	DUMP_BOOL(no_title); DUMP_BOOL(decorate_transients); DUMP_BOOL(opaque_move);
 	DUMP_BOOL(random_placement); DUMP_BOOL(dont_move_off); DUMP_BOOL(no_raise_on_move);

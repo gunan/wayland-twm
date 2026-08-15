@@ -12,6 +12,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifndef WTWM_SOURCE_ROOT
+#define WTWM_SOURCE_ROOT ""
+#endif
+
 static void parse_lexical_reference_forms(void) {
 	static const char source[] =
 		"# comment consumes its newline\n"
@@ -39,7 +43,7 @@ static void rejects_reference_lexical_errors(void) {
 		const char *line;
 	} cases[] = {
 		{"MoveDelta @\n", "invalid character", ":1:"},
-		{"UnknownThing\n", "unknown or misplaced", ":1:"},
+		{"UnknownThing\n", "unknown keyword", ":1:"},
 		{"TitleFont \"unterminated", "unterminated quoted", ":1:"},
 		{"MoveDelta 999999999999999999999999999999\n", "out of range", ":1:"},
 		{"BorderWidth -1\n", "expected a number", ":1:"},
@@ -120,6 +124,12 @@ static void parses_every_construct_family(void) {
 	assert(config.pixmap_count == 1);
 	assert(config.icon_region_count == 1);
 	assert(config.icon_manager_count == 2);
+	assert(strcmp(config.icon_managers[0].window_name, "Emacs") == 0);
+	assert(config.icon_managers[0].icon_name[0] == '\0');
+	assert(strcmp(config.icon_managers[0].geometry, "300x5") == 0);
+	assert(strcmp(config.icon_managers[1].window_name, "XTerm") == 0);
+	assert(strcmp(config.icon_managers[1].icon_name, "term") == 0);
+	assert(strcmp(config.icon_managers[1].geometry, "200x5+0+0") == 0);
 	assert(config.icon_count == 2);
 	assert(config.squeeze_entry_count == 2);
 	assert(config.window_list_count == 14);
@@ -152,23 +162,46 @@ static void preserves_order_and_replacement_rules(void) {
 		"Color { TitleForeground \"red\" TitleForeground \"blue\" }\n"
 		"Button1 = : root|window : f.raise\n"
 		"Button1 = : root : f.lower\n"
+		"\"F1\" = : root : f.raise\n\"f1\" = : root : f.lower\n"
 		"Menu \"m\" { \"one\" f.nop }\nMenu \"m\" { \"two\" f.nop }\n"
-		"Function \"f\" { f.raise }\nFunction \"f\" { f.lower }\n";
+		"Menu \"M\" { \"upper\" f.nop }\n"
+		"Function \"f\" { f.raise }\nFunction \"f\" { f.lower }\n"
+		"Function \"F\" { f.nop }\n";
 	struct wtwm_config config;
 	wtwm_config_init(&config);
 	char error[512];
 	assert(wtwm_config_parse(&config, "order", source, error, sizeof(error)));
 	assert(config.border_width == 9);
 	assert(strcmp(config.title_foreground, "blue") == 0);
-	assert(config.binding_count == 2);
+	assert(config.binding_count == 4);
 	assert(config.bindings[0].contexts == WTWM_CONTEXT_WINDOW);
 	assert(config.bindings[1].contexts == WTWM_CONTEXT_ROOT);
 	assert(config.bindings[1].action.type == WTWM_ACTION_LOWER);
-	assert(config.menu_count == 1 && config.menus[0].item_count == 2);
-	assert(config.function_count == 1 && config.functions[0].action_count == 2);
+	assert(strcmp(config.bindings[2].key, "F1") == 0);
+	assert(strcmp(config.bindings[3].key, "f1") == 0);
+	assert(config.menu_count == 2 && config.menus[0].item_count == 2);
+	assert(strcmp(config.menus[1].name, "M") == 0 && config.menus[1].item_count == 1);
+	assert(config.function_count == 2 && config.functions[0].action_count == 2);
+	assert(strcmp(config.functions[1].name, "F") == 0 && config.functions[1].action_count == 1);
 	assert(config.directives[0].ordinal == 0);
 	assert(strcmp(config.directives[0].name, "BorderWidth") == 0);
 	assert(strcmp(config.directives[1].name, "BorderWidth") == 0);
+	wtwm_config_finish(&config);
+}
+
+static void uses_reference_intrinsic_defaults_and_aliases(void) {
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	assert(config.title_padding == 8);
+	assert(config.move_delta == 1);
+	char error[512];
+	assert(wtwm_config_parse(&config, "aliases",
+		"Button16 = : root : f.nop\n"
+		"Cursors { F \"a\" T \"b\" I \"c\" M \"d\" Meta \"e\" Mod \"f\" }\n",
+		error, sizeof(error)));
+	assert(config.title_padding == 8 && config.move_delta == 1);
+	assert(config.binding_count == 1 && config.bindings[0].button == 16);
+	assert(config.cursor_count == 6);
 	wtwm_config_finish(&config);
 }
 
@@ -223,6 +256,8 @@ static void rejects_malformed_and_truncated_constructs(void) {
 		"Button1 = : root : f.unknown\n",
 		"Menu \"m\" { \"entry\" }\n",
 		"Function \"f\" { f.exec }\n",
+		"Button0 = : root : f.nop\n",
+		"Button17 = : root : f.nop\n",
 	};
 	for (size_t i = 0; i < sizeof(malformed) / sizeof(malformed[0]); ++i) {
 		struct wtwm_config config;
@@ -265,7 +300,10 @@ static void write_config(const char *path, int width) {
 }
 
 static void loads_reference_search_order(void) {
-	char directory[] = "/private/tmp/wtwm-config-test-XXXXXX";
+	const char *temporary_root = getenv("TMPDIR");
+	if (temporary_root == NULL || temporary_root[0] == '\0') temporary_root = "/tmp";
+	char directory[PATH_MAX];
+	snprintf(directory, sizeof(directory), "%s/wtwm-config-test-XXXXXX", temporary_root);
 	assert(mkdtemp(directory) != NULL);
 	char screen_path[PATH_MAX], general_path[PATH_MAX], system_path[PATH_MAX];
 	char explicit_path[PATH_MAX], missing_path[PATH_MAX];
@@ -287,18 +325,27 @@ static void loads_reference_search_order(void) {
 	char error[512];
 	assert(wtwm_config_load_for_screen(&config, explicit_path, 3, error, sizeof(error)));
 	assert(config.border_width == 2);
-	assert(wtwm_config_load_for_screen(&config, missing_path, 3, error, sizeof(error)));
-	assert(config.border_width == 3);
-	assert(unlink(screen_path) == 0);
-	assert(wtwm_config_load_for_screen(&config, missing_path, 3, error, sizeof(error)));
-	assert(config.border_width == 4);
-	assert(unlink(general_path) == 0);
+	FILE *invalid = fopen(explicit_path, "wb");
+	assert(invalid != NULL);
+	fputs("BorderWidth invalid\n", invalid);
+	assert(fclose(invalid) == 0);
+	assert(!wtwm_config_load_for_screen(&config, explicit_path, 3, error, sizeof(error)));
+	assert(config.border_width == 2);
 	assert(wtwm_config_load_for_screen(&config, missing_path, 3, error, sizeof(error)));
 	assert(config.border_width == 5);
+	assert(wtwm_config_load_for_screen(&config, NULL, 3, error, sizeof(error)));
+	assert(config.border_width == 3);
+	assert(unlink(screen_path) == 0);
+	assert(wtwm_config_load_for_screen(&config, NULL, 3, error, sizeof(error)));
+	assert(config.border_width == 4);
+	assert(unlink(general_path) == 0);
+	assert(wtwm_config_load_for_screen(&config, NULL, 3, error, sizeof(error)));
+	assert(config.border_width == 5);
 	assert(unlink(system_path) == 0);
-	assert(wtwm_config_load_for_screen(&config, missing_path, 3, error, sizeof(error)));
+	assert(wtwm_config_load_for_screen(&config, NULL, 3, error, sizeof(error)));
 	assert(config.binding_count > 0);
 	assert(config.menu_count == 1);
+	assert(config.move_delta == 3);
 	assert(strcmp(config.menus[0].name, "defops") == 0);
 	wtwm_config_finish(&config);
 	if (old_home) { assert(setenv("HOME", old_home, 1) == 0); free(old_home); }
@@ -346,6 +393,15 @@ static void dumps_comprehensive_ordered_model(void) {
 	size_t count = fread(dump, 1, sizeof(dump) - 1, file);
 	dump[count] = '\0';
 	assert(strstr(dump, "border-width=8") != NULL);
+	assert(strstr(dump, "button-indent=1") != NULL);
+	assert(strstr(dump, "frame-padding=2") != NULL);
+	assert(strstr(dump, "move-delta=1") != NULL);
+	assert(strstr(dump, "no-defaults=0") != NULL);
+	assert(strstr(dump, "no-grab-server=1") != NULL);
+	assert(strstr(dump, "no-icon-managers=0") != NULL);
+	assert(strstr(dump, "title-button-border-width=1") != NULL);
+	assert(strstr(dump, "title-focus=1") != NULL);
+	assert(strstr(dump, "title-padding=8") != NULL);
 	assert(strstr(dump, "title_font=\"font\"") != NULL);
 	assert(strstr(dump, "0 name=BorderWidth") != NULL);
 	assert(strstr(dump, "1 name=NoGrabServer") != NULL);
@@ -362,10 +418,17 @@ static void parses_frozen_upstream_examples(void) {
 		"reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc",
 		"reference/upstream/twm-1.0.13.1/defaults/system.twmrc",
 	};
+	const char *source_root = getenv("WTWM_SOURCE_ROOT");
+	if (source_root == NULL || source_root[0] == '\0') source_root = getenv("MESON_SOURCE_ROOT");
+	if (source_root == NULL || source_root[0] == '\0') source_root = WTWM_SOURCE_ROOT;
 	for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i) {
-		char from_build[PATH_MAX];
+		char rooted[PATH_MAX], from_build[PATH_MAX];
 		const char *path = paths[i];
-		if (access(path, R_OK) != 0) {
+		if (source_root[0] != '\0') {
+			snprintf(rooted, sizeof(rooted), "%s/%s", source_root, paths[i]);
+			path = rooted;
+		}
+		if (source_root[0] == '\0' && access(path, R_OK) != 0) {
 			snprintf(from_build, sizeof(from_build), "../%s", paths[i]);
 			path = from_build;
 		}
@@ -384,6 +447,7 @@ int main(void) {
 	rejects_reference_lexical_errors();
 	parses_every_construct_family();
 	preserves_order_and_replacement_rules();
+	uses_reference_intrinsic_defaults_and_aliases();
 	failed_parse_is_atomic_and_leak_safe();
 	rejects_malformed_and_truncated_constructs();
 	matches_reference_selection_rules();
