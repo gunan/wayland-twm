@@ -171,11 +171,75 @@ if wlroots.found()
     output: 'xdg-shell-protocol.h',
     command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
   )
-  executable(
+  wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
     dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
     install: true,
+  )
+  wtwm_test_compositor = executable(
+    'wtwm-test-compositor',
+    ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
+    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
+    c_args: ['-DWTWM_TEST_CONTROL'],
+    install: false,
+  )
+  wayland_client = dependency('wayland-client')
+  xdg_shell_client_header = custom_target(
+    'xdg-shell-client-protocol-header',
+    input: xdg_shell_xml,
+    output: 'xdg-shell-client-protocol.h',
+    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+  )
+  xdg_shell_client_code = custom_target(
+    'xdg-shell-client-protocol-code',
+    input: xdg_shell_xml,
+    output: 'xdg-shell-client-protocol.c',
+    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+  )
+  wtwm_wayland_test_client = executable(
+    'wtwm-wayland-test-client',
+    [
+      'tests/integration/wayland_test_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  integration_runner = find_program('python3')
+  test(
+    'headless compositor integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'headless compositor stability (100 runs)',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+      '--repeat', '100',
+    ],
+    timeout: 600,
+    is_parallel: false,
+  )
+  test(
+    'nested Wayland compositor integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+      '--nested',
+    ],
+    timeout: 60,
   )
   install_data(
     'data/wtwm.desktop',
