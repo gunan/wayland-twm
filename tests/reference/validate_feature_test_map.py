@@ -29,7 +29,7 @@ ROOT_FIELDS = [
 ]
 ENTRY_FIELDS = ["feature_id", "category", "implementation_status", "tests"]
 TEST_FIELDS = [
-    "test_id", "path", "meson_test", "case", "dimension", "assertions",
+    "test_id", "path", "meson_test", "case", "dimension", "expected", "assertions",
     "fixture", "checks",
 ]
 CHECK_FIELDS = ["location", "contains"]
@@ -123,11 +123,15 @@ def validate_mapping(
     fixture = value["fixture"]
     checks = value["checks"]
     if value["dimension"] == "syntax":
+        if value["expected"] not in {"accept", "reject"}:
+            errors.append(f"{label} syntax mapping has an invalid expected result")
         if not isinstance(fixture, str) or not fixture.strip():
             errors.append(f"{label} syntax mapping requires a dedicated fixture")
         if checks != []:
             errors.append(f"{label} syntax mapping cannot contain source checks")
     elif value["dimension"] == "source_contract":
+        if value["expected"] != "not-applicable":
+            errors.append(f"{label} source contract must not declare a parser result")
         if fixture != "":
             errors.append(f"{label} source contract cannot contain a parser fixture")
         if not isinstance(checks, list) or not checks:
@@ -158,8 +162,8 @@ def validate_feature_map(
     if not fields(feature_map, ROOT_FIELDS, "feature_map", errors):
         return errors
     assert isinstance(feature_map, dict)
-    if feature_map["schema_version"] != "1.0":
-        errors.append("feature_map.schema_version must be 1.0")
+    if feature_map["schema_version"] != "1.1":
+        errors.append("feature_map.schema_version must be 1.1")
     if feature_map["current_audit_path"] != AUDIT_PATH:
         errors.append("feature_map.current_audit_path differs from the immutable audit")
     policy = feature_map["dimension_policy"]
@@ -266,9 +270,11 @@ def execute_cases(feature_map: dict[str, object], source_root: Path, config_tool
                         stderr=subprocess.PIPE,
                         check=False,
                     )
-                    if result.returncode != 0:
+                    expected_accept = mapping["expected"] == "accept"
+                    if (result.returncode == 0) != expected_accept:
                         errors.append(
-                            f"{entry['feature_id']} syntax case failed: "
+                            f"{entry['feature_id']} syntax case expected "
+                            f"{mapping['expected']}: "
                             f"{result.stderr.strip() or result.stdout.strip()}"
                         )
     return errors
@@ -299,6 +305,9 @@ def tamper_self_test(
     changed = copy.deepcopy(feature_map)
     changed["entries"][0]["tests"][0]["dimension"] = "runtime"  # type: ignore[index]
     mutations.append(("invalid-runtime-claim", changed))
+    changed = copy.deepcopy(feature_map)
+    changed["entries"][0]["tests"][0]["expected"] = "sometimes"  # type: ignore[index]
+    mutations.append(("invalid-expected-result", changed))
     changed = copy.deepcopy(feature_map)
     changed["entries"][0]["tests"][0]["fixture"] = "OpaqueMove\n"  # type: ignore[index]
     mutations.append(("stale-fixture", changed))

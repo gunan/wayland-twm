@@ -442,6 +442,85 @@ static void parses_frozen_upstream_examples(void) {
 	}
 }
 
+/*
+ * Keep the stable M0 audit case names executable while the broader M2 cases
+ * above provide the complete grammar coverage.
+ */
+static void parse_defaults(void) {
+	static const char source[] =
+		"NoGrabServer\nDecorateTransients\nTitleFont \"fixed\"\nMoveDelta 3\n"
+		"Color { BorderColor \"slategrey\" TitleBackground \"navy\" }\n"
+		"Function \"move-or-raise\" { f.move f.deltastop f.raise }\n"
+		"Button1 = : root : f.menu \"defops\"\n"
+		"Menu \"defops\" { \"Twm\" f.title \"Move\" f.move \"Exit\" f.quit }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "defaults", source, error, sizeof(error)));
+	assert(config.decorate_transients && config.move_delta == 3);
+	assert(config.function_count == 1 && config.functions[0].action_count == 3);
+	assert(config.menu_count == 1 && config.menus[0].item_count == 3);
+	assert(config.warning_count == 3);
+	wtwm_config_finish(&config);
+}
+
+static void parse_rules_and_title_buttons(void) {
+	static const char source[] =
+		"NoTitle { \"xclock\" \"xload\" }\nAutoRaise { \"xterm\" }\n"
+		"StartIconified { \"mail\" }\n"
+		"LeftTitleButton \"xlogo11\" = f.iconify\n"
+		"RightTitleButton \"resize\" = f.resize\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "rules", source, error, sizeof(error)));
+	assert(config.no_title_windows.count == 2);
+	assert(config.auto_raise_windows.count == 1);
+	assert(config.start_iconified_windows.count == 1);
+	assert(config.title_button_count == 2);
+	wtwm_config_finish(&config);
+}
+
+static void rejects_invalid_binding(void) {
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(!wtwm_config_parse(&config, "bad",
+		"Button1 = banana : root : f.move\n", error, sizeof(error)));
+	assert(strstr(error, "unknown modifier") != NULL);
+	wtwm_config_finish(&config);
+}
+
+static void accepts_legacy_syntax(void) {
+	static const char source[] =
+		"SqueezeTitle { \"xterm\" Center 0 0 }\n"
+		"Cursors { Button \"left_ptr\" Frame \"left_ptr\" }\n"
+		"\"KP_Add\" = mod5 : all : f.colormap \"next\"\n"
+		"Button1 = : m : f.iconify\n"
+		"Menu \"hosts\" { \"host\" ! \"ssh host &\" }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "legacy", source, error, sizeof(error)));
+	assert(config.binding_count == 2 && config.squeeze_entry_count == 1);
+	assert(config.menus[0].items[0].action.type == WTWM_ACTION_EXEC);
+	assert(config.warning_count == 3);
+	wtwm_config_finish(&config);
+}
+
+static void applies_global_and_exception_rules(void) {
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "rules",
+		"NoTitle\nMakeTitle { \"special\" }\nAutoRaise { \"raised\" }\n",
+		error, sizeof(error)));
+	assert(config.no_title);
+	assert(config.make_title_windows.count == 1);
+	assert(config.auto_raise_windows.count == 1);
+	wtwm_config_finish(&config);
+}
+
 int main(void) {
 	parse_lexical_reference_forms();
 	rejects_reference_lexical_errors();
@@ -455,6 +534,11 @@ int main(void) {
 	preserves_long_source_without_silent_lexical_truncation();
 	dumps_comprehensive_ordered_model();
 	parses_frozen_upstream_examples();
+	parse_defaults();
+	parse_rules_and_title_buttons();
+	rejects_invalid_binding();
+	accepts_legacy_syntax();
+	applies_global_and_exception_rules();
 	puts("config tests passed");
 	return 0;
 }

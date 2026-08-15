@@ -14,7 +14,7 @@ repo_root=$1
 config_tool=$2
 artifact_output=${3:-}
 normalizer="$repo_root/tests/reference/compare_reference_parser.py"
-builder="$repo_root/tests/reference/build_reference_twm.sh"
+builder="$repo_root/tests/reference/build_reference_parser.sh"
 
 test -f "$normalizer" || fail "comparison harness is missing"
 test -f "$builder" || fail "reference builder is missing"

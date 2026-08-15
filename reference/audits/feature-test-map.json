@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "current_audit_path": "reference/audits/current-implementation.json",
   "feature_count": 134,
   "dimension_policy": {
@@ -38,8 +38,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-beep",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-beep fixture is accepted by wtwm-config.",
+            "The dedicated action.f-beep fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.beep\n",
@@ -58,8 +59,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-cut-alias",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-cut-alias fixture is accepted by wtwm-config.",
+            "The dedicated action.f-cut-alias fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : ^ \"cut-buffer\"\n",
@@ -78,6 +80,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-deiconify",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-deiconify remains present."
@@ -85,11 +88,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:61",
-              "contains": "{\"f.deiconify\","
+              "location": "src/config.c:71",
+              "contains": "ACT(\"f.deiconify\","
             },
             {
-              "location": "src/wtwm.c:581",
+              "location": "src/wtwm.c:571",
               "contains": "WTWM_ACTION_DEICONIFY"
             }
           ]
@@ -100,8 +103,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-deiconify",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-deiconify fixture is accepted by wtwm-config.",
+            "The dedicated action.f-deiconify fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.deiconify\n",
@@ -120,6 +124,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-delete",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-delete remains present."
@@ -127,11 +132,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:60",
+              "location": "src/config.c:72",
               "contains": "{\"f.delete\","
             },
             {
-              "location": "src/wtwm.c:594",
+              "location": "src/wtwm.c:584",
               "contains": "WTWM_ACTION_DELETE"
             }
           ]
@@ -142,8 +147,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-delete",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-delete fixture is accepted by wtwm-config.",
+            "The dedicated action.f-delete fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.delete\n",
@@ -162,8 +168,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-deltastop",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-deltastop fixture is accepted by wtwm-config.",
+            "The dedicated action.f-deltastop fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.deltastop\n",
@@ -182,6 +189,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-destroy",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-destroy remains present."
@@ -189,11 +197,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:63",
+              "location": "src/config.c:74",
               "contains": "{\"f.destroy\","
             },
             {
-              "location": "src/wtwm.c:594",
+              "location": "src/wtwm.c:584",
               "contains": "WTWM_ACTION_DESTROY"
             }
           ]
@@ -204,8 +212,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-destroy",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-destroy fixture is accepted by wtwm-config.",
+            "The dedicated action.f-destroy fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.destroy\n",
@@ -224,6 +233,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-exec",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-exec remains present."
@@ -231,11 +241,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:64",
-              "contains": "{\"f.exec\","
+              "location": "src/config.c:76",
+              "contains": "ACT_ARG(\"f.exec\","
             },
             {
-              "location": "src/wtwm.c:597",
+              "location": "src/wtwm.c:587",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -246,8 +256,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-exec",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-exec fixture is accepted by wtwm-config.",
+            "The dedicated action.f-exec fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.exec \"argument\"\n",
@@ -266,6 +277,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-exec-alias",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-exec-alias remains present."
@@ -273,11 +285,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:272",
-              "contains": "strcmp(action->name, \"!\")"
+              "location": "src/config.c:449",
+              "contains": "strcmp(spelling, \"!\")"
             },
             {
-              "location": "src/wtwm.c:597",
+              "location": "src/wtwm.c:587",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -288,8 +300,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-exec-alias",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-exec-alias fixture is accepted by wtwm-config.",
+            "The dedicated action.f-exec-alias fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : ! \"true\"\n",
@@ -308,6 +321,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-focus",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-focus remains present."
@@ -315,11 +329,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:65",
-              "contains": "{\"f.focus\","
+              "location": "src/config.c:78",
+              "contains": "ACT(\"f.focus\","
             },
             {
-              "location": "src/wtwm.c:589",
+              "location": "src/wtwm.c:579",
               "contains": "WTWM_ACTION_FOCUS"
             }
           ]
@@ -330,8 +344,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-focus",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-focus fixture is accepted by wtwm-config.",
+            "The dedicated action.f-focus fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.focus\n",
@@ -350,6 +365,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-forcemove",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-forcemove remains present."
@@ -357,11 +373,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:66",
-              "contains": "{\"f.forcemove\","
+              "location": "src/config.c:78",
+              "contains": "ACT(\"f.forcemove\","
             },
             {
-              "location": "src/wtwm.c:558",
+              "location": "src/wtwm.c:548",
               "contains": "WTWM_ACTION_FORCEMOVE"
             }
           ]
@@ -372,8 +388,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-forcemove",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-forcemove fixture is accepted by wtwm-config.",
+            "The dedicated action.f-forcemove fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.forcemove\n",
@@ -392,8 +409,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-fullzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-fullzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-fullzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.fullzoom\n",
@@ -412,6 +430,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-function",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-function remains present."
@@ -419,11 +438,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:68",
-              "contains": "{\"f.function\","
+              "location": "src/config.c:80",
+              "contains": "ACT_ARG(\"f.function\","
             },
             {
-              "location": "src/wtwm.c:601",
+              "location": "src/wtwm.c:591",
               "contains": "WTWM_ACTION_FUNCTION"
             }
           ]
@@ -434,8 +453,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-function",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-function fixture is accepted by wtwm-config.",
+            "The dedicated action.f-function fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.function \"argument\"\n",
@@ -454,8 +474,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-hbzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-hbzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-hbzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.hbzoom\n",
@@ -474,8 +495,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-horizoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-horizoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-horizoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.horizoom\n",
@@ -494,8 +516,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-htzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-htzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-htzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.htzoom\n",
@@ -514,8 +537,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-hzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-hzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-hzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.hzoom\n",
@@ -534,6 +558,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-iconify",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-iconify remains present."
@@ -541,11 +566,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:73",
-              "contains": "{\"f.iconify\","
+              "location": "src/config.c:83",
+              "contains": "ACT(\"f.iconify\","
             },
             {
-              "location": "src/wtwm.c:573",
+              "location": "src/wtwm.c:563",
               "contains": "WTWM_ACTION_ICONIFY"
             }
           ]
@@ -556,8 +581,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-iconify",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-iconify fixture is accepted by wtwm-config.",
+            "The dedicated action.f-iconify fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.iconify\n",
@@ -576,8 +602,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-leftzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-leftzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-leftzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.leftzoom\n",
@@ -596,6 +623,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-lower",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-lower remains present."
@@ -603,11 +631,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:75",
-              "contains": "{\"f.lower\","
+              "location": "src/config.c:85",
+              "contains": "ACT(\"f.lower\","
             },
             {
-              "location": "src/wtwm.c:565",
+              "location": "src/wtwm.c:555",
               "contains": "WTWM_ACTION_LOWER"
             }
           ]
@@ -618,8 +646,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-lower",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-lower fixture is accepted by wtwm-config.",
+            "The dedicated action.f-lower fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.lower\n",
@@ -638,6 +667,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-menu",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-menu remains present."
@@ -645,11 +675,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:76",
-              "contains": "{\"f.menu\","
+              "location": "src/config.c:86",
+              "contains": "ACT_ARG(\"f.menu\","
             },
             {
-              "location": "src/wtwm.c:599",
+              "location": "src/wtwm.c:589",
               "contains": "WTWM_ACTION_MENU"
             }
           ]
@@ -660,8 +690,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-menu",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-menu fixture is accepted by wtwm-config.",
+            "The dedicated action.f-menu fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.menu \"argument\"\n",
@@ -680,6 +711,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-move",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-move remains present."
@@ -687,11 +719,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:77",
-              "contains": "{\"f.move\","
+              "location": "src/config.c:86",
+              "contains": "ACT(\"f.move\","
             },
             {
-              "location": "src/wtwm.c:558",
+              "location": "src/wtwm.c:548",
               "contains": "WTWM_ACTION_MOVE"
             }
           ]
@@ -702,8 +734,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-move",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-move fixture is accepted by wtwm-config.",
+            "The dedicated action.f-move fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.move\n",
@@ -722,8 +755,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-nop",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-nop fixture is accepted by wtwm-config.",
+            "The dedicated action.f-nop fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.nop\n",
@@ -742,6 +776,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-quit",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-quit remains present."
@@ -749,11 +784,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:79",
-              "contains": "{\"f.quit\","
+              "location": "src/config.c:89",
+              "contains": "ACT(\"f.quit\","
             },
             {
-              "location": "src/wtwm.c:612",
+              "location": "src/wtwm.c:602",
               "contains": "WTWM_ACTION_QUIT"
             }
           ]
@@ -764,8 +799,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-quit",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-quit fixture is accepted by wtwm-config.",
+            "The dedicated action.f-quit fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.quit\n",
@@ -784,6 +820,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-raise",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-raise remains present."
@@ -791,11 +828,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:80",
-              "contains": "{\"f.raise\","
+              "location": "src/config.c:89",
+              "contains": "ACT(\"f.raise\","
             },
             {
-              "location": "src/wtwm.c:562",
+              "location": "src/wtwm.c:552",
               "contains": "WTWM_ACTION_RAISE"
             }
           ]
@@ -806,8 +843,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-raise",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-raise fixture is accepted by wtwm-config.",
+            "The dedicated action.f-raise fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.raise\n",
@@ -826,6 +864,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-raiselower",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-raiselower remains present."
@@ -833,11 +872,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:81",
-              "contains": "{\"f.raiselower\","
+              "location": "src/config.c:90",
+              "contains": "ACT(\"f.raiselower\","
             },
             {
-              "location": "src/wtwm.c:567",
+              "location": "src/wtwm.c:557",
               "contains": "WTWM_ACTION_RAISELOWER"
             }
           ]
@@ -848,8 +887,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-raiselower",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-raiselower fixture is accepted by wtwm-config.",
+            "The dedicated action.f-raiselower fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.raiselower\n",
@@ -868,8 +908,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-refresh",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-refresh fixture is accepted by wtwm-config.",
+            "The dedicated action.f-refresh fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.refresh\n",
@@ -888,6 +929,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-resize",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-resize remains present."
@@ -895,11 +937,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:83",
-              "contains": "{\"f.resize\","
+              "location": "src/config.c:91",
+              "contains": "ACT(\"f.resize\","
             },
             {
-              "location": "src/wtwm.c:560",
+              "location": "src/wtwm.c:550",
               "contains": "WTWM_ACTION_RESIZE"
             }
           ]
@@ -910,8 +952,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-resize",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-resize fixture is accepted by wtwm-config.",
+            "The dedicated action.f-resize fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.resize\n",
@@ -930,8 +973,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-restart",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-restart fixture is accepted by wtwm-config.",
+            "The dedicated action.f-restart fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.restart\n",
@@ -950,8 +994,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-rightzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-rightzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-rightzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.rightzoom\n",
@@ -970,8 +1015,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-title",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-title fixture is accepted by wtwm-config.",
+            "The dedicated action.f-title fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.title\n",
@@ -990,8 +1036,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-topzoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-topzoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-topzoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.topzoom\n",
@@ -1010,8 +1057,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-twmrc",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-twmrc fixture is accepted by wtwm-config.",
+            "The dedicated action.f-twmrc fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.twmrc\n",
@@ -1030,6 +1078,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-unfocus",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-unfocus remains present."
@@ -1037,11 +1086,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:89",
-              "contains": "{\"f.unfocus\","
+              "location": "src/config.c:98",
+              "contains": "ACT(\"f.unfocus\","
             },
             {
-              "location": "src/wtwm.c:592",
+              "location": "src/wtwm.c:582",
               "contains": "WTWM_ACTION_UNFOCUS"
             }
           ]
@@ -1052,8 +1101,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-unfocus",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-unfocus fixture is accepted by wtwm-config.",
+            "The dedicated action.f-unfocus fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.unfocus\n",
@@ -1072,6 +1122,7 @@
           "meson_test": "current feature coverage",
           "case": "action.f-warpnext",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for action.f-warpnext remains present."
@@ -1079,11 +1130,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:90",
-              "contains": "{\"f.warpnext\","
+              "location": "src/config.c:100",
+              "contains": "ACT(\"f.warpnext\","
             },
             {
-              "location": "src/wtwm.c:611",
+              "location": "src/wtwm.c:601",
               "contains": "WTWM_ACTION_WARPNEXT"
             }
           ]
@@ -1094,8 +1145,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-warpnext",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-warpnext fixture is accepted by wtwm-config.",
+            "The dedicated action.f-warpnext fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.warpnext\n",
@@ -1114,8 +1166,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-warpprev",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-warpprev fixture is accepted by wtwm-config.",
+            "The dedicated action.f-warpprev fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.warpprev\n",
@@ -1134,8 +1187,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-warpto",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-warpto fixture is accepted by wtwm-config.",
+            "The dedicated action.f-warpto fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.warpto \"argument\"\n",
@@ -1154,8 +1208,9 @@
           "meson_test": "current feature coverage",
           "case": "action.f-zoom",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated action.f-zoom fixture is accepted by wtwm-config.",
+            "The dedicated action.f-zoom fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.zoom\n",
@@ -1174,8 +1229,9 @@
           "meson_test": "current feature coverage",
           "case": "action.unrecognized-f-action",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated action.unrecognized-f-action fixture is accepted by wtwm-config.",
+            "The dedicated action.unrecognized-f-action fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : root : f.future-action \"argument\"\n",
@@ -1194,8 +1250,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.bare-or-list-directives",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.bare-or-list-directives fixture is accepted by wtwm-config.",
+            "The dedicated construct.bare-or-list-directives fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoTitle\nAutoRaise { \"xterm\" }\n",
@@ -1214,8 +1271,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.base-0-numbers",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated construct.base-0-numbers fixture is accepted by wtwm-config.",
+            "The dedicated construct.base-0-numbers fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MoveDelta 0x10\n",
@@ -1234,8 +1292,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.binding-context-alternatives",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.binding-context-alternatives fixture is accepted by wtwm-config.",
+            "The dedicated construct.binding-context-alternatives fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = : window|title|icon|root|frame|iconmgr|all : f.nop\n",
@@ -1254,8 +1313,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.braces-and-nested-balanced-blocks",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated construct.braces-and-nested-balanced-blocks fixture is accepted by wtwm-config.",
+            "The dedicated construct.braces-and-nested-balanced-blocks fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "FutureBlock { \"outer\" { \"inner\" } }\n",
@@ -1274,8 +1334,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.button-range-1-through-32",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated construct.button-range-1-through-32 fixture is accepted by wtwm-config.",
+            "The dedicated construct.button-range-1-through-32 fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button32 = : root : f.nop\n",
@@ -1294,8 +1355,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.case-insensitive-keywords-and-actions",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.case-insensitive-keywords-and-actions fixture is accepted by wtwm-config.",
+            "The dedicated construct.case-insensitive-keywords-and-actions fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "bUtToN1 = : rOoT : F.MOVE\n",
@@ -1314,8 +1376,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.comments",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.comments fixture is accepted by wtwm-config.",
+            "The dedicated construct.comments fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "# comment accepted by the lexer\nNoTitle\n",
@@ -1334,8 +1397,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.function-action-sequences",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.function-action-sequences fixture is accepted by wtwm-config.",
+            "The dedicated construct.function-action-sequences fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Function \"sequence\" { f.move f.raise f.nop }\n",
@@ -1354,8 +1418,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.menu-definitions-and-items",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.menu-definitions-and-items fixture is accepted by wtwm-config.",
+            "The dedicated construct.menu-definitions-and-items fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Menu \"ops\" { \"Move\" f.move \"Exit\" f.quit }\n",
@@ -1374,8 +1439,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.modifier-alternatives",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.modifier-alternatives fixture is accepted by wtwm-config.",
+            "The dedicated construct.modifier-alternatives fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button1 = shift|control|lock|mod5 : root : f.nop\n",
@@ -1394,8 +1460,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.named-window-binding-context",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.named-window-binding-context fixture is accepted by wtwm-config.",
+            "The dedicated construct.named-window-binding-context fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "\"F1\" = : \"xterm\" : f.nop\n",
@@ -1414,8 +1481,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.newlines",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.newlines fixture is accepted by wtwm-config.",
+            "The dedicated construct.newlines fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "\n\nNoTitle\n\n",
@@ -1434,8 +1502,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.parenthesized-menu-colors",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.parenthesized-menu-colors fixture is accepted by wtwm-config.",
+            "The dedicated construct.parenthesized-menu-colors fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Menu \"ops\" (\"white\":\"black\") { \"Noop\" (\"black\":\"white\") f.nop }\n",
@@ -1454,8 +1523,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.quoted-strings-and-backslash-escapes",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.quoted-strings-and-backslash-escapes fixture is accepted by wtwm-config.",
+            "The dedicated construct.quoted-strings-and-backslash-escapes fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "TitleFont \"Sans\\ Bold\"\n",
@@ -1474,8 +1544,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.signed-integer-option",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated construct.signed-integer-option fixture is accepted by wtwm-config.",
+            "The dedicated construct.signed-integer-option fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MoveDelta -3\n",
@@ -1494,8 +1565,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.title-button-bitmap-action-assignment",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.title-button-bitmap-action-assignment fixture is accepted by wtwm-config.",
+            "The dedicated construct.title-button-bitmap-action-assignment fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "LeftTitleButton \"dot\" = f.nop\n",
@@ -1514,8 +1586,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.unknown-statement-skipping",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated construct.unknown-statement-skipping fixture is accepted by wtwm-config.",
+            "The dedicated construct.unknown-statement-skipping fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "FutureOption \"ignored\"\n",
@@ -1534,8 +1607,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.window-name-lists",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.window-name-lists fixture is accepted by wtwm-config.",
+            "The dedicated construct.window-name-lists fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoTitle { \"xterm\" \"xclock\" }\n",
@@ -1554,8 +1628,9 @@
           "meson_test": "current feature coverage",
           "case": "construct.word-tokens",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated construct.word-tokens fixture is accepted by wtwm-config.",
+            "The dedicated construct.word-tokens fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button2 = : root : f.nop\n",
@@ -1574,6 +1649,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.autoraise",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.autoraise remains present."
@@ -1581,11 +1657,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:717",
+              "location": "src/wtwm.c:707",
               "contains": "server->config.auto_raise ||"
             },
             {
-              "location": "src/wtwm.c:718",
+              "location": "src/wtwm.c:708",
               "contains": "&server->config.auto_raise_windows,"
             }
           ]
@@ -1596,8 +1672,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.autoraise",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.autoraise fixture is accepted by wtwm-config.",
+            "The dedicated directive.autoraise fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "AutoRaise { \"xterm\" }\n",
@@ -1616,8 +1693,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.autorelativeresize",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.autorelativeresize fixture is accepted by wtwm-config.",
+            "The dedicated directive.autorelativeresize fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "AutoRelativeResize\n",
@@ -1636,6 +1714,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.bordercolor",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.bordercolor remains present."
@@ -1643,7 +1722,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1092",
+              "location": "src/wtwm.c:1082",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -1654,8 +1733,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.bordercolor",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.bordercolor fixture is accepted by wtwm-config.",
+            "The dedicated directive.bordercolor fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { BorderColor \"red\" }\n",
@@ -1674,6 +1754,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.borderwidth",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.borderwidth remains present."
@@ -1681,7 +1762,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:308",
+              "location": "src/wtwm.c:298",
               "contains": "int border = toplevel->server->config.border_width;"
             }
           ]
@@ -1692,8 +1773,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.borderwidth",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.borderwidth fixture is accepted by wtwm-config.",
+            "The dedicated directive.borderwidth fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "BorderWidth 7\n",
@@ -1712,8 +1794,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.buttonindent",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.buttonindent fixture is accepted by wtwm-config.",
+            "The dedicated directive.buttonindent fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "ButtonIndent 7\n",
@@ -1732,6 +1815,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.buttonn-binding",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.buttonn-binding remains present."
@@ -1739,8 +1823,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:795",
-              "contains": "if (!handled) handled = dispatch_binding(server, WTWM_BINDING_BUTTON,"
+              "location": "src/wtwm.c:785",
+              "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
         },
@@ -1750,8 +1834,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.buttonn-binding",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.buttonn-binding fixture is accepted by wtwm-config.",
+            "The dedicated directive.buttonn-binding fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Button7 = control : window : f.raise\n",
@@ -1770,8 +1855,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.clientborderwidth",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.clientborderwidth fixture is accepted by wtwm-config.",
+            "The dedicated directive.clientborderwidth fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "ClientBorderWidth\n",
@@ -1790,6 +1876,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.color",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.color remains present."
@@ -1797,7 +1884,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1092",
+              "location": "src/wtwm.c:1082",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -1808,8 +1895,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.color",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.color fixture is accepted by wtwm-config.",
+            "The dedicated directive.color fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { BorderColor \"gray\" }\n",
@@ -1828,8 +1916,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.constrainedmovetime",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.constrainedmovetime fixture is accepted by wtwm-config.",
+            "The dedicated directive.constrainedmovetime fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "ConstrainedMoveTime 7\n",
@@ -1848,8 +1937,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.cursors",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.cursors fixture is accepted by wtwm-config.",
+            "The dedicated directive.cursors fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Cursors { Button \"left_ptr\" }\n",
@@ -1868,8 +1958,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.decoratetransients",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.decoratetransients fixture is accepted by wtwm-config.",
+            "The dedicated directive.decoratetransients fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "DecorateTransients\n",
@@ -1888,8 +1979,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.donticonifybyunmapping",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.donticonifybyunmapping fixture is accepted by wtwm-config.",
+            "The dedicated directive.donticonifybyunmapping fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "DontIconifyByUnmapping { \"xterm\" }\n",
@@ -1908,8 +2000,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.dontmoveoff",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.dontmoveoff fixture is accepted by wtwm-config.",
+            "The dedicated directive.dontmoveoff fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "DontMoveOff\n",
@@ -1928,11 +2021,12 @@
           "meson_test": "current feature coverage",
           "case": "directive.dontsqueezetitle",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.dontsqueezetitle fixture is accepted by wtwm-config.",
+            "The dedicated directive.dontsqueezetitle fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
-          "fixture": "DontSqueezeTitle { \"xterm\" center 0 0 }\n",
+          "fixture": "DontSqueezeTitle { \"xterm\" }\n",
           "checks": []
         }
       ]
@@ -1948,8 +2042,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.framepadding",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.framepadding fixture is accepted by wtwm-config.",
+            "The dedicated directive.framepadding fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "FramePadding 7\n",
@@ -1968,6 +2063,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.function",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.function remains present."
@@ -1975,11 +2071,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:604",
+              "location": "src/wtwm.c:594",
               "contains": "server->config.functions[i].action_count"
             },
             {
-              "location": "src/wtwm.c:606",
+              "location": "src/wtwm.c:596",
               "contains": "&server->config.functions[i].actions[j], depth + 1"
             }
           ]
@@ -1990,8 +2086,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.function",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.function fixture is accepted by wtwm-config.",
+            "The dedicated directive.function fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Function \"sequence\" { f.move f.raise }\n",
@@ -2010,8 +2107,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.grayscale",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.grayscale fixture is accepted by wtwm-config.",
+            "The dedicated directive.grayscale fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Grayscale { BorderColor \"gray\" }\n",
@@ -2030,8 +2128,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.greyscale",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.greyscale fixture is accepted by wtwm-config.",
+            "The dedicated directive.greyscale fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Greyscale { BorderColor \"gray\" }\n",
@@ -2050,8 +2149,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconfont",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconfont fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconfont fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconFont \"Sans 10\"\n",
@@ -2070,8 +2170,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconifybyunmapping",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconifybyunmapping fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconifybyunmapping fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconifyByUnmapping { \"xterm\" }\n",
@@ -2090,8 +2191,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconmanagerdontshow",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconmanagerdontshow fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconmanagerdontshow fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconManagerDontShow { \"xterm\" }\n",
@@ -2110,8 +2212,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconmanagerfont",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconmanagerfont fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconmanagerfont fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconManagerFont \"Sans 10\"\n",
@@ -2130,8 +2233,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconmanagers",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconmanagers fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconmanagers fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconManagers { \"main\" \"100x10\" 1 }\n",
@@ -2150,8 +2254,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.iconmanagershow",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.iconmanagershow fixture is accepted by wtwm-config.",
+            "The dedicated directive.iconmanagershow fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "IconManagerShow { \"xterm\" }\n",
@@ -2170,8 +2275,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.icons",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.icons fixture is accepted by wtwm-config.",
+            "The dedicated directive.icons fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Icons { \"xterm\" \"xterm.xbm\" }\n",
@@ -2190,6 +2296,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.lefttitlebutton",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.lefttitlebutton remains present."
@@ -2197,7 +2304,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:780",
+              "location": "src/wtwm.c:770",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -2208,8 +2315,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.lefttitlebutton",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.lefttitlebutton fixture is accepted by wtwm-config.",
+            "The dedicated directive.lefttitlebutton fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "LeftTitleButton \"dot\" = f.iconify\n",
@@ -2228,6 +2336,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.maketitle",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.maketitle remains present."
@@ -2235,7 +2344,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1012",
+              "location": "src/wtwm.c:1001",
               "contains": "&toplevel->server->config.make_title_windows,"
             }
           ]
@@ -2246,8 +2355,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.maketitle",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.maketitle fixture is accepted by wtwm-config.",
+            "The dedicated directive.maketitle fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MakeTitle { \"xterm\" }\n",
@@ -2266,6 +2376,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menu",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menu remains present."
@@ -2273,8 +2384,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:450",
-              "contains": "strcasecmp(server->config.menus[i].name, name)"
+              "location": "src/wtwm.c:440",
+              "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
         },
@@ -2284,8 +2395,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menu",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menu fixture is accepted by wtwm-config.",
+            "The dedicated directive.menu fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Menu \"ops\" { \"Noop\" f.nop }\n",
@@ -2304,6 +2416,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menubackground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menubackground remains present."
@@ -2311,7 +2424,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:486",
+              "location": "src/wtwm.c:476",
               "contains": "color_value(server->config.menu_background, background);"
             }
           ]
@@ -2322,8 +2435,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menubackground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menubackground fixture is accepted by wtwm-config.",
+            "The dedicated directive.menubackground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { MenuBackground \"red\" }\n",
@@ -2342,6 +2456,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menubordercolor",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menubordercolor remains present."
@@ -2349,7 +2464,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:485",
+              "location": "src/wtwm.c:475",
               "contains": "color_value(server->config.menu_border_color, border);"
             }
           ]
@@ -2360,8 +2475,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menubordercolor",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menubordercolor fixture is accepted by wtwm-config.",
+            "The dedicated directive.menubordercolor fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { MenuBorderColor \"red\" }\n",
@@ -2380,6 +2496,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menuborderwidth",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menuborderwidth remains present."
@@ -2387,7 +2504,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:480",
+              "location": "src/wtwm.c:470",
               "contains": "int border_width = server->config.menu_border_width;"
             }
           ]
@@ -2398,8 +2515,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menuborderwidth",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menuborderwidth fixture is accepted by wtwm-config.",
+            "The dedicated directive.menuborderwidth fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MenuBorderWidth 7\n",
@@ -2418,6 +2536,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menufont",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menufont remains present."
@@ -2425,7 +2544,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:476",
+              "location": "src/wtwm.c:466",
               "contains": "server->config.menu_font, color, &widths[i], &heights[i]);"
             }
           ]
@@ -2436,8 +2555,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menufont",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menufont fixture is accepted by wtwm-config.",
+            "The dedicated directive.menufont fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MenuFont \"Sans 10\"\n",
@@ -2456,6 +2576,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menuforeground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menuforeground remains present."
@@ -2463,7 +2584,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:487",
+              "location": "src/wtwm.c:477",
               "contains": "color_value(server->config.menu_foreground, highlight);"
             }
           ]
@@ -2474,8 +2595,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menuforeground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menuforeground fixture is accepted by wtwm-config.",
+            "The dedicated directive.menuforeground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { MenuForeground \"red\" }\n",
@@ -2494,6 +2616,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menutitlebackground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menutitlebackground remains present."
@@ -2501,7 +2624,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:499",
+              "location": "src/wtwm.c:489",
               "contains": "server->config.menu_title_background, row_color);"
             }
           ]
@@ -2512,8 +2635,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menutitlebackground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menutitlebackground fixture is accepted by wtwm-config.",
+            "The dedicated directive.menutitlebackground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { MenuTitleBackground \"red\" }\n",
@@ -2532,6 +2656,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.menutitleforeground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.menutitleforeground remains present."
@@ -2539,7 +2664,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:473",
+              "location": "src/wtwm.c:463",
               "contains": "server->config.menu_title_foreground : server->config.menu_foreground);"
             }
           ]
@@ -2550,8 +2675,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.menutitleforeground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.menutitleforeground fixture is accepted by wtwm-config.",
+            "The dedicated directive.menutitleforeground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { MenuTitleForeground \"red\" }\n",
@@ -2570,8 +2696,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.monochrome",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.monochrome fixture is accepted by wtwm-config.",
+            "The dedicated directive.monochrome fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Monochrome { BorderColor \"gray\" }\n",
@@ -2590,8 +2717,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.movedelta",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.movedelta fixture is accepted by wtwm-config.",
+            "The dedicated directive.movedelta fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "MoveDelta 7\n",
@@ -2610,8 +2738,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.nocasesensitive",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.nocasesensitive fixture is accepted by wtwm-config.",
+            "The dedicated directive.nocasesensitive fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoCaseSensitive\n",
@@ -2630,8 +2759,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.nohighlight",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.nohighlight fixture is accepted by wtwm-config.",
+            "The dedicated directive.nohighlight fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoHighlight { \"xterm\" }\n",
@@ -2650,8 +2780,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.nomenushadows",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.nomenushadows fixture is accepted by wtwm-config.",
+            "The dedicated directive.nomenushadows fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoMenuShadows\n",
@@ -2670,8 +2801,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.noraiseondeiconify",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.noraiseondeiconify fixture is accepted by wtwm-config.",
+            "The dedicated directive.noraiseondeiconify fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoRaiseOnDeiconify\n",
@@ -2690,8 +2822,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.noraiseonmove",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.noraiseonmove fixture is accepted by wtwm-config.",
+            "The dedicated directive.noraiseonmove fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoRaiseOnMove\n",
@@ -2710,8 +2843,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.noraiseonresize",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.noraiseonresize fixture is accepted by wtwm-config.",
+            "The dedicated directive.noraiseonresize fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoRaiseOnResize\n",
@@ -2730,8 +2864,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.nostackmode",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.nostackmode fixture is accepted by wtwm-config.",
+            "The dedicated directive.nostackmode fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoStackMode { \"xterm\" }\n",
@@ -2750,6 +2885,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.notitle",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.notitle remains present."
@@ -2757,11 +2893,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1008",
+              "location": "src/wtwm.c:998",
               "contains": "!toplevel->server->config.no_title &&"
             },
             {
-              "location": "src/wtwm.c:1010",
+              "location": "src/wtwm.c:999",
               "contains": "&toplevel->server->config.no_title_windows,"
             }
           ]
@@ -2772,8 +2908,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.notitle",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.notitle fixture is accepted by wtwm-config.",
+            "The dedicated directive.notitle fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoTitle { \"xterm\" }\n",
@@ -2792,8 +2929,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.notitlefocus",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.notitlefocus fixture is accepted by wtwm-config.",
+            "The dedicated directive.notitlefocus fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoTitleFocus\n",
@@ -2812,8 +2950,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.notitlehighlight",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.notitlehighlight fixture is accepted by wtwm-config.",
+            "The dedicated directive.notitlehighlight fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "NoTitleHighlight { \"xterm\" }\n",
@@ -2832,8 +2971,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.opaquemove",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.opaquemove fixture is accepted by wtwm-config.",
+            "The dedicated directive.opaquemove fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "OpaqueMove\n",
@@ -2852,8 +2992,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.pixmaps",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.pixmaps fixture is accepted by wtwm-config.",
+            "The dedicated directive.pixmaps fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Pixmaps { TitleHighlight \"title.xbm\" }\n",
@@ -2872,6 +3013,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.quoted-key-binding",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.quoted-key-binding remains present."
@@ -2879,8 +3021,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:843",
-              "contains": "handled = dispatch_binding(server, WTWM_BINDING_KEY, 0, name, context, toplevel);"
+              "location": "src/wtwm.c:833",
+              "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
         },
@@ -2890,8 +3032,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.quoted-key-binding",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.quoted-key-binding fixture is accepted by wtwm-config.",
+            "The dedicated directive.quoted-key-binding fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "\"F7\" = shift : all : f.exec \"true\"\n",
@@ -2910,8 +3053,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.randomplacement",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.randomplacement fixture is accepted by wtwm-config.",
+            "The dedicated directive.randomplacement fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "RandomPlacement\n",
@@ -2930,8 +3074,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.resizefont",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.resizefont fixture is accepted by wtwm-config.",
+            "The dedicated directive.resizefont fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "ResizeFont \"Sans 10\"\n",
@@ -2950,6 +3095,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.righttitlebutton",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.righttitlebutton remains present."
@@ -2957,7 +3103,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:780",
+              "location": "src/wtwm.c:770",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -2968,8 +3114,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.righttitlebutton",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.righttitlebutton fixture is accepted by wtwm-config.",
+            "The dedicated directive.righttitlebutton fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "RightTitleButton \"resize\" = f.resize\n",
@@ -2988,8 +3135,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.savecolor",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.savecolor fixture is accepted by wtwm-config.",
+            "The dedicated directive.savecolor fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "SaveColor { \"red\" }\n",
@@ -3008,8 +3156,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.showiconmanager",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.showiconmanager fixture is accepted by wtwm-config.",
+            "The dedicated directive.showiconmanager fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "ShowIconManager\n",
@@ -3028,8 +3177,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.squeezetitle",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.squeezetitle fixture is accepted by wtwm-config.",
+            "The dedicated directive.squeezetitle fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "SqueezeTitle { \"xterm\" center 0 0 }\n",
@@ -3048,6 +3198,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.starticonified",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.starticonified remains present."
@@ -3055,7 +3206,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:985",
+              "location": "src/wtwm.c:974",
               "contains": "&toplevel->server->config.start_iconified_windows,"
             }
           ]
@@ -3066,8 +3217,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.starticonified",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.starticonified fixture is accepted by wtwm-config.",
+            "The dedicated directive.starticonified fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "StartIconified { \"xterm\" }\n",
@@ -3086,6 +3238,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlebackground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.titlebackground remains present."
@@ -3093,7 +3246,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1093",
+              "location": "src/wtwm.c:1083",
               "contains": "color_value(server->config.title_background, title);"
             }
           ]
@@ -3104,8 +3257,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlebackground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.titlebackground fixture is accepted by wtwm-config.",
+            "The dedicated directive.titlebackground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { TitleBackground \"red\" }\n",
@@ -3124,8 +3278,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlebuttonborderwidth",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.titlebuttonborderwidth fixture is accepted by wtwm-config.",
+            "The dedicated directive.titlebuttonborderwidth fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "TitleButtonBorderWidth 7\n",
@@ -3144,6 +3299,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlefont",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.titlefont remains present."
@@ -3151,7 +3307,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:296",
+              "location": "src/wtwm.c:286",
               "contains": "toplevel->server->config.title_font, foreground, &width, &height);"
             }
           ]
@@ -3162,8 +3318,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlefont",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.titlefont fixture is accepted by wtwm-config.",
+            "The dedicated directive.titlefont fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "TitleFont \"Sans 10\"\n",
@@ -3182,6 +3339,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.titleforeground",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.titleforeground remains present."
@@ -3189,7 +3347,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1094",
+              "location": "src/wtwm.c:1084",
               "contains": "color_value(server->config.title_foreground, foreground);"
             }
           ]
@@ -3200,8 +3358,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.titleforeground",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.titleforeground fixture is accepted by wtwm-config.",
+            "The dedicated directive.titleforeground fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "Color { TitleForeground \"red\" }\n",
@@ -3220,6 +3379,7 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlepadding",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for directive.titlepadding remains present."
@@ -3227,7 +3387,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1086",
+              "location": "src/wtwm.c:1076",
               "contains": "toplevel->title_height = server->config.title_padding * 2 + 10;"
             }
           ]
@@ -3238,8 +3398,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.titlepadding",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.titlepadding fixture is accepted by wtwm-config.",
+            "The dedicated directive.titlepadding fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "TitlePadding 7\n",
@@ -3258,8 +3419,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.unrecognized-statement-fallback",
           "dimension": "syntax",
+          "expected": "reject",
           "assertions": [
-            "The dedicated directive.unrecognized-statement-fallback fixture is accepted by wtwm-config.",
+            "The dedicated directive.unrecognized-statement-fallback fixture is expected to reject under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "FutureDirective \"ignored\"\n",
@@ -3278,8 +3440,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.warpcursor",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.warpcursor fixture is accepted by wtwm-config.",
+            "The dedicated directive.warpcursor fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "WarpCursor { \"xterm\" }\n",
@@ -3298,8 +3461,9 @@
           "meson_test": "current feature coverage",
           "case": "directive.windowring",
           "dimension": "syntax",
+          "expected": "accept",
           "assertions": [
-            "The dedicated directive.windowring fixture is accepted by wtwm-config.",
+            "The dedicated directive.windowring fixture is expected to accept under the frozen grammar.",
             "This parser result does not claim native runtime or reference equivalence."
           ],
           "fixture": "WindowRing { \"xterm\" }\n",
@@ -3318,6 +3482,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.auto-raise-rule-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.auto-raise-rule-dispatch remains present."
@@ -3325,7 +3490,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:717",
+              "location": "src/wtwm.c:707",
               "contains": "server->config.auto_raise ||"
             }
           ]
@@ -3343,6 +3508,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.button-binding-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.button-binding-dispatch remains present."
@@ -3350,7 +3516,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:795",
+              "location": "src/wtwm.c:785",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -3368,6 +3534,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.configuration-load-at-startup",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.configuration-load-at-startup remains present."
@@ -3375,7 +3542,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1623",
+              "location": "src/wtwm.c:1613",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]
@@ -3393,6 +3560,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.configured-frame-and-title-rendering",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.configured-frame-and-title-rendering remains present."
@@ -3400,7 +3568,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1086",
+              "location": "src/wtwm.c:1076",
               "contains": "toplevel->title_height = server->config.title_padding"
             }
           ]
@@ -3418,6 +3586,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.execute-configured-action",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.execute-configured-action remains present."
@@ -3425,7 +3594,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:557",
+              "location": "src/wtwm.c:547",
               "contains": "switch (action->type)"
             }
           ]
@@ -3443,6 +3612,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.function-action-recursion",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.function-action-recursion remains present."
@@ -3450,11 +3620,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:604",
+              "location": "src/wtwm.c:594",
               "contains": "server->config.functions[i].action_count"
             },
             {
-              "location": "src/wtwm.c:606",
+              "location": "src/wtwm.c:596",
               "contains": "&server->config.functions[i].actions[j], depth + 1"
             }
           ]
@@ -3472,6 +3642,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.key-binding-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.key-binding-dispatch remains present."
@@ -3479,7 +3650,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:843",
+              "location": "src/wtwm.c:833",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3497,6 +3668,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.menu-definition-lookup-and-rendering",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.menu-definition-lookup-and-rendering remains present."
@@ -3504,8 +3676,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:450",
-              "contains": "strcasecmp(server->config.menus[i].name, name)"
+              "location": "src/wtwm.c:440",
+              "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
         }
@@ -3522,6 +3694,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.menu-item-action-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.menu-item-action-dispatch remains present."
@@ -3529,7 +3702,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:763",
+              "location": "src/wtwm.c:753",
               "contains": "execute_action(server, target, &action, 0)"
             }
           ]
@@ -3547,6 +3720,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.start-iconified-rule-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.start-iconified-rule-dispatch remains present."
@@ -3554,7 +3728,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:985",
+              "location": "src/wtwm.c:974",
               "contains": "server->config.start_iconified_windows"
             }
           ]
@@ -3572,6 +3746,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.title-button-action-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.title-button-action-dispatch remains present."
@@ -3579,7 +3754,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:785",
+              "location": "src/wtwm.c:775",
               "contains": "execute_action(server, hit.toplevel, configured, 0)"
             }
           ]
@@ -3597,6 +3772,7 @@
           "meson_test": "current feature coverage",
           "case": "runtime_dispatch.title-decoration-rule-dispatch",
           "dimension": "source_contract",
+          "expected": "not-applicable",
           "assertions": [
             "Source-contract coverage is structural and does not claim runtime behavior or parity.",
             "The exact implementation/dispatch source contract for runtime_dispatch.title-decoration-rule-dispatch remains present."
@@ -3604,7 +3780,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1008",
+              "location": "src/wtwm.c:998",
               "contains": "set_decorated(toplevel, (!toplevel->server->config.no_title &&"
             }
           ]
