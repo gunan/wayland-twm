@@ -24,7 +24,7 @@
       "id": "grammar-lexical-behavior",
       "test_id": "test.parser-fixture.grammar-lexical-behavior",
       "path": "reference/grammar/fixtures/lexical-behavior.twmrc",
-      "sha256": "5c1ddb57556d424705b448b7a4c576e56ad6ed38c0b7edf2fd5b575619244a0b",
+      "sha256": "69b76c47dd94344b987d1fbf9277f2e0854e8b337cc5e4fc64b455c1c112b37e",
       "expected": "accept",
       "kind": "synthetic-lexical"
     },

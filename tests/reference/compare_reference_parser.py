@@ -322,7 +322,7 @@ def gdb_commands(display: str, fixture: Path, parser_log: Path) -> str:
         "end",
         (
             f"run -display {shlex.quote(display)} -single "
-            f"-f {shlex.quote(str(fixture))} -quiet "
+            f"-f {shlex.quote(str(fixture))} "
             f"> {shlex.quote(str(parser_log))} 2>&1"
         ),
     ]

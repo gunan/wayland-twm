@@ -67,14 +67,17 @@ cleanup()
 trap cleanup 0 1 2 15
 
 sh "$builder" "$repo_root" "$work_dir/reference"
+comparison_status=0
 python3 -B "$normalizer" \
     --source-root "$repo_root" \
     --config-tool "$config_tool" \
     --reference-twm "$work_dir/reference/twm" \
-    --output "$work_dir/comparison.json"
+    --output "$work_dir/comparison.json" || comparison_status=$?
 test -s "$work_dir/comparison.json" || fail "comparison artifact is empty"
 if test -n "$artifact_output"; then
     cp "$work_dir/comparison.json" "$artifact_output"
     echo "wrote trace-complete parser comparison: $artifact_output"
 fi
+test "$comparison_status" -eq 0 ||
+    fail "comparison reported parser differences (status $comparison_status)"
 echo "full reference parser differential passed in the pinned X11 environment"

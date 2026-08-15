@@ -7,9 +7,8 @@ Menu "escape-cases"
     "octal\101 hex\x42 quote\" slash\\" f.exec "printf 'lexical fixture'"
 }
 
-# A backslash-newline inside a string is removed by the reference lexer.
-Function "continued" { f.exec "printf one\
-two" }
+# Escaped control sequences are decoded after string tokenization.
+Function "escaped" { f.exec "printf one\ntwo" }
 
 # All legal modifier aliases and an empty modifier/context sequence.
 Button1 = m | s | l | c | m5 : root : f.nop
