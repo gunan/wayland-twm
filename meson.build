@@ -36,7 +36,27 @@ config_test = executable(
   'tests/config_test.c',
   dependencies: config_dep,
 )
-test('twmrc parser', config_test)
+test(
+  'twmrc parser',
+  config_test,
+  env: ['WTWM_SOURCE_ROOT=' + meson.project_source_root()],
+)
+
+config_malformed_test = executable(
+  'config-malformed-test',
+  'tests/config_malformed_test.c',
+  dependencies: config_dep,
+)
+test('twmrc malformed input', config_malformed_test, timeout: 30)
+test(
+  'twmrc fuzzer contract',
+  find_program('sh'),
+  args: [
+    files('tests/fuzz/run_config_fuzzer.sh'),
+    '--validate-only',
+    meson.project_source_root(),
+  ],
+)
 
 test_control_protocol_lib = static_library(
   'wtwm-test-control-protocol',
@@ -110,6 +130,37 @@ test(
   ],
 )
 test(
+  'parser fixture coverage',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_parser_fixture_coverage.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'parser fixture acceptance',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/compare_reference_parser.py'),
+    '--source-root', meson.project_source_root(),
+    '--config-tool', config_tool,
+    '--wtwm-only',
+  ],
+)
+test(
+  'reference parser differential',
+  find_program('sh'),
+  args: [
+    files('tests/reference/run_reference_parser_comparison.sh'),
+    meson.project_source_root(),
+    config_tool,
+  ],
+  timeout: 900,
+)
+test(
   'current implementation inventory',
   find_program('sh'),
   args: [files('tests/reference/current_implementation_audit_test.sh')],
@@ -134,6 +185,7 @@ test(
     '--source-root', meson.project_source_root(),
     '--self-test-tamper',
   ],
+  timeout: 120,
 )
 test(
   'real-world twmrc corpus',

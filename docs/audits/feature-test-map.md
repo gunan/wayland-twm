@@ -3,7 +3,7 @@
 `reference/audits/feature-test-map.json` is the authoritative exit-gate
 mapping layered over the immutable current-implementation audit snapshot.
 Every mapping is executed by the Meson `current feature coverage` test.
-Syntax cases use one dedicated configuration fixture per feature. Source-contract
+Syntax cases use one dedicated accepted or rejected configuration fixture per feature. Source-contract
 cases check exact implementation/dispatch sites but are explicitly non-runtime and
 non-behavioral; they do not upgrade compatibility-ledger runtime or parity claims.
 

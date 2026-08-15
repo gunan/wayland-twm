@@ -1,0 +1,15 @@
+# Keywords are case-insensitive; quoted strings preserve spaces and escapes.
+nOdEfAuLtS
+TitleFont "fixed"
+Menu "escape-cases"
+{
+    "newline\nbackspace\breturn\rtab\tformfeed\f" f.nop
+    "octal\101 hex\x42" f.exec "printf lexical-fixture"
+}
+
+# Escaped control sequences are decoded after string tokenization.
+Function "escaped" { f.exec "printf one\ntwo" }
+
+# All legal modifier aliases and an empty modifier/context sequence.
+Button1 = m | s | l | c | m5 : root : f.nop
+Button2 = : : f.nop

@@ -15,7 +15,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fnmatch.h>
 #include <getopt.h>
 #include <inttypes.h>
 #ifdef __linux__
@@ -271,20 +270,11 @@ static void color_value(const char *name, float color[4]) {
 	}
 }
 
-static bool name_matches(const struct wtwm_config *config,
-	const struct wtwm_string_list *patterns, struct wlr_xdg_toplevel *xdg) {
+static bool name_matches(const struct wtwm_string_list *patterns,
+	struct wlr_xdg_toplevel *xdg) {
 	const char *app_id = xdg->app_id ? xdg->app_id : "";
 	const char *title = xdg->title ? xdg->title : "";
-	for (size_t i = 0; i < patterns->count; ++i) {
-		if (config->case_sensitive) {
-			if (fnmatch(patterns->items[i], app_id, 0) == 0 ||
-				fnmatch(patterns->items[i], title, 0) == 0) return true;
-		} else if (strcasecmp(patterns->items[i], app_id) == 0 ||
-			strcasecmp(patterns->items[i], title) == 0) {
-			return true;
-		}
-	}
-	return false;
+	return wtwm_config_match_native(patterns, title, app_id);
 }
 
 static void update_title_text(struct toplevel *toplevel) {
@@ -447,7 +437,7 @@ static void show_menu(struct server *server, const char *name,
 	struct toplevel *target) {
 	const struct wtwm_menu *menu = NULL;
 	for (size_t i = 0; i < server->config.menu_count; ++i) {
-		if (strcasecmp(server->config.menus[i].name, name) == 0) {
+		if (strcmp(server->config.menus[i].name, name) == 0) {
 			menu = &server->config.menus[i];
 			break;
 		}
@@ -600,7 +590,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		show_menu(server, action->argument, toplevel); break;
 	case WTWM_ACTION_FUNCTION:
 		for (size_t i = 0; i < server->config.function_count; ++i) {
-			if (strcasecmp(server->config.functions[i].name, action->argument) == 0) {
+			if (strcmp(server->config.functions[i].name, action->argument) == 0) {
 				for (size_t j = 0; j < server->config.functions[i].action_count; ++j)
 					execute_action(server, toplevel,
 						&server->config.functions[i].actions[j], depth + 1);
@@ -715,7 +705,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	if (hit.toplevel != NULL &&
 		server->seat->keyboard_state.focused_surface != hit.toplevel->xdg->base->surface &&
 		(server->config.auto_raise ||
-		name_matches(&server->config, &server->config.auto_raise_windows,
+			name_matches(&server->config.auto_raise_windows,
 			hit.toplevel->xdg))) focus_toplevel(hit.toplevel);
 	if (hit.surface != NULL) {
 		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
@@ -981,8 +971,8 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	unsigned n = toplevel->server->placement_index++;
 	wlr_scene_node_set_position(&toplevel->tree->node, 32 + (int)(n % 12) * 24,
 		32 + (int)(n % 10) * 24);
-	if (name_matches(&toplevel->server->config,
-		&toplevel->server->config.start_iconified_windows, toplevel->xdg)) {
+	if (name_matches(&toplevel->server->config.start_iconified_windows,
+			toplevel->xdg)) {
 		toplevel->iconified = true;
 		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
 		wlr_xdg_toplevel_set_suspended(toplevel->xdg, true);
@@ -1006,10 +996,10 @@ static void toplevel_commit(struct wl_listener *listener, void *data) {
 	if (toplevel->xdg->base->initial_commit) {
 		wlr_xdg_toplevel_set_size(toplevel->xdg, 0, 0);
 		set_decorated(toplevel, (!toplevel->server->config.no_title &&
-			!name_matches(&toplevel->server->config,
-				&toplevel->server->config.no_title_windows, toplevel->xdg)) ||
-			name_matches(&toplevel->server->config,
-				&toplevel->server->config.make_title_windows, toplevel->xdg));
+			!name_matches(&toplevel->server->config.no_title_windows,
+					toplevel->xdg)) ||
+			name_matches(&toplevel->server->config.make_title_windows,
+					toplevel->xdg));
 	}
 	struct wlr_box geometry;
 	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);

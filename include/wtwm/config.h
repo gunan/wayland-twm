@@ -31,6 +31,13 @@ enum wtwm_modifier {
 	WTWM_MOD_META5 = 1u << 7,
 };
 
+enum wtwm_compatibility {
+	WTWM_COMPAT_EFFECTIVE,
+	WTWM_COMPAT_WAYLAND_TRANSLATED,
+	WTWM_COMPAT_PARSED_ONLY,
+	WTWM_COMPAT_UNSUPPORTED,
+};
+
 enum wtwm_action_type {
 	WTWM_ACTION_NOP,
 	WTWM_ACTION_BEEP,
@@ -68,6 +75,7 @@ enum wtwm_action_type {
 
 struct wtwm_action {
 	enum wtwm_action_type type;
+	enum wtwm_compatibility compatibility;
 	char name[WTWM_NAME_MAX];
 	char argument[WTWM_ACTION_MAX];
 };
@@ -119,6 +127,79 @@ struct wtwm_string_list {
 	size_t count;
 };
 
+struct wtwm_window_list {
+	char directive[WTWM_NAME_MAX];
+	bool bare;
+	struct wtwm_string_list names;
+};
+
+struct wtwm_window_value {
+	char name[WTWM_NAME_MAX];
+	char value[WTWM_NAME_MAX];
+};
+
+struct wtwm_color_setting {
+	char name[WTWM_NAME_MAX];
+	char value[WTWM_NAME_MAX];
+	struct wtwm_window_value *overrides;
+	size_t override_count;
+};
+
+struct wtwm_cursor {
+	char role[WTWM_NAME_MAX];
+	char source[WTWM_NAME_MAX];
+	char mask[WTWM_NAME_MAX];
+};
+
+struct wtwm_pixmap {
+	char name[WTWM_NAME_MAX];
+	char value[WTWM_NAME_MAX];
+};
+
+struct wtwm_icon_region {
+	char geometry[WTWM_NAME_MAX];
+	char vertical_gravity[WTWM_NAME_MAX];
+	char horizontal_gravity[WTWM_NAME_MAX];
+	int grid_width;
+	int grid_height;
+};
+
+struct wtwm_icon_manager {
+	char window_name[WTWM_NAME_MAX];
+	char icon_name[WTWM_NAME_MAX];
+	char geometry[WTWM_NAME_MAX];
+	int columns;
+};
+
+struct wtwm_icon_mapping {
+	char window_name[WTWM_NAME_MAX];
+	char bitmap[WTWM_NAME_MAX];
+};
+
+struct wtwm_squeeze_entry {
+	char window_name[WTWM_NAME_MAX];
+	char justification[WTWM_NAME_MAX];
+	int numerator;
+	int denominator;
+};
+
+struct wtwm_directive {
+	char name[WTWM_NAME_MAX];
+	enum wtwm_compatibility compatibility;
+	size_t line;
+	size_t ordinal;
+	char *source;
+	char *value;
+};
+
+struct wtwm_client_identity {
+	const char *name;
+	const char *resource_name;
+	const char *resource_class;
+	const char *title;
+	const char *app_id;
+};
+
 struct wtwm_config {
 	/* The defaults deliberately match historic twm, not a modern desktop. */
 	int border_width;
@@ -129,8 +210,14 @@ struct wtwm_config {
 	int move_delta;
 	int constrained_move_time;
 	int menu_border_width;
+	int icon_border_width;
+	int priority;
+	int xor_value;
+	int zoom_count;
+	int icon_manager_columns;
+	bool zoom;
 	bool no_title;
-	bool auto_raise;
+	bool auto_raise; /* retained for compositor ABI; reference AutoRaise is a list */
 	bool decorate_transients;
 	bool opaque_move;
 	bool random_placement;
@@ -142,21 +229,52 @@ struct wtwm_config {
 	bool no_title_focus;
 	bool auto_relative_resize;
 	bool client_border_width;
-	bool case_sensitive;
+	bool case_sensitive; /* icon-manager sorting only, as in reference twm */
 	bool show_icon_manager;
+	bool force_icons;
+	bool no_icon_managers;
+	bool interpolate_menu_colors;
+	bool no_grab_server;
+	bool no_backing_store;
+	bool no_save_unders;
+	bool restart_previous_state;
+	bool no_raise_on_warp;
+	bool warp_unmapped;
+	bool sort_icon_manager;
+	bool no_defaults;
 	char title_font[WTWM_NAME_MAX];
 	char menu_font[WTWM_NAME_MAX];
 	char resize_font[WTWM_NAME_MAX];
 	char icon_font[WTWM_NAME_MAX];
 	char icon_manager_font[WTWM_NAME_MAX];
+	char icon_directory[WTWM_NAME_MAX];
+	char unknown_icon[WTWM_NAME_MAX];
+	char max_window_size[WTWM_NAME_MAX];
+	char use_p_position[WTWM_NAME_MAX];
+	char icon_manager_geometry[WTWM_NAME_MAX];
 	char border_color[WTWM_NAME_MAX];
+	char border_tile_background[WTWM_NAME_MAX];
+	char border_tile_foreground[WTWM_NAME_MAX];
 	char title_background[WTWM_NAME_MAX];
 	char title_foreground[WTWM_NAME_MAX];
+	char icon_background[WTWM_NAME_MAX];
+	char icon_foreground[WTWM_NAME_MAX];
+	char icon_border_color[WTWM_NAME_MAX];
+	char icon_manager_background[WTWM_NAME_MAX];
+	char icon_manager_foreground[WTWM_NAME_MAX];
+	char icon_manager_highlight[WTWM_NAME_MAX];
+	char default_background[WTWM_NAME_MAX];
+	char default_foreground[WTWM_NAME_MAX];
 	char menu_background[WTWM_NAME_MAX];
 	char menu_foreground[WTWM_NAME_MAX];
 	char menu_border_color[WTWM_NAME_MAX];
+	char menu_shadow_color[WTWM_NAME_MAX];
 	char menu_title_background[WTWM_NAME_MAX];
 	char menu_title_foreground[WTWM_NAME_MAX];
+	char pointer_background[WTWM_NAME_MAX];
+	char pointer_foreground[WTWM_NAME_MAX];
+	struct wtwm_action default_function;
+	struct wtwm_action window_function;
 	struct wtwm_binding *bindings;
 	size_t binding_count;
 	struct wtwm_menu *menus;
@@ -165,21 +283,59 @@ struct wtwm_config {
 	size_t function_count;
 	struct wtwm_title_button *title_buttons;
 	size_t title_button_count;
+	struct wtwm_window_list *window_lists;
+	size_t window_list_count;
+	struct wtwm_color_setting *colors;
+	size_t color_count;
+	struct wtwm_cursor *cursors;
+	size_t cursor_count;
+	struct wtwm_pixmap *pixmaps;
+	size_t pixmap_count;
+	struct wtwm_icon_region *icon_regions;
+	size_t icon_region_count;
+	struct wtwm_icon_manager *icon_managers;
+	size_t icon_manager_count;
+	struct wtwm_icon_mapping *icons;
+	size_t icon_count;
+	struct wtwm_squeeze_entry *squeeze_entries;
+	size_t squeeze_entry_count;
+	struct wtwm_string_list saved_colors;
+	struct wtwm_directive *directives;
+	size_t directive_count;
+	char *source_text;
+	/* Frequently consumed lists are also exposed directly. */
 	struct wtwm_string_list no_title_windows;
 	struct wtwm_string_list make_title_windows;
 	struct wtwm_string_list auto_raise_windows;
 	struct wtwm_string_list start_iconified_windows;
 	size_t warning_count;
+	size_t projection_truncation_count;
 };
 
 void wtwm_config_init(struct wtwm_config *config);
 void wtwm_config_finish(struct wtwm_config *config);
 
-/* Parse a named file, or follow twm's ~/.twmrc.0, ~/.twmrc search if path is NULL. */
-bool wtwm_config_load(struct wtwm_config *config, const char *path,
-	char *error, size_t error_size);
+/* Parse/load transactionally: on failure config is left usable and unchanged. */
 bool wtwm_config_parse(struct wtwm_config *config, const char *source_name,
 	const char *text, char *error, size_t error_size);
+bool wtwm_config_load(struct wtwm_config *config, const char *path,
+	char *error, size_t error_size);
+bool wtwm_config_load_for_screen(struct wtwm_config *config, const char *path,
+	unsigned screen, char *error, size_t error_size);
+
+/* Reference lists match exact case-sensitive X11 name, res_name, then res_class. */
+bool wtwm_config_match_x11(const struct wtwm_string_list *list,
+	const char *name, const char *resource_name, const char *resource_class);
+/* Native translation uses title first and app_id second, with the same rules. */
+bool wtwm_config_match_native(const struct wtwm_string_list *list,
+	const char *title, const char *app_id);
+bool wtwm_config_match_client(const struct wtwm_string_list *list,
+	const struct wtwm_client_identity *identity);
+/* Named-key/f.warpto selectors are case-sensitive prefixes, not globs. */
+bool wtwm_config_prefix_x11(const char *selector, const char *name,
+	const char *resource_name, const char *resource_class);
+bool wtwm_config_prefix_native(const char *selector, const char *title,
+	const char *app_id);
 
 /* Emit a stable, human-readable representation used by wtwm-config and tests. */
 void wtwm_config_dump(const struct wtwm_config *config, FILE *stream);

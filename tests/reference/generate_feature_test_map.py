@@ -60,6 +60,20 @@ CONSTRUCT_FIXTURES = {
 }
 
 
+# These entries describe permissive behavior in the immutable M0 snapshot.
+# M2 deliberately rejects them to match the frozen twm grammar, so their
+# historical fixtures remain useful as negative regressions.
+REFERENCE_REJECTIONS = {
+    "action.unrecognized-f-action",
+    "construct.base-0-numbers",
+    "construct.braces-and-nested-balanced-blocks",
+    "construct.button-range-1-through-32",
+    "construct.signed-integer-option",
+    "construct.unknown-statement-skipping",
+    "directive.unrecognized-statement-fallback",
+}
+
+
 BOOL_DIRECTIVES = {
     "AutoRelativeResize", "ClientBorderWidth", "DecorateTransients", "DontMoveOff",
     "NoCaseSensitive", "NoMenuShadows", "NoRaiseOnDeiconify", "NoRaiseOnMove",
@@ -77,7 +91,7 @@ COLOR_ENTRIES = {
 BLOCK_DIRECTIVES = {
     "Cursors": 'Cursors { Button "left_ptr" }\n',
     "DontIconifyByUnmapping": 'DontIconifyByUnmapping { "xterm" }\n',
-    "DontSqueezeTitle": 'DontSqueezeTitle { "xterm" center 0 0 }\n',
+    "DontSqueezeTitle": 'DontSqueezeTitle { "xterm" }\n',
     "IconifyByUnmapping": 'IconifyByUnmapping { "xterm" }\n',
     "IconManagerDontShow": 'IconManagerDontShow { "xterm" }\n',
     "IconManagers": 'IconManagers { "main" "100x10" 1 }\n',
@@ -159,15 +173,16 @@ def action_dispatch_check(source_root: Path, entry: dict[str, object]) -> dict[s
     if identifier == "action.f-exec-alias":
         enum_name = "WTWM_ACTION_EXEC"
     else:
-        config_locations = [
-            str(value) for value in entry["evidence"]  # type: ignore[index]
-            if str(value).startswith("src/config.c:")
-        ]
-        table_text = " ".join(exact_line(source_root, location) for location in config_locations)
-        match = re.search(r"WTWM_ACTION_[A-Z0-9_]+", table_text)
+        spelling = str(entry["name"]).split()[0]
+        config_text = (source_root / "src/config.c").read_text(encoding="utf-8")
+        match = re.search(
+            r'(?:ACT(?:_ARG)?\(|\{)"' + re.escape(spelling)
+            + r'",\s*(WTWM_ACTION_[A-Z0-9_]+)',
+            config_text,
+        )
         if match is None:
             raise ValueError(f"effective action lacks an action enum: {identifier}")
-        enum_name = match.group(0)
+        enum_name = match.group(1)
     wtwm_lines = (source_root / "src/wtwm.c").read_text(encoding="utf-8").splitlines()
     for index, line in enumerate(wtwm_lines, 1):
         if re.search(rf"\bcase\s+{re.escape(enum_name)}\b", line):
@@ -180,12 +195,17 @@ def action_parse_check(source_root: Path, entry: dict[str, object]) -> dict[str,
     spelling = str(entry["name"]).split()[0]
     config_lines = (source_root / "src/config.c").read_text(encoding="utf-8").splitlines()
     if identifier == "action.f-exec-alias":
-        pattern = 'strcmp(action->name, "!")'
+        patterns = ['strcmp(spelling, "!")']
     else:
-        pattern = '{"' + spelling + '",'
-    for index, line in enumerate(config_lines, 1):
-        if pattern in line:
-            return {"location": f"src/config.c:{index}", "contains": pattern}
+        patterns = [
+            'ACT("' + spelling + '",',
+            'ACT_ARG("' + spelling + '",',
+            '{"' + spelling + '",',
+        ]
+    for pattern in patterns:
+        for index, line in enumerate(config_lines, 1):
+            if pattern in line:
+                return {"location": f"src/config.c:{index}", "contains": pattern}
     raise ValueError(f"effective action lacks its exact parser mapping: {identifier}")
 
 
@@ -200,7 +220,7 @@ RUNTIME_CONTRACT_FRAGMENTS = {
         "&server->config.functions[i].actions[j], depth + 1",
     ],
     "runtime_dispatch.key-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_KEY,"],
-    "runtime_dispatch.menu-definition-lookup-and-rendering": ["strcasecmp(server->config.menus[i].name, name)"],
+    "runtime_dispatch.menu-definition-lookup-and-rendering": ["strcmp(server->config.menus[i].name, name)"],
     "runtime_dispatch.menu-item-action-dispatch": ["execute_action(server, target, &action, 0)"],
     "runtime_dispatch.start-iconified-rule-dispatch": ["server->config.start_iconified_windows"],
     "runtime_dispatch.title-button-action-dispatch": ["execute_action(server, hit.toplevel, configured, 0)"],
@@ -214,6 +234,10 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
         "server->config.auto_raise ||",
         "&server->config.auto_raise_windows,",
     ],
+    "directive.bordercolor": ["color_value(server->config.border_color, border);"],
+    "directive.borderwidth": ["int border = toplevel->server->config.border_width;"],
+    "directive.buttonn-binding": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
+    "directive.color": ["color_value(server->config.border_color, border);"],
     "directive.function": [
         "server->config.functions[i].action_count",
         "&server->config.functions[i].actions[j], depth + 1",
@@ -222,7 +246,14 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
         "server->config.title_buttons[i].right_side == hit.right_button"
     ],
     "directive.maketitle": ["&toplevel->server->config.make_title_windows,"],
-    "directive.menu": ["strcasecmp(server->config.menus[i].name, name)"],
+    "directive.menu": ["strcmp(server->config.menus[i].name, name)"],
+    "directive.menubackground": ["color_value(server->config.menu_background, background);"],
+    "directive.menubordercolor": ["color_value(server->config.menu_border_color, border);"],
+    "directive.menuborderwidth": ["int border_width = server->config.menu_border_width;"],
+    "directive.menufont": ["server->config.menu_font, color, &widths[i], &heights[i]);"],
+    "directive.menuforeground": ["color_value(server->config.menu_foreground, highlight);"],
+    "directive.menutitlebackground": ["server->config.menu_title_background, row_color);"],
+    "directive.menutitleforeground": ["server->config.menu_title_foreground : server->config.menu_foreground);"],
     "directive.notitle": [
         "!toplevel->server->config.no_title &&",
         "&toplevel->server->config.no_title_windows,",
@@ -230,9 +261,14 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.righttitlebutton": [
         "server->config.title_buttons[i].right_side == hit.right_button"
     ],
+    "directive.quoted-key-binding": ["dispatch_binding(server, WTWM_BINDING_KEY,"],
     "directive.starticonified": [
         "&toplevel->server->config.start_iconified_windows,"
     ],
+    "directive.titlebackground": ["color_value(server->config.title_background, title);"],
+    "directive.titlefont": ["toplevel->server->config.title_font, foreground, &width, &height);"],
+    "directive.titleforeground": ["color_value(server->config.title_foreground, foreground);"],
+    "directive.titlepadding": ["toplevel->title_height = server->config.title_padding * 2 + 10;"],
 }
 
 
@@ -278,14 +314,16 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         feature_id = str(feature["id"])
         tests = []
         if feature["category"] != "runtime_dispatch":
+            expected = "reject" if feature_id in REFERENCE_REJECTIONS else "accept"
             tests.append({
                 "test_id": "test.current-feature.syntax",
                 "path": TEST_PATH,
                 "meson_test": MESON_TEST,
                 "case": feature_id,
                 "dimension": "syntax",
+                "expected": expected,
                 "assertions": [
-                    f"The dedicated {feature_id} fixture is accepted by wtwm-config.",
+                    f"The dedicated {feature_id} fixture is expected to {expected} under the frozen grammar.",
                     "This parser result does not claim native runtime or reference equivalence.",
                 ],
                 "fixture": syntax_fixture(feature),
@@ -298,6 +336,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "meson_test": MESON_TEST,
                 "case": feature_id,
                 "dimension": "source_contract",
+                "expected": "not-applicable",
                 "assertions": [
                     "Source-contract coverage is structural and does not claim runtime behavior or parity.",
                     f"The exact implementation/dispatch source contract for {feature_id} remains present.",
@@ -313,7 +352,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         })
     dimensions = ["syntax", "source_contract", "runtime"]
     result = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "current_audit_path": AUDIT_PATH,
         "feature_count": len(mappings),
         "dimension_policy": {
@@ -353,7 +392,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "`reference/audits/feature-test-map.json` is the authoritative exit-gate",
         "mapping layered over the immutable current-implementation audit snapshot.",
         "Every mapping is executed by the Meson `current feature coverage` test.",
-        "Syntax cases use one dedicated configuration fixture per feature. Source-contract",
+        "Syntax cases use one dedicated accepted or rejected configuration fixture per feature. Source-contract",
         "cases check exact implementation/dispatch sites but are explicitly non-runtime and",
         "non-behavioral; they do not upgrade compatibility-ledger runtime or parity claims.",
         "",
