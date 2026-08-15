@@ -1,9 +1,11 @@
 # wtwm
 
-`wtwm` is a Wayland compositor that preserves the deliberately plain,
-direct-manipulation feel of the original Tab Window Manager. It is installed
-alongside the desktop you already have: the package adds a separate **Wayland
-twm** login session and does not replace Wayland, Xorg, or X11 `twm`.
+`wtwm` aims to be to X11 `twm` what Sway is to i3: a `twm`-compatible Wayland
+compositor. It is designed to use existing `.twmrc` configurations and reproduce
+`twm`'s observable appearance and window-management behavior wherever Wayland
+permits. It is installed alongside the desktop you already have: the package
+adds a separate **Wayland twm** login session and does not replace Wayland, Xorg,
+or X11 `twm`.
 
 The project is currently an **0.1 development release**, suitable for nested
 testing. It already has a working wlroots compositor core, classic server-side
