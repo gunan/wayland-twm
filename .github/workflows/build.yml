@@ -8,18 +8,85 @@ jobs:
   debian-trixie:
     runs-on: ubuntu-latest
     container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential meson ninja-build pkgconf libwlroots-0.18-dev libwayland-dev libxkbcommon-dev libpango1.0-dev wayland-protocols
-      - name: Configure
-        run: meson setup build -Dcompositor=enabled -Dwerror=true
-      - name: Build
-        run: meson compile -C build
-      - name: Test
-        run: meson test -C build --print-errorlogs
+          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+      - name: Verify native x86-64 environment
+        run: test "$(dpkg --print-architecture)" = amd64
+      - name: Validate build-platform contract
+        run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build and test debug configuration
+        run: sh scripts/ci/run-meson-build.sh build enabled debug
+
+  debian-trixie-configurations:
+    name: Debian Trixie ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86-64 release
+            runner: ubuntu-24.04
+            architecture: amd64
+            profile: release
+          - name: x86-64 AddressSanitizer
+            runner: ubuntu-24.04
+            architecture: amd64
+            profile: asan
+          - name: x86-64 UndefinedBehaviorSanitizer
+            runner: ubuntu-24.04
+            architecture: amd64
+            profile: ubsan
+          - name: ARM64 debug
+            runner: ubuntu-24.04-arm
+            architecture: arm64
+            profile: debug
+          - name: ARM64 release
+            runner: ubuntu-24.04-arm
+            architecture: arm64
+            profile: release
+    runs-on: ${{ matrix.runner }}
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Debian Trixie dependencies
+        run: |
+          apt-get update
+          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+      - name: Verify native architecture
+        run: test "$(dpkg --print-architecture)" = "${{ matrix.architecture }}"
+      - name: Build and test
+        run: sh scripts/ci/run-meson-build.sh "build-${{ matrix.profile }}" enabled "${{ matrix.profile }}"
+
+  host-native-portable:
+    name: Host-native portable (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS ARM64
+            runner: macos-15
+            architecture: arm64
+          - name: macOS x86-64
+            runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install portable build dependencies
+        run: brew install meson ninja
+      - name: Verify native host architecture
+        run: test "$(uname -m)" = "${{ matrix.architecture }}"
+      - name: Validate build-platform contract
+        run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build and test platform-independent code
+        run: sh scripts/ci/run-meson-build.sh build-host disabled debug
 
   reference-twm:
     runs-on: ubuntu-latest
