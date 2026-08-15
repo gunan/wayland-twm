@@ -1,0 +1,29 @@
+{
+  "effective_observations": {
+    "coverage": "bounded selected ScreenInfo fields",
+    "fields": {
+      "border_width": 3,
+      "button_indent": 0,
+      "frame_padding": 2,
+      "highlight": false,
+      "move_delta": 3,
+      "no_defaults": true,
+      "no_grab_server": true,
+      "no_icon_managers": true,
+      "title_button_border_width": 0,
+      "title_focus": false,
+      "title_font": "fixed",
+      "title_padding": 2,
+      "use_p_position": 1
+    },
+    "observer": "GDB breakpoint at assign_var_savecolor immediately after ParseTwmrc; exact binary detached and continued unmodified"
+  },
+  "parser_outcome": {
+    "configuration": "scenario.twmrc",
+    "configuration_sha256": "cb71a8b832729a0455b55b286da7289ab8b09ab86b74e503c0ed3e6e2f611976",
+    "diagnostics_matching_parse_errors": [],
+    "method": "reference twm launched with -f scenario.twmrc, reached the post-ParseTwmrc observer, detached, and remained running",
+    "status": "accepted"
+  },
+  "schema_version": 1
+}

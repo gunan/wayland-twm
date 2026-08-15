@@ -1,0 +1,65 @@
+{
+  "input_focus": {
+    "revert_to": "PointerRoot",
+    "target": "alpha"
+  },
+  "phase": "alpha",
+  "root_stacking_bottom_to_top": [
+    "bravo",
+    "alpha"
+  ],
+  "schema_version": 1,
+  "screen": {
+    "depth": 24,
+    "height": 180,
+    "width": 260
+  },
+  "screenshot": {
+    "encoding": "gzip -n",
+    "file": "phase-alpha.ppm.gz",
+    "format": "PPM P6",
+    "height": 180,
+    "sha256": "798c10c1b831388c34850829c22dd9c5ca59665ffbe428ddc93e6309eede15a5",
+    "width": 260
+  },
+  "windows": [
+    {
+      "client": {
+        "border_width": 0,
+        "height": 65,
+        "mapped": true,
+        "width": 100,
+        "x": 33,
+        "y": 51
+      },
+      "frame": {
+        "border_width": 3,
+        "height": 85,
+        "mapped": true,
+        "width": 100,
+        "x": 33,
+        "y": 31
+      },
+      "role": "alpha"
+    },
+    {
+      "client": {
+        "border_width": 0,
+        "height": 70,
+        "mapped": true,
+        "width": 110,
+        "x": 91,
+        "y": 81
+      },
+      "frame": {
+        "border_width": 3,
+        "height": 90,
+        "mapped": true,
+        "width": 110,
+        "x": 91,
+        "y": 61
+      },
+      "role": "bravo"
+    }
+  ]
+}

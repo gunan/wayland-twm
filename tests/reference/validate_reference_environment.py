@@ -112,7 +112,9 @@ def validate(source_root: Path) -> list[str]:
         "    container: debian:trixie\n",
         "reference/environment/debian-trixie-x11-packages.txt",
         'sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build',
-        'sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE"',
+        'sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" '
+        '/tmp/reference-build /tmp/reference-capture '
+        '"$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"',
     ]
     for marker in workflow_markers:
         if marker not in workflow:
