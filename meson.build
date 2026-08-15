@@ -53,6 +53,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'compatibility ledger',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_compatibility_ledger.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()

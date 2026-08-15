@@ -163,7 +163,7 @@ Implementation work:
   window-list directive, mouse and key binding form, context and modifier,
   built-in function, menu construct, icon and icon-manager option, cursor,
   pixmap, font, placement option, and title-button option.
-- [ ] Create a machine-readable compatibility ledger containing syntax support,
+- [x] Create a machine-readable compatibility ledger containing syntax support,
   runtime support, native Wayland behavior, Xwayland behavior, test coverage,
   and known visual or semantic differences.
 - [ ] Audit the current implementation against that ledger.
