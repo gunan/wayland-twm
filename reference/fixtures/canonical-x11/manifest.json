@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "suite": "wtwm canonical X11 applications",
+  "reference": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "binary_contract": "verified tests/reference/build_reference_twm.sh output"
+  },
+  "environment": {
+    "contract": "reference/environment/debian-trixie-x11.json",
+    "screen": "1024x768x24",
+    "server": "private Xvfb display allocated with -displayfd"
+  },
+  "identity": {
+    "role_property": "_WTWM_CANONICAL_ROLE",
+    "volatile_values_forbidden": [
+      "display numbers",
+      "process IDs",
+      "timestamps",
+      "temporary paths",
+      "XIDs"
+    ]
+  },
+  "legacy_application": {
+    "package": "xterm",
+    "executable": "xterm",
+    "role": "legacy-xterm",
+    "wm_class": {
+      "res_class": "WtwmLegacyXterm",
+      "res_name": "wtwm-legacy-xterm"
+    }
+  },
+  "categories": [
+    {
+      "id": "normal_windows",
+      "roles": [
+        "normal"
+      ],
+      "assertions": [
+        {
+          "id": "normal-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "normal-no-transient",
+          "expected": "WM_TRANSIENT_FOR is absent"
+        }
+      ]
+    },
+    {
+      "id": "dialogs_and_transients",
+      "roles": [
+        "dialog",
+        "normal"
+      ],
+      "assertions": [
+        {
+          "id": "dialog-managed",
+          "expected": "dialog client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "dialog-transient-for-normal",
+          "expected": "WM_TRANSIENT_FOR identifies the normal client"
+        },
+        {
+          "id": "dialog-window-type",
+          "expected": "_NET_WM_WINDOW_TYPE is _NET_WM_WINDOW_TYPE_DIALOG"
+        }
+      ]
+    },
+    {
+      "id": "fixed_size_windows",
+      "roles": [
+        "fixed"
+      ],
+      "assertions": [
+        {
+          "id": "fixed-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "fixed-min-max",
+          "expected": "PMinSize and PMaxSize both specify 140x90"
+        }
+      ]
+    },
+    {
+      "id": "resize_increment_and_aspect_hints",
+      "roles": [
+        "resize"
+      ],
+      "assertions": [
+        {
+          "id": "resize-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "resize-increments",
+          "expected": "PBaseSize is 40x30 and PResizeInc is 13x7"
+        },
+        {
+          "id": "resize-aspect",
+          "expected": "PAspect range is exactly 4:3 through 16:9"
+        }
+      ]
+    },
+    {
+      "id": "long_and_changing_titles",
+      "roles": [
+        "title"
+      ],
+      "assertions": [
+        {
+          "id": "title-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "title-initial-long",
+          "expected": "initial WM_NAME is exact and longer than 200 bytes"
+        },
+        {
+          "id": "title-mutated",
+          "expected": "a later exact WM_NAME mutation is observable"
+        }
+      ]
+    },
+    {
+      "id": "icon_names_and_icon_bitmaps",
+      "roles": [
+        "icon"
+      ],
+      "assertions": [
+        {
+          "id": "icon-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "icon-name",
+          "expected": "WM_ICON_NAME is WTWM canonical icon name"
+        },
+        {
+          "id": "icon-pixmap-depth1",
+          "expected": "IconPixmapHint names a live 16x16 depth-1 pixmap"
+        },
+        {
+          "id": "icon-mask-depth1",
+          "expected": "IconMaskHint names a distinct live 16x16 depth-1 mask"
+        }
+      ]
+    },
+    {
+      "id": "urgency_and_focus_behavior",
+      "roles": [
+        "urgent"
+      ],
+      "assertions": [
+        {
+          "id": "urgency-managed",
+          "expected": "client parent is a distinct reference-twm frame"
+        },
+        {
+          "id": "urgency-hint",
+          "expected": "WM_HINTS has InputHint true and XUrgencyHint"
+        },
+        {
+          "id": "focus-target-urgent",
+          "expected": "explicit input focus is the urgent client with PointerRoot revert"
+        }
+      ]
+    },
+    {
+      "id": "override_redirect_windows",
+      "roles": [
+        "override"
+      ],
+      "assertions": [
+        {
+          "id": "override-redirect",
+          "expected": "XWindowAttributes.override_redirect is true"
+        },
+        {
+          "id": "override-root-parent",
+          "expected": "client remains a direct child of the X root"
+        }
+      ]
+    },
+    {
+      "id": "legacy_x11_applications",
+      "roles": [
+        "legacy-xterm"
+      ],
+      "assertions": [
+        {
+          "id": "legacy-xterm-class",
+          "expected": "real xterm WM_CLASS is wtwm-legacy-xterm/WtwmLegacyXterm"
+        },
+        {
+          "id": "legacy-xterm-managed",
+          "expected": "real xterm client parent is a distinct reference-twm frame"
+        }
+      ]
+    }
+  ],
+  "runtime": {
+    "script": "tests/reference/verify_canonical_x11_apps.sh",
+    "assertion_protocol": "one exact PASS\\t<assertion-id> record per manifest assertion",
+    "configuration": "reference/fixtures/canonical-x11/scenario.twmrc",
+    "baseline_policy": "fixture assertions only; no compatibility baselines",
+    "phases": [
+      {
+        "id": "initial",
+        "assertions": [
+          "normal-managed",
+          "normal-no-transient",
+          "dialog-managed",
+          "dialog-transient-for-normal",
+          "dialog-window-type",
+          "fixed-managed",
+          "fixed-min-max",
+          "resize-managed",
+          "resize-increments",
+          "resize-aspect",
+          "title-managed",
+          "title-initial-long",
+          "icon-managed",
+          "icon-name",
+          "icon-pixmap-depth1",
+          "icon-mask-depth1",
+          "urgency-managed",
+          "urgency-hint",
+          "override-redirect",
+          "override-root-parent",
+          "legacy-xterm-class",
+          "legacy-xterm-managed"
+        ]
+      },
+      {
+        "id": "mutation_and_focus",
+        "assertions": [
+          "title-mutated",
+          "focus-target-urgent"
+        ]
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "reference/fixtures/canonical-x11/scenario.twmrc",
+      "sha256": "cb71a8b832729a0455b55b286da7289ab8b09ab86b74e503c0ed3e6e2f611976"
+    },
+    {
+      "path": "tests/reference/canonical_x11_client.c",
+      "sha256": "5df738a6d7719c7178933350ae35b0628fd78bd40122a3ff1f350e8cc9f5c14b"
+    },
+    {
+      "path": "tests/reference/verify_canonical_x11_apps.sh",
+      "sha256": "cd711d163c79270b12b1a396b94faa0a56563e7bf2c8efbc99a42adf5e427ef8"
+    }
+  ]
+}

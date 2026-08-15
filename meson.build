@@ -38,6 +38,108 @@ config_test = executable(
 )
 test('twmrc parser', config_test)
 test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
+test(
+  'upstream reference freeze',
+  find_program('sh'),
+  args: [files('tests/reference/upstream_reference_test.sh'), meson.project_source_root()],
+)
+test(
+  'upstream configuration inventory',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_upstream_inventory.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'current implementation inventory',
+  find_program('sh'),
+  args: [files('tests/reference/current_implementation_audit_test.sh')],
+)
+test(
+  'current feature coverage',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_feature_test_map.py'),
+    '--source-root', meson.project_source_root(),
+    '--config-tool', config_tool,
+    '--self-test-tamper',
+  ],
+)
+test(
+  'compatibility ledger',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_compatibility_ledger.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'real-world twmrc corpus',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_twmrc_corpus.py'),
+    '--source-root', meson.project_source_root(),
+  ],
+)
+test(
+  'real-world twmrc jim',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc'),
+)
+test(
+  'real-world twmrc keith',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc'),
+)
+test(
+  'real-world twmrc lemke',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc'),
+)
+test(
+  'reference X11 environment contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_environment.py'),
+    '--source-root', meson.project_source_root(),
+  ],
+)
+test(
+  'reference twm build source',
+  find_program('sh'),
+  args: [
+    files('tests/reference/build_reference_twm.sh'),
+    '--validate-only', meson.project_source_root(),
+  ],
+)
+test(
+  'reference capture baselines',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_capture.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'canonical X11 application manifest',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_canonical_x11_apps.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()

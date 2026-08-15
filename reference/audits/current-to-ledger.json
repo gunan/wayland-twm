@@ -1,0 +1,1636 @@
+{
+  "schema_version": "1.0",
+  "current_audit_path": "reference/audits/current-implementation.json",
+  "ledger_path": "reference/ledger/twm-1.0.13.1.json",
+  "audited_commit": "a98fe0f84f0c5c44a2fbe1f942c884336d635fec",
+  "mappings": [
+    {
+      "current_id": "action.f-beep",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.beep"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-cut-alias",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "lexical.cut-shorthand"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-deiconify",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.deiconify"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-delete",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.delete"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-deltastop",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.deltastop"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-destroy",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.destroy"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-exec",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.2",
+        "keyword.f.exec"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-exec-alias",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "lexical.exec-shorthand"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-focus",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.focus"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-forcemove",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.forcemove"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-fullzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.fullzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-function",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.2",
+        "keyword.f.function"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-hbzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.hbzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-horizoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.horizoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-htzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.htzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-hzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.hzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-iconify",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.iconify"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-leftzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.leftzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-lower",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.lower"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-menu",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.2",
+        "keyword.f.menu"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-move",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.move"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-nop",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.nop"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-quit",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.quit"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-raise",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.raise"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-raiselower",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.raiselower"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-refresh",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.refresh"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-resize",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.resize"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-restart",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.restart"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-rightzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.rightzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-title",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.title"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-topzoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.topzoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-twmrc",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.twmrc"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-unfocus",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.unfocus"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-warpnext",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.warpnext"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-warpprev",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.warpprev"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-warpto",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.2",
+        "keyword.f.warpto"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.f-zoom",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "keyword.f.zoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "action.unrecognized-f-action",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.action.1",
+        "grammar.action.2",
+        "keyword.f.autoraise",
+        "keyword.f.backiconmgr",
+        "keyword.f.bottomzoom",
+        "keyword.f.circledown",
+        "keyword.f.circleup",
+        "keyword.f.colormap",
+        "keyword.f.cut",
+        "keyword.f.cutfile",
+        "keyword.f.downiconmgr",
+        "keyword.f.file",
+        "keyword.f.forwiconmgr",
+        "keyword.f.hideiconmgr",
+        "keyword.f.identify",
+        "keyword.f.lefticonmgr",
+        "keyword.f.nexticonmgr",
+        "keyword.f.previconmgr",
+        "keyword.f.priority",
+        "keyword.f.righticonmgr",
+        "keyword.f.saveyourself",
+        "keyword.f.showiconmgr",
+        "keyword.f.sorticonmgr",
+        "keyword.f.source",
+        "keyword.f.startwm",
+        "keyword.f.upiconmgr",
+        "keyword.f.version",
+        "keyword.f.vlzoom",
+        "keyword.f.vrzoom",
+        "keyword.f.warpring",
+        "keyword.f.warptoiconmgr",
+        "keyword.f.warptoscreen",
+        "keyword.f.winrefresh"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.bare-or-list-directives",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.noarg.1",
+        "grammar.sarg.1",
+        "grammar.stmt.13",
+        "grammar.stmt.14",
+        "grammar.stmt.21",
+        "grammar.stmt.22",
+        "grammar.stmt.23",
+        "grammar.stmt.24",
+        "grammar.stmt.25",
+        "grammar.stmt.26",
+        "grammar.stmt.27",
+        "grammar.stmt.28",
+        "grammar.stmt.29",
+        "grammar.stmt.30",
+        "grammar.stmt.31",
+        "grammar.stmt.32",
+        "grammar.stmt.33",
+        "grammar.stmt.34",
+        "grammar.stmt.35",
+        "grammar.stmt.36",
+        "grammar.stmt.47",
+        "grammar.stmt.48",
+        "grammar.stmt.49"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.base-0-numbers",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.number.1",
+        "lexical.number"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.binding-context-alternatives",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.context.1",
+        "grammar.context.2",
+        "grammar.context.3",
+        "grammar.context.4",
+        "grammar.context.5",
+        "grammar.context.6",
+        "grammar.context.7",
+        "grammar.context.8",
+        "grammar.context.9",
+        "grammar.contextkey.1",
+        "grammar.contextkey.10",
+        "grammar.contextkey.2",
+        "grammar.contextkey.3",
+        "grammar.contextkey.4",
+        "grammar.contextkey.5",
+        "grammar.contextkey.6",
+        "grammar.contextkey.7",
+        "grammar.contextkey.8",
+        "grammar.contextkey.9",
+        "grammar.contextkeys.1",
+        "grammar.contextkeys.2",
+        "grammar.contexts.1",
+        "grammar.contexts.2",
+        "keyword.all",
+        "keyword.frame",
+        "keyword.i",
+        "keyword.icon",
+        "keyword.iconmgr",
+        "keyword.m",
+        "keyword.meta",
+        "keyword.r",
+        "keyword.root",
+        "keyword.t",
+        "keyword.title",
+        "keyword.w",
+        "keyword.window",
+        "lexical.or"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.braces-and-nested-balanced-blocks",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.color_entries.1",
+        "grammar.color_entries.2",
+        "grammar.color_entry.1",
+        "grammar.color_entry.2",
+        "grammar.color_entry.3",
+        "grammar.color_list.1",
+        "grammar.cursor_entries.1",
+        "grammar.cursor_entries.2",
+        "grammar.cursor_entry.1",
+        "grammar.cursor_entry.10",
+        "grammar.cursor_entry.11",
+        "grammar.cursor_entry.12",
+        "grammar.cursor_entry.13",
+        "grammar.cursor_entry.14",
+        "grammar.cursor_entry.15",
+        "grammar.cursor_entry.16",
+        "grammar.cursor_entry.17",
+        "grammar.cursor_entry.18",
+        "grammar.cursor_entry.19",
+        "grammar.cursor_entry.2",
+        "grammar.cursor_entry.20",
+        "grammar.cursor_entry.21",
+        "grammar.cursor_entry.22",
+        "grammar.cursor_entry.3",
+        "grammar.cursor_entry.4",
+        "grammar.cursor_entry.5",
+        "grammar.cursor_entry.6",
+        "grammar.cursor_entry.7",
+        "grammar.cursor_entry.8",
+        "grammar.cursor_entry.9",
+        "grammar.cursor_list.1",
+        "grammar.function.1",
+        "grammar.icon_entries.1",
+        "grammar.icon_entries.2",
+        "grammar.icon_entry.1",
+        "grammar.icon_list.1",
+        "grammar.iconm_entries.1",
+        "grammar.iconm_entries.2",
+        "grammar.iconm_entry.1",
+        "grammar.iconm_entry.2",
+        "grammar.iconm_list.1",
+        "grammar.menu.1",
+        "grammar.pixmap_entries.1",
+        "grammar.pixmap_entries.2",
+        "grammar.pixmap_entry.1",
+        "grammar.pixmap_list.1",
+        "grammar.s_color_entries.1",
+        "grammar.s_color_entries.2",
+        "grammar.s_color_entry.1",
+        "grammar.s_color_entry.2",
+        "grammar.save_color_list.1",
+        "grammar.win_color_entries.1",
+        "grammar.win_color_entries.2",
+        "grammar.win_color_entry.1",
+        "grammar.win_color_list.1",
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1",
+        "grammar.win_sqz_entries.1",
+        "grammar.win_sqz_entries.2",
+        "lexical.left-brace",
+        "lexical.right-brace"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.button-range-1-through-32",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.button.1"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.case-insensitive-keywords-and-actions",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "lexical.keyword"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.comments",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "lexical.comment"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.function-action-sequences",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.function.1",
+        "grammar.function_entries.1",
+        "grammar.function_entries.2",
+        "grammar.function_entry.1"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.menu-definitions-and-items",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.menu.1",
+        "grammar.menu_entries.1",
+        "grammar.menu_entries.2",
+        "grammar.menu_entry.1",
+        "grammar.menu_entry.2"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.modifier-alternatives",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.key.1",
+        "grammar.key.2",
+        "grammar.key.3",
+        "grammar.key.4",
+        "grammar.key.5",
+        "grammar.key.6",
+        "grammar.keys.1",
+        "grammar.keys.2",
+        "keyword.c",
+        "keyword.control",
+        "keyword.l",
+        "keyword.lock",
+        "keyword.m",
+        "keyword.meta",
+        "keyword.mod",
+        "keyword.s",
+        "keyword.shift",
+        "lexical.or"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.named-window-binding-context",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.contextkey.10"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.newlines",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "lexical.whitespace"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.parenthesized-menu-colors",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.menu_entry.2",
+        "grammar.stmt.37",
+        "lexical.colon",
+        "lexical.left-parenthesis",
+        "lexical.right-parenthesis"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.quoted-strings-and-backslash-escapes",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.string.1",
+        "lexical.string"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.signed-integer-option",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.signed_number.1",
+        "grammar.signed_number.2",
+        "grammar.signed_number.3",
+        "lexical.minus",
+        "lexical.plus"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.title-button-bitmap-action-assignment",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.15",
+        "grammar.stmt.16",
+        "lexical.equals"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.unknown-statement-skipping",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.1"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.window-name-lists",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "construct.word-tokens",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmts.1",
+        "grammar.stmts.2",
+        "grammar.twmrc.1",
+        "lexical.keyword"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.autoraise",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.36",
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1",
+        "keyword.autoraise"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.autorelativeresize",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.autorelativeresize"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.bordercolor",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.bordercolor"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.borderwidth",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.borderwidth"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.buttonindent",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.buttonindent"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.buttonn-binding",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.button.1",
+        "grammar.context.1",
+        "grammar.context.2",
+        "grammar.context.3",
+        "grammar.context.4",
+        "grammar.context.5",
+        "grammar.context.6",
+        "grammar.context.7",
+        "grammar.context.8",
+        "grammar.context.9",
+        "grammar.contexts.1",
+        "grammar.contexts.2",
+        "grammar.full.1",
+        "grammar.key.1",
+        "grammar.key.2",
+        "grammar.key.3",
+        "grammar.key.4",
+        "grammar.key.5",
+        "grammar.key.6",
+        "grammar.keys.1",
+        "grammar.keys.2",
+        "grammar.stmt.20",
+        "keyword.all",
+        "keyword.c",
+        "keyword.control",
+        "keyword.frame",
+        "keyword.i",
+        "keyword.icon",
+        "keyword.iconmgr",
+        "keyword.l",
+        "keyword.lock",
+        "keyword.m",
+        "keyword.meta",
+        "keyword.mod",
+        "keyword.r",
+        "keyword.root",
+        "keyword.s",
+        "keyword.shift",
+        "keyword.t",
+        "keyword.title",
+        "keyword.w",
+        "keyword.window"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.clientborderwidth",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.clientborderwidth"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.color",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.color_entries.1",
+        "grammar.color_entries.2",
+        "grammar.color_entry.1",
+        "grammar.color_entry.2",
+        "grammar.color_entry.3",
+        "grammar.color_list.1",
+        "grammar.stmt.41",
+        "grammar.win_color_entries.1",
+        "grammar.win_color_entries.2",
+        "grammar.win_color_entry.1",
+        "grammar.win_color_list.1",
+        "keyword.color"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.constrainedmovetime",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.constrainedmovetime"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.cursors",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.cursor_entries.1",
+        "grammar.cursor_entries.2",
+        "grammar.cursor_entry.1",
+        "grammar.cursor_entry.10",
+        "grammar.cursor_entry.11",
+        "grammar.cursor_entry.12",
+        "grammar.cursor_entry.13",
+        "grammar.cursor_entry.14",
+        "grammar.cursor_entry.15",
+        "grammar.cursor_entry.16",
+        "grammar.cursor_entry.17",
+        "grammar.cursor_entry.18",
+        "grammar.cursor_entry.19",
+        "grammar.cursor_entry.2",
+        "grammar.cursor_entry.20",
+        "grammar.cursor_entry.21",
+        "grammar.cursor_entry.22",
+        "grammar.cursor_entry.3",
+        "grammar.cursor_entry.4",
+        "grammar.cursor_entry.5",
+        "grammar.cursor_entry.6",
+        "grammar.cursor_entry.7",
+        "grammar.cursor_entry.8",
+        "grammar.cursor_entry.9",
+        "grammar.cursor_list.1",
+        "grammar.stmt.12",
+        "keyword.cursors"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.decoratetransients",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.decoratetransients"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.donticonifybyunmapping",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.21",
+        "keyword.donticonifybyunmapping"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.dontmoveoff",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.dontmoveoff"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.dontsqueezetitle",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.squeeze.1",
+        "grammar.squeeze.2",
+        "grammar.squeeze.3",
+        "grammar.squeeze.4",
+        "grammar.win_sqz_entries.1",
+        "grammar.win_sqz_entries.2",
+        "keyword.dontsqueezetitle"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.framepadding",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.framepadding"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.function",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.function.1",
+        "grammar.function_entries.1",
+        "grammar.function_entries.2",
+        "grammar.function_entry.1",
+        "grammar.stmt.39",
+        "keyword.function"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.grayscale",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.color_entries.1",
+        "grammar.color_entries.2",
+        "grammar.color_entry.1",
+        "grammar.color_entry.2",
+        "grammar.color_entry.3",
+        "grammar.color_list.1",
+        "grammar.stmt.42",
+        "grammar.win_color_entries.1",
+        "grammar.win_color_entries.2",
+        "grammar.win_color_entry.1",
+        "grammar.win_color_list.1",
+        "keyword.grayscale"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.greyscale",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.color_entries.1",
+        "grammar.color_entries.2",
+        "grammar.color_entry.1",
+        "grammar.color_entry.2",
+        "grammar.color_entry.3",
+        "grammar.color_list.1",
+        "grammar.stmt.42",
+        "grammar.win_color_entries.1",
+        "grammar.win_color_entries.2",
+        "grammar.win_color_entry.1",
+        "grammar.win_color_list.1",
+        "keyword.greyscale"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconfont",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.sarg.1",
+        "grammar.stmt.3",
+        "keyword.iconfont"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconifybyunmapping",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.13",
+        "grammar.stmt.14",
+        "keyword.iconifybyunmapping"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconmanagerdontshow",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.22",
+        "grammar.stmt.23",
+        "keyword.iconmanagerdontshow"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconmanagerfont",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.sarg.1",
+        "grammar.stmt.3",
+        "keyword.iconmanagerfont"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconmanagers",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.iconm_entries.1",
+        "grammar.iconm_entries.2",
+        "grammar.iconm_entry.1",
+        "grammar.iconm_entry.2",
+        "grammar.iconm_list.1",
+        "grammar.stmt.24",
+        "keyword.iconmanagers"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.iconmanagershow",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.25",
+        "keyword.iconmanagershow"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.icons",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.icon_entries.1",
+        "grammar.icon_entries.2",
+        "grammar.icon_entry.1",
+        "grammar.icon_list.1",
+        "grammar.stmt.40",
+        "keyword.icons"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.lefttitlebutton",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.15",
+        "keyword.lefttitlebutton"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.maketitle",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.34",
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1",
+        "keyword.maketitle"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menu",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.menu.1",
+        "grammar.menu_entries.1",
+        "grammar.menu_entries.2",
+        "grammar.menu_entry.1",
+        "grammar.menu_entry.2",
+        "grammar.stmt.37",
+        "grammar.stmt.38",
+        "keyword.menu"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menubackground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.menubackground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menubordercolor",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.menubordercolor"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menuborderwidth",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.menuborderwidth"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menufont",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.sarg.1",
+        "grammar.stmt.3",
+        "keyword.menufont"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menuforeground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.menuforeground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menutitlebackground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.menutitlebackground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.menutitleforeground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.menutitleforeground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.monochrome",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.color_entries.1",
+        "grammar.color_entries.2",
+        "grammar.color_entry.1",
+        "grammar.color_entry.2",
+        "grammar.color_entry.3",
+        "grammar.color_list.1",
+        "grammar.stmt.44",
+        "grammar.win_color_entries.1",
+        "grammar.win_color_entries.2",
+        "grammar.win_color_entry.1",
+        "grammar.win_color_list.1",
+        "keyword.monochrome"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.movedelta",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.movedelta"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.nocasesensitive",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.nocasesensitive"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.nohighlight",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.28",
+        "grammar.stmt.29",
+        "keyword.nohighlight"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.nomenushadows",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.nomenushadows"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.noraiseondeiconify",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.noraiseondeiconify"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.noraiseonmove",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.noraiseonmove"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.noraiseonresize",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.noraiseonresize"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.nostackmode",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.30",
+        "grammar.stmt.31",
+        "keyword.nostackmode"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.notitle",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.32",
+        "grammar.stmt.33",
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1",
+        "keyword.notitle"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.notitlefocus",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.notitlefocus"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.notitlehighlight",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.26",
+        "grammar.stmt.27",
+        "keyword.notitlehighlight"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.opaquemove",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.opaquemove"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.pixmaps",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.pixmap_entries.1",
+        "grammar.pixmap_entries.2",
+        "grammar.pixmap_entry.1",
+        "grammar.pixmap_list.1",
+        "grammar.stmt.11",
+        "keyword.pixmaps"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.quoted-key-binding",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.contextkey.1",
+        "grammar.contextkey.10",
+        "grammar.contextkey.2",
+        "grammar.contextkey.3",
+        "grammar.contextkey.4",
+        "grammar.contextkey.5",
+        "grammar.contextkey.6",
+        "grammar.contextkey.7",
+        "grammar.contextkey.8",
+        "grammar.contextkey.9",
+        "grammar.contextkeys.1",
+        "grammar.contextkeys.2",
+        "grammar.fullkey.1",
+        "grammar.key.1",
+        "grammar.key.2",
+        "grammar.key.3",
+        "grammar.key.4",
+        "grammar.key.5",
+        "grammar.key.6",
+        "grammar.keys.1",
+        "grammar.keys.2",
+        "grammar.stmt.19",
+        "keyword.all",
+        "keyword.c",
+        "keyword.control",
+        "keyword.frame",
+        "keyword.i",
+        "keyword.icon",
+        "keyword.iconmgr",
+        "keyword.l",
+        "keyword.lock",
+        "keyword.m",
+        "keyword.meta",
+        "keyword.mod",
+        "keyword.r",
+        "keyword.root",
+        "keyword.s",
+        "keyword.shift",
+        "keyword.t",
+        "keyword.title",
+        "keyword.w",
+        "keyword.window"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.randomplacement",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.randomplacement"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.resizefont",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.sarg.1",
+        "grammar.stmt.3",
+        "keyword.resizefont"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.righttitlebutton",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.16",
+        "keyword.righttitlebutton"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.savecolor",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.s_color_entries.1",
+        "grammar.s_color_entries.2",
+        "grammar.s_color_entry.1",
+        "grammar.s_color_entry.2",
+        "grammar.save_color_list.1",
+        "grammar.stmt.43",
+        "keyword.savecolor"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.showiconmanager",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.noarg.1",
+        "grammar.stmt.2",
+        "keyword.showiconmanager"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.squeezetitle",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.squeeze.1",
+        "grammar.squeeze.2",
+        "grammar.squeeze.3",
+        "grammar.squeeze.4",
+        "grammar.stmt.5",
+        "grammar.win_sqz_entries.1",
+        "grammar.win_sqz_entries.2",
+        "keyword.squeezetitle"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.starticonified",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.35",
+        "grammar.win_entries.1",
+        "grammar.win_entries.2",
+        "grammar.win_entry.1",
+        "grammar.win_list.1",
+        "keyword.starticonified"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.titlebackground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.titlebackground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.titlebuttonborderwidth",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.titlebuttonborderwidth"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.titlefont",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.sarg.1",
+        "grammar.stmt.3",
+        "keyword.titlefont"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.titleforeground",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "keyword.titleforeground"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.titlepadding",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.narg.1",
+        "grammar.stmt.4",
+        "keyword.titlepadding"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.unrecognized-statement-fallback",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.10",
+        "grammar.stmt.17",
+        "grammar.stmt.18",
+        "grammar.stmt.45",
+        "grammar.stmt.46",
+        "grammar.stmt.6",
+        "grammar.stmt.7",
+        "grammar.stmt.8",
+        "grammar.stmt.9",
+        "keyword.bordertilebackground",
+        "keyword.bordertileforeground",
+        "keyword.button",
+        "keyword.center",
+        "keyword.defaultbackground",
+        "keyword.defaultforeground",
+        "keyword.defaultfunction",
+        "keyword.destroy",
+        "keyword.east",
+        "keyword.f",
+        "keyword.forceicons",
+        "keyword.iconbackground",
+        "keyword.iconbordercolor",
+        "keyword.iconborderwidth",
+        "keyword.icondirectory",
+        "keyword.iconforeground",
+        "keyword.iconmanagerbackground",
+        "keyword.iconmanagerforeground",
+        "keyword.iconmanagergeometry",
+        "keyword.iconmanagerhighlight",
+        "keyword.iconregion",
+        "keyword.interpolatemenucolors",
+        "keyword.left",
+        "keyword.maxwindowsize",
+        "keyword.menushadowcolor",
+        "keyword.move",
+        "keyword.nobackingstore",
+        "keyword.nodefaults",
+        "keyword.nograbserver",
+        "keyword.noiconmanagers",
+        "keyword.noraiseonwarp",
+        "keyword.north",
+        "keyword.nosaveunders",
+        "keyword.noversion",
+        "keyword.pointerbackground",
+        "keyword.pointerforeground",
+        "keyword.priority",
+        "keyword.resize",
+        "keyword.restartpreviousstate",
+        "keyword.right",
+        "keyword.select",
+        "keyword.sorticonmanager",
+        "keyword.south",
+        "keyword.titlehighlight",
+        "keyword.unknownicon",
+        "keyword.usepposition",
+        "keyword.wait",
+        "keyword.warpunmapped",
+        "keyword.west",
+        "keyword.windowfunction",
+        "keyword.xorvalue",
+        "keyword.zoom"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.warpcursor",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.47",
+        "grammar.stmt.48",
+        "keyword.warpcursor"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "directive.windowring",
+      "classification": "ledger-mapped",
+      "ledger_ids": [
+        "grammar.stmt.49",
+        "keyword.windowring"
+      ],
+      "notes": "Mapped conservatively to frozen rows exercised by this audited parser item."
+    },
+    {
+      "current_id": "runtime_dispatch.auto-raise-rule-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.button-binding-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.configuration-load-at-startup",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.configured-frame-and-title-rendering",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.execute-configured-action",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.function-action-recursion",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.key-binding-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.menu-definition-lookup-and-rendering",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.menu-item-action-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.start-iconified-rule-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.title-button-action-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    },
+    {
+      "current_id": "runtime_dispatch.title-decoration-rule-dispatch",
+      "classification": "runtime-dispatch",
+      "ledger_ids": [],
+      "notes": "Runtime dispatch is implementation plumbing, not an upstream syntax row."
+    }
+  ],
+  "unmapped_ledger_ids": []
+}

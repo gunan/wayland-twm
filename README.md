@@ -157,34 +157,34 @@ specification.
 
 Implementation work:
 
-- [ ] Freeze the upstream `twm` source, manual, default bindings, and sample
+- [x] Freeze the upstream `twm` source, manual, default bindings, and sample
   configurations used as the reference.
-- [ ] Inventory every configuration directive, color and monochrome option,
+- [x] Inventory every configuration directive, color and monochrome option,
   window-list directive, mouse and key binding form, context and modifier,
   built-in function, menu construct, icon and icon-manager option, cursor,
   pixmap, font, placement option, and title-button option.
-- [ ] Create a machine-readable compatibility ledger containing syntax support,
+- [x] Create a machine-readable compatibility ledger containing syntax support,
   runtime support, native Wayland behavior, Xwayland behavior, test coverage,
   and known visual or semantic differences.
-- [ ] Audit the current implementation against that ledger.
-- [ ] Preserve representative real-world `.twmrc` files as regression fixtures.
+- [x] Audit the current implementation against that ledger.
+- [x] Preserve representative real-world `.twmrc` files as regression fixtures.
 
 Testing:
 
-- [ ] Build the reference `twm` in a controlled X11 environment.
-- [ ] Record its parsed configuration, window geometry, focus, stacking order, and
+- [x] Build the reference `twm` in a controlled X11 environment.
+- [x] Record its parsed configuration, window geometry, focus, stacking order, and
   screenshots.
-- [ ] Establish canonical test applications for normal windows, dialogs and
+- [x] Establish canonical test applications for normal windows, dialogs and
   transients, fixed-size windows, resize-increment and aspect-ratio hints, long
   and changing titles, icon names and icon bitmaps, urgency and focus behavior,
   override-redirect windows, and legacy X11 applications.
 
 Exit criteria:
 
-- [ ] One hundred percent of upstream syntax and actions are represented in the
+- [x] One hundred percent of upstream syntax and actions are represented in the
   ledger.
-- [ ] Every existing project feature is mapped to at least one test.
-- [ ] The reference environment can produce repeatable results from a clean VM
+- [x] Every existing project feature is mapped to at least one test.
+- [x] The reference environment can produce repeatable results from a clean VM
   snapshot.
 
 ### Milestone 1: Establish the build and test platforms
