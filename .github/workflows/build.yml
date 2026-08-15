@@ -36,4 +36,13 @@ jobs:
         run: |
           xargs dpkg-query -W -f='${binary:Package}\t${Version}\n' < reference/environment/debian-trixie-x11-packages.txt
       - name: Build and smoke-test reference twm
-        run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE"
+        run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build
+      - name: Capture repeatable reference behavior
+        run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture
+      - name: Upload reference capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-capture
+          path: /tmp/reference-capture
+          if-no-files-found: error

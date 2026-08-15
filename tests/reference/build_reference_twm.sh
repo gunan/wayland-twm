@@ -15,7 +15,7 @@ fail()
 
 usage()
 {
-    echo "usage: build_reference_twm.sh [--validate-only] REPOSITORY_ROOT" >&2
+    echo "usage: build_reference_twm.sh [--validate-only] REPOSITORY_ROOT [OUTPUT_DIRECTORY]" >&2
     exit 2
 }
 
@@ -63,9 +63,10 @@ if test "${1:-}" = --validate-only; then
     validate_only=true
     shift
 fi
-test "$#" -eq 1 || usage
+test "$#" -ge 1 && test "$#" -le 2 || usage
 
 repo_root=$1
+output_dir=${2:-}
 archive="$repo_root/reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz"
 validate_source
 
@@ -158,6 +159,13 @@ sleep 2
 if ! kill -0 "$twm_pid" >/dev/null 2>&1; then
     sed 's/^/twm: /' "$work_dir/twm.log" >&2
     fail "reference twm exited during X11 startup"
+fi
+
+if test -n "$output_dir"; then
+    test ! -e "$output_dir" || fail "output directory already exists: $output_dir"
+    mkdir "$output_dir"
+    cp "$reference_twm" "$output_dir/twm"
+    chmod 0755 "$output_dir/twm"
 fi
 
 echo "reference twm build and X11 smoke test passed: $actual_version"
