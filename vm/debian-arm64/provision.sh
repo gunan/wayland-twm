@@ -40,4 +40,5 @@ if getent passwd wtwm >/dev/null 2>&1; then
 	done
 fi
 systemctl enable seatd.service
+systemctl enable gdm3.service
 printf 'Provisioning complete; package lock: %s/packages.tsv\n' "$state_dir"

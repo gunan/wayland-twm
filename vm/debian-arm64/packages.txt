@@ -4,6 +4,7 @@ dbus-user-session
 debhelper
 devscripts
 foot
+gdm3
 git
 libpango1.0-dev
 libwayland-dev

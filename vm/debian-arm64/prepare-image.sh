@@ -4,7 +4,7 @@ set -eu
 usage()
 {
 	cat >&2 <<'EOF'
-usage: prepare-image.sh SSH_PUBLIC_KEY_FILE OUTPUT_DIRECTORY
+usage: prepare-image.sh SSH_PUBLIC_KEY_FILE PASSWORD_HASH_FILE OUTPUT_DIRECTORY
 
 Create a verified Debian ARM64 qcow2 disk and NoCloud seed ISO for UTM.
 The output directory must not already exist.
@@ -12,13 +12,18 @@ EOF
 	exit 2
 }
 
-test "$#" -eq 2 || usage
+test "$#" -eq 3 || usage
 ssh_key_file=$1
-output_dir=$2
+password_hash_file=$2
+output_dir=$3
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 test -f "$ssh_key_file" || {
 	printf 'prepare-image.sh: SSH public key not found: %s\n' "$ssh_key_file" >&2
+	exit 1
+}
+test -f "$password_hash_file" || {
+	printf 'prepare-image.sh: password hash not found: %s\n' "$password_hash_file" >&2
 	exit 1
 }
 test ! -e "$output_dir" || {
@@ -65,6 +70,20 @@ case $ssh_key_payload in
 		;;
 esac
 ssh_key="$ssh_key_type $ssh_key_payload"
+password_hash=$(awk 'NR == 1 { print; exit }' "$password_hash_file")
+case $password_hash in
+	\$6\$*|\$y\$*) ;;
+	*)
+		printf '%s\n' 'prepare-image.sh: password must be a SHA-512 crypt or yescrypt hash' >&2
+		exit 1
+		;;
+esac
+case $password_hash in
+	*[!\$./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789]*)
+		printf '%s\n' 'prepare-image.sh: password hash contains unsafe YAML characters' >&2
+		exit 1
+		;;
+esac
 
 work_dir=$(mktemp -d "${TMPDIR:-/tmp}/wtwm-vm.XXXXXX")
 cleanup()
@@ -89,7 +108,8 @@ seed_dir=$work_dir/seed
 mkdir -p -- "$seed_dir"
 cp "$script_dir/cloud-init/meta-data" "$seed_dir/meta-data"
 cp "$script_dir/cloud-init/network-config" "$seed_dir/network-config"
-awk -v ssh_key="$ssh_key" -v packages="$script_dir/packages.txt" '
+awk -v ssh_key="$ssh_key" -v password_hash="$password_hash" \
+	-v packages="$script_dir/packages.txt" '
 	$0 == "@WTWM_PACKAGES@" {
 		while ((getline package < packages) > 0) {
 			if (package != "" && package !~ /^#/) print "  - " package
@@ -99,6 +119,7 @@ awk -v ssh_key="$ssh_key" -v packages="$script_dir/packages.txt" '
 	}
 	{
 		gsub(/@WTWM_SSH_PUBLIC_KEY@/, ssh_key)
+		gsub(/@WTWM_PASSWORD_HASH@/, password_hash)
 		print
 	}
 ' "$script_dir/cloud-init/user-data.in" > "$seed_dir/user-data"
