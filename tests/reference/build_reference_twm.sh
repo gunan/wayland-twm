@@ -80,7 +80,7 @@ os_codename=$(sed -n 's/^VERSION_CODENAME=//p' /etc/os-release | tr -d '"')
 test "$os_id" = debian && test "$os_codename" = trixie ||
     fail "full build requires Debian Trixie, found $os_id/$os_codename"
 
-for program in cc make pkgconf tar Xvfb xdpyinfo; do
+for program in bison cc flex make pkgconf tar Xvfb xdpyinfo; do
     command -v "$program" >/dev/null 2>&1 || fail "required program is missing: $program"
 done
 

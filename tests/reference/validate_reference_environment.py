@@ -11,7 +11,9 @@ from pathlib import Path
 
 CONTRACT_PATH = Path("reference/environment/debian-trixie-x11.json")
 EXPECTED_PACKAGES = [
+    "bison",
     "build-essential",
+    "flex",
     "libice-dev",
     "libsm-dev",
     "libx11-dev",

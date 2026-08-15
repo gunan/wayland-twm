@@ -1,4 +1,6 @@
+bison
 build-essential
+flex
 libice-dev
 libsm-dev
 libx11-dev
