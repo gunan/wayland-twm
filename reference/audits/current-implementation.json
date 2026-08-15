@@ -1,0 +1,2385 @@
+{
+  "schema_version": "1.0",
+  "audited_commit": "a98fe0f84f0c5c44a2fbe1f942c884336d635fec",
+  "status_enum": [
+    "effective",
+    "not_applicable",
+    "parsed_only",
+    "unavailable",
+    "unknown"
+  ],
+  "schema": {
+    "description": "Deterministic current-tree implementation evidence inventory.",
+    "entry_required_fields": [
+      "id",
+      "category",
+      "name",
+      "evidence",
+      "tests",
+      "native_wayland_status",
+      "xwayland_status",
+      "unknowns",
+      "notes"
+    ],
+    "category_enum": [
+      "directive",
+      "action",
+      "construct",
+      "runtime_dispatch"
+    ],
+    "location_format": "repository-relative path:line",
+    "normalized_name": "ASCII lowercase; non-alphanumeric runs become hyphens; leading/trailing hyphens are removed"
+  },
+  "entries": [
+    {
+      "id": "action.f-beep",
+      "category": "action",
+      "name": "f.beep",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:59",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-cut-alias",
+      "category": "action",
+      "name": "^ (f.cut alias)",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:276",
+        "src/wtwm.c:575"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Alias is parsed as unsupported and reaches default runtime handling."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-deiconify",
+      "category": "action",
+      "name": "f.deiconify",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:61",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-delete",
+      "category": "action",
+      "name": "f.delete",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:60",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:46"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-deltastop",
+      "category": "action",
+      "name": "f.deltastop",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:62",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:21",
+        "tests/config_test.c:20"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-destroy",
+      "category": "action",
+      "name": "f.destroy",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:63",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-exec",
+      "category": "action",
+      "name": "f.exec",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:64",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:33",
+        "tests/config_test.c:23"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-exec-alias",
+      "category": "action",
+      "name": "! (f.exec alias)",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:272",
+        "src/wtwm.c:559"
+      ],
+      "tests": [
+        "tests/config_test.c:87"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-focus",
+      "category": "action",
+      "name": "f.focus",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:65",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-forcemove",
+      "category": "action",
+      "name": "f.forcemove",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:66",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-fullzoom",
+      "category": "action",
+      "name": "f.fullzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:67",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-function",
+      "category": "action",
+      "name": "f.function",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:68",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:26",
+        "tests/config_test.c:22"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-hbzoom",
+      "category": "action",
+      "name": "f.hbzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:69",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-horizoom",
+      "category": "action",
+      "name": "f.horizoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:70",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-htzoom",
+      "category": "action",
+      "name": "f.htzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:71",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-hzoom",
+      "category": "action",
+      "name": "f.hzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:72",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-iconify",
+      "category": "action",
+      "name": "f.iconify",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:73",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:23",
+        "tests/config_test.c:55"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-leftzoom",
+      "category": "action",
+      "name": "f.leftzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:74",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-lower",
+      "category": "action",
+      "name": "f.lower",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:75",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:21"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-menu",
+      "category": "action",
+      "name": "f.menu",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:76",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:25",
+        "tests/config_test.c:21"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-move",
+      "category": "action",
+      "name": "f.move",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:77",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:21",
+        "tests/config_test.c:20"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-nop",
+      "category": "action",
+      "name": "f.nop",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:78",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:43"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-quit",
+      "category": "action",
+      "name": "f.quit",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:79",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:47",
+        "tests/config_test.c:27"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-raise",
+      "category": "action",
+      "name": "f.raise",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:80",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:22",
+        "tests/config_test.c:20"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-raiselower",
+      "category": "action",
+      "name": "f.raiselower",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:81",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:30"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-refresh",
+      "category": "action",
+      "name": "f.refresh",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:82",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-resize",
+      "category": "action",
+      "name": "f.resize",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:83",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:39",
+        "tests/config_test.c:56"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-restart",
+      "category": "action",
+      "name": "f.restart",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:84",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-rightzoom",
+      "category": "action",
+      "name": "f.rightzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:85",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-title",
+      "category": "action",
+      "name": "f.title",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:86",
+        "src/wtwm.c:519"
+      ],
+      "tests": [
+        "data/system.twmrc:37",
+        "tests/config_test.c:25"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-topzoom",
+      "category": "action",
+      "name": "f.topzoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:87",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-twmrc",
+      "category": "action",
+      "name": "f.twmrc",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:88",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-unfocus",
+      "category": "action",
+      "name": "f.unfocus",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:89",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-warpnext",
+      "category": "action",
+      "name": "f.warpnext",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:90",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-warpprev",
+      "category": "action",
+      "name": "f.warpprev",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:91",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-warpto",
+      "category": "action",
+      "name": "f.warpto",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:92",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.f-zoom",
+      "category": "action",
+      "name": "f.zoom",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:280",
+        "src/config.c:93",
+        "src/wtwm.c:519"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Action reaches execute_action default handling; no native effect is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "action.unrecognized-f-action",
+      "category": "action",
+      "name": "unrecognized f.* action",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:270",
+        "src/config.c:287",
+        "src/wtwm.c:575"
+      ],
+      "tests": [
+        "tests/config_test.c:85"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "The open-ended f.* spelling is not classified beyond optional string capture."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.bare-or-list-directives",
+      "category": "construct",
+      "name": "bare-or-list directives",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:586",
+        "src/config.c:597"
+      ],
+      "tests": [
+        "tests/config_test.c:104",
+        "tests/config_test.c:52"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.base-0-numbers",
+      "category": "construct",
+      "name": "base-0 numbers",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:170",
+        "src/config.c:174"
+      ],
+      "tests": [
+        "tests/config_test.c:14"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.binding-context-alternatives",
+      "category": "construct",
+      "name": "binding context alternatives",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:320",
+        "src/config.c:352"
+      ],
+      "tests": [
+        "tests/config_test.c:22"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.braces-and-nested-balanced-blocks",
+      "category": "construct",
+      "name": "braces and nested balanced blocks",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:184",
+        "src/config.c:481"
+      ],
+      "tests": [
+        "tests/config_test.c:83"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.button-range-1-through-32",
+      "category": "construct",
+      "name": "button range 1 through 32",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:626"
+      ],
+      "tests": [
+        "tests/config_test.c:75"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.case-insensitive-keywords-and-actions",
+      "category": "construct",
+      "name": "case-insensitive keywords and actions",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:281",
+        "src/config.c:96"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.comments",
+      "category": "construct",
+      "name": "comments",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:135"
+      ],
+      "tests": [
+        "tests/config_test.c:10"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.function-action-sequences",
+      "category": "construct",
+      "name": "function action sequences",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:418"
+      ],
+      "tests": [
+        "tests/config_test.c:20"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.menu-definitions-and-items",
+      "category": "construct",
+      "name": "menu definitions and items",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:388"
+      ],
+      "tests": [
+        "tests/config_test.c:24"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.modifier-alternatives",
+      "category": "construct",
+      "name": "modifier alternatives",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:302",
+        "src/config.c:340"
+      ],
+      "tests": [
+        "tests/config_test.c:23"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.named-window-binding-context",
+      "category": "construct",
+      "name": "named-window binding context",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:357"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.newlines",
+      "category": "construct",
+      "name": "newlines",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:147",
+        "src/config.c:212"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.parenthesized-menu-colors",
+      "category": "construct",
+      "name": "parenthesized menu colors",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:379"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.quoted-strings-and-backslash-escapes",
+      "category": "construct",
+      "name": "quoted strings and backslash escapes",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:150",
+        "src/config.c:156"
+      ],
+      "tests": [
+        "tests/config_test.c:13"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.signed-integer-option",
+      "category": "construct",
+      "name": "signed integer option",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:640"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.title-button-bitmap-action-assignment",
+      "category": "construct",
+      "name": "title-button bitmap/action assignment",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:443"
+      ],
+      "tests": [
+        "tests/config_test.c:55"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.unknown-statement-skipping",
+      "category": "construct",
+      "name": "unknown statement skipping",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:558",
+        "src/config.c:657"
+      ],
+      "tests": [
+        "tests/config_test.c:11"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.window-name-lists",
+      "category": "construct",
+      "name": "window-name lists",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:456"
+      ],
+      "tests": [
+        "tests/config_test.c:52"
+      ],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "construct.word-tokens",
+      "category": "construct",
+      "name": "word tokens",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:193",
+        "src/config.c:196"
+      ],
+      "tests": [],
+      "native_wayland_status": "not_applicable",
+      "xwayland_status": "not_applicable",
+      "unknowns": [
+        "Runtime client behavior is not applicable to this parser grammar construct."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.autoraise",
+      "category": "directive",
+      "name": "AutoRaise",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:597",
+        "src/wtwm.c:679"
+      ],
+      "tests": [
+        "tests/config_test.c:106",
+        "tests/config_test.c:53"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.autorelativeresize",
+      "category": "directive",
+      "name": "AutoRelativeResize",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:520",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.bordercolor",
+      "category": "directive",
+      "name": "BorderColor",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:470",
+        "src/wtwm.c:1047"
+      ],
+      "tests": [
+        "data/system.twmrc:11"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.borderwidth",
+      "category": "directive",
+      "name": "BorderWidth",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:538",
+        "src/config.c:638",
+        "src/wtwm.c:270"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.buttonindent",
+      "category": "directive",
+      "name": "ButtonIndent",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:539",
+        "src/config.c:638"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.buttonn-binding",
+      "category": "directive",
+      "name": "ButtonN binding",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:622",
+        "src/config.c:626",
+        "src/wtwm.c:757"
+      ],
+      "tests": [
+        "data/system.twmrc:25",
+        "tests/config_test.c:21",
+        "tests/config_test.c:75"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.clientborderwidth",
+      "category": "directive",
+      "name": "ClientBorderWidth",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:521",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.color",
+      "category": "directive",
+      "name": "Color",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:578",
+        "src/wtwm.c:1047"
+      ],
+      "tests": [
+        "data/system.twmrc:9",
+        "tests/config_test.c:15"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.constrainedmovetime",
+      "category": "directive",
+      "name": "ConstrainedMoveTime",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:540",
+        "src/config.c:638"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.cursors",
+      "category": "directive",
+      "name": "Cursors",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [
+        "tests/config_test.c:84"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.decoratetransients",
+      "category": "directive",
+      "name": "DecorateTransients",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:522",
+        "src/config.c:631"
+      ],
+      "tests": [
+        "data/system.twmrc:2",
+        "tests/config_test.c:12"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.donticonifybyunmapping",
+      "category": "directive",
+      "name": "DontIconifyByUnmapping",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.dontmoveoff",
+      "category": "directive",
+      "name": "DontMoveOff",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:523",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.dontsqueezetitle",
+      "category": "directive",
+      "name": "DontSqueezeTitle",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.framepadding",
+      "category": "directive",
+      "name": "FramePadding",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:541",
+        "src/config.c:638"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.function",
+      "category": "directive",
+      "name": "Function",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:583",
+        "src/wtwm.c:564"
+      ],
+      "tests": [
+        "data/system.twmrc:21",
+        "tests/config_test.c:20"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.grayscale",
+      "category": "directive",
+      "name": "Grayscale",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:579"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.greyscale",
+      "category": "directive",
+      "name": "Greyscale",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:579"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconfont",
+      "category": "directive",
+      "name": "IconFont",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:551",
+        "src/config.c:650"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconifybyunmapping",
+      "category": "directive",
+      "name": "IconifyByUnmapping",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconmanagerdontshow",
+      "category": "directive",
+      "name": "IconManagerDontShow",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconmanagerfont",
+      "category": "directive",
+      "name": "IconManagerFont",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:552",
+        "src/config.c:650"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconmanagers",
+      "category": "directive",
+      "name": "IconManagers",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.iconmanagershow",
+      "category": "directive",
+      "name": "IconManagerShow",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.icons",
+      "category": "directive",
+      "name": "Icons",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.lefttitlebutton",
+      "category": "directive",
+      "name": "LeftTitleButton",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:584",
+        "src/wtwm.c:741"
+      ],
+      "tests": [
+        "tests/config_test.c:55"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.maketitle",
+      "category": "directive",
+      "name": "MakeTitle",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:594",
+        "src/wtwm.c:966"
+      ],
+      "tests": [
+        "tests/config_test.c:105"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menu",
+      "category": "directive",
+      "name": "Menu",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:582",
+        "src/wtwm.c:411",
+        "src/wtwm.c:716"
+      ],
+      "tests": [
+        "data/system.twmrc:35",
+        "tests/config_test.c:24"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menubackground",
+      "category": "directive",
+      "name": "MenuBackground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:473",
+        "src/wtwm.c:448"
+      ],
+      "tests": [
+        "data/system.twmrc:14"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menubordercolor",
+      "category": "directive",
+      "name": "MenuBorderColor",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:475",
+        "src/wtwm.c:447"
+      ],
+      "tests": [
+        "data/system.twmrc:16"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menuborderwidth",
+      "category": "directive",
+      "name": "MenuBorderWidth",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:542",
+        "src/config.c:638",
+        "src/wtwm.c:442"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menufont",
+      "category": "directive",
+      "name": "MenuFont",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:553",
+        "src/config.c:650",
+        "src/wtwm.c:438"
+      ],
+      "tests": [
+        "data/system.twmrc:6"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menuforeground",
+      "category": "directive",
+      "name": "MenuForeground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:474",
+        "src/wtwm.c:449"
+      ],
+      "tests": [
+        "data/system.twmrc:15"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menutitlebackground",
+      "category": "directive",
+      "name": "MenuTitleBackground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:476",
+        "src/wtwm.c:461"
+      ],
+      "tests": [
+        "data/system.twmrc:17"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.menutitleforeground",
+      "category": "directive",
+      "name": "MenuTitleForeground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:477",
+        "src/wtwm.c:435"
+      ],
+      "tests": [
+        "data/system.twmrc:18"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.monochrome",
+      "category": "directive",
+      "name": "Monochrome",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:578"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.movedelta",
+      "category": "directive",
+      "name": "MoveDelta",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:543",
+        "src/config.c:638"
+      ],
+      "tests": [
+        "data/system.twmrc:7",
+        "tests/config_test.c:14"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.nocasesensitive",
+      "category": "directive",
+      "name": "NoCaseSensitive",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:524",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.nohighlight",
+      "category": "directive",
+      "name": "NoHighlight",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.nomenushadows",
+      "category": "directive",
+      "name": "NoMenuShadows",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:525",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.noraiseondeiconify",
+      "category": "directive",
+      "name": "NoRaiseOnDeiconify",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:526",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.noraiseonmove",
+      "category": "directive",
+      "name": "NoRaiseOnMove",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:527",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.noraiseonresize",
+      "category": "directive",
+      "name": "NoRaiseOnResize",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:528",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.nostackmode",
+      "category": "directive",
+      "name": "NoStackMode",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.notitle",
+      "category": "directive",
+      "name": "NoTitle",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:586",
+        "src/wtwm.c:963"
+      ],
+      "tests": [
+        "tests/config_test.c:104",
+        "tests/config_test.c:52"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.notitlefocus",
+      "category": "directive",
+      "name": "NoTitleFocus",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:529",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.notitlehighlight",
+      "category": "directive",
+      "name": "NoTitleHighlight",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.opaquemove",
+      "category": "directive",
+      "name": "OpaqueMove",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:530",
+        "src/config.c:631"
+      ],
+      "tests": [
+        "data/system.twmrc:3"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.pixmaps",
+      "category": "directive",
+      "name": "Pixmaps",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.quoted-key-binding",
+      "category": "directive",
+      "name": "quoted key binding",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:622",
+        "src/config.c:624",
+        "src/wtwm.c:805"
+      ],
+      "tests": [
+        "data/system.twmrc:33",
+        "tests/config_test.c:23",
+        "tests/config_test.c:85"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.randomplacement",
+      "category": "directive",
+      "name": "RandomPlacement",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:531",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.resizefont",
+      "category": "directive",
+      "name": "ResizeFont",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:554",
+        "src/config.c:650"
+      ],
+      "tests": [
+        "data/system.twmrc:5"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.righttitlebutton",
+      "category": "directive",
+      "name": "RightTitleButton",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:585",
+        "src/wtwm.c:741"
+      ],
+      "tests": [
+        "tests/config_test.c:56"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.savecolor",
+      "category": "directive",
+      "name": "SaveColor",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.showiconmanager",
+      "category": "directive",
+      "name": "ShowIconManager",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:532",
+        "src/config.c:631"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.squeezetitle",
+      "category": "directive",
+      "name": "SqueezeTitle",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [
+        "tests/config_test.c:83"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.starticonified",
+      "category": "directive",
+      "name": "StartIconified",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:604",
+        "src/wtwm.c:939"
+      ],
+      "tests": [
+        "tests/config_test.c:54"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.titlebackground",
+      "category": "directive",
+      "name": "TitleBackground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:471",
+        "src/wtwm.c:1048"
+      ],
+      "tests": [
+        "data/system.twmrc:12"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.titlebuttonborderwidth",
+      "category": "directive",
+      "name": "TitleButtonBorderWidth",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:544",
+        "src/config.c:638"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No native runtime consumer is identified by repository evidence."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.titlefont",
+      "category": "directive",
+      "name": "TitleFont",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:555",
+        "src/config.c:650",
+        "src/wtwm.c:258"
+      ],
+      "tests": [
+        "data/system.twmrc:4",
+        "tests/config_test.c:13"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.titleforeground",
+      "category": "directive",
+      "name": "TitleForeground",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:472",
+        "src/wtwm.c:1049"
+      ],
+      "tests": [
+        "data/system.twmrc:13"
+      ],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.titlepadding",
+      "category": "directive",
+      "name": "TitlePadding",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:545",
+        "src/config.c:638",
+        "src/wtwm.c:1041"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.unrecognized-statement-fallback",
+      "category": "directive",
+      "name": "unrecognized statement fallback",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:657"
+      ],
+      "tests": [
+        "tests/config_test.c:11"
+      ],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Accepted spelling and payload are not classified by the parser."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.warpcursor",
+      "category": "directive",
+      "name": "WarpCursor",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "directive.windowring",
+      "category": "directive",
+      "name": "WindowRing",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/config.c:606",
+        "src/config.c:614"
+      ],
+      "tests": [],
+      "native_wayland_status": "parsed_only",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "Directive payload is accepted but no native runtime consumer is identified."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.auto-raise-rule-dispatch",
+      "category": "runtime_dispatch",
+      "name": "auto-raise rule dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:676"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.button-binding-dispatch",
+      "category": "runtime_dispatch",
+      "name": "button binding dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:757"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.configuration-load-at-startup",
+      "category": "runtime_dispatch",
+      "name": "configuration load at startup",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:1163"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.configured-frame-and-title-rendering",
+      "category": "runtime_dispatch",
+      "name": "configured frame and title rendering",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:1041"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.execute-configured-action",
+      "category": "runtime_dispatch",
+      "name": "execute configured action",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:516"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.function-action-recursion",
+      "category": "runtime_dispatch",
+      "name": "function action recursion",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:563"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.key-binding-dispatch",
+      "category": "runtime_dispatch",
+      "name": "key binding dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:805"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.menu-definition-lookup-and-rendering",
+      "category": "runtime_dispatch",
+      "name": "menu definition lookup and rendering",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:411"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.menu-item-action-dispatch",
+      "category": "runtime_dispatch",
+      "name": "menu item action dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:716"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.start-iconified-rule-dispatch",
+      "category": "runtime_dispatch",
+      "name": "start-iconified rule dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:939"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.title-button-action-dispatch",
+      "category": "runtime_dispatch",
+      "name": "title button action dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:739"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    },
+    {
+      "id": "runtime_dispatch.title-decoration-rule-dispatch",
+      "category": "runtime_dispatch",
+      "name": "title decoration rule dispatch",
+      "evidence": [
+        "docs/COMPATIBILITY.md:27",
+        "src/wtwm.c:963"
+      ],
+      "tests": [],
+      "native_wayland_status": "effective",
+      "xwayland_status": "unavailable",
+      "unknowns": [
+        "No focused runtime test is mapped in the repository."
+      ],
+      "notes": "Repository evidence records current-tree handling only."
+    }
+  ]
+}
