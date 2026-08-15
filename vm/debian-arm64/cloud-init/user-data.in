@@ -1,0 +1,23 @@
+#cloud-config
+preserve_hostname: false
+hostname: wtwm-arm64
+manage_etc_hosts: true
+ssh_pwauth: false
+disable_root: true
+users:
+  - name: wtwm
+    gecos: wtwm platform test user
+    groups: [adm, audio, input, render, seat, sudo, video]
+    lock_passwd: true
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - @WTWM_SSH_PUBLIC_KEY@
+package_update: true
+packages:
+@WTWM_PACKAGES@
+runcmd:
+  - [install, -d, -m, "0755", /var/lib/wtwm-platform]
+  - [sh, -c, "dpkg-query -W -f='${binary:Package}\\t${Version}\\n' | LC_ALL=C sort > /var/lib/wtwm-platform/packages.tsv"]
+  - [sh, -c, "printf '%s\\n' 'debian-arm64-20260810-2566' > /etc/wtwm-platform-test-vm"]
+final_message: "wtwm ARM64 VM provisioning finished after $UPTIME seconds"
