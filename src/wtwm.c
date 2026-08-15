@@ -522,7 +522,8 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_RESIZE:
 		begin_interactive(toplevel, CURSOR_RESIZE, WLR_EDGE_RIGHT | WLR_EDGE_BOTTOM); break;
 	case WTWM_ACTION_RAISE:
-		if (toplevel) focus_toplevel(toplevel); break;
+		if (toplevel) focus_toplevel(toplevel);
+		break;
 	case WTWM_ACTION_LOWER:
 		lower_toplevel(toplevel); break;
 	case WTWM_ACTION_RAISELOWER:
@@ -548,11 +549,13 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		}
 		break;
 	case WTWM_ACTION_FOCUS:
-		if (toplevel) focus_toplevel(toplevel); break;
+		if (toplevel) focus_toplevel(toplevel);
+		break;
 	case WTWM_ACTION_UNFOCUS:
 		wlr_seat_keyboard_clear_focus(server->seat); set_focused_marker(server, NULL); break;
 	case WTWM_ACTION_DELETE: case WTWM_ACTION_DESTROY:
-		if (toplevel) wlr_xdg_toplevel_send_close(toplevel->xdg); break;
+		if (toplevel) wlr_xdg_toplevel_send_close(toplevel->xdg);
+		break;
 	case WTWM_ACTION_EXEC:
 		spawn_shell(action->argument); break;
 	case WTWM_ACTION_MENU:
@@ -802,7 +805,7 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 			handled = dispatch_binding(server, WTWM_BINDING_KEY, 0, name, context, toplevel);
 			if (!handled && (current_modifiers(server) & WTWM_MOD_META1) &&
 				symbols[i] == XKB_KEY_Escape) {
-				wlr_log(WLR_INFO, "emergency Alt+Escape exit");
+				wlr_log(WLR_INFO, "%s", "emergency Alt+Escape exit");
 				wl_display_terminate(server->display);
 				handled = true;
 			}
