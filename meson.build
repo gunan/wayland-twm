@@ -38,6 +38,13 @@ config_test = executable(
 )
 test('twmrc parser', config_test)
 
+config_malformed_test = executable(
+  'config-malformed-test',
+  'tests/config_malformed_test.c',
+  dependencies: config_dep,
+)
+test('twmrc malformed input', config_malformed_test, timeout: 30)
+
 test_control_protocol_lib = static_library(
   'wtwm-test-control-protocol',
   'src/test_control.c',
