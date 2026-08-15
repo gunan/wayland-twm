@@ -1,0 +1,90 @@
+#!/bin/sh
+# Apply the environment contract for a headless, nested, or DRM-backed test.
+set -eu
+
+usage()
+{
+	printf '%s\n' \
+		'usage: run-compositor-test {headless|nested|drm} -- COMMAND [ARG ...]' >&2
+	exit 2
+}
+
+test "$#" -ge 3 || usage
+mode=$1
+shift
+test "$1" = -- || usage
+shift
+test "$#" -gt 0 || usage
+
+temporary_runtime=
+cleanup()
+{
+	test -z "$temporary_runtime" || rm -rf -- "$temporary_runtime"
+}
+trap cleanup EXIT HUP INT TERM
+
+case $mode in
+	headless)
+		if test -z "${XDG_RUNTIME_DIR:-}"; then
+			temporary_runtime=$(mktemp -d "${TMPDIR:-/tmp}/wtwm-runtime.XXXXXX")
+			chmod 700 "$temporary_runtime"
+			export XDG_RUNTIME_DIR=$temporary_runtime
+		fi
+		test -d "$XDG_RUNTIME_DIR" && test -w "$XDG_RUNTIME_DIR" || {
+			printf '%s\n' 'run-compositor-test: XDG_RUNTIME_DIR is not writable' >&2
+			exit 1
+		}
+		export WLR_BACKENDS=headless
+		export WLR_HEADLESS_OUTPUTS=${WLR_HEADLESS_OUTPUTS:-1}
+		export WLR_LIBINPUT_NO_DEVICES=1
+		export WLR_RENDERER=${WLR_RENDERER:-pixman}
+		unset WAYLAND_DISPLAY DISPLAY
+		;;
+	nested)
+		test -n "${XDG_RUNTIME_DIR:-}" && test -d "$XDG_RUNTIME_DIR" || {
+			printf '%s\n' 'run-compositor-test: nested mode requires XDG_RUNTIME_DIR' >&2
+			exit 1
+		}
+		test -n "${WAYLAND_DISPLAY:-}" || {
+			printf '%s\n' 'run-compositor-test: nested mode requires WAYLAND_DISPLAY' >&2
+			exit 1
+		}
+		export WLR_BACKENDS=wayland
+		export WLR_WL_OUTPUTS=${WLR_WL_OUTPUTS:-1}
+		;;
+	drm)
+		test "$(uname -s)" = Linux || {
+			printf '%s\n' 'run-compositor-test: DRM mode requires Linux' >&2
+			exit 1
+		}
+		test -z "${SSH_CONNECTION:-}" && test -z "${SSH_TTY:-}" || {
+			printf '%s\n' 'run-compositor-test: DRM mode must run from a local login, not SSH' >&2
+			exit 1
+		}
+		test -n "${XDG_SESSION_ID:-}" && command -v loginctl >/dev/null 2>&1 || {
+			printf '%s\n' 'run-compositor-test: DRM mode requires a logind session' >&2
+			exit 1
+		}
+		test "$(loginctl show-session "$XDG_SESSION_ID" -p Active --value)" = yes || {
+			printf '%s\n' 'run-compositor-test: logind session is not active' >&2
+			exit 1
+		}
+		test "$(loginctl show-session "$XDG_SESSION_ID" -p Remote --value)" = no || {
+			printf '%s\n' 'run-compositor-test: logind session is remote' >&2
+			exit 1
+		}
+		has_drm=false
+		for card in /dev/dri/card*; do
+			if test -c "$card"; then has_drm=true; break; fi
+		done
+		test "$has_drm" = true || {
+			printf '%s\n' 'run-compositor-test: no DRM card is available' >&2
+			exit 1
+		}
+		export WLR_BACKENDS=drm,libinput
+		unset WAYLAND_DISPLAY DISPLAY
+		;;
+	*) usage ;;
+esac
+
+"$@"

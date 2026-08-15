@@ -1,0 +1,48 @@
+#!/bin/sh
+# Login-session wrapper: preserve the compositor's exit status, keep a private
+# log, and never replace or restart the display manager.
+set -u
+
+wtwm_bin=${WTWM_BIN:-wtwm}
+case $wtwm_bin in
+	*/*) test -x "$wtwm_bin" ;;
+	*) command -v "$wtwm_bin" >/dev/null 2>&1 ;;
+esac || {
+	printf 'wtwm-session: compositor is not executable: %s\n' "$wtwm_bin" >&2
+	exit 127
+}
+
+test -n "${XDG_RUNTIME_DIR:-}" && test -d "$XDG_RUNTIME_DIR" &&
+	test -w "$XDG_RUNTIME_DIR" || {
+	printf '%s\n' 'wtwm-session: XDG_RUNTIME_DIR must be a writable directory' >&2
+	exit 1
+}
+
+state_home=${XDG_STATE_HOME:-${HOME:?HOME is not set}/.local/state}
+log_dir=$state_home/wtwm
+umask 077
+if mkdir -p -- "$log_dir" 2>/dev/null; then
+	chmod 700 "$log_dir" 2>/dev/null || :
+	log_file=$log_dir/session.log
+else
+	printf 'wtwm-session: cannot create %s; logging to stderr\n' "$log_dir" >&2
+	log_file=/dev/stderr
+fi
+
+child_pid=
+forward_signal()
+{
+	test -z "$child_pid" || kill -TERM "$child_pid" 2>/dev/null || :
+}
+trap forward_signal HUP INT TERM
+
+{
+	printf 'wtwm-session: starting pid=%s at=%s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	"$wtwm_bin" "$@" &
+	child_pid=$!
+	wait "$child_pid"
+	status=$?
+	child_pid=
+	printf 'wtwm-session: compositor exit=%s at=%s\n' "$status" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	exit "$status"
+} >>"$log_file" 2>&1
