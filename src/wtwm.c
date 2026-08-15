@@ -1507,7 +1507,7 @@ static bool test_control_start(struct server *server, const char *path) {
 	struct test_control *control = &server->test_control;
 	control->server = server;
 	if (strlen(path) >= sizeof(control->path)) {
-		wlr_log(WLR_ERROR, "test control path is too long");
+		wlr_log(WLR_ERROR, "%s", "test control path is too long");
 		return false;
 	}
 	strcpy(control->path, path);
