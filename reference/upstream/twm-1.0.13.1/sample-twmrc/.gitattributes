@@ -1,1 +1,1 @@
-*.twmrc -diff
+*.twmrc whitespace=-blank-at-eol
