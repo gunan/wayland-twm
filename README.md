@@ -92,6 +92,11 @@ reproducing their observable effect or proving that a no-op produces no
 user-visible difference. Xwayland clients should receive the closest possible
 ICCCM-compatible behavior.
 
+Development with Codex Cloud is documented in
+[`docs/CODEX_CLOUD.md`](docs/CODEX_CLOUD.md), including environment setup and
+internet-access policy. Use [`docs/CODEX_CLOUD_TASKS.md`](docs/CODEX_CLOUD_TASKS.md)
+for bounded cloud-agent task prompts.
+
 ### Progress tracking
 
 The checkboxes in this section are the project's authoritative progress record.

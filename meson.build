@@ -42,6 +42,8 @@ test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
   pangocairo = dependency('pangocairo')
+  wayland_server = dependency('wayland-server')
+  xkbcommon = dependency('xkbcommon')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
@@ -54,7 +56,7 @@ if wlroots.found()
   executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo],
+    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
     install: true,
   )
   install_data(
