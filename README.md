@@ -184,7 +184,7 @@ Exit criteria:
 - [x] One hundred percent of upstream syntax and actions are represented in the
   ledger.
 - [x] Every existing project feature is mapped to at least one test.
-- [ ] The reference environment can produce repeatable results from a clean VM
+- [x] The reference environment can produce repeatable results from a clean VM
   snapshot.
 
 ### Milestone 1: Establish the build and test platforms
