@@ -174,7 +174,7 @@ Testing:
 - [x] Build the reference `twm` in a controlled X11 environment.
 - [x] Record its parsed configuration, window geometry, focus, stacking order, and
   screenshots.
-- [ ] Establish canonical test applications for normal windows, dialogs and
+- [x] Establish canonical test applications for normal windows, dialogs and
   transients, fixed-size windows, resize-increment and aspect-ratio hints, long
   and changing titles, icon names and icon bitmaps, urgency and focus behavior,
   override-redirect windows, and legacy X11 applications.
