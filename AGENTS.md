@@ -24,6 +24,17 @@ changes, in addition to the user's task-specific instructions.
 - If a subagent is not on its assigned `agent_<short_feature_label>` branch in
   its assigned worktree, it must stop without editing and report the mismatch
   to the coordinating agent.
+- Codex Cloud may expose the selected remote branch on a managed local branch
+  named `work`. Treat `work` as the assigned `agent_<short_feature_label>`
+  branch only when the task assignment names that branch and an immutable
+  dispatch-marker commit, the worktree starts clean, and
+  `git merge-base --is-ancestor <dispatch-marker> HEAD` succeeds. In that
+  verified Cloud case, do not switch branches merely to restore the remote
+  branch name. Recheck the `work` branch and marker ancestry before committing,
+  never push the managed `work` branch, and return the diff through Codex Cloud
+  for human review and integration. A `work` checkout that fails any condition
+  above is still a branch mismatch and must stop. This exception does not apply
+  to local worktrees or relax any rule for `agent`, `main`, or direct pushes.
 - If uncommitted changes, worktree restrictions, or repository state make that
   switch unsafe, stop and report the blocker. Do not discard or overwrite work
   to force the switch.
@@ -40,9 +51,10 @@ changes, in addition to the user's task-specific instructions.
 - A pull request from `agent` to `main` may be prepared for human review, but
   the agent must not merge it or bypass repository protections.
 
-Check the branch again immediately before every commit and push. The
-coordinating agent must see `agent`; a subagent must see its exact assigned
-`agent_<short_feature_label>` branch. Otherwise, stop.
+Check the branch again immediately before every commit and push. Outside the
+verified Codex Cloud `work` exception above, the coordinating agent must see
+`agent`; a subagent must see its exact assigned `agent_<short_feature_label>`
+branch. Otherwise, stop.
 
 ## Subagents and parallel work
 
