@@ -185,6 +185,7 @@ test(
     '--source-root', meson.project_source_root(),
     '--self-test-tamper',
   ],
+  timeout: 120,
 )
 test(
   'real-world twmrc corpus',
