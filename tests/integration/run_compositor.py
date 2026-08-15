@@ -177,8 +177,10 @@ def main() -> None:
     arguments = parser.parse_args()
     if arguments.repeat < 1 or arguments.repeat > 100:
         parser.error("--repeat must be between 1 and 100")
+    compositor = arguments.compositor.resolve()
+    client = arguments.client.resolve()
     for iteration in range(arguments.repeat):
-        run_once(arguments.compositor, arguments.client, iteration, arguments.nested)
+        run_once(compositor, client, iteration, arguments.nested)
 
 
 if __name__ == "__main__":
