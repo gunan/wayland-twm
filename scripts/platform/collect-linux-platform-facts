@@ -1,0 +1,88 @@
+#!/bin/sh
+# Collect reviewable Linux platform facts without machine IDs or serial numbers.
+set -eu
+
+usage()
+{
+	printf '%s\n' 'usage: collect-linux-platform-facts SOURCE_ROOT OUTPUT_DIRECTORY' >&2
+	exit 2
+}
+
+test "$#" -eq 2 || usage
+source_root=$1
+output_dir=$2
+test "$(uname -s)" = Linux || {
+	printf '%s\n' 'collect-linux-platform-facts: Linux is required' >&2
+	exit 1
+}
+test -d "$source_root/.git" || git -C "$source_root" rev-parse --git-dir >/dev/null 2>&1 || {
+	printf '%s\n' 'collect-linux-platform-facts: SOURCE_ROOT is not a Git checkout' >&2
+	exit 1
+}
+test ! -e "$output_dir" || {
+	printf 'collect-linux-platform-facts: refusing to overwrite: %s\n' "$output_dir" >&2
+	exit 1
+}
+mkdir -m 0700 "$output_dir"
+
+uname -a > "$output_dir/uname.txt"
+cp /etc/os-release "$output_dir/os-release.txt"
+git -C "$source_root" rev-parse HEAD > "$output_dir/git-commit.txt"
+git -C "$source_root" status --short > "$output_dir/git-status.txt"
+dpkg-query -W -f='${binary:Package}\t${Version}\n' |
+	LC_ALL=C sort > "$output_dir/packages.tsv"
+sha256sum "$output_dir/packages.tsv" |
+	awk '{print $1}' > "$output_dir/package-lock.sha256"
+
+if command -v systemd-detect-virt >/dev/null 2>&1; then
+	systemd-detect-virt > "$output_dir/virtualization.txt" 2>&1 ||
+		printf '%s\n' none > "$output_dir/virtualization.txt"
+else
+	printf '%s\n' unavailable > "$output_dir/virtualization.txt"
+fi
+{
+	printf 'manufacturer\t'
+	if test -r /sys/class/dmi/id/sys_vendor; then cat /sys/class/dmi/id/sys_vendor; else printf 'unknown\n'; fi
+	printf 'model\t'
+	if test -r /sys/class/dmi/id/product_name; then cat /sys/class/dmi/id/product_name; else printf 'unknown\n'; fi
+} > "$output_dir/hardware.tsv"
+
+{
+	for card in /dev/dri/card*; do
+		test -e "$card" || continue
+		ls -l "$card"
+	done
+} > "$output_dir/drm-devices.txt"
+{
+	for status_file in /sys/class/drm/card*-*/status; do
+		test -r "$status_file" || continue
+		printf '%s\t' "$(basename -- "$(dirname -- "$status_file")")"
+		cat "$status_file"
+	done
+} > "$output_dir/drm-connectors.tsv"
+if command -v lspci >/dev/null 2>&1; then
+	lspci -nnk > "$output_dir/pci.txt"
+else
+	printf '%s\n' 'lspci unavailable' > "$output_dir/pci.txt"
+fi
+if command -v libinput >/dev/null 2>&1; then
+	libinput list-devices > "$output_dir/input-devices.txt" 2>&1 || :
+elif test -r /proc/bus/input/devices; then
+	cp /proc/bus/input/devices "$output_dir/input-devices.txt"
+else
+	printf '%s\n' 'input inventory unavailable' > "$output_dir/input-devices.txt"
+fi
+if command -v loginctl >/dev/null 2>&1; then
+	loginctl list-sessions --no-legend > "$output_dir/login-sessions.txt" 2>&1 || :
+else
+	printf '%s\n' 'loginctl unavailable' > "$output_dir/login-sessions.txt"
+fi
+
+(
+	cd "$output_dir"
+	sha256sum drm-connectors.tsv drm-devices.txt git-commit.txt git-status.txt \
+		hardware.tsv input-devices.txt login-sessions.txt os-release.txt \
+		package-lock.sha256 packages.tsv pci.txt uname.txt virtualization.txt \
+		> SHA256SUMS
+)
+printf 'collect-linux-platform-facts: facts written to %s\n' "$output_dir"
