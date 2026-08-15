@@ -38,7 +38,7 @@ jobs:
       - name: Build and smoke-test reference twm
         run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build
       - name: Capture repeatable reference behavior
-        run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture
+        run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"
       - name: Upload reference capture
         if: always()
         uses: actions/upload-artifact@v4

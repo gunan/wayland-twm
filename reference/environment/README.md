@@ -40,6 +40,8 @@ xargs apt-get install -y --no-install-recommends < \
 sh tests/reference/build_reference_twm.sh .
 ```
 
-This environment establishes the reference build and startup baseline only.
-Configuration-state recording, geometry/focus/stacking probes, screenshots,
-and canonical client applications are separate later Milestone 0 tasks.
+After the verified binary is preserved, the same job runs the bounded capture
+documented in `reference/captures/twm-1.0.13.1/`. It checks parser outcome and
+selected effective fields, geometry, focus, controlled-frame stacking, and two
+root screenshots against twice-repeated and committed baselines. The broader
+canonical client-application matrix remains a separate Milestone 0 task.

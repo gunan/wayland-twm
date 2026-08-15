@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5"
+  },
+  "environment": {
+    "contract": "reference/environment/debian-trixie-x11.json",
+    "contract_sha256": "ece237f52847ee3489050c941cc877454fd55fdcac8af5c4915c61b52d8a6c1c",
+    "packages": "reference/environment/debian-trixie-x11-packages.txt",
+    "packages_sha256": "641758add2407062e248456c54ec536d2827a330b96cfc3df25ebb8f8620616e"
+  },
+  "scenario": {
+    "configuration": "reference/captures/twm-1.0.13.1/scenario.twmrc",
+    "configuration_sha256": "cb71a8b832729a0455b55b286da7289ab8b09ab86b74e503c0ed3e6e2f611976",
+    "screen": "260x180x24",
+    "roles": [
+      "alpha",
+      "bravo"
+    ],
+    "phases": [
+      "bravo",
+      "alpha"
+    ]
+  },
+  "observer_sources": [
+    {
+      "path": "tests/reference/build_reference_twm.sh",
+      "sha256": "7bd05b6f7eb902b753b19a0c32de326d4ceefec75ba2f1d0c704c4709f15713d"
+    },
+    {
+      "path": "tests/reference/capture_reference_twm.sh",
+      "sha256": "678c63f70527831c04806842013cb4897e9546b0e967af72308043bddde80d63"
+    },
+    {
+      "path": "tests/reference/normalize_reference_capture.py",
+      "sha256": "35284846b031f1b5e6b10e32d2f7b8cea47b02573ae2de9e9a9129a30bf25954"
+    },
+    {
+      "path": "tests/reference/reference_capture_client.c",
+      "sha256": "02cb8e55ab3dd9414ee3c7d3f591f5f45247d962670be9e58a682d5dd6440471"
+    }
+  ],
+  "methods": {
+    "parser_outcome": "Selected scenario.twmrc with -f, reject parse diagnostics, require post-ParseTwmrc breakpoint and continued startup",
+    "effective_observations": "GDB reads 13 selected ScreenInfo fields at assign_var_savecolor, then detaches without modifying the binary",
+    "geometry_focus_stacking": "Xlib query normalized to alpha/bravo roles; root stacking excludes unrelated internal windows",
+    "screenshots": "xwd root capture converted to PPM P6 and compressed with gzip -n",
+    "volatile_data_policy": "Omit XIDs, PIDs, timestamps, temporary paths, and display numbers"
+  },
+  "repeatability": {
+    "clean_xvfb_runs": 2,
+    "comparison": "byte-for-byte normalized records and compressed screenshots",
+    "committed_baseline_comparison": true
+  },
+  "bootstrap_ci": {
+    "workflow_run_id": 31902960738,
+    "workflow_run_url": "https://github.com/gunan/wayland-twm/actions/runs/31902960738",
+    "job_id": 95056407909,
+    "head_sha": "c0a83d3a77da0be79c0384bd91e7d1151e3cbff9",
+    "artifact_id": 9251584387,
+    "artifact_name": "reference-capture",
+    "artifact_zip_sha256": "9c84c82cd0b739a8527665bab15961d74b619e411717e6284f5414790069b890"
+  },
+  "artifacts": [
+    {
+      "path": "reference/captures/twm-1.0.13.1/baseline/parser.json",
+      "kind": "parser outcome and bounded effective observations",
+      "sha256": "bc1e12ed4f8fc2c71af5e951d17578eb57945554b15f5b927211aab636ec440a"
+    },
+    {
+      "path": "reference/captures/twm-1.0.13.1/baseline/phase-bravo.json",
+      "kind": "normalized geometry, focus, stacking, and screenshot identity",
+      "sha256": "3a24158eec8ad7e2b1bfde918172520609c9fe2e736984dd8de1d76e620191d3"
+    },
+    {
+      "path": "reference/captures/twm-1.0.13.1/baseline/phase-bravo.ppm.gz",
+      "kind": "gzip-n compressed PPM P6 root screenshot",
+      "sha256": "75bd1214027efc8a9631f0ec995356410f8b5ff3329cf7c655a9b4ac5d8a9dd2",
+      "uncompressed_sha256": "1976780154cf605e478569cddda35e14ac3b5c9b126a23db09ec7da2750a06cc"
+    },
+    {
+      "path": "reference/captures/twm-1.0.13.1/baseline/phase-alpha.json",
+      "kind": "normalized geometry, focus, stacking, and screenshot identity",
+      "sha256": "f70a39cb321ccffcdef0a43b1ecd8ba1e95085bbf4dd37784545476f70313cda"
+    },
+    {
+      "path": "reference/captures/twm-1.0.13.1/baseline/phase-alpha.ppm.gz",
+      "kind": "gzip-n compressed PPM P6 root screenshot",
+      "sha256": "798c10c1b831388c34850829c22dd9c5ca59665ffbe428ddc93e6309eede15a5",
+      "uncompressed_sha256": "02c7bcd13f8e53dc07f9aa46a38c1341dcde66931668ec0f3270d0cc28e477e5"
+    }
+  ]
+}
