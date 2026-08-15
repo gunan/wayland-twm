@@ -41,6 +41,7 @@
 #include <drm_fourcc.h>
 #include <fcntl.h>
 #include <fontconfig/fontconfig.h>
+#include <pango/pangocairo.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <wlr/backend/headless.h>
@@ -1726,6 +1727,7 @@ int main(int argc, char **argv) {
 	wl_display_destroy(server.display);
 	wtwm_config_finish(&server.config);
 #ifdef WTWM_TEST_CONTROL
+	pango_cairo_font_map_set_default(NULL);
 	FcFini();
 #endif
 	return 0;
