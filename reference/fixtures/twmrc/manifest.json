@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "corpus": {
+    "name": "Historical X.Org twm user configurations",
+    "selection": "Complete sample-twmrc set from the signed twm 1.0.13.1 release",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "signature": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz.sig",
+    "license_member": "twm-1.0.13.1/COPYING"
+  },
+  "fixtures": [
+    {
+      "id": "jim",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc",
+      "archive_member": "twm-1.0.13.1/sample-twmrc/jim.twmrc",
+      "sha256": "704e2699d9677b3b976df13277e8147efd04e24027714a319012670013848ee3",
+      "represents": [
+        "title buttons, squeeze-title rules, and pixmaps",
+        "color and monochrome settings",
+        "mouse bindings, composed functions, and menus",
+        "icon-manager and per-window lists"
+      ]
+    },
+    {
+      "id": "keith",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc",
+      "archive_member": "twm-1.0.13.1/sample-twmrc/keith.twmrc",
+      "sha256": "fe33be5f80e238f1a5aefd3ffad0637d356c3ba34714870d8df8414723365e08",
+      "represents": [
+        "cursor, font, color, and monochrome settings",
+        "squeeze-title and per-window rules",
+        "mouse modifiers and window contexts",
+        "composed functions and multi-entry menus"
+      ]
+    },
+    {
+      "id": "lemke",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+      "archive_member": "twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+      "sha256": "6f8406d44c9176935bb38d0668a866c216a21b9857593eea234bc93b3f186130",
+      "represents": [
+        "icon-manager, iconification, and auto-raise lists",
+        "cursor, font, and monochrome settings",
+        "abbreviated mouse contexts",
+        "composed functions and command-heavy menus"
+      ]
+    }
+  ]
+}

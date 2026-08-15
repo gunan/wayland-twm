@@ -167,7 +167,7 @@ Implementation work:
   runtime support, native Wayland behavior, Xwayland behavior, test coverage,
   and known visual or semantic differences.
 - [x] Audit the current implementation against that ledger.
-- [ ] Preserve representative real-world `.twmrc` files as regression fixtures.
+- [x] Preserve representative real-world `.twmrc` files as regression fixtures.
 
 Testing:
 

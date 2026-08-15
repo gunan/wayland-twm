@@ -68,6 +68,30 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'real-world twmrc corpus',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_twmrc_corpus.py'),
+    '--source-root', meson.project_source_root(),
+  ],
+)
+test(
+  'real-world twmrc jim',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc'),
+)
+test(
+  'real-world twmrc keith',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc'),
+)
+test(
+  'real-world twmrc lemke',
+  config_tool,
+  args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc'),
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
