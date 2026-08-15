@@ -57,7 +57,8 @@ configure_build()
 			-Dcompositor="$compositor" \
 			-Dwerror=true \
 			--buildtype="$buildtype" \
-			-Db_sanitize="$sanitize"
+			-Db_sanitize="$sanitize" \
+			-Db_lundef=false
 	fi
 }
 

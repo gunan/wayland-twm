@@ -152,6 +152,7 @@ def validate(source_root: Path) -> list[str]:
         "-Dwerror=true",
         "--buildtype=\"$buildtype\"",
         "-Db_sanitize=\"$sanitize\"",
+        "-Db_lundef=false",
         "meson compile -C \"$build_dir\"",
         "meson test -C \"$build_dir\" --print-errorlogs",
         "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
