@@ -38,6 +38,11 @@ config_test = executable(
 )
 test('twmrc parser', config_test)
 test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
+test(
+  'upstream reference freeze',
+  find_program('sh'),
+  args: [files('tests/reference/upstream_reference_test.sh'), meson.project_source_root()],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()

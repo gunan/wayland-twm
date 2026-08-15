@@ -157,7 +157,7 @@ specification.
 
 Implementation work:
 
-- [ ] Freeze the upstream `twm` source, manual, default bindings, and sample
+- [x] Freeze the upstream `twm` source, manual, default bindings, and sample
   configurations used as the reference.
 - [ ] Inventory every configuration directive, color and monochrome option,
   window-list directive, mouse and key binding form, context and modifier,
