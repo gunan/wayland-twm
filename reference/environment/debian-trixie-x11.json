@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "Debian Trixie reference twm X11 build",
+  "container": "debian:trixie",
+  "runner": "ubuntu-latest",
+  "packages": "reference/environment/debian-trixie-x11-packages.txt",
+  "package_version_policy": "Resolve from Debian Trixie and record exact versions in each CI log",
+  "source": {
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "root": "twm-1.0.13.1",
+    "version": "1.0.13.1"
+  },
+  "build": {
+    "script": "tests/reference/build_reference_twm.sh",
+    "system": "release-generated configure and Makefile.in files",
+    "configure_arguments": [
+      "--disable-silent-rules"
+    ],
+    "parallel_jobs": 2,
+    "version_command": "src/twm -V",
+    "expected_version_output": "twm 1.0.13.1"
+  },
+  "x11_smoke": {
+    "server": "Xvfb",
+    "display": ":99",
+    "screen": "1024x768x24",
+    "readiness_probe": "xdpyinfo",
+    "configuration": "empty temporary .twmrc"
+  }
+}
