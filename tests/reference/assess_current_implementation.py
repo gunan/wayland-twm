@@ -317,6 +317,21 @@ def apply_parser_fixture_coverage(
         mapping = coverage[row["id"]]
         fixture_evidence = f"{mapping['path']}:1"
         existing_evidence = row["syntax_support"]["evidence"]  # type: ignore[index]
+        existing_test_coverage = row["test_coverage"]  # type: ignore[index]
+        parser_mapping = {
+            "test_id": mapping["test_id"],
+            "path": "tests/reference/compare_reference_parser.py",
+            "case": mapping["case"],
+            "dimensions": ["syntax"],
+            "assertions": [
+                "The fixture has frozen provenance and expected acceptance, and the aggregate real-twm yydebug trace proves its mapped grammar alternative was reduced."
+            ],
+        }
+        test_mappings = {
+            str(test_mapping["test_id"]): test_mapping
+            for test_mapping in existing_test_coverage["mappings"]
+        }
+        test_mappings[str(parser_mapping["test_id"])] = parser_mapping
         row["syntax_support"] = {
             "status": "complete",
             "evidence": sorted(set(existing_evidence + [fixture_evidence])),
@@ -326,20 +341,15 @@ def apply_parser_fixture_coverage(
         }
         row["test_coverage"] = {
             "status": "complete",
-            "evidence": [
+            "evidence": sorted(set(existing_test_coverage["evidence"] + [
                 fixture_evidence,
                 "tests/reference/compare_reference_parser.py:1",
                 "tests/reference/validate_parser_fixture_coverage.py:1",
-            ],
-            "mappings": [{
-                "test_id": mapping["test_id"],
-                "path": "tests/reference/compare_reference_parser.py",
-                "case": mapping["case"],
-                "dimensions": ["syntax"],
-                "assertions": [
-                    "The fixture has frozen provenance and expected acceptance, and the aggregate real-twm yydebug trace proves its mapped grammar alternative was reduced."
-                ],
-            }],
+            ])),
+            "mappings": sorted(
+                test_mappings.values(),
+                key=lambda item: (item["test_id"], item["path"], item["case"]),
+            ),
             "notes": [
                 "Complete here is parser-language coverage only; runtime, native Wayland, Xwayland, semantic, and visual coverage remain independently assessed."
             ],

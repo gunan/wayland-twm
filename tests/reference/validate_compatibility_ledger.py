@@ -754,9 +754,16 @@ def _tamper_self_test(
     changed = copy.deepcopy(ledger)
     covered = next(
         entry for entry in changed["entries"]  # type: ignore[union-attr]
-        if entry["test_coverage"]["mappings"]
+        if any(
+            mapping["path"] == "tests/config_test.c"
+            for mapping in entry["test_coverage"]["mappings"]
+        )
     )
-    covered["test_coverage"]["mappings"][0]["case"] = "not_an_existing_test_case"
+    exact_c_mapping = next(
+        mapping for mapping in covered["test_coverage"]["mappings"]
+        if mapping["path"] == "tests/config_test.c"
+    )
+    exact_c_mapping["case"] = "not_an_existing_test_case"
     mutations.append(("nonexistent-test-case", changed))
 
     failures = [

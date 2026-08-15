@@ -237,38 +237,38 @@ implementation is considered complete.
 
 Implementation work:
 
-- [ ] Match reference lexical behavior for comments, quoting, escapes, case
+- [x] Match reference lexical behavior for comments, quoting, escapes, case
   handling, aliases, and errors.
-- [ ] Implement every scalar, flag, list, color-list, menu, function, cursor,
+- [x] Implement every scalar, flag, list, color-list, menu, function, cursor,
   pixmap, icon-region, icon-manager, and title-button construct.
-- [ ] Match configuration search order, including screen-specific files and system
+- [x] Match configuration search order, including screen-specific files and system
   defaults.
-- [ ] Match name, resource-name, resource-class, and wildcard selection behavior.
-- [ ] Preserve directive ordering and last-assignment behavior where it affects
+- [x] Match name, resource-name, resource-class, and wildcard selection behavior.
+- [x] Preserve directive ordering and last-assignment behavior where it affects
   results.
-- [ ] Make configuration reload atomic: retain the current configuration if a
+- [x] Make configuration reload atomic: retain the current configuration if a
   replacement fails.
-- [ ] Produce filename and line-number diagnostics for invalid configurations.
-- [ ] Distinguish unsupported syntax from accepted Wayland translations; never
+- [x] Produce filename and line-number diagnostics for invalid configurations.
+- [x] Distinguish unsupported syntax from accepted Wayland translations; never
   silently ignore a recognized directive.
 
 Testing:
 
-- [ ] Parse upstream examples and a corpus of real `.twmrc` files.
-- [ ] Compare normalized parser output with the reference parser.
-- [ ] Add a fixture for every grammar production.
-- [ ] Test malformed and truncated input.
-- [ ] Fuzz the lexer and parser.
-- [ ] Test repeated reloads and failed reload rollback.
-- [ ] Test matching against X11 `WM_NAME`, `WM_CLASS`, and native Wayland `title`
+- [x] Parse upstream examples and a corpus of real `.twmrc` files.
+- [x] Compare normalized parser output with the reference parser.
+- [x] Add a fixture for every grammar production.
+- [x] Test malformed and truncated input.
+- [x] Fuzz the lexer and parser.
+- [x] Test repeated reloads and failed reload rollback.
+- [x] Test matching against X11 `WM_NAME`, `WM_CLASS`, and native Wayland `title`
   and `app_id`.
 
 Exit criteria:
 
-- [ ] Every valid reference configuration in the corpus parses.
-- [ ] Every upstream directive has a test.
-- [ ] Recognized directives are never silently discarded.
-- [ ] The parser survives a sustained fuzzing run without crashes, leaks, or hangs.
+- [x] Every valid reference configuration in the corpus parses.
+- [x] Every upstream directive has a test.
+- [x] Recognized directives are never silently discarded.
+- [x] The parser survives a sustained fuzzing run without crashes, leaks, or hangs.
 
 ### Milestone 3: Complete the client model and Xwayland integration
 

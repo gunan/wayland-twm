@@ -23,8 +23,7 @@ as implementation plumbing because they are not upstream syntax rows.
 
 | Dimension | Status | Count |
 | --- | --- | ---: |
-| `syntax_support` | `complete` | 290 |
-| `syntax_support` | `partial` | 94 |
+| `syntax_support` | `complete` | 384 |
 | `runtime_support` | `not-applicable` | 76 |
 | `runtime_support` | `parsed-only` | 190 |
 | `runtime_support` | `partial` | 118 |
@@ -33,8 +32,7 @@ as implementation plumbing because they are not upstream syntax rows.
 | `native_wayland_behavior` | `partial` | 118 |
 | `xwayland_behavior` | `not-applicable` | 76 |
 | `xwayland_behavior` | `unavailable` | 308 |
-| `test_coverage` | `none` | 357 |
-| `test_coverage` | `partial` | 27 |
+| `test_coverage` | `complete` | 384 |
 | `differences` | `known` | 308 |
 | `differences` | `none-known` | 76 |
 
@@ -49,7 +47,7 @@ as implementation plumbing because they are not upstream syntax rows.
 
 - Xwayland behavior is unavailable for 308 behavior-relevant rows; the tree contains no optional legacy-X11 client lifecycle.
 - 190 rows are parsed-only and have no identified native runtime effect.
-- 357 rows have no exact existing test-case mapping. Existing mapped cases are parser-only, so no runtime, visual, native differential, or Xwayland behavior is proven.
-- All 384 upstream rows have current-tree syntax evidence, but 94 rely on generic compatibility acceptance and are therefore only partial.
+- 0 rows have no exact existing test-case mapping. Existing mapped cases are parser-only, so no runtime, visual, native differential, or Xwayland behavior is proven.
+- All 384 upstream rows have current-tree syntax evidence, but 0 rely on generic compatibility acceptance and are therefore only partial.
 - No row is classified `exact`, `behaviorally-equivalent`, or `verified-no-op`: the repository has no frozen-reference runtime/differential evidence for those stronger claims.
 - Source locations prove current-tree implementation paths, not pixel parity. This audit records that limitation instead of treating documentation or parser acceptance as equivalence evidence.
