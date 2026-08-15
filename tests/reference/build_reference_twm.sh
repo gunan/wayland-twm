@@ -81,7 +81,7 @@ os_codename=$(sed -n 's/^VERSION_CODENAME=//p' /etc/os-release | tr -d '"')
 test "$os_id" = debian && test "$os_codename" = trixie ||
     fail "full build requires Debian Trixie, found $os_id/$os_codename"
 
-for program in bison cc flex make pkgconf tar Xvfb xdpyinfo; do
+for program in bison cc flex gdb make pkgconf tar Xvfb xdpyinfo; do
     command -v "$program" >/dev/null 2>&1 || fail "required program is missing: $program"
 done
 
@@ -122,7 +122,8 @@ tar -xJf "$archive" -C "$work_dir"
 mkdir "$build_dir"
 (
     cd "$build_dir"
-    "$source_dir/configure" --disable-silent-rules --prefix="$work_dir/install"
+    CFLAGS='-g -O0 -DYYDEBUG=1' \
+        "$source_dir/configure" --disable-silent-rules --prefix="$work_dir/install"
     make -j2
 )
 
@@ -131,6 +132,15 @@ test -x "$reference_twm" || fail "build did not produce src/twm"
 actual_version=$("$reference_twm" -V)
 test "$actual_version" = "$expected_version" ||
     fail "built binary reports '$actual_version', expected '$expected_version'"
+gdb --quiet --batch -ex 'info address yydebug' "$reference_twm" \
+    >"$work_dir/yydebug-symbol.log" 2>&1 || {
+        sed 's/^/GDB: /' "$work_dir/yydebug-symbol.log" >&2
+        fail "built parser does not expose the required yydebug trace control"
+    }
+grep -Fq 'Symbol "yydebug"' "$work_dir/yydebug-symbol.log" || {
+    sed 's/^/GDB: /' "$work_dir/yydebug-symbol.log" >&2
+    fail "built parser does not contain the required yydebug trace control"
+}
 
 empty_config="$work_dir/empty.twmrc"
 printf '%s\n' '# controlled empty reference configuration' >"$empty_config"

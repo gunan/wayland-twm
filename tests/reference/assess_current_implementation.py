@@ -15,12 +15,15 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from validate_parser_fixture_coverage import build_coverage
+
 
 AUDIT_PATH = "reference/audits/current-implementation.json"
 CROSSWALK_PATH = "reference/audits/current-to-ledger.json"
 LEDGER_PATH = "reference/ledger/twm-1.0.13.1.json"
 SUMMARY_PATH = "docs/audits/compatibility-ledger.md"
 SCHEMA_PATH = "reference/ledger/schema-1.1.json"
+PARSER_FIXTURE_TEST_PREFIX = "test.parser-fixture."
 
 
 def canonical(value: object) -> str:
@@ -281,8 +284,68 @@ def behavior_relevant(row: dict[str, object]) -> bool:
     return categories != {"grammar-structure"}
 
 
-def build(source_root: Path) -> tuple[dict[str, object], dict[str, object], str]:
+def has_persisted_parser_fixture_coverage(ledger: dict[str, object]) -> bool:
+    return any(
+        str(mapping.get("test_id", "")).startswith(PARSER_FIXTURE_TEST_PREFIX)
+        for row in ledger["entries"]  # type: ignore[index]
+        for mapping in row["test_coverage"]["mappings"]  # type: ignore[index]
+    )
+
+
+def apply_parser_fixture_coverage(
+    source_root: Path, ledger: dict[str, object]
+) -> None:
+    """Promote syntax/tests only after the executable M2 corpus passes.
+
+    Runtime, native-Wayland, Xwayland, and difference assessments are left
+    untouched.  The caller opts in for the first migration; the persisted test
+    IDs make later --check runs deterministic without another flag.
+    """
+    coverage, counts = build_coverage(source_root)
+    entries = ledger["entries"]  # type: ignore[index]
+    identifiers = {row["id"] for row in entries}
+    if set(coverage) != identifiers or counts["rows"] != len(entries):
+        raise ValueError("parser fixture coverage does not exactly match ledger rows")
+    for row in entries:
+        mapping = coverage[row["id"]]
+        fixture_evidence = f"{mapping['path']}:1"
+        existing_evidence = row["syntax_support"]["evidence"]  # type: ignore[index]
+        row["syntax_support"] = {
+            "status": "complete",
+            "evidence": sorted(set(existing_evidence + [fixture_evidence])),
+            "notes": [
+                "The complete M2 parser accepts or rejects this frozen row through its exact grammar-fixture mapping; this does not upgrade runtime behavior."
+            ],
+        }
+        row["test_coverage"] = {
+            "status": "complete",
+            "evidence": [
+                fixture_evidence,
+                "tests/reference/compare_reference_parser.py:1",
+                "tests/reference/validate_parser_fixture_coverage.py:1",
+            ],
+            "mappings": [{
+                "test_id": mapping["test_id"],
+                "path": "tests/reference/compare_reference_parser.py",
+                "case": mapping["case"],
+                "dimensions": ["syntax"],
+                "assertions": [
+                    "The fixture has frozen provenance and expected acceptance, and its normalized result is compared with the real twm 1.0.13.1 parser."
+                ],
+            }],
+            "notes": [
+                "Complete here is parser-language coverage only; runtime, native Wayland, Xwayland, semantic, and visual coverage remain independently assessed."
+            ],
+        }
+
+
+def build(
+    source_root: Path, *, promote_parser_fixtures: bool = False
+) -> tuple[dict[str, object], dict[str, object], str]:
     ledger = json.loads((source_root / LEDGER_PATH).read_text())
+    promote_parser_fixtures = (
+        promote_parser_fixtures or has_persisted_parser_fixture_coverage(ledger)
+    )
     audit = json.loads((source_root / AUDIT_PATH).read_text())
     entries = ledger["entries"]
     identifiers = {row["id"] for row in entries}
@@ -436,6 +499,9 @@ def build(source_root: Path) -> tuple[dict[str, object], dict[str, object], str]
         for key in ("schema_version", "schema_path", "inventory_path", "current_audit_path", "crosswalk_path", "reference", "assessment_policy", "entries")
     }
 
+    if promote_parser_fixtures:
+        apply_parser_fixture_coverage(source_root, ordered_root)
+
     mappings = []
     for current_id, entry in sorted(current_entries.items()):
         target_ids = sorted(targets_by_current[current_id])
@@ -526,9 +592,19 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", required=True, type=Path)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--parser-fixture-coverage",
+        action="store_true",
+        help=(
+            "promote only syntax_support and test_coverage after the full "
+            "M2 fixture differential has passed"
+        ),
+    )
     args = parser.parse_args()
     source_root = args.source_root.resolve()
-    ledger, crosswalk, summary = build(source_root)
+    ledger, crosswalk, summary = build(
+        source_root, promote_parser_fixtures=args.parser_fixture_coverage
+    )
     outputs = {
         source_root / LEDGER_PATH: canonical(ledger),
         source_root / CROSSWALK_PATH: canonical(crosswalk),
