@@ -37,6 +37,22 @@ config_test = executable(
   dependencies: config_dep,
 )
 test('twmrc parser', config_test)
+
+test_control_protocol_lib = static_library(
+  'wtwm-test-control-protocol',
+  'src/test_control.c',
+  include_directories: include_directories('src'),
+)
+test_control_protocol_dep = declare_dependency(
+  link_with: test_control_protocol_lib,
+  include_directories: include_directories('src'),
+)
+test_control_protocol_test = executable(
+  'test-control-protocol-test',
+  'tests/integration/test_control_protocol_test.c',
+  dependencies: test_control_protocol_dep,
+)
+test('test control protocol', test_control_protocol_test)
 test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
 test(
   'upstream reference freeze',
