@@ -40,6 +40,7 @@
 #ifdef WTWM_TEST_CONTROL
 #include <drm_fourcc.h>
 #include <fcntl.h>
+#include <fontconfig/fontconfig.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <wlr/backend/headless.h>
@@ -1724,6 +1725,9 @@ int main(int argc, char **argv) {
 	wlr_backend_destroy(server.backend);
 	wl_display_destroy(server.display);
 	wtwm_config_finish(&server.config);
+#ifdef WTWM_TEST_CONTROL
+	FcFini();
+#endif
 	return 0;
 
 fail_runtime:

@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: wtwm contributors <noreply@example.invalid>
 Build-Depends:
  debhelper-compat (= 13),
+ libfontconfig-dev,
  libpango1.0-dev,
  libwayland-dev,
  libwlroots-0.18-dev,

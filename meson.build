@@ -220,7 +220,14 @@ if wlroots.found()
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
+    dependencies: [
+      config_dep,
+      wlroots,
+      pangocairo,
+      dependency('fontconfig'),
+      wayland_server,
+      xkbcommon,
+    ],
     c_args: ['-DWTWM_TEST_CONTROL'],
     install: false,
   )

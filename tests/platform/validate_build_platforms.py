@@ -11,6 +11,7 @@ from pathlib import Path
 
 REQUIRED_PACKAGES = {
     "build-essential",
+    "libfontconfig-dev",
     "libpango1.0-dev",
     "libwayland-dev",
     "libwlroots-0.18-dev",
