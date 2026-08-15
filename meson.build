@@ -53,6 +53,46 @@ test_control_protocol_test = executable(
   dependencies: test_control_protocol_dep,
 )
 test('test control protocol', test_control_protocol_test)
+test(
+  'build platform contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/validate_build_platforms.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'session backend entrypoints',
+  find_program('sh'),
+  args: [files('tests/platform/session-entrypoints-test.sh')],
+)
+test(
+  'session launcher',
+  find_program('sh'),
+  args: [files('tests/platform/session-launcher-test.sh')],
+)
+test(
+  'package isolation contract',
+  find_program('sh'),
+  args: [files('tests/platform/package-isolation-test.sh')],
+)
+test(
+  'headless stability runner contract',
+  find_program('sh'),
+  args: [files('tests/platform/headless-stability-runner-test.sh')],
+)
+test(
+  'platform evidence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/validate-platform-evidence.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
 test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
 test(
   'upstream reference freeze',
@@ -255,5 +295,10 @@ endif
 install_data(
   'data/system.twmrc',
   install_dir: get_option('datadir') / 'wtwm',
+)
+install_data(
+  'scripts/platform/wtwm-session',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
 )
 install_man('data/wtwm-config.1')

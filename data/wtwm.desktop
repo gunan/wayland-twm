@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Wayland twm
 Comment=Classic twm behavior on a Wayland compositor
-Exec=wtwm
+Exec=wtwm-session
 Type=Application
 DesktopNames=wtwm

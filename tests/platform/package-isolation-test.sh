@@ -20,13 +20,16 @@ mkdir -p "$test_dir/usr/bin" "$test_dir/usr/share/wayland-sessions" \
 	"$test_dir/usr/share/wtwm"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "$test_dir/usr/bin/wtwm"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "$test_dir/usr/bin/wtwm-config"
-chmod +x "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config"
+cp "$source_root/scripts/platform/wtwm-session" "$test_dir/usr/bin/wtwm-session"
+chmod +x "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
+	"$test_dir/usr/bin/wtwm-session"
 cp "$source_root/data/system.twmrc" "$test_dir/usr/share/wtwm/system.twmrc"
 cp "$source_root/data/wtwm.desktop" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop"
 printf '%s\n' \
 	'/usr/bin/wtwm' \
 	'/usr/bin/wtwm-config' \
+	'/usr/bin/wtwm-session' \
 	'/usr/share/wayland-sessions/wtwm.desktop' \
 	'/usr/share/wtwm/system.twmrc' > "$test_dir/manifest"
 
@@ -54,6 +57,7 @@ if "$assert_script" "$test_dir" installed "$test_dir/manifest" >/dev/null 2>&1; 
 fi
 
 rm "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
+	"$test_dir/usr/bin/wtwm-session" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop" \
 	"$test_dir/usr/share/wtwm/system.twmrc"
 "$assert_script" "$test_dir" absent >/dev/null

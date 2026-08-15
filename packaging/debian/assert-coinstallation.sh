@@ -37,12 +37,13 @@ path()
 
 binary=$(path usr/bin/wtwm)
 config_tool=$(path usr/bin/wtwm-config)
+session_launcher=$(path usr/bin/wtwm-session)
 session=$(path usr/share/wayland-sessions/wtwm.desktop)
 x11_session=$(path usr/share/xsessions/wtwm.desktop)
 system_config=$(path usr/share/wtwm/system.twmrc)
 
 if test "$expected" = absent; then
-	for installed_path in "$binary" "$config_tool" "$session" "$x11_session" "$system_config"; do
+	for installed_path in "$binary" "$config_tool" "$session_launcher" "$session" "$x11_session" "$system_config"; do
 		test ! -e "$installed_path" && test ! -L "$installed_path" ||
 			fail "path remains after purge: $installed_path"
 	done
@@ -52,6 +53,7 @@ fi
 
 test -x "$binary" || fail 'wtwm binary is missing or not executable'
 test -x "$config_tool" || fail 'wtwm-config is missing or not executable'
+test -x "$session_launcher" || fail 'wtwm-session is missing or not executable'
 test -f "$system_config" || fail 'packaged system.twmrc is missing'
 test -f "$session" || fail 'Wayland session entry is missing'
 test ! -e "$x11_session" && test ! -L "$x11_session" ||
@@ -64,10 +66,8 @@ test "$(sed -n 's/^Type=//p' "$session")" = Application ||
 test "$(sed -n 's/^DesktopNames=//p' "$session")" = wtwm ||
 	fail 'DesktopNames is not namespaced to wtwm'
 session_exec=$(sed -n 's/^Exec=//p' "$session")
-case $session_exec in
-	wtwm|wtwm-session|/usr/libexec/wtwm-session) ;;
-	*) fail "unexpected session command: $session_exec" ;;
-esac
+test "$session_exec" = wtwm-session ||
+	fail "unexpected session command: $session_exec"
 test "$(grep -c '^Name=' "$session")" -eq 1 ||
 	fail 'session entry must contain exactly one Name'
 test "$(grep -c '^Exec=' "$session")" -eq 1 ||
