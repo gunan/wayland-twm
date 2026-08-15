@@ -16,11 +16,16 @@ Milestone 0 ledger/audit, but this task does not create or update that ledger.
 
 - The branch was created from base commit
   `31b49fb4f85a256ee867c06f120b6438643d7a80`.
-- Work only on `agent_impl_audit` in its isolated Cloud workspace.
+- Assigned remote branch: `agent_impl_audit`.
+- Immutable dispatch marker:
+  `0999450237b2d27745067cb15565a2ecc37c1849`.
 - Before editing, run `git branch --show-current`, `git status --short`, and
-  `git merge-base --is-ancestor 31b49fb4f85a256ee867c06f120b6438643d7a80 HEAD`.
-- Stop without editing if the branch is not exactly `agent_impl_audit`, the
-  worktree is dirty, or the ancestry check fails.
+  `git merge-base --is-ancestor 0999450237b2d27745067cb15565a2ecc37c1849 HEAD`.
+- The starting branch may be either literal `agent_impl_audit` or the Codex
+  Cloud-managed branch `work`. In both cases, require a clean starting
+  worktree and a successful marker-ancestry check.
+- On `work`, continue without switching branches. Stop without editing on any
+  other branch, a dirty starting worktree, or a failed ancestry check.
 
 ## Scope
 
@@ -110,15 +115,21 @@ bad data. Keep temporary output outside the repository and clean it up.
 ## Commit, push, and completion evidence
 
 - Make one focused commit with an imperative subject.
-- Immediately before committing and pushing, re-run
-  `git branch --show-current` and stop unless it is exactly
-  `agent_impl_audit`.
-- Push only `agent_impl_audit`. Never push to `agent` or `main`, never merge
-  either branch, and never force-push or rewrite published history.
+- On literal `agent_impl_audit`, recheck the exact branch immediately before
+  committing and pushing. Commit and push only `agent_impl_audit`.
+- On Cloud-managed `work`, immediately before committing recheck that the
+  branch is still exactly `work` and rerun
+  `git merge-base --is-ancestor 0999450237b2d27745067cb15565a2ecc37c1849 HEAD`.
+  Never push `work`; return its diff through Codex Cloud for human review and
+  integration into the assigned remote branch.
+- Stop if the applicable branch or marker recheck fails. Never push to
+  `agent` or `main`, never merge either branch, and never force-push or rewrite
+  published history.
 - Return the commit SHA, changed files, inventory counts, explicit unknowns,
-  every verification command/result, final branch/status, and confirmation
-  that no Roadmap checkbox or compatibility claim changed and nothing was
-  pushed to `agent` or `main`.
+  every verification command/result, checkout mode (`agent_impl_audit` or
+  `work`), final branch/status, and confirmation that no Roadmap checkbox or
+  compatibility claim changed. State whether `agent_impl_audit` was pushed;
+  confirm that `work`, `agent`, and `main` were not pushed.
 
 This task can run in parallel because it owns only the three new
 `current-implementation` audit files, changes no source or shared project
