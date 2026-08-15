@@ -171,7 +171,7 @@ Implementation work:
 
 Testing:
 
-- [ ] Build the reference `twm` in a controlled X11 environment.
+- [x] Build the reference `twm` in a controlled X11 environment.
 - [ ] Record its parsed configuration, window geometry, focus, stacking order, and
   screenshots.
 - [ ] Establish canonical test applications for normal windows, dialogs and
