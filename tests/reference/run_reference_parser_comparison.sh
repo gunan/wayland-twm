@@ -8,9 +8,11 @@ fail()
     exit 1
 }
 
-test "$#" -eq 2 || fail "usage: $0 REPOSITORY_ROOT WTWM_CONFIG"
+test "$#" -ge 2 && test "$#" -le 3 ||
+    fail "usage: $0 REPOSITORY_ROOT WTWM_CONFIG [COMPARISON_JSON]"
 repo_root=$1
 config_tool=$2
+artifact_output=${3:-}
 normalizer="$repo_root/tests/reference/compare_reference_parser.py"
 builder="$repo_root/tests/reference/build_reference_twm.sh"
 
@@ -34,12 +36,16 @@ pkgconf --exists ice sm x11 xext xmu xrandr xt >/dev/null 2>&1 ||
     full_environment=false
 
 if test "$full_environment" != true; then
+    test -z "$artifact_output" ||
+        fail "cannot write a full comparison artifact outside the pinned environment"
     python3 -B "$normalizer" --source-root "$repo_root" --validate-only
     echo "full parser differential requires the pinned Debian Trixie X11 environment; contract-only validation passed"
     exit 0
 fi
 
 test -x "$config_tool" || fail "wtwm-config is not executable: $config_tool"
+test -z "$artifact_output" || test ! -e "$artifact_output" ||
+    fail "comparison output already exists: $artifact_output"
 comparison_tmp_base=${TMPDIR:-/tmp}
 work_dir=$(mktemp -d "$comparison_tmp_base/wtwm-parser-differential.XXXXXX") ||
     fail "could not create an isolated working directory"
@@ -67,4 +73,8 @@ python3 -B "$normalizer" \
     --reference-twm "$work_dir/reference/twm" \
     --output "$work_dir/comparison.json"
 test -s "$work_dir/comparison.json" || fail "comparison artifact is empty"
+if test -n "$artifact_output"; then
+    cp "$work_dir/comparison.json" "$artifact_output"
+    echo "wrote trace-complete parser comparison: $artifact_output"
+fi
 echo "full reference parser differential passed in the pinned X11 environment"

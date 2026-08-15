@@ -64,16 +64,27 @@ Cursors
 {
     F "left_ptr"
     Frame "left_ptr"
+    Frame ":dot" ":dot"
     Title "top_left_arrow"
+    Title ":dot" ":dot"
     Icon "icon"
+    Icon ":dot" ":dot"
     IconMgr "hand2"
+    IconMgr ":dot" ":dot"
     Button "hand2"
+    Button ":dot" ":dot"
     Move "fleur"
+    Move ":dot" ":dot"
     Resize "fleur"
+    Resize ":dot" ":dot"
     Wait "watch"
+    Wait ":dot" ":dot"
     Menu "sb_left_arrow"
+    Menu ":dot" ":dot"
     Select "dot"
+    Select ":dot" ":dot"
     Destroy "pirate"
+    Destroy ":dot" ":dot"
 }
 
 Icons
@@ -103,7 +114,6 @@ NoStackMode { "stacked" }
 NoTitleHighlight
 NoTitleHighlight { "plain-title" }
 StartIconified { "start-icon" }
-AutoRaise
 AutoRaise { "raised" }
 WarpCursor
 WarpCursor { "warped" }
@@ -263,4 +273,5 @@ Button1 "main-menu"
 Button2 f.nop
 Button3 = Meta1 | Shift | Lock | Control : Window | Title | Icon | Root | Frame | IconMgr | All : f.nop
 Button4 = : r : f.nop
-"F1" = Meta2 | Shift : Window | Title | Icon | Root | Frame | IconMgr | All | "xterm" : f.nop
+Button5 = : Meta : f.nop
+"F1" = Meta2 | Shift : Window | Title | Icon | Root | Frame | IconMgr | Meta | All | "xterm" : f.nop

@@ -186,16 +186,16 @@ def compare_fixture(
                 )
         return errors
 
-    common = set(wtwm["dump_fields"]) & set(COMMON_FIELDS.values())
-    required = {"border-width", "move-delta", "title-padding"}
-    if not required.issubset(common):
+    required = set(COMMON_FIELDS.values())
+    available = set(wtwm["dump_fields"]) & required
+    if not required.issubset(available):
         errors.append(
-            f"{fixture['id']}: wtwm-config dump lacks common reference fields "
-            + ", ".join(sorted(required - common))
+            f"{fixture['id']}: wtwm-config dump lacks required reference fields "
+            + ", ".join(sorted(required - available))
         )
     inverse = {wtwm_name: reference_name for reference_name, wtwm_name in COMMON_FIELDS.items()}
     comparisons: dict[str, dict[str, object]] = {}
-    for wtwm_name in sorted(common):
+    for wtwm_name in sorted(available):
         reference_name = inverse[wtwm_name]
         wtwm_value = wtwm["dump_fields"][wtwm_name]
         reference_value = reference["effective_fields"][reference_name]
@@ -207,6 +207,66 @@ def compare_fixture(
             )
     wtwm["common_effective_comparison"] = comparisons
     return errors
+
+
+def evaluate_grammar_trace_coverage(
+    manifest: dict[str, Any],
+    inventory: dict[str, Any],
+    results: list[dict[str, Any]],
+) -> tuple[dict[str, Any], list[str]]:
+    policy = manifest["coverage_policy"]
+    trace_policy = policy["grammar_trace"]
+    grammar_ids = {str(row["id"]) for row in inventory["grammar"]}
+    rejected_requirements = {
+        str(row_id): str(fixture_id)
+        for row_id, fixture_id in trace_policy["rejected_rows"].items()
+    }
+    required_accepted = grammar_ids - set(rejected_requirements)
+    by_fixture = {str(result["fixture_id"]): result for result in results}
+    observed_accepted: set[str] = set()
+    for result in results:
+        if result["expected"] == "accept":
+            observed_accepted.update(
+                row_id for row_id in result["reference"]["grammar_trace"]
+                if row_id in grammar_ids
+            )
+    missing_accepted = sorted(required_accepted - observed_accepted)
+    observed_rejected: dict[str, str] = {}
+    missing_rejected: list[str] = []
+    for row_id, fixture_id in sorted(rejected_requirements.items()):
+        result = by_fixture.get(fixture_id)
+        if (
+            result is None
+            or result["expected"] != "reject"
+            or row_id not in result["reference"]["grammar_trace"]
+        ):
+            missing_rejected.append(row_id)
+        else:
+            observed_rejected[row_id] = fixture_id
+    errors: list[str] = []
+    if missing_accepted:
+        errors.append(
+            "accepted fixture traces omit frozen grammar rows: "
+            + ", ".join(missing_accepted)
+        )
+    if missing_rejected:
+        errors.append(
+            "rejection fixture traces omit deliberate error rows: "
+            + ", ".join(missing_rejected)
+        )
+    artifact = {
+        "required": bool(trace_policy["required"]),
+        "source": trace_policy["source"],
+        "aggregation": trace_policy["aggregation"],
+        "required_accepted_rows": sorted(required_accepted),
+        "observed_accepted_rows": sorted(observed_accepted & required_accepted),
+        "required_rejected_rows": rejected_requirements,
+        "observed_rejected_rows": observed_rejected,
+        "missing_accepted_rows": missing_accepted,
+        "missing_rejected_rows": missing_rejected,
+        "complete": not errors,
+    }
+    return artifact, errors
 
 
 def wait_for_x11(display: str, xvfb: subprocess.Popen[bytes], log: Path) -> None:
@@ -326,17 +386,46 @@ def validate_executable_contract(source_root: Path) -> dict[str, int]:
     _, counts = build_coverage(source_root)
     sample_wtwm = normalize_wtwm(
         0,
-        "border-width=2\ntitle-padding=5\nmove-delta=3\n  ordered item\n",
+        (
+            "border-width=2\nbutton-indent=1\nframe-padding=2\n"
+            "move-delta=1\nno-defaults=0\nno-grab-server=0\n"
+            "no-icon-managers=0\ntitle-button-border-width=1\n"
+            "title-focus=1\ntitle-padding=8\n  ordered item\n"
+        ),
         "",
         Path("fixture.twmrc"),
     )
     if sample_wtwm["dump_fields"] != {
-        "border-width": 2, "title-padding": 5, "move-delta": 3
+        "border-width": 2,
+        "button-indent": 1,
+        "frame-padding": 2,
+        "move-delta": 1,
+        "no-defaults": 0,
+        "no-grab-server": 0,
+        "no-icon-managers": 0,
+        "title-button-border-width": 1,
+        "title-focus": 1,
+        "title-padding": 8,
     }:
         raise ComparisonError("wtwm-config normalization self-test failed")
+    reference_values = {
+        "border_width": 2,
+        "button_indent": 1,
+        "frame_padding": 2,
+        "move_delta": 1,
+        "no_defaults": 0,
+        "no_grab_server": 0,
+        "no_icon_managers": 0,
+        "title_button_border_width": 1,
+        "title_focus": 1,
+        "title_padding": 8,
+    }
     fields = "\n".join(
         ["parser\tparse_error\t0"]
-        + [f"effective\t{name}\t1" for name in REFERENCE_FIELDS]
+        + [
+            f"effective\t{name}\t{reference_values[name]}"
+            for name in REFERENCE_FIELDS
+        ]
     )
     sample_reference = normalize_reference(
         fields,
@@ -350,9 +439,52 @@ def validate_executable_contract(source_root: Path) -> dict[str, int]:
         or sample_reference["grammar_trace"] != ["grammar.twmrc.1"]
     ):
         raise ComparisonError("reference normalization self-test failed")
+    comparison_errors = compare_fixture(
+        {"id": "normalization-self-test", "expected": "accept"},
+        sample_wtwm,
+        sample_reference,
+    )
+    if comparison_errors or set(sample_wtwm["common_effective_comparison"]) != set(
+        COMMON_FIELDS.values()
+    ):
+        raise ComparisonError("ten-field effective-state comparison self-test failed")
     rejected = diagnostic_classes("ignoring unknown keyword", True)
     if rejected != ["parse-error", "unknown-keyword"]:
         raise ComparisonError("diagnostic normalization self-test failed")
+    trace_manifest = {
+        "coverage_policy": {"grammar_trace": {
+            "required": True,
+            "source": "twm-1.0.13.1-yydebug",
+            "aggregation": "union-of-accepted-fixtures",
+            "rejected_rows": {"grammar.stmt.1": "reject-error"},
+        }}
+    }
+    trace_inventory = {
+        "grammar": [{"id": "grammar.stmt.1"}, {"id": "grammar.stmt.2"}]
+    }
+    trace_results = [
+        {
+            "fixture_id": "accept",
+            "expected": "accept",
+            "reference": {"grammar_trace": ["grammar.stmt.2"]},
+        },
+        {
+            "fixture_id": "reject-error",
+            "expected": "reject",
+            "reference": {"grammar_trace": ["grammar.stmt.1"]},
+        },
+    ]
+    trace_coverage, trace_errors = evaluate_grammar_trace_coverage(
+        trace_manifest, trace_inventory, trace_results
+    )
+    if trace_errors or not trace_coverage["complete"]:
+        raise ComparisonError("grammar trace aggregation self-test failed")
+    trace_results[0]["reference"]["grammar_trace"] = []
+    trace_coverage, trace_errors = evaluate_grammar_trace_coverage(
+        trace_manifest, trace_inventory, trace_results
+    )
+    if not trace_errors or trace_coverage["complete"]:
+        raise ComparisonError("grammar trace omission self-test failed")
     return counts
 
 
@@ -428,17 +560,22 @@ def full_comparison(args: argparse.Namespace, source_root: Path) -> dict[str, An
             except subprocess.TimeoutExpired:
                 xvfb.kill()
                 xvfb.wait(timeout=5)
+    trace_coverage, trace_errors = evaluate_grammar_trace_coverage(
+        manifest, inventory, results
+    )
+    errors.extend(trace_errors)
     artifact = {
         "schema_version": 1,
         "reference": "twm 1.0.13.1",
         "normalization": {
             "acceptance": "reference ParseError compared with wtwm-config exit status",
             "diagnostics": "implementation text reduced to stable semantic classes",
-            "effective_state": "intersection of GDB-observed ScreenInfo fields and wtwm-config dump fields",
+            "effective_state": "all ten normalized GDB-observed ScreenInfo fields compared with required wtwm-config dump fields (title-focus is the NoTitleFocus inverse)",
             "grammar_order": "ordered upstream yydebug reductions mapped to frozen grammar IDs (mid-rule semantic actions retain gram.y line IDs)",
             "wtwm_output": "ordered non-empty wtwm-config dump lines plus scalar field map",
         },
         "fixtures": results,
+        "grammar_trace_coverage": trace_coverage,
         "comparison_errors": errors,
     }
     return artifact

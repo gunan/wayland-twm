@@ -16,7 +16,7 @@
       "id": "grammar-complete-language",
       "test_id": "test.parser-fixture.grammar-complete-language",
       "path": "reference/grammar/fixtures/complete-language.twmrc",
-      "sha256": "3dc1a843cd98c19085e55a59147d9170c7c9236b499c33a1271c741fcce075c4",
+      "sha256": "f05c8ad8819c03dc5669ae1182319ab963fd5f3eaa76617564264670a5e61f55",
       "expected": "accept",
       "kind": "synthetic-complete-language"
     },
@@ -59,6 +59,15 @@
       "sha256": "6f8406d44c9176935bb38d0668a866c216a21b9857593eea234bc93b3f186130",
       "expected": "accept",
       "kind": "upstream-sample"
+    },
+    {
+      "id": "malformed-error-production",
+      "test_id": "test.parser-fixture.malformed-error-production",
+      "path": "reference/grammar/fixtures/malformed-error-production.twmrc",
+      "sha256": "f72aa3658df6d7665fce96824d13b4f50c93ceaeb1144bcd48768d97eafeba59",
+      "expected": "reject",
+      "diagnostic_class": "parse-error",
+      "kind": "malformed-error-production"
     },
     {
       "id": "malformed-unknown-keyword",
@@ -104,8 +113,17 @@
     ],
     "accepted_grammar_fixture": "grammar-complete-language",
     "grammar_rejection_overrides": {
-      "grammar.stmt.1": "malformed-unknown-keyword"
+      "grammar.stmt.1": "malformed-error-production"
     },
-    "lexical_fixture": "grammar-lexical-behavior"
+    "lexical_fixture": "grammar-lexical-behavior",
+    "grammar_trace": {
+      "required": true,
+      "source": "twm-1.0.13.1-yydebug",
+      "accepted_rows": "all-except-rejection-overrides",
+      "aggregation": "union-of-accepted-fixtures",
+      "rejected_rows": {
+        "grammar.stmt.1": "malformed-error-production"
+      }
+    }
   }
 }

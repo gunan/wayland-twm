@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import tarfile
+import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -240,7 +241,7 @@ def build_coverage(
         {
             "inventory_sections", "keyword_fixture_order",
             "accepted_grammar_fixture", "grammar_rejection_overrides",
-            "lexical_fixture",
+            "lexical_fixture", "grammar_trace",
         },
         "coverage_policy",
     )
@@ -260,8 +261,22 @@ def build_coverage(
         if fixture_id not in fixtures or fixtures[fixture_id]["expected"] != "accept":
             raise CoverageError(f"{label} fixture is missing or not accepted: {fixture_id}")
     overrides = policy["grammar_rejection_overrides"]
-    if overrides != {"grammar.stmt.1": "malformed-unknown-keyword"}:
+    if overrides != {"grammar.stmt.1": "malformed-error-production"}:
         raise CoverageError("grammar rejection overrides have drifted")
+    trace = _expect_keys(
+        policy["grammar_trace"],
+        {"required", "source", "accepted_rows", "aggregation", "rejected_rows"},
+        "coverage_policy.grammar_trace",
+    )
+    expected_trace = {
+        "required": True,
+        "source": "twm-1.0.13.1-yydebug",
+        "accepted_rows": "all-except-rejection-overrides",
+        "aggregation": "union-of-accepted-fixtures",
+        "rejected_rows": overrides,
+    }
+    if trace != expected_trace:
+        raise CoverageError("grammar trace coverage contract has drifted")
 
     coverage: dict[str, dict[str, str]] = {}
     accepted_productions: set[str] = set()
@@ -317,8 +332,88 @@ def build_coverage(
         "lexical_forms": len(inventory["lexical_forms"]),
         "rows": len(rows),
         "productions": len(all_productions),
+        "trace_required": 1,
     }
     return coverage, counts
+
+
+def validate_grammar_trace_artifact(
+    source_root: Path, artifact_path: Path
+) -> dict[str, int]:
+    """Require full real-reference reduction coverage before ledger promotion."""
+    _, counts = build_coverage(source_root)
+    manifest = load_json(source_root / MANIFEST_PATH)
+    inventory = load_json(source_root / manifest["reference"]["inventory"])
+    artifact = load_json(artifact_path)
+    if not isinstance(artifact, dict):
+        raise CoverageError("parser comparison artifact root must be an object")
+    if artifact.get("schema_version") != 1 or artifact.get("reference") != "twm 1.0.13.1":
+        raise CoverageError("parser comparison artifact has wrong schema or reference")
+    if artifact.get("comparison_errors") != []:
+        raise CoverageError("parser comparison artifact contains differences")
+    trace = artifact.get("grammar_trace_coverage")
+    if not isinstance(trace, dict) or trace.get("complete") is not True:
+        raise CoverageError("parser comparison artifact lacks complete grammar traces")
+
+    fixture_contract = {fixture["id"]: fixture for fixture in manifest["fixtures"]}
+    results = artifact.get("fixtures")
+    if not isinstance(results, list):
+        raise CoverageError("parser comparison artifact fixtures must be an array")
+    by_fixture: dict[str, dict[str, Any]] = {}
+    for result in results:
+        if not isinstance(result, dict) or not isinstance(result.get("fixture_id"), str):
+            raise CoverageError("parser comparison artifact contains an invalid fixture result")
+        fixture_id = result["fixture_id"]
+        if fixture_id in by_fixture or fixture_id not in fixture_contract:
+            raise CoverageError(f"parser comparison artifact has invalid fixture {fixture_id}")
+        if result.get("expected") != fixture_contract[fixture_id]["expected"]:
+            raise CoverageError(f"parser comparison artifact expectation drifted for {fixture_id}")
+        reference = result.get("reference")
+        if not isinstance(reference, dict) or not isinstance(reference.get("grammar_trace"), list):
+            raise CoverageError(f"parser comparison artifact lacks grammar trace for {fixture_id}")
+        if not all(isinstance(row_id, str) for row_id in reference["grammar_trace"]):
+            raise CoverageError(f"parser comparison artifact has invalid trace for {fixture_id}")
+        by_fixture[fixture_id] = result
+    if set(by_fixture) != set(fixture_contract):
+        raise CoverageError("parser comparison artifact does not contain every fixture")
+
+    grammar_ids = {str(row["id"]) for row in inventory["grammar"]}
+    rejected = manifest["coverage_policy"]["grammar_trace"]["rejected_rows"]
+    required_accepted = grammar_ids - set(rejected)
+    observed_accepted: set[str] = set()
+    for fixture_id, result in by_fixture.items():
+        if fixture_contract[fixture_id]["expected"] == "accept":
+            observed_accepted.update(
+                row_id for row_id in result["reference"]["grammar_trace"]
+                if row_id in grammar_ids
+            )
+    if not required_accepted.issubset(observed_accepted):
+        missing = sorted(required_accepted - observed_accepted)
+        raise CoverageError(
+            "parser comparison artifact omits accepted grammar rows: "
+            + ", ".join(missing)
+        )
+    for row_id, fixture_id in rejected.items():
+        if row_id not in by_fixture[fixture_id]["reference"]["grammar_trace"]:
+            raise CoverageError(
+                f"parser comparison artifact does not reduce {row_id} in {fixture_id}"
+            )
+
+    expected_trace = {
+        "required": True,
+        "source": "twm-1.0.13.1-yydebug",
+        "aggregation": "union-of-accepted-fixtures",
+        "required_accepted_rows": sorted(required_accepted),
+        "observed_accepted_rows": sorted(required_accepted),
+        "required_rejected_rows": rejected,
+        "observed_rejected_rows": rejected,
+        "missing_accepted_rows": [],
+        "missing_rejected_rows": [],
+        "complete": True,
+    }
+    if trace != expected_trace:
+        raise CoverageError("parser comparison grammar-trace summary is inconsistent")
+    return counts
 
 
 def self_test(source_root: Path) -> None:
@@ -335,6 +430,10 @@ def self_test(source_root: Path) -> None:
         "malformed-truncated-list"
     )
     _expect_failure(source_root, "accepted production loss", manifest_override=tampered)
+
+    tampered = copy.deepcopy(manifest)
+    tampered["coverage_policy"]["grammar_trace"]["required"] = False
+    _expect_failure(source_root, "disabled yydebug trace gate", manifest_override=tampered)
 
     complete = "reference/grammar/fixtures/complete-language.twmrc"
     changed = (source_root / complete).read_bytes().replace(b"NoDefaults", b"NoDefaultx", 1)
@@ -365,6 +464,62 @@ def self_test(source_root: Path) -> None:
         "grammar.stmt.1": "grammar-complete-language"
     }
     _expect_failure(source_root, "lost rejection coverage", manifest_override=tampered)
+    _self_test_trace_artifact(source_root)
+
+
+def _self_test_trace_artifact(source_root: Path) -> None:
+    manifest = load_json(source_root / MANIFEST_PATH)
+    inventory = load_json(source_root / manifest["reference"]["inventory"])
+    grammar_ids = {str(row["id"]) for row in inventory["grammar"]}
+    rejected = manifest["coverage_policy"]["grammar_trace"]["rejected_rows"]
+    accepted = sorted(grammar_ids - set(rejected))
+    fixtures: list[dict[str, Any]] = []
+    for fixture in manifest["fixtures"]:
+        trace: list[str] = []
+        if fixture["id"] == manifest["coverage_policy"]["accepted_grammar_fixture"]:
+            trace = accepted
+        elif fixture["id"] in rejected.values():
+            trace = [row_id for row_id, fixture_id in rejected.items() if fixture_id == fixture["id"]]
+        fixtures.append({
+            "fixture_id": fixture["id"],
+            "expected": fixture["expected"],
+            "reference": {"grammar_trace": trace},
+        })
+    trace_summary = {
+        "required": True,
+        "source": "twm-1.0.13.1-yydebug",
+        "aggregation": "union-of-accepted-fixtures",
+        "required_accepted_rows": accepted,
+        "observed_accepted_rows": accepted,
+        "required_rejected_rows": rejected,
+        "observed_rejected_rows": rejected,
+        "missing_accepted_rows": [],
+        "missing_rejected_rows": [],
+        "complete": True,
+    }
+    artifact = {
+        "schema_version": 1,
+        "reference": "twm 1.0.13.1",
+        "fixtures": fixtures,
+        "grammar_trace_coverage": trace_summary,
+        "comparison_errors": [],
+    }
+    with tempfile.TemporaryDirectory(prefix="wtwm-trace-validator-") as temporary:
+        path = Path(temporary) / "comparison.json"
+        path.write_text(json.dumps(artifact), encoding="utf-8")
+        validate_grammar_trace_artifact(source_root, path)
+        complete = next(
+            result for result in artifact["fixtures"]
+            if result["fixture_id"] == manifest["coverage_policy"]["accepted_grammar_fixture"]
+        )
+        complete["reference"]["grammar_trace"].pop()
+        path.write_text(json.dumps(artifact), encoding="utf-8")
+        try:
+            validate_grammar_trace_artifact(source_root, path)
+        except CoverageError:
+            pass
+        else:
+            raise CoverageError("self-test did not detect a missing yydebug grammar row")
 
 
 def _expect_failure(source_root: Path, label: str, **kwargs: Any) -> None:

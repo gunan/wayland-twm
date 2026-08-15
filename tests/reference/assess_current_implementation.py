@@ -15,7 +15,10 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from validate_parser_fixture_coverage import build_coverage
+from validate_parser_fixture_coverage import (
+    build_coverage,
+    validate_grammar_trace_artifact,
+)
 
 
 AUDIT_PATH = "reference/audits/current-implementation.json"
@@ -293,7 +296,9 @@ def has_persisted_parser_fixture_coverage(ledger: dict[str, object]) -> bool:
 
 
 def apply_parser_fixture_coverage(
-    source_root: Path, ledger: dict[str, object]
+    source_root: Path,
+    ledger: dict[str, object],
+    comparison_artifact: Path | None,
 ) -> None:
     """Promote syntax/tests only after the executable M2 corpus passes.
 
@@ -302,6 +307,8 @@ def apply_parser_fixture_coverage(
     IDs make later --check runs deterministic without another flag.
     """
     coverage, counts = build_coverage(source_root)
+    if comparison_artifact is not None:
+        validate_grammar_trace_artifact(source_root, comparison_artifact)
     entries = ledger["entries"]  # type: ignore[index]
     identifiers = {row["id"] for row in entries}
     if set(coverage) != identifiers or counts["rows"] != len(entries):
@@ -330,7 +337,7 @@ def apply_parser_fixture_coverage(
                 "case": mapping["case"],
                 "dimensions": ["syntax"],
                 "assertions": [
-                    "The fixture has frozen provenance and expected acceptance, and its normalized result is compared with the real twm 1.0.13.1 parser."
+                    "The fixture has frozen provenance and expected acceptance, and the aggregate real-twm yydebug trace proves its mapped grammar alternative was reduced."
                 ],
             }],
             "notes": [
@@ -340,11 +347,24 @@ def apply_parser_fixture_coverage(
 
 
 def build(
-    source_root: Path, *, promote_parser_fixtures: bool = False
+    source_root: Path,
+    *,
+    promote_parser_fixtures: bool = False,
+    parser_fixture_comparison: Path | None = None,
 ) -> tuple[dict[str, object], dict[str, object], str]:
     ledger = json.loads((source_root / LEDGER_PATH).read_text())
+    persisted_parser_fixtures = has_persisted_parser_fixture_coverage(ledger)
+    if (
+        promote_parser_fixtures
+        and not persisted_parser_fixtures
+        and parser_fixture_comparison is None
+    ):
+        raise ValueError(
+            "initial parser-fixture promotion requires --parser-fixture-comparison "
+            "from a complete real-reference yydebug run"
+        )
     promote_parser_fixtures = (
-        promote_parser_fixtures or has_persisted_parser_fixture_coverage(ledger)
+        promote_parser_fixtures or persisted_parser_fixtures
     )
     audit = json.loads((source_root / AUDIT_PATH).read_text())
     entries = ledger["entries"]
@@ -500,7 +520,11 @@ def build(
     }
 
     if promote_parser_fixtures:
-        apply_parser_fixture_coverage(source_root, ordered_root)
+        apply_parser_fixture_coverage(
+            source_root,
+            ordered_root,
+            parser_fixture_comparison,
+        )
 
     mappings = []
     for current_id, entry in sorted(current_entries.items()):
@@ -600,10 +624,22 @@ def main() -> int:
             "M2 fixture differential has passed"
         ),
     )
+    parser.add_argument(
+        "--parser-fixture-comparison",
+        type=Path,
+        help="full comparison JSON containing complete real-twm yydebug traces",
+    )
     args = parser.parse_args()
+    if args.parser_fixture_comparison is not None and not args.parser_fixture_coverage:
+        parser.error("--parser-fixture-comparison requires --parser-fixture-coverage")
     source_root = args.source_root.resolve()
     ledger, crosswalk, summary = build(
-        source_root, promote_parser_fixtures=args.parser_fixture_coverage
+        source_root,
+        promote_parser_fixtures=args.parser_fixture_coverage,
+        parser_fixture_comparison=(
+            args.parser_fixture_comparison.resolve()
+            if args.parser_fixture_comparison is not None else None
+        ),
     )
     outputs = {
         source_root / LEDGER_PATH: canonical(ledger),
