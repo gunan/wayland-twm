@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and validate the deterministic twm compatibility ledger."""
+"""Validate the assessed deterministic twm compatibility ledger."""
 
 from __future__ import annotations
 
@@ -10,15 +10,21 @@ import re
 import sys
 from pathlib import Path, PurePosixPath
 
+from assess_current_implementation import build as build_assessment
 
-SCHEMA_VERSION = "1.0"
-SCHEMA_PATH = "reference/ledger/schema-1.0.json"
+
+SCHEMA_VERSION = "1.1"
+SCHEMA_PATH = "reference/ledger/schema-1.1.json"
 INVENTORY_PATH = "reference/inventory/twm-1.0.13.1.json"
+CURRENT_AUDIT_PATH = "reference/audits/current-implementation.json"
+CROSSWALK_PATH = "reference/audits/current-to-ledger.json"
 INVENTORY_SECTIONS = ("keywords", "grammar", "lexical_forms")
 ROOT_FIELDS = [
     "schema_version",
     "schema_path",
     "inventory_path",
+    "current_audit_path",
+    "crosswalk_path",
     "reference",
     "assessment_policy",
     "entries",
@@ -35,15 +41,14 @@ ENTRY_FIELDS = [
     "test_coverage",
     "differences",
 ]
-ASSESSMENT_FIELDS = ["status", "notes"]
-TEST_COVERAGE_FIELDS = ["status", "mappings", "notes"]
+ASSESSMENT_FIELDS = ["status", "evidence", "notes"]
+TEST_COVERAGE_FIELDS = ["status", "evidence", "mappings", "notes"]
 TEST_MAPPING_FIELDS = ["test_id", "path", "case", "dimensions", "assertions"]
-DIFFERENCES_FIELDS = ["status", "visual", "semantic", "notes"]
+DIFFERENCES_FIELDS = ["status", "evidence", "visual", "semantic", "notes"]
 DIFFERENCE_FIELDS = ["summary", "evidence", "tests"]
 
-SYNTAX_STATUSES = ["unassessed", "unsupported", "partial", "complete"]
+SYNTAX_STATUSES = ["unsupported", "partial", "complete"]
 BEHAVIOR_STATUSES = [
-    "unassessed",
     "unsupported",
     "parsed-only",
     "partial",
@@ -51,9 +56,10 @@ BEHAVIOR_STATUSES = [
     "exact",
     "verified-no-op",
     "not-applicable",
+    "unavailable",
 ]
-TEST_STATUSES = ["unassessed", "none", "partial", "complete"]
-DIFFERENCE_STATUSES = ["unassessed", "none-known", "known"]
+TEST_STATUSES = ["none", "partial", "complete"]
+DIFFERENCE_STATUSES = ["none-known", "known"]
 TEST_DIMENSIONS = [
     "syntax",
     "runtime",
@@ -100,63 +106,16 @@ def _canonical_json(value: object) -> str:
 
 def _policy() -> dict[str, str]:
     return {
-        "phase": "inventory-initialized",
+        "phase": "current-implementation-audited",
         "initial_status": "unassessed",
         "scope": (
             "One row for every keyword, grammar alternative, and successful lexer "
             "form in the frozen upstream inventory."
         ),
         "next_step": (
-            "Milestone 0 implementation item 4 audits the current wtwm "
-            "implementation and replaces unassessed values with evidence-backed "
-            "assessments."
+            "Add focused reference, parser, native Wayland, and Xwayland tests "
+            "for the gaps recorded by this audit."
         ),
-    }
-
-
-def _assessment() -> dict[str, object]:
-    return {"status": "unassessed", "notes": []}
-
-
-def _ledger_entry(section: str, upstream: dict[str, object]) -> dict[str, object]:
-    return {
-        "id": upstream["id"],
-        "inventory_section": section,
-        "upstream": copy.deepcopy(upstream),
-        "syntax_support": _assessment(),
-        "runtime_support": _assessment(),
-        "native_wayland_behavior": _assessment(),
-        "xwayland_behavior": _assessment(),
-        "test_coverage": {"status": "unassessed", "mappings": [], "notes": []},
-        "differences": {
-            "status": "unassessed",
-            "visual": [],
-            "semantic": [],
-            "notes": [],
-        },
-    }
-
-
-def build_ledger(inventory: dict[str, object]) -> dict[str, object]:
-    entries = []
-    for section in INVENTORY_SECTIONS:
-        section_entries = inventory.get(section)
-        if not isinstance(section_entries, list):
-            raise ValueError(f"inventory {section} must be an array")
-        for upstream in section_entries:
-            if not isinstance(upstream, dict):
-                raise ValueError(f"inventory {section} contains a non-object row")
-            entries.append(_ledger_entry(section, upstream))
-    reference = inventory.get("upstream")
-    if not isinstance(reference, dict):
-        raise ValueError("inventory upstream identity must be an object")
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "schema_path": SCHEMA_PATH,
-        "inventory_path": INVENTORY_PATH,
-        "reference": copy.deepcopy(reference),
-        "assessment_policy": _policy(),
-        "entries": entries,
     }
 
 
@@ -254,14 +213,14 @@ def validate_schema(schema: object) -> list[str]:
         errors.append("schema test dimension enum differs from its fixed order")
     try:
         sections = definitions["ledger_entry"]["properties"]["inventory_section"]["enum"]  # type: ignore[index]
-        phases = definitions["assessment_policy"]["properties"]["phase"]["enum"]  # type: ignore[index]
+        phase = definitions["assessment_policy"]["properties"]["phase"]["const"]  # type: ignore[index]
         categories = definitions["categories"]["items"]["enum"]  # type: ignore[index]
     except (KeyError, TypeError):
-        sections = phases = categories = None
+        sections = phase = categories = None
     if sections != list(INVENTORY_SECTIONS):
         errors.append("schema inventory section enum differs from its fixed order")
-    if phases != ["inventory-initialized", "current-implementation-audited"]:
-        errors.append("schema assessment phase enum differs from its fixed order")
+    if phase != "current-implementation-audited":
+        errors.append("schema assessment phase is not the audited phase")
     if categories != CATEGORY_ENUM:
         errors.append("schema category enum differs from its fixed order")
     properties = schema.get("properties", {})
@@ -272,6 +231,8 @@ def validate_schema(schema: object) -> list[str]:
             ("schema_version", SCHEMA_VERSION),
             ("schema_path", SCHEMA_PATH),
             ("inventory_path", INVENTORY_PATH),
+            ("current_audit_path", CURRENT_AUDIT_PATH),
+            ("crosswalk_path", CROSSWALK_PATH),
         ):
             definition = properties.get(name, {})
             if not isinstance(definition, dict) or definition.get("const") != expected:
@@ -336,9 +297,22 @@ def _location(
         errors.append(f"{label} line is outside the file: {value}")
 
 
+def _validate_evidence(
+    value: object, source_root: Path, label: str, errors: list[str]
+) -> None:
+    if not _sorted_unique_strings(value, label, errors):
+        return
+    assert isinstance(value, list)
+    if not value:
+        errors.append(f"{label} must contain exact repository evidence")
+    for index, location in enumerate(value):
+        _location(location, source_root, f"{label}[{index}]", errors)
+
+
 def _validate_assessment(
     value: object,
     statuses: list[str],
+    source_root: Path,
     label: str,
     errors: list[str],
 ) -> None:
@@ -347,6 +321,7 @@ def _validate_assessment(
     assert isinstance(value, dict)
     if value["status"] not in statuses:
         errors.append(f"{label}.status has invalid enum value {value['status']!r}")
+    _validate_evidence(value["evidence"], source_root, f"{label}.evidence", errors)
     _sorted_unique_strings(value["notes"], f"{label}.notes", errors)
 
 
@@ -366,6 +341,16 @@ def _validate_mapping(
             errors.append(f"{label}.path does not exist")
     if not isinstance(value["case"], str) or not value["case"].strip():
         errors.append(f"{label}.case must identify the exact test case")
+    elif path is not None and path.suffix == ".c" and (source_root / path).is_file():
+        source = (source_root / path).read_text(encoding="utf-8")
+        case_pattern = re.compile(
+            rf"\bstatic\s+void\s+{re.escape(value['case'])}\s*\(\s*void\s*\)"
+        )
+        if not case_pattern.search(source):
+            errors.append(f"{label}.case is not an exact C test function in {value['path']}")
+        expected_id = "test.config." + value["case"].replace("_", "-")
+        if value["path"] == "tests/config_test.c" and value["test_id"] != expected_id:
+            errors.append(f"{label}.test_id does not match its exact config test case")
     dimensions = value["dimensions"]
     if not isinstance(dimensions, list) or not dimensions:
         errors.append(f"{label}.dimensions must be a non-empty array")
@@ -390,6 +375,7 @@ def _validate_test_coverage(
     status = value["status"]
     if status not in TEST_STATUSES:
         errors.append(f"{label}.status has invalid enum value {status!r}")
+    _validate_evidence(value["evidence"], source_root, f"{label}.evidence", errors)
     mappings = value["mappings"]
     if not isinstance(mappings, list):
         errors.append(f"{label}.mappings must be an array")
@@ -413,7 +399,7 @@ def _validate_test_coverage(
             errors.append(f"{label}.mappings has duplicate test IDs")
     else:
         mapping_ids = []
-    if status in {"unassessed", "none"} and mappings:
+    if status == "none" and mappings:
         errors.append(f"{label}.status {status!r} cannot have mappings")
     if status in {"partial", "complete"} and not mappings:
         errors.append(f"{label}.status {status!r} requires exact mappings")
@@ -459,6 +445,7 @@ def _validate_differences(
     status = value["status"]
     if status not in DIFFERENCE_STATUSES:
         errors.append(f"{label}.status has invalid enum value {status!r}")
+    _validate_evidence(value["evidence"], source_root, f"{label}.evidence", errors)
     for kind in ("visual", "semantic"):
         records = value[kind]
         if not isinstance(records, list):
@@ -477,7 +464,7 @@ def _validate_differences(
             errors.append(f"{label}.{kind} must be deterministically ordered")
     visual = value["visual"] if isinstance(value["visual"], list) else []
     semantic = value["semantic"] if isinstance(value["semantic"], list) else []
-    if status in {"unassessed", "none-known"} and (visual or semantic):
+    if status == "none-known" and (visual or semantic):
         errors.append(f"{label}.status {status!r} cannot have difference records")
     if status == "known" and not (visual or semantic):
         errors.append(f"{label}.status 'known' requires a visual or semantic record")
@@ -500,14 +487,18 @@ def validate_ledger(
         errors.append("ledger schema_path differs from the fixed repository path")
     if ledger["inventory_path"] != INVENTORY_PATH:
         errors.append("ledger inventory_path differs from the fixed repository path")
+    if ledger["current_audit_path"] != CURRENT_AUDIT_PATH:
+        errors.append("ledger current_audit_path differs from the fixed repository path")
+    if ledger["crosswalk_path"] != CROSSWALK_PATH:
+        errors.append("ledger crosswalk_path differs from the fixed repository path")
     if _canonical_json(ledger["reference"]) != _canonical_json(inventory.get("upstream")):
         errors.append("ledger reference identity differs from the upstream inventory")
     if not _dict_fields(ledger["assessment_policy"], POLICY_FIELDS, "assessment_policy", errors):
         return errors
     policy = ledger["assessment_policy"]
     assert isinstance(policy, dict)
-    if policy["phase"] not in {"inventory-initialized", "current-implementation-audited"}:
-        errors.append("assessment_policy.phase has an invalid enum value")
+    if policy["phase"] != "current-implementation-audited":
+        errors.append("assessment_policy.phase must be current-implementation-audited")
     if policy["initial_status"] != "unassessed":
         errors.append("assessment_policy.initial_status must remain unassessed")
     canonical_policy = _policy()
@@ -560,47 +551,152 @@ def validate_ledger(
             if _canonical_json(entry["upstream"]) != _canonical_json(upstream):
                 errors.append(f"{label}.upstream differs from the exact inventory row")
         _validate_assessment(
-            entry["syntax_support"], SYNTAX_STATUSES, f"{label}.syntax_support", errors
+            entry["syntax_support"], SYNTAX_STATUSES, source_root,
+            f"{label}.syntax_support", errors
         )
         for field in ("runtime_support", "native_wayland_behavior", "xwayland_behavior"):
-            _validate_assessment(entry[field], BEHAVIOR_STATUSES, f"{label}.{field}", errors)
+            _validate_assessment(
+                entry[field], BEHAVIOR_STATUSES, source_root, f"{label}.{field}", errors
+            )
         mapping_ids = _validate_test_coverage(
             entry["test_coverage"], source_root, f"{label}.test_coverage", errors
         )
         _validate_differences(
             entry["differences"], mapping_ids, source_root, f"{label}.differences", errors
         )
-        if policy["phase"] == "inventory-initialized":
-            assessment_statuses = [
-                entry[field].get("status") if isinstance(entry[field], dict) else None
-                for field in (
-                    "syntax_support",
-                    "runtime_support",
-                    "native_wayland_behavior",
-                    "xwayland_behavior",
-                    "test_coverage",
-                    "differences",
-                )
-            ]
-            if any(status != "unassessed" for status in assessment_statuses):
-                errors.append(f"{label} makes a status claim during inventory initialization")
-            for field in (
-                "syntax_support",
-                "runtime_support",
-                "native_wayland_behavior",
-                "xwayland_behavior",
-            ):
-                value = entry[field]
-                if isinstance(value, dict) and value.get("notes"):
-                    errors.append(f"{label}.{field} has notes before implementation audit")
-            coverage = entry["test_coverage"]
-            if isinstance(coverage, dict) and (coverage.get("mappings") or coverage.get("notes")):
-                errors.append(f"{label}.test_coverage contains pre-audit claims")
-            differences = entry["differences"]
-            if isinstance(differences, dict) and any(
-                differences.get(field) for field in ("visual", "semantic", "notes")
-            ):
-                errors.append(f"{label}.differences contains pre-audit claims")
+        syntax = entry["syntax_support"].get("status") if isinstance(entry["syntax_support"], dict) else None
+        runtime = entry["runtime_support"].get("status") if isinstance(entry["runtime_support"], dict) else None
+        native = entry["native_wayland_behavior"].get("status") if isinstance(entry["native_wayland_behavior"], dict) else None
+        xwayland = entry["xwayland_behavior"].get("status") if isinstance(entry["xwayland_behavior"], dict) else None
+        if syntax == "unsupported" and runtime in {"partial", "behaviorally-equivalent", "exact"}:
+            errors.append(f"{label} cannot claim runtime implementation with unsupported syntax")
+        if runtime == "parsed-only" and native not in {"parsed-only", "not-applicable"}:
+            errors.append(f"{label} parsed-only runtime is inconsistent with native behavior")
+        for field, status in (("runtime_support", runtime), ("native_wayland_behavior", native), ("xwayland_behavior", xwayland)):
+            if status in {"exact", "behaviorally-equivalent", "verified-no-op"} and not mapping_ids:
+                errors.append(f"{label}.{field} strong equivalence/no-op claim requires exact tests")
+    return errors
+
+
+def validate_crosswalk(
+    crosswalk: object,
+    current_audit: dict[str, object],
+    ledger: dict[str, object],
+) -> list[str]:
+    errors: list[str] = []
+    fields = [
+        "schema_version", "current_audit_path", "ledger_path", "audited_commit",
+        "mappings", "unmapped_ledger_ids",
+    ]
+    if not _dict_fields(crosswalk, fields, "crosswalk", errors):
+        return errors
+    assert isinstance(crosswalk, dict)
+    if crosswalk["schema_version"] != "1.0":
+        errors.append("crosswalk schema_version must be 1.0")
+    if crosswalk["current_audit_path"] != CURRENT_AUDIT_PATH:
+        errors.append("crosswalk current_audit_path differs from the fixed path")
+    if crosswalk["ledger_path"] != "reference/ledger/twm-1.0.13.1.json":
+        errors.append("crosswalk ledger_path differs from the fixed path")
+    if crosswalk["audited_commit"] != current_audit.get("audited_commit"):
+        errors.append("crosswalk audited_commit differs from the current audit")
+    audit_entries = current_audit.get("entries")
+    if not isinstance(audit_entries, list):
+        return errors + ["current audit entries must be an array"]
+    audit_by_id = {
+        entry.get("id"): entry for entry in audit_entries if isinstance(entry, dict)
+    }
+    audit_ids = [entry.get("id") for entry in audit_entries if isinstance(entry, dict)]
+    if len(audit_ids) != len(set(audit_ids)):
+        errors.append("current audit IDs are not unique")
+    ledger_entries = ledger.get("entries")
+    ledger_ids = {
+        entry.get("id") for entry in ledger_entries if isinstance(entry, dict)
+    } if isinstance(ledger_entries, list) else set()
+    mappings = crosswalk["mappings"]
+    if not isinstance(mappings, list):
+        return errors + ["crosswalk mappings must be an array"]
+    mapping_fields = ["current_id", "classification", "ledger_ids", "notes"]
+    classifications = {"ledger-mapped", "current-only", "runtime-dispatch", "out-of-upstream-scope"}
+    mapping_ids: list[object] = []
+    mapped_ledger: set[object] = set()
+    for index, mapping in enumerate(mappings):
+        label = f"crosswalk.mappings[{index}]"
+        if not _dict_fields(mapping, mapping_fields, label, errors):
+            continue
+        assert isinstance(mapping, dict)
+        current_id = mapping["current_id"]
+        mapping_ids.append(current_id)
+        if current_id not in audit_by_id:
+            errors.append(f"{label}.current_id is not in the current audit")
+        classification = mapping["classification"]
+        if classification not in classifications:
+            errors.append(f"{label}.classification is invalid")
+        target_ids = mapping["ledger_ids"]
+        if not _sorted_unique_strings(target_ids, f"{label}.ledger_ids", errors):
+            target_ids = []
+        if classification == "ledger-mapped" and not target_ids:
+            errors.append(f"{label} ledger-mapped entry requires at least one ledger ID")
+        if classification != "ledger-mapped" and target_ids:
+            errors.append(f"{label} non-ledger classification cannot contain ledger IDs")
+        for target_id in target_ids:
+            if target_id not in ledger_ids:
+                errors.append(f"{label} references an unknown ledger ID: {target_id}")
+            mapped_ledger.add(target_id)
+        audit_entry = audit_by_id.get(current_id)
+        if classification == "runtime-dispatch" and (
+            not isinstance(audit_entry, dict) or audit_entry.get("category") != "runtime_dispatch"
+        ):
+            errors.append(f"{label} runtime-dispatch classification disagrees with the audit")
+        if not isinstance(mapping["notes"], str) or not mapping["notes"].strip():
+            errors.append(f"{label}.notes must explain the mapping")
+    if mapping_ids != sorted(mapping_ids):
+        errors.append("crosswalk mappings are not ordered by current ID")
+    if len(mapping_ids) != len(set(mapping_ids)):
+        errors.append("crosswalk has duplicate current IDs")
+    missing_current = sorted(set(audit_ids) - set(mapping_ids))
+    extra_current = sorted(set(mapping_ids) - set(audit_ids))
+    if missing_current:
+        errors.append(f"crosswalk misses current-audit IDs: {', '.join(str(item) for item in missing_current[:8])}")
+    if extra_current:
+        errors.append(f"crosswalk has extra current IDs: {', '.join(str(item) for item in extra_current[:8])}")
+    unmapped = crosswalk["unmapped_ledger_ids"]
+    if _sorted_unique_strings(unmapped, "crosswalk.unmapped_ledger_ids", errors):
+        expected_unmapped = sorted(ledger_ids - mapped_ledger)
+        if unmapped != expected_unmapped:
+            errors.append("crosswalk unmapped_ledger_ids is not the exact ledger complement")
+    return errors
+
+
+def validate_summary(summary: str, ledger: dict[str, object], crosswalk: dict[str, object]) -> list[str]:
+    errors: list[str] = []
+    entries = ledger.get("entries", [])
+    if not isinstance(entries, list):
+        return ["cannot validate summary without ledger entries"]
+    dimensions = (
+        "syntax_support", "runtime_support", "native_wayland_behavior",
+        "xwayland_behavior", "test_coverage", "differences",
+    )
+    for dimension in dimensions:
+        counts = {}
+        for entry in entries:
+            if isinstance(entry, dict) and isinstance(entry.get(dimension), dict):
+                status = entry[dimension].get("status")
+                counts[status] = counts.get(status, 0) + 1
+        for status, count in counts.items():
+            marker = f"| `{dimension}` | `{status}` | {count} |"
+            if marker not in summary:
+                errors.append(f"audit summary is missing count: {marker}")
+    mappings = crosswalk.get("mappings", [])
+    if isinstance(mappings, list):
+        counts = {}
+        for mapping in mappings:
+            if isinstance(mapping, dict):
+                value = mapping.get("classification")
+                counts[value] = counts.get(value, 0) + 1
+        for classification, count in counts.items():
+            marker = f"| `{classification}` | {count} |"
+            if marker not in summary:
+                errors.append(f"audit summary is missing crosswalk count: {marker}")
     return errors
 
 
@@ -608,6 +704,8 @@ def _tamper_self_test(
     ledger: dict[str, object],
     inventory: dict[str, object],
     schema: dict[str, object],
+    crosswalk: dict[str, object],
+    current_audit: dict[str, object],
     source_root: Path,
 ) -> int:
     mutations: list[tuple[str, dict[str, object]]] = []
@@ -640,15 +738,26 @@ def _tamper_self_test(
             "dimensions": ["not-a-dimension"],
         }
     ]
-    changed["assessment_policy"]["phase"] = "current-implementation-audited"  # type: ignore[index]
     mutations.append(("malformed-test-mapping", changed))
     changed = copy.deepcopy(ledger)
     changed["entries"][0]["differences"]["status"] = "known"  # type: ignore[index]
     changed["entries"][0]["differences"]["visual"] = [  # type: ignore[index]
         {"summary": "difference", "evidence": ["/tmp/file:1"], "tests": []}
     ]
-    changed["assessment_policy"]["phase"] = "current-implementation-audited"  # type: ignore[index]
     mutations.append(("malformed-difference-evidence", changed))
+    changed = copy.deepcopy(ledger)
+    changed["entries"][0]["runtime_support"]["status"] = "unassessed"  # type: ignore[index]
+    mutations.append(("remaining-unassessed", changed))
+    changed = copy.deepcopy(ledger)
+    changed["entries"][0]["syntax_support"]["evidence"] = []  # type: ignore[index]
+    mutations.append(("missing-assessment-evidence", changed))
+    changed = copy.deepcopy(ledger)
+    covered = next(
+        entry for entry in changed["entries"]  # type: ignore[union-attr]
+        if entry["test_coverage"]["mappings"]
+    )
+    covered["test_coverage"]["mappings"][0]["case"] = "not_an_existing_test_case"
+    mutations.append(("nonexistent-test-case", changed))
 
     failures = [
         name
@@ -659,10 +768,23 @@ def _tamper_self_test(
     changed_schema["$defs"]["syntax_assessment"]["properties"]["status"]["enum"].append("invented")  # type: ignore[index]
     if not validate_schema(changed_schema):
         failures.append("schema-enum-tamper")
+    changed_crosswalk = copy.deepcopy(crosswalk)
+    changed_crosswalk["mappings"].pop(0)  # type: ignore[union-attr]
+    if not validate_crosswalk(changed_crosswalk, current_audit, ledger):
+        failures.append("missing-current-audit-mapping")
+    changed = copy.deepcopy(ledger)
+    complete = next(
+        entry for entry in changed["entries"]  # type: ignore[union-attr]
+        if entry["syntax_support"]["status"] == "complete"
+    )
+    complete["syntax_support"]["status"] = "partial"
+    expected_ledger, _, _ = build_assessment(source_root)
+    if _canonical_json(changed) == _canonical_json(expected_ledger):
+        failures.append("deterministic-assessment-tamper")
     if failures:
         print(f"tamper self-test failed to reject: {', '.join(failures)}", file=sys.stderr)
         return 1
-    print(f"tamper self-test: {len(mutations) + 1} ledger/schema mutations rejected")
+    print(f"tamper self-test: {len(mutations) + 3} ledger/schema/crosswalk mutations rejected")
     return 0
 
 
@@ -680,7 +802,6 @@ def main() -> int:
     parser.add_argument("--inventory", type=Path)
     parser.add_argument("--schema", type=Path)
     parser.add_argument("--ledger", type=Path)
-    parser.add_argument("--write", action="store_true")
     parser.add_argument("--self-test-tamper", action="store_true")
     args = parser.parse_args()
 
@@ -688,6 +809,9 @@ def main() -> int:
     inventory_path = args.inventory or source_root / INVENTORY_PATH
     schema_path = args.schema or source_root / SCHEMA_PATH
     ledger_path = args.ledger or source_root / "reference/ledger/twm-1.0.13.1.json"
+    current_audit_path = source_root / CURRENT_AUDIT_PATH
+    crosswalk_path = source_root / CROSSWALK_PATH
+    summary_path = source_root / "docs/audits/compatibility-ledger.md"
     try:
         inventory, inventory_raw = _load_object(inventory_path, "inventory")
         schema, schema_raw = _load_object(schema_path, "schema")
@@ -700,22 +824,32 @@ def main() -> int:
             for error in schema_errors:
                 print(f"ledger schema error: {error}", file=sys.stderr)
             return 1
-        if args.write:
-            ledger = build_ledger(inventory)
-            ledger_path.parent.mkdir(parents=True, exist_ok=True)
-            ledger_path.write_text(_canonical_json(ledger), encoding="utf-8")
-            print(f"wrote {ledger_path}")
-            return 0
         ledger, ledger_raw = _load_object(ledger_path, "ledger")
+        current_audit, _ = _load_object(current_audit_path, "current audit")
+        crosswalk, crosswalk_raw = _load_object(crosswalk_path, "crosswalk")
+        summary_raw = summary_path.read_text(encoding="utf-8")
         errors = validate_ledger(ledger, inventory, source_root)
+        errors.extend(validate_crosswalk(crosswalk, current_audit, ledger))
+        errors.extend(validate_summary(summary_raw, ledger, crosswalk))
+        expected_ledger, expected_crosswalk, expected_summary = build_assessment(source_root)
+        if ledger_raw != _canonical_json(expected_ledger):
+            errors.append("compatibility ledger differs from the deterministic current audit assessment")
+        if crosswalk_raw != _canonical_json(expected_crosswalk):
+            errors.append("current-to-ledger crosswalk differs from the deterministic mapping")
+        if summary_raw != expected_summary:
+            errors.append("human audit summary differs from the machine-checked assessment counts")
         if ledger_raw != _canonical_json(ledger):
             errors.append("compatibility ledger JSON is not canonically formatted")
+        if crosswalk_raw != _canonical_json(crosswalk):
+            errors.append("current-to-ledger crosswalk JSON is not canonically formatted")
         if errors:
             for error in errors:
                 print(f"ledger error: {error}", file=sys.stderr)
             return 1
         if args.self_test_tamper:
-            status = _tamper_self_test(ledger, inventory, schema, source_root)
+            status = _tamper_self_test(
+                ledger, inventory, schema, crosswalk, current_audit, source_root
+            )
             if status:
                 return status
         counts = {
@@ -726,7 +860,8 @@ def main() -> int:
             "compatibility ledger valid: "
             f"{len(ledger['entries'])} rows "
             f"({counts['keywords']} keywords, {counts['grammar']} grammar alternatives, "
-            f"{counts['lexical_forms']} lexical forms); assessments unassessed"
+            f"{counts['lexical_forms']} lexical forms); current implementation audited, "
+            f"{len(crosswalk['mappings'])} current entries crosswalked"
         )
         return 0
     except (OSError, ValueError, json.JSONDecodeError) as error:

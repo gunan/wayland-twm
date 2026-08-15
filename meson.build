@@ -54,6 +54,11 @@ test(
   ],
 )
 test(
+  'current implementation inventory',
+  find_program('sh'),
+  args: [files('tests/reference/current_implementation_audit_test.sh')],
+)
+test(
   'compatibility ledger',
   find_program('python3'),
   args: [

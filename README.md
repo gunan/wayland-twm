@@ -166,7 +166,7 @@ Implementation work:
 - [x] Create a machine-readable compatibility ledger containing syntax support,
   runtime support, native Wayland behavior, Xwayland behavior, test coverage,
   and known visual or semantic differences.
-- [ ] Audit the current implementation against that ledger.
+- [x] Audit the current implementation against that ledger.
 - [ ] Preserve representative real-world `.twmrc` files as regression fixtures.
 
 Testing:
