@@ -48,6 +48,15 @@ config_malformed_test = executable(
   dependencies: config_dep,
 )
 test('twmrc malformed input', config_malformed_test, timeout: 30)
+test(
+  'twmrc fuzzer contract',
+  find_program('sh'),
+  args: [
+    files('tests/fuzz/run_config_fuzzer.sh'),
+    '--validate-only',
+    meson.project_source_root(),
+  ],
+)
 
 test_control_protocol_lib = static_library(
   'wtwm-test-control-protocol',

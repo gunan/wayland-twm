@@ -61,8 +61,14 @@ jobs:
           xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native architecture
         run: test "$(dpkg --print-architecture)" = "${{ matrix.architecture }}"
+      - name: Install libFuzzer toolchain
+        if: matrix.profile == 'asan'
+        run: apt-get install -y --no-install-recommends clang libclang-rt-dev
       - name: Build and test
         run: sh scripts/ci/run-meson-build.sh "build-${{ matrix.profile }}" enabled "${{ matrix.profile }}"
+      - name: Run sustained configuration fuzzer
+        if: matrix.profile == 'asan'
+        run: sh tests/fuzz/run_config_fuzzer.sh "$GITHUB_WORKSPACE" /tmp/wtwm-config-fuzz 100000
 
   host-native-portable:
     name: Host-native portable (${{ matrix.name }})
@@ -108,6 +114,19 @@ jobs:
         run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"
       - name: Verify canonical X11 applications
         run: sh tests/reference/verify_canonical_x11_apps.sh "$GITHUB_WORKSPACE" /tmp/reference-build
+      - name: Build portable configuration checker
+        run: |
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            -Iinclude src/config.c src/config_check.c -o /tmp/wtwm-config
+      - name: Compare the complete parser with reference twm
+        run: sh tests/reference/run_reference_parser_comparison.sh "$GITHUB_WORKSPACE" /tmp/wtwm-config /tmp/wtwm-parser-comparison.json
+      - name: Upload parser differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parser-differential
+          path: /tmp/wtwm-parser-comparison.json
+          if-no-files-found: error
       - name: Upload reference capture
         if: always()
         uses: actions/upload-artifact@v4
