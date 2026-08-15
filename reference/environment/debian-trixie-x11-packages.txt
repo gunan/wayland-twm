@@ -17,5 +17,6 @@ x11-apps
 x11-utils
 x11proto-dev
 xfonts-base
+xterm
 xvfb
 xz-utils

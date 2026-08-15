@@ -8,9 +8,9 @@
   },
   "environment": {
     "contract": "reference/environment/debian-trixie-x11.json",
-    "contract_sha256": "ece237f52847ee3489050c941cc877454fd55fdcac8af5c4915c61b52d8a6c1c",
+    "contract_sha256": "c65424ca2533d36780bf59d3c3392d3d967086cecf179cc49d191aae38ef7d29",
     "packages": "reference/environment/debian-trixie-x11-packages.txt",
-    "packages_sha256": "641758add2407062e248456c54ec536d2827a330b96cfc3df25ebb8f8620616e"
+    "packages_sha256": "3a6ad091fee1752c507e8c593b23d3e700c62710a425c50bbe44faa9187ea7f7"
   },
   "scenario": {
     "configuration": "reference/captures/twm-1.0.13.1/scenario.twmrc",
