@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "name": "twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "grammar_member": "twm-1.0.13.1/src/gram.y",
+    "lexer_member": "twm-1.0.13.1/src/lex.l",
+    "manual_member": "twm-1.0.13.1/man/twm.man",
+    "inventory": "reference/inventory/twm-1.0.13.1.json",
+    "inventory_sha256": "818e4d90dbaea31edfc5004159b4c758772b5236b157bdefbed38314a5860337"
+  },
+  "fixtures": [
+    {
+      "id": "grammar-complete-language",
+      "test_id": "test.parser-fixture.grammar-complete-language",
+      "path": "reference/grammar/fixtures/complete-language.twmrc",
+      "sha256": "3dc1a843cd98c19085e55a59147d9170c7c9236b499c33a1271c741fcce075c4",
+      "expected": "accept",
+      "kind": "synthetic-complete-language"
+    },
+    {
+      "id": "grammar-lexical-behavior",
+      "test_id": "test.parser-fixture.grammar-lexical-behavior",
+      "path": "reference/grammar/fixtures/lexical-behavior.twmrc",
+      "sha256": "5c1ddb57556d424705b448b7a4c576e56ad6ed38c0b7edf2fd5b575619244a0b",
+      "expected": "accept",
+      "kind": "synthetic-lexical"
+    },
+    {
+      "id": "upstream-system-default",
+      "test_id": "test.parser-fixture.upstream-system-default",
+      "path": "reference/upstream/twm-1.0.13.1/defaults/system.twmrc",
+      "sha256": "861237bbfeacad152338019dc0cc84ec5bc50f147ca8b094335aaf99b750031d",
+      "expected": "accept",
+      "kind": "upstream-default"
+    },
+    {
+      "id": "upstream-sample-jim",
+      "test_id": "test.parser-fixture.upstream-sample-jim",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc",
+      "sha256": "704e2699d9677b3b976df13277e8147efd04e24027714a319012670013848ee3",
+      "expected": "accept",
+      "kind": "upstream-sample"
+    },
+    {
+      "id": "upstream-sample-keith",
+      "test_id": "test.parser-fixture.upstream-sample-keith",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc",
+      "sha256": "fe33be5f80e238f1a5aefd3ffad0637d356c3ba34714870d8df8414723365e08",
+      "expected": "accept",
+      "kind": "upstream-sample"
+    },
+    {
+      "id": "upstream-sample-lemke",
+      "test_id": "test.parser-fixture.upstream-sample-lemke",
+      "path": "reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+      "sha256": "6f8406d44c9176935bb38d0668a866c216a21b9857593eea234bc93b3f186130",
+      "expected": "accept",
+      "kind": "upstream-sample"
+    },
+    {
+      "id": "malformed-unknown-keyword",
+      "test_id": "test.parser-fixture.malformed-unknown-keyword",
+      "path": "reference/grammar/fixtures/malformed-unknown-keyword.twmrc",
+      "sha256": "c50cd795f06308b6293fbc5c7c4a53ecac03962e517a3867008b39751dd67f5b",
+      "expected": "reject",
+      "diagnostic_class": "unknown-keyword",
+      "kind": "malformed-unknown"
+    },
+    {
+      "id": "malformed-truncated-list",
+      "test_id": "test.parser-fixture.malformed-truncated-list",
+      "path": "reference/grammar/fixtures/malformed-truncated-list.twmrc",
+      "sha256": "bb565fed1aa78deb12b2125e28fb1b7ccb3b819964e4838b10d660f7fbd273a7",
+      "expected": "reject",
+      "diagnostic_class": "parse-error",
+      "kind": "malformed-truncated"
+    },
+    {
+      "id": "malformed-truncated-string",
+      "test_id": "test.parser-fixture.malformed-truncated-string",
+      "path": "reference/grammar/fixtures/malformed-truncated-string.twmrc",
+      "sha256": "6b37e3aa38bd0d94a1fc2b4903fbbd3d15229e3969850acaaf85554b104fa7cb",
+      "expected": "reject",
+      "diagnostic_class": "parse-error",
+      "kind": "malformed-truncated"
+    }
+  ],
+  "coverage_policy": {
+    "inventory_sections": [
+      "keywords",
+      "grammar",
+      "lexical_forms"
+    ],
+    "keyword_fixture_order": [
+      "grammar-complete-language",
+      "grammar-lexical-behavior",
+      "upstream-system-default",
+      "upstream-sample-jim",
+      "upstream-sample-keith",
+      "upstream-sample-lemke"
+    ],
+    "accepted_grammar_fixture": "grammar-complete-language",
+    "grammar_rejection_overrides": {
+      "grammar.stmt.1": "malformed-unknown-keyword"
+    },
+    "lexical_fixture": "grammar-lexical-behavior"
+  }
+}

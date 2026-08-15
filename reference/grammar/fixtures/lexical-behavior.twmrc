@@ -1,0 +1,16 @@
+# Keywords are case-insensitive; quoted strings preserve spaces and escapes.
+nOdEfAuLtS
+TitleFont "fixed"
+Menu "escape-cases"
+{
+    "newline\nbackspace\breturn\rtab\tformfeed\f" f.nop
+    "octal\101 hex\x42 quote\" slash\\" f.exec "printf 'lexical fixture'"
+}
+
+# A backslash-newline inside a string is removed by the reference lexer.
+Function "continued" { f.exec "printf one\
+two" }
+
+# All legal modifier aliases and an empty modifier/context sequence.
+Button1 = m | s | l | c | m5 : root : f.nop
+Button2 = : : f.nop

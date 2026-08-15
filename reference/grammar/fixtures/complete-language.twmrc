@@ -1,0 +1,266 @@
+# Synthetic twm 1.0.13.1 grammar fixture.  Values are deliberately inert;
+# this file exists to exercise every top-level production in src/gram.y.
+NoDefaults
+AutoRelativeResize
+ClientBorderWidth
+DecorateTransients
+DontMoveOff
+ForceIcons
+InterpolateMenuColors
+NoBackingStore
+NoCaseSensitive
+NoGrabServer
+NoIconManagers
+NoMenuShadows
+NoRaiseOnDeiconify
+NoRaiseOnMove
+NoRaiseOnResize
+NoRaiseOnWarp
+NoSaveUnders
+NoTitleFocus
+NoVersion
+OpaqueMove
+RandomPlacement
+RestartPreviousState
+ShowIconManager
+SortIconManager
+WarpUnmapped
+
+BorderWidth 2
+ButtonIndent 1
+ConstrainedMoveTime 400
+FramePadding 2
+IconBorderWidth 2
+MenuBorderWidth 2
+MoveDelta 3
+Priority 0
+TitleButtonBorderWidth 1
+TitlePadding 5
+XorValue 1
+
+IconDirectory "/tmp"
+IconFont "fixed"
+IconManagerFont "fixed"
+MaxWindowSize "1024x768"
+MenuFont "fixed"
+ResizeFont "fixed"
+TitleFont "fixed"
+UnknownIcon ":xlogo"
+UsePPosition "non-zero"
+
+Zoom
+Zoom 8
+IconManagerGeometry "100x100+0+0"
+IconManagerGeometry "100x100+0+0" 2
+IconRegion "100x100+0+0" North East 1 1
+IconRegion "100x100-0-0" South West 2 3
+
+Pixmaps
+{
+    TitleHighlight ":dot"
+}
+
+Cursors
+{
+    F "left_ptr"
+    Frame "left_ptr"
+    Title "top_left_arrow"
+    Icon "icon"
+    IconMgr "hand2"
+    Button "hand2"
+    Move "fleur"
+    Resize "fleur"
+    Wait "watch"
+    Menu "sb_left_arrow"
+    Select "dot"
+    Destroy "pirate"
+}
+
+Icons
+{
+    "xterm" ":xlogo"
+}
+
+IconManagers
+{
+    "xterm" "100x100+0+0" 1
+    "clock" "clock-manager" "100x100+100+0" 2
+}
+
+IconManagerDontShow
+IconManagerDontShow { "hidden" }
+IconManagerShow { "shown" }
+IconifyByUnmapping
+IconifyByUnmapping { "mapped" }
+DontIconifyByUnmapping { "unmapped" }
+MakeTitle { "titled" }
+NoTitle
+NoTitle { "untitled" }
+NoHighlight
+NoHighlight { "unhighlighted" }
+NoStackMode
+NoStackMode { "stacked" }
+NoTitleHighlight
+NoTitleHighlight { "plain-title" }
+StartIconified { "start-icon" }
+AutoRaise
+AutoRaise { "raised" }
+WarpCursor
+WarpCursor { "warped" }
+WindowRing { "ringed" }
+
+SqueezeTitle
+SqueezeTitle
+{
+    "left-window" Left -1 2
+    "center-window" Center +1 2
+    "right-window" Right 1 2
+}
+DontSqueezeTitle
+DontSqueezeTitle { "wide-title" }
+
+Color
+{
+    DefaultBackground "black"
+    DefaultForeground "white"
+    MenuBackground "black"
+    MenuBorderColor "white"
+    MenuForeground "white"
+    MenuShadowColor "black"
+    MenuTitleBackground "white"
+    MenuTitleForeground "black"
+    PointerBackground "white"
+    PointerForeground "black"
+    BorderColor "white"
+    BorderTileBackground "black" { "xterm" "gray20" }
+    BorderTileForeground "white"
+    IconBackground "black"
+    IconBorderColor "white"
+    IconForeground "white"
+    IconManagerBackground "black"
+    IconManagerForeground "white"
+    IconManagerHighlight "white"
+    TitleBackground "black" { "xterm" "gray20" }
+    TitleForeground "white"
+}
+
+Grayscale
+{
+    DefaultBackground "black"
+    BorderColor "white"
+}
+
+Greyscale
+{
+    DefaultForeground "white"
+}
+
+Monochrome
+{
+    DefaultBackground "black"
+    BorderColor "white" { "xterm" "black" }
+}
+
+SaveColor
+{
+    "red"
+    BorderColor
+    TitleBackground
+}
+
+LeftTitleButton ":dot" = f.nop
+RightTitleButton ":xlogo" = f.menu "main-menu"
+
+Function "all-actions"
+{
+    f.autoraise
+    f.backiconmgr
+    f.beep
+    f.bottomzoom
+    f.circledown
+    f.circleup
+    f.cutfile
+    f.deiconify
+    f.delete
+    f.deltastop
+    f.destroy
+    f.downiconmgr
+    f.focus
+    f.forcemove
+    f.forwiconmgr
+    f.fullzoom
+    f.hbzoom
+    f.hideiconmgr
+    f.horizoom
+    f.htzoom
+    f.hzoom
+    f.iconify
+    f.identify
+    f.lefticonmgr
+    f.leftzoom
+    f.lower
+    f.move
+    f.nexticonmgr
+    f.nop
+    f.previconmgr
+    f.quit
+    f.raise
+    f.raiselower
+    f.refresh
+    f.resize
+    f.restart
+    f.righticonmgr
+    f.rightzoom
+    f.saveyourself
+    f.showiconmgr
+    f.sorticonmgr
+    f.title
+    f.topzoom
+    f.twmrc
+    f.unfocus
+    f.upiconmgr
+    f.version
+    f.vlzoom
+    f.vrzoom
+    f.warpnext
+    f.warpprev
+    f.winrefresh
+    f.zoom
+    f.colormap "next"
+    f.cut "selection"
+    f.exec "true"
+    f.file "/tmp/twm-cut-buffer"
+    f.function "nested-function"
+    f.menu "main-menu"
+    f.priority "1"
+    f.source "ignored"
+    f.startwm "twm"
+    f.warpring "next"
+    f.warpto "xterm"
+    f.warptoiconmgr "xterm"
+    f.warptoscreen "next"
+    ! "true"
+    ^ "selection"
+}
+
+Function "nested-function" { f.nop }
+
+Menu "main-menu"
+{
+    "Title" f.title
+    "Run" f.exec "true"
+}
+
+Menu "colored-menu" ("white":"black")
+{
+    "Colored" ("black":"white") f.nop
+}
+
+DefaultFunction f.nop
+WindowFunction f.function "all-actions"
+
+Button1 "main-menu"
+Button2 f.nop
+Button3 = Meta1 | Shift | Lock | Control : Window | Title | Icon | Root | Frame | IconMgr | All : f.nop
+Button4 = : r : f.nop
+"F1" = Meta2 | Shift : Window | Title | Icon | Root | Frame | IconMgr | All | "xterm" : f.nop
