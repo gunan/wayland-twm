@@ -1,0 +1,3615 @@
+{
+  "schema_version": "1.0",
+  "current_audit_path": "reference/audits/current-implementation.json",
+  "feature_count": 134,
+  "dimension_policy": {
+    "enum": [
+      "syntax",
+      "source_contract",
+      "runtime"
+    ],
+    "syntax": "Executes a dedicated parser fixture; never implies a runtime effect.",
+    "source_contract": "Checks an exact implementation or dispatch site; explicitly non-runtime and non-behavioral.",
+    "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0."
+  },
+  "test_catalog": [
+    {
+      "test_id": "test.current-feature.source-contract",
+      "path": "tests/reference/validate_feature_test_map.py",
+      "meson_test": "current feature coverage",
+      "dimension": "source_contract"
+    },
+    {
+      "test_id": "test.current-feature.syntax",
+      "path": "tests/reference/validate_feature_test_map.py",
+      "meson_test": "current feature coverage",
+      "dimension": "syntax"
+    }
+  ],
+  "entries": [
+    {
+      "feature_id": "action.f-beep",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-beep",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-beep fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.beep\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-cut-alias",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-cut-alias",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-cut-alias fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : ^ \"cut-buffer\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-deiconify",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-deiconify",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-deiconify remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:61",
+              "contains": "{\"f.deiconify\","
+            },
+            {
+              "location": "src/wtwm.c:543",
+              "contains": "WTWM_ACTION_DEICONIFY"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-deiconify",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-deiconify fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.deiconify\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-delete",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-delete",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-delete remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:60",
+              "contains": "{\"f.delete\","
+            },
+            {
+              "location": "src/wtwm.c:556",
+              "contains": "WTWM_ACTION_DELETE"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-delete",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-delete fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.delete\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-deltastop",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-deltastop",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-deltastop fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.deltastop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-destroy",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-destroy",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-destroy remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:63",
+              "contains": "{\"f.destroy\","
+            },
+            {
+              "location": "src/wtwm.c:556",
+              "contains": "WTWM_ACTION_DESTROY"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-destroy",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-destroy fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.destroy\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-exec",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-exec",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-exec remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:64",
+              "contains": "{\"f.exec\","
+            },
+            {
+              "location": "src/wtwm.c:559",
+              "contains": "WTWM_ACTION_EXEC"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-exec",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-exec fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.exec \"argument\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-exec-alias",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-exec-alias",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-exec-alias remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:272",
+              "contains": "strcmp(action->name, \"!\")"
+            },
+            {
+              "location": "src/wtwm.c:559",
+              "contains": "WTWM_ACTION_EXEC"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-exec-alias",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-exec-alias fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : ! \"true\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-focus",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-focus",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-focus remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:65",
+              "contains": "{\"f.focus\","
+            },
+            {
+              "location": "src/wtwm.c:551",
+              "contains": "WTWM_ACTION_FOCUS"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-focus",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-focus fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.focus\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-forcemove",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-forcemove",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-forcemove remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:66",
+              "contains": "{\"f.forcemove\","
+            },
+            {
+              "location": "src/wtwm.c:520",
+              "contains": "WTWM_ACTION_FORCEMOVE"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-forcemove",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-forcemove fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.forcemove\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-fullzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-fullzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-fullzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.fullzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-function",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-function",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-function remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:68",
+              "contains": "{\"f.function\","
+            },
+            {
+              "location": "src/wtwm.c:563",
+              "contains": "WTWM_ACTION_FUNCTION"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-function",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-function fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.function \"argument\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-hbzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-hbzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-hbzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.hbzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-horizoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-horizoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-horizoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.horizoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-htzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-htzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-htzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.htzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-hzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-hzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-hzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.hzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-iconify",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-iconify",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-iconify remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:73",
+              "contains": "{\"f.iconify\","
+            },
+            {
+              "location": "src/wtwm.c:535",
+              "contains": "WTWM_ACTION_ICONIFY"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-iconify",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-iconify fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.iconify\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-leftzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-leftzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-leftzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.leftzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-lower",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-lower",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-lower remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:75",
+              "contains": "{\"f.lower\","
+            },
+            {
+              "location": "src/wtwm.c:527",
+              "contains": "WTWM_ACTION_LOWER"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-lower",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-lower fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.lower\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-menu",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-menu",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-menu remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:76",
+              "contains": "{\"f.menu\","
+            },
+            {
+              "location": "src/wtwm.c:561",
+              "contains": "WTWM_ACTION_MENU"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-menu",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-menu fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.menu \"argument\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-move",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-move",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-move remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:77",
+              "contains": "{\"f.move\","
+            },
+            {
+              "location": "src/wtwm.c:520",
+              "contains": "WTWM_ACTION_MOVE"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-move",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-move fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.move\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-nop",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-nop",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-nop fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-quit",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-quit",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-quit remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:79",
+              "contains": "{\"f.quit\","
+            },
+            {
+              "location": "src/wtwm.c:574",
+              "contains": "WTWM_ACTION_QUIT"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-quit",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-quit fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.quit\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-raise",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-raise",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-raise remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:80",
+              "contains": "{\"f.raise\","
+            },
+            {
+              "location": "src/wtwm.c:524",
+              "contains": "WTWM_ACTION_RAISE"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-raise",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-raise fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.raise\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-raiselower",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-raiselower",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-raiselower remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:81",
+              "contains": "{\"f.raiselower\","
+            },
+            {
+              "location": "src/wtwm.c:529",
+              "contains": "WTWM_ACTION_RAISELOWER"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-raiselower",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-raiselower fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.raiselower\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-refresh",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-refresh",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-refresh fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.refresh\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-resize",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-resize",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-resize remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:83",
+              "contains": "{\"f.resize\","
+            },
+            {
+              "location": "src/wtwm.c:522",
+              "contains": "WTWM_ACTION_RESIZE"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-resize",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-resize fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.resize\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-restart",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-restart",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-restart fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.restart\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-rightzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-rightzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-rightzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.rightzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-title",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-title",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-title fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.title\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-topzoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-topzoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-topzoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.topzoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-twmrc",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-twmrc",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-twmrc fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.twmrc\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-unfocus",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-unfocus",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-unfocus remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:89",
+              "contains": "{\"f.unfocus\","
+            },
+            {
+              "location": "src/wtwm.c:554",
+              "contains": "WTWM_ACTION_UNFOCUS"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-unfocus",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-unfocus fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.unfocus\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-warpnext",
+      "category": "action",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-warpnext",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for action.f-warpnext remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/config.c:90",
+              "contains": "{\"f.warpnext\","
+            },
+            {
+              "location": "src/wtwm.c:573",
+              "contains": "WTWM_ACTION_WARPNEXT"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-warpnext",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-warpnext fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.warpnext\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-warpprev",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-warpprev",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-warpprev fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.warpprev\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-warpto",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-warpto",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-warpto fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.warpto \"argument\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.f-zoom",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.f-zoom",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.f-zoom fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.zoom\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "action.unrecognized-f-action",
+      "category": "action",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "action.unrecognized-f-action",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated action.unrecognized-f-action fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : root : f.future-action \"argument\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.bare-or-list-directives",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.bare-or-list-directives",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.bare-or-list-directives fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoTitle\nAutoRaise { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.base-0-numbers",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.base-0-numbers",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.base-0-numbers fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MoveDelta 0x10\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.binding-context-alternatives",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.binding-context-alternatives",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.binding-context-alternatives fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = : window|title|icon|root|frame|iconmgr|all : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.braces-and-nested-balanced-blocks",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.braces-and-nested-balanced-blocks",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.braces-and-nested-balanced-blocks fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "FutureBlock { \"outer\" { \"inner\" } }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.button-range-1-through-32",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.button-range-1-through-32",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.button-range-1-through-32 fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button32 = : root : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.case-insensitive-keywords-and-actions",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.case-insensitive-keywords-and-actions",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.case-insensitive-keywords-and-actions fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "bUtToN1 = : rOoT : F.MOVE\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.comments",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.comments",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.comments fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "# comment accepted by the lexer\nNoTitle\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.function-action-sequences",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.function-action-sequences",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.function-action-sequences fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Function \"sequence\" { f.move f.raise f.nop }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.menu-definitions-and-items",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.menu-definitions-and-items",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.menu-definitions-and-items fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Menu \"ops\" { \"Move\" f.move \"Exit\" f.quit }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.modifier-alternatives",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.modifier-alternatives",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.modifier-alternatives fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button1 = shift|control|lock|mod5 : root : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.named-window-binding-context",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.named-window-binding-context",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.named-window-binding-context fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "\"F1\" = : \"xterm\" : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.newlines",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.newlines",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.newlines fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "\n\nNoTitle\n\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.parenthesized-menu-colors",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.parenthesized-menu-colors",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.parenthesized-menu-colors fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Menu \"ops\" (\"white\":\"black\") { \"Noop\" (\"black\":\"white\") f.nop }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.quoted-strings-and-backslash-escapes",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.quoted-strings-and-backslash-escapes",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.quoted-strings-and-backslash-escapes fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "TitleFont \"Sans\\ Bold\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.signed-integer-option",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.signed-integer-option",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.signed-integer-option fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MoveDelta -3\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.title-button-bitmap-action-assignment",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.title-button-bitmap-action-assignment",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.title-button-bitmap-action-assignment fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "LeftTitleButton \"dot\" = f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.unknown-statement-skipping",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.unknown-statement-skipping",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.unknown-statement-skipping fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "FutureOption \"ignored\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.window-name-lists",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.window-name-lists",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.window-name-lists fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoTitle { \"xterm\" \"xclock\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "construct.word-tokens",
+      "category": "construct",
+      "implementation_status": "not_applicable",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "construct.word-tokens",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated construct.word-tokens fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button2 = : root : f.nop\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.autoraise",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.autoraise",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.autoraise remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:679",
+              "contains": "server->config.auto_raise ||"
+            },
+            {
+              "location": "src/wtwm.c:680",
+              "contains": "&server->config.auto_raise_windows,"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.autoraise",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.autoraise fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "AutoRaise { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.autorelativeresize",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.autorelativeresize",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.autorelativeresize fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "AutoRelativeResize\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.bordercolor",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.bordercolor",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.bordercolor remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1047",
+              "contains": "color_value(server->config.border_color, border);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.bordercolor",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.bordercolor fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { BorderColor \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.borderwidth",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.borderwidth",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.borderwidth remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:270",
+              "contains": "int border = toplevel->server->config.border_width;"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.borderwidth",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.borderwidth fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "BorderWidth 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.buttonindent",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.buttonindent",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.buttonindent fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "ButtonIndent 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.buttonn-binding",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.buttonn-binding",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.buttonn-binding remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:757",
+              "contains": "if (!handled) handled = dispatch_binding(server, WTWM_BINDING_BUTTON,"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.buttonn-binding",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.buttonn-binding fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Button7 = control : window : f.raise\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.clientborderwidth",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.clientborderwidth",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.clientborderwidth fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "ClientBorderWidth\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.color",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.color",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.color remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1047",
+              "contains": "color_value(server->config.border_color, border);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.color",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.color fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { BorderColor \"gray\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.constrainedmovetime",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.constrainedmovetime",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.constrainedmovetime fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "ConstrainedMoveTime 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.cursors",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.cursors",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.cursors fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Cursors { Button \"left_ptr\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.decoratetransients",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.decoratetransients",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.decoratetransients fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "DecorateTransients\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.donticonifybyunmapping",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.donticonifybyunmapping",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.donticonifybyunmapping fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "DontIconifyByUnmapping { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.dontmoveoff",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.dontmoveoff",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.dontmoveoff fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "DontMoveOff\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.dontsqueezetitle",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.dontsqueezetitle",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.dontsqueezetitle fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "DontSqueezeTitle { \"xterm\" center 0 0 }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.framepadding",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.framepadding",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.framepadding fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "FramePadding 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.function",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.function",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.function remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:566",
+              "contains": "server->config.functions[i].action_count"
+            },
+            {
+              "location": "src/wtwm.c:568",
+              "contains": "&server->config.functions[i].actions[j], depth + 1"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.function",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.function fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Function \"sequence\" { f.move f.raise }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.grayscale",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.grayscale",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.grayscale fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Grayscale { BorderColor \"gray\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.greyscale",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.greyscale",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.greyscale fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Greyscale { BorderColor \"gray\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconfont",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconfont",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconfont fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconFont \"Sans 10\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconifybyunmapping",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconifybyunmapping",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconifybyunmapping fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconifyByUnmapping { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconmanagerdontshow",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconmanagerdontshow",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconmanagerdontshow fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconManagerDontShow { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconmanagerfont",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconmanagerfont",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconmanagerfont fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconManagerFont \"Sans 10\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconmanagers",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconmanagers",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconmanagers fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconManagers { \"main\" \"100x10\" 1 }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.iconmanagershow",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.iconmanagershow",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.iconmanagershow fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "IconManagerShow { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.icons",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.icons",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.icons fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Icons { \"xterm\" \"xterm.xbm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.lefttitlebutton",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.lefttitlebutton",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.lefttitlebutton remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:742",
+              "contains": "server->config.title_buttons[i].right_side == hit.right_button"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.lefttitlebutton",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.lefttitlebutton fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "LeftTitleButton \"dot\" = f.iconify\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.maketitle",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.maketitle",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.maketitle remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:967",
+              "contains": "&toplevel->server->config.make_title_windows,"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.maketitle",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.maketitle fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MakeTitle { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menu",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menu",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menu remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:412",
+              "contains": "strcasecmp(server->config.menus[i].name, name)"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menu",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menu fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Menu \"ops\" { \"Noop\" f.nop }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menubackground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menubackground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menubackground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:448",
+              "contains": "color_value(server->config.menu_background, background);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menubackground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menubackground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { MenuBackground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menubordercolor",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menubordercolor",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menubordercolor remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:447",
+              "contains": "color_value(server->config.menu_border_color, border);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menubordercolor",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menubordercolor fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { MenuBorderColor \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menuborderwidth",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menuborderwidth",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menuborderwidth remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:442",
+              "contains": "int border_width = server->config.menu_border_width;"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menuborderwidth",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menuborderwidth fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MenuBorderWidth 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menufont",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menufont",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menufont remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:438",
+              "contains": "server->config.menu_font, color, &widths[i], &heights[i]);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menufont",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menufont fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MenuFont \"Sans 10\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menuforeground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menuforeground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menuforeground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:449",
+              "contains": "color_value(server->config.menu_foreground, highlight);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menuforeground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menuforeground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { MenuForeground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menutitlebackground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menutitlebackground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menutitlebackground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:461",
+              "contains": "server->config.menu_title_background, row_color);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menutitlebackground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menutitlebackground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { MenuTitleBackground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.menutitleforeground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menutitleforeground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.menutitleforeground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:435",
+              "contains": "server->config.menu_title_foreground : server->config.menu_foreground);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.menutitleforeground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.menutitleforeground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { MenuTitleForeground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.monochrome",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.monochrome",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.monochrome fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Monochrome { BorderColor \"gray\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.movedelta",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.movedelta",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.movedelta fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "MoveDelta 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.nocasesensitive",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.nocasesensitive",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.nocasesensitive fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoCaseSensitive\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.nohighlight",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.nohighlight",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.nohighlight fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoHighlight { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.nomenushadows",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.nomenushadows",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.nomenushadows fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoMenuShadows\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.noraiseondeiconify",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.noraiseondeiconify",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.noraiseondeiconify fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoRaiseOnDeiconify\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.noraiseonmove",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.noraiseonmove",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.noraiseonmove fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoRaiseOnMove\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.noraiseonresize",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.noraiseonresize",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.noraiseonresize fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoRaiseOnResize\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.nostackmode",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.nostackmode",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.nostackmode fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoStackMode { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.notitle",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.notitle",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.notitle remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:963",
+              "contains": "!toplevel->server->config.no_title &&"
+            },
+            {
+              "location": "src/wtwm.c:965",
+              "contains": "&toplevel->server->config.no_title_windows,"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.notitle",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.notitle fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoTitle { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.notitlefocus",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.notitlefocus",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.notitlefocus fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoTitleFocus\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.notitlehighlight",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.notitlehighlight",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.notitlehighlight fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "NoTitleHighlight { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.opaquemove",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.opaquemove",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.opaquemove fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "OpaqueMove\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.pixmaps",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.pixmaps",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.pixmaps fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Pixmaps { TitleHighlight \"title.xbm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.quoted-key-binding",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.quoted-key-binding",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.quoted-key-binding remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:805",
+              "contains": "handled = dispatch_binding(server, WTWM_BINDING_KEY, 0, name, context, toplevel);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.quoted-key-binding",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.quoted-key-binding fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "\"F7\" = shift : all : f.exec \"true\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.randomplacement",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.randomplacement",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.randomplacement fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "RandomPlacement\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.resizefont",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.resizefont",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.resizefont fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "ResizeFont \"Sans 10\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.righttitlebutton",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.righttitlebutton",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.righttitlebutton remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:742",
+              "contains": "server->config.title_buttons[i].right_side == hit.right_button"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.righttitlebutton",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.righttitlebutton fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "RightTitleButton \"resize\" = f.resize\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.savecolor",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.savecolor",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.savecolor fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "SaveColor { \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.showiconmanager",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.showiconmanager",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.showiconmanager fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "ShowIconManager\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.squeezetitle",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.squeezetitle",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.squeezetitle fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "SqueezeTitle { \"xterm\" center 0 0 }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.starticonified",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.starticonified",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.starticonified remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:940",
+              "contains": "&toplevel->server->config.start_iconified_windows,"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.starticonified",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.starticonified fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "StartIconified { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.titlebackground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlebackground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.titlebackground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1048",
+              "contains": "color_value(server->config.title_background, title);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlebackground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.titlebackground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { TitleBackground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.titlebuttonborderwidth",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlebuttonborderwidth",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.titlebuttonborderwidth fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "TitleButtonBorderWidth 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.titlefont",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlefont",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.titlefont remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:258",
+              "contains": "toplevel->server->config.title_font, foreground, &width, &height);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlefont",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.titlefont fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "TitleFont \"Sans 10\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.titleforeground",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titleforeground",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.titleforeground remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1049",
+              "contains": "color_value(server->config.title_foreground, foreground);"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titleforeground",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.titleforeground fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "Color { TitleForeground \"red\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.titlepadding",
+      "category": "directive",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlepadding",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for directive.titlepadding remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1041",
+              "contains": "toplevel->title_height = server->config.title_padding * 2 + 10;"
+            }
+          ]
+        },
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.titlepadding",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.titlepadding fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "TitlePadding 7\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.unrecognized-statement-fallback",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.unrecognized-statement-fallback",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.unrecognized-statement-fallback fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "FutureDirective \"ignored\"\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.warpcursor",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.warpcursor",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.warpcursor fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "WarpCursor { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "directive.windowring",
+      "category": "directive",
+      "implementation_status": "parsed_only",
+      "tests": [
+        {
+          "test_id": "test.current-feature.syntax",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "directive.windowring",
+          "dimension": "syntax",
+          "assertions": [
+            "The dedicated directive.windowring fixture is accepted by wtwm-config.",
+            "This parser result does not claim native runtime or reference equivalence."
+          ],
+          "fixture": "WindowRing { \"xterm\" }\n",
+          "checks": []
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.auto-raise-rule-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.auto-raise-rule-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.auto-raise-rule-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:679",
+              "contains": "server->config.auto_raise ||"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.button-binding-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.button-binding-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.button-binding-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:757",
+              "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.configuration-load-at-startup",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.configuration-load-at-startup",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.configuration-load-at-startup remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1165",
+              "contains": "wtwm_config_load(&server.config,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.configured-frame-and-title-rendering",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.configured-frame-and-title-rendering",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.configured-frame-and-title-rendering remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:1041",
+              "contains": "toplevel->title_height = server->config.title_padding"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.execute-configured-action",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.execute-configured-action remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:519",
+              "contains": "switch (action->type)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.function-action-recursion",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.function-action-recursion",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.function-action-recursion remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:566",
+              "contains": "server->config.functions[i].action_count"
+            },
+            {
+              "location": "src/wtwm.c:568",
+              "contains": "&server->config.functions[i].actions[j], depth + 1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.key-binding-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.key-binding-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.key-binding-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:805",
+              "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.menu-definition-lookup-and-rendering",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.menu-definition-lookup-and-rendering",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.menu-definition-lookup-and-rendering remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:412",
+              "contains": "strcasecmp(server->config.menus[i].name, name)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.menu-item-action-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.menu-item-action-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.menu-item-action-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:725",
+              "contains": "execute_action(server, target, &action, 0)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.start-iconified-rule-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.start-iconified-rule-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.start-iconified-rule-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:940",
+              "contains": "server->config.start_iconified_windows"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.title-button-action-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.title-button-action-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.title-button-action-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:747",
+              "contains": "execute_action(server, hit.toplevel, configured, 0)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "runtime_dispatch.title-decoration-rule-dispatch",
+      "category": "runtime_dispatch",
+      "implementation_status": "effective",
+      "tests": [
+        {
+          "test_id": "test.current-feature.source-contract",
+          "path": "tests/reference/validate_feature_test_map.py",
+          "meson_test": "current feature coverage",
+          "case": "runtime_dispatch.title-decoration-rule-dispatch",
+          "dimension": "source_contract",
+          "assertions": [
+            "Source-contract coverage is structural and does not claim runtime behavior or parity.",
+            "The exact implementation/dispatch source contract for runtime_dispatch.title-decoration-rule-dispatch remains present."
+          ],
+          "fixture": "",
+          "checks": [
+            {
+              "location": "src/wtwm.c:963",
+              "contains": "set_decorated(toplevel, (!toplevel->server->config.no_title &&"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -59,6 +59,17 @@ test(
   args: [files('tests/reference/current_implementation_audit_test.sh')],
 )
 test(
+  'current feature coverage',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_feature_test_map.py'),
+    '--source-root', meson.project_source_root(),
+    '--config-tool', config_tool,
+    '--self-test-tamper',
+  ],
+)
+test(
   'compatibility ledger',
   find_program('python3'),
   args: [
