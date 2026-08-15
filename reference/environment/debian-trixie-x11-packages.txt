@@ -1,0 +1,14 @@
+build-essential
+libice-dev
+libsm-dev
+libx11-dev
+libxext-dev
+libxmu-dev
+libxrandr-dev
+libxt-dev
+pkgconf
+x11-utils
+x11proto-dev
+xfonts-base
+xvfb
+xz-utils

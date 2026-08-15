@@ -92,6 +92,23 @@ test(
   config_tool,
   args: files('reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc'),
 )
+test(
+  'reference X11 environment contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_environment.py'),
+    '--source-root', meson.project_source_root(),
+  ],
+)
+test(
+  'reference twm build source',
+  find_program('sh'),
+  args: [
+    files('tests/reference/build_reference_twm.sh'),
+    '--validate-only', meson.project_source_root(),
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()

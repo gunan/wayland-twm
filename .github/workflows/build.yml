@@ -20,3 +20,20 @@ jobs:
         run: meson compile -C build
       - name: Test
         run: meson test -C build --print-errorlogs
+
+  reference-twm:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install controlled X11 build environment
+        run: |
+          apt-get update
+          xargs apt-get install -y --no-install-recommends < reference/environment/debian-trixie-x11-packages.txt
+      - name: Record resolved package versions
+        run: |
+          xargs dpkg-query -W -f='${binary:Package}\t${Version}\n' < reference/environment/debian-trixie-x11-packages.txt
+      - name: Build and smoke-test reference twm
+        run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE"
