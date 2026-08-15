@@ -16,17 +16,17 @@ CAPTURE_DIR = Path("reference/captures/twm-1.0.13.1")
 MANIFEST_PATH = CAPTURE_DIR / "manifest.json"
 BASELINE_DIR = CAPTURE_DIR / "baseline"
 EXPECTED_MANIFEST_SHA256 = (
-    "cdb280c96b0f429fce01ae84ed62a9ea2e0a71fa4bc41e660505d754215d2086"
+    "3d3c124a2237c614c00d8bb20b6ac411509c337b8f590d11aca9b989f28bfb5f"
 )
 EXPECTED_SOURCE_HASHES = {
     "reference/captures/twm-1.0.13.1/scenario.twmrc": (
         "cb71a8b832729a0455b55b286da7289ab8b09ab86b74e503c0ed3e6e2f611976"
     ),
     "reference/environment/debian-trixie-x11.json": (
-        "ece237f52847ee3489050c941cc877454fd55fdcac8af5c4915c61b52d8a6c1c"
+        "c65424ca2533d36780bf59d3c3392d3d967086cecf179cc49d191aae38ef7d29"
     ),
     "reference/environment/debian-trixie-x11-packages.txt": (
-        "641758add2407062e248456c54ec536d2827a330b96cfc3df25ebb8f8620616e"
+        "3a6ad091fee1752c507e8c593b23d3e700c62710a425c50bbe44faa9187ea7f7"
     ),
     "tests/reference/build_reference_twm.sh": (
         "7bd05b6f7eb902b753b19a0c32de326d4ceefec75ba2f1d0c704c4709f15713d"

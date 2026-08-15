@@ -30,6 +30,7 @@ EXPECTED_PACKAGES = [
     "x11-utils",
     "x11proto-dev",
     "xfonts-base",
+    "xterm",
     "xvfb",
     "xz-utils",
 ]
@@ -64,6 +65,15 @@ EXPECTED_CONTRACT = {
         "screen": "1024x768x24",
         "readiness_probe": "xdpyinfo",
         "configuration": "empty temporary .twmrc",
+    },
+    "canonical_apps": {
+        "manifest": "reference/fixtures/canonical-x11/manifest.json",
+        "script": "tests/reference/verify_canonical_x11_apps.sh",
+        "legacy_application": {
+            "package": "xterm",
+            "executable": "xterm",
+            "expected_wm_class": ["wtwm-legacy-xterm", "WtwmLegacyXterm"],
+        },
     },
 }
 
@@ -115,6 +125,8 @@ def validate(source_root: Path) -> list[str]:
         'sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" '
         '/tmp/reference-build /tmp/reference-capture '
         '"$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"',
+        'sh tests/reference/verify_canonical_x11_apps.sh "$GITHUB_WORKSPACE" '
+        "/tmp/reference-build",
     ]
     for marker in workflow_markers:
         if marker not in workflow:
@@ -123,6 +135,8 @@ def validate(source_root: Path) -> list[str]:
     for relative_path in (
         EXPECTED_CONTRACT["source"]["archive"],
         EXPECTED_CONTRACT["build"]["script"],
+        EXPECTED_CONTRACT["canonical_apps"]["manifest"],
+        EXPECTED_CONTRACT["canonical_apps"]["script"],
     ):
         if not (source_root / relative_path).is_file():
             errors.append(f"contract path does not exist: {relative_path}")

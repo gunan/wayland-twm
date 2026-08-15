@@ -27,5 +27,17 @@
     "screen": "1024x768x24",
     "readiness_probe": "xdpyinfo",
     "configuration": "empty temporary .twmrc"
+  },
+  "canonical_apps": {
+    "manifest": "reference/fixtures/canonical-x11/manifest.json",
+    "script": "tests/reference/verify_canonical_x11_apps.sh",
+    "legacy_application": {
+      "package": "xterm",
+      "executable": "xterm",
+      "expected_wm_class": [
+        "wtwm-legacy-xterm",
+        "WtwmLegacyXterm"
+      ]
+    }
   }
 }

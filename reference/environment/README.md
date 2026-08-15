@@ -44,4 +44,8 @@ After the verified binary is preserved, the same job runs the bounded capture
 documented in `reference/captures/twm-1.0.13.1/`. It checks parser outcome and
 selected effective fields, geometry, focus, controlled-frame stacking, and two
 root screenshots against twice-repeated and committed baselines. The broader
-canonical client-application matrix remains a separate Milestone 0 task.
+canonical client-application suite then launches purpose-built symbolic Xlib
+roles plus Debian's real `xterm` under the exact verified binary. Its manifest
+maps every required application category to concrete runtime assertions; it is
+a reusable fixture contract, not a compatibility assessment or screenshot
+baseline.

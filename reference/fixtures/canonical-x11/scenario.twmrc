@@ -1,0 +1,32 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+NoHighlight
+NoTitleHighlight
+NoTitleFocus
+NoMenuShadows
+NoRaiseOnMove
+NoRaiseOnResize
+UsePPosition "on"
+BorderWidth 3
+TitleButtonBorderWidth 0
+ButtonIndent 0
+FramePadding 2
+TitlePadding 2
+MoveDelta 3
+TitleFont "fixed"
+MenuFont "fixed"
+IconFont "fixed"
+IconManagerFont "fixed"
+ResizeFont "fixed"
+
+Color
+{
+    BorderColor "#101010"
+    BorderTileForeground "#101010"
+    BorderTileBackground "#101010"
+    TitleForeground "#ffffff"
+    TitleBackground "#204060"
+    DefaultForeground "#ffffff"
+    DefaultBackground "#303030"
+}

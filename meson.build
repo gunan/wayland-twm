@@ -119,6 +119,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'canonical X11 application manifest',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_canonical_x11_apps.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
