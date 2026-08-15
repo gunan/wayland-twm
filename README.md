@@ -181,7 +181,7 @@ Testing:
 
 Exit criteria:
 
-- [ ] One hundred percent of upstream syntax and actions are represented in the
+- [x] One hundred percent of upstream syntax and actions are represented in the
   ledger.
 - [ ] Every existing project feature is mapped to at least one test.
 - [ ] The reference environment can produce repeatable results from a clean VM
