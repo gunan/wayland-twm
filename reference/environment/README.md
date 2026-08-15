@@ -19,6 +19,11 @@ connect, launches the reference window manager with a controlled empty
 configuration, and verifies that it remains alive. Build files, the temporary
 configuration, logs, and the X server are cleaned up on every exit.
 
+An optional second argument preserves the verified binary as `twm` in a new
+output directory. The deterministic capture test uses that interface so its
+observer, X11 probes, state records, and screenshots all exercise the exact
+binary that passed this build and startup check.
+
 Run only the offline source and environment-contract checks on any Unix host:
 
 ```sh

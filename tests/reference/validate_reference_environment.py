@@ -14,6 +14,8 @@ EXPECTED_PACKAGES = [
     "bison",
     "build-essential",
     "flex",
+    "gdb",
+    "gzip",
     "libice-dev",
     "libsm-dev",
     "libx11-dev",
@@ -21,7 +23,10 @@ EXPECTED_PACKAGES = [
     "libxmu-dev",
     "libxrandr-dev",
     "libxt-dev",
+    "netpbm",
     "pkgconf",
+    "python3",
+    "x11-apps",
     "x11-utils",
     "x11proto-dev",
     "xfonts-base",
@@ -106,7 +111,8 @@ def validate(source_root: Path) -> list[str]:
         "  reference-twm:\n",
         "    container: debian:trixie\n",
         "reference/environment/debian-trixie-x11-packages.txt",
-        'sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE"',
+        'sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build',
+        'sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE"',
     ]
     for marker in workflow_markers:
         if marker not in workflow:
