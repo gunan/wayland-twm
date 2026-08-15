@@ -1,0 +1,52 @@
+#!/bin/sh
+# Run a complete, self-terminating headless scenario in 100 fresh compositors.
+set -eu
+
+usage()
+{
+	printf '%s\n' 'usage: run-headless-stability OUTPUT_DIRECTORY -- COMMAND [ARG ...]' >&2
+	exit 2
+}
+
+test "$#" -ge 3 || usage
+output_dir=$1
+shift
+test "$1" = -- || usage
+shift
+test "$#" -gt 0 || usage
+test ! -e "$output_dir" || {
+	printf 'run-headless-stability: refusing to overwrite: %s\n' "$output_dir" >&2
+	exit 1
+}
+runner=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/run-compositor-test
+mkdir -m 0700 "$output_dir"
+
+iteration=1
+while test "$iteration" -le 100; do
+	log=$output_dir/run-$(printf '%03d' "$iteration").log
+	if "$runner" headless -- "$@" > "$log" 2>&1; then
+		:
+	else
+		status=$?
+		{
+			printf 'result\tfail\n'
+			printf 'completed_iterations\t%s\n' "$((iteration - 1))"
+			printf 'failed_iteration\t%s\n' "$iteration"
+			printf 'exit_status\t%s\n' "$status"
+		} > "$output_dir/result.tsv"
+		printf 'run-headless-stability: iteration %s failed with status %s\n' \
+			"$iteration" "$status" >&2
+		exit "$status"
+	fi
+	iteration=$((iteration + 1))
+done
+
+(
+	cd "$output_dir"
+	sha256sum run-*.log > SHA256SUMS
+)
+{
+	printf 'result\tpass\n'
+	printf 'completed_iterations\t100\n'
+} > "$output_dir/result.tsv"
+printf 'run-headless-stability: 100 iterations pass; evidence: %s\n' "$output_dir"

@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "current_audit_path": "reference/audits/current-implementation.json",
   "ledger_path": "reference/ledger/twm-1.0.13.1.json",
-  "audited_commit": "a98fe0f84f0c5c44a2fbe1f942c884336d635fec",
+  "audited_commit": "24f972032b3555e34b356a70f1b92372ad19e94f",
   "mappings": [
     {
       "current_id": "action.f-beep",

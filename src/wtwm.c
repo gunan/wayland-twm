@@ -9,10 +9,15 @@
 
 #include "wtwm/config.h"
 #include "text.h"
+#ifdef WTWM_TEST_CONTROL
+#include "test_control.h"
+#endif
 
 #include <assert.h>
+#include <errno.h>
 #include <fnmatch.h>
 #include <getopt.h>
+#include <inttypes.h>
 #ifdef __linux__
 #include <linux/input-event-codes.h>
 #else
@@ -23,6 +28,7 @@
 #endif
 #include <signal.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +37,17 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#ifdef WTWM_TEST_CONTROL
+#include <drm_fourcc.h>
+#include <fcntl.h>
+#include <fontconfig/fontconfig.h>
+#include <pango/pangocairo.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <wlr/backend/headless.h>
+#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/types/wlr_buffer.h>
+#endif
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -53,6 +70,23 @@
 enum cursor_mode { CURSOR_PASSTHROUGH, CURSOR_MOVE, CURSOR_RESIZE };
 
 struct server;
+
+#ifdef WTWM_TEST_CONTROL
+struct test_control {
+	struct server *server;
+	char path[sizeof(((struct sockaddr_un *)0)->sun_path)];
+	int listen_fd;
+	int client_fd;
+	struct wl_event_source *listen_source;
+	struct wl_event_source *client_source;
+	char input[4096];
+	size_t input_length;
+	struct wlr_keyboard keyboard;
+	bool keyboard_initialized;
+	unsigned animation_ms;
+	uint32_t input_time_ms;
+};
+#endif
 
 struct toplevel {
 	struct wl_list link;
@@ -166,6 +200,10 @@ struct server {
 	double grab_y;
 	struct wlr_box grab_box;
 	uint32_t resize_edges;
+	uint64_t frame_sequence;
+#ifdef WTWM_TEST_CONTROL
+	struct test_control test_control;
+#endif
 };
 
 struct hit_result {
@@ -873,15 +911,22 @@ static void request_selection(struct wl_listener *listener, void *data) {
 	wlr_seat_set_selection(server->seat, event->source, event->serial);
 }
 
-static void output_frame(struct wl_listener *listener, void *data) {
-	(void)data;
-	struct output *output = wl_container_of(listener, output, frame);
+static bool render_output(struct output *output) {
 	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(
 		output->server->scene, output->wlr);
-	wlr_scene_output_commit(scene_output, NULL);
+	if (scene_output == NULL || !wlr_scene_output_commit(scene_output, NULL))
+		return false;
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 	wlr_scene_output_send_frame_done(scene_output, &now);
+	++output->server->frame_sequence;
+	return true;
+}
+
+static void output_frame(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct output *output = wl_container_of(listener, output, frame);
+	render_output(output);
 }
 
 static void output_request_state(struct wl_listener *listener, void *data) {
@@ -1139,27 +1184,440 @@ static void new_decoration(struct wl_listener *listener, void *data) {
 		WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 }
 
+#ifdef WTWM_TEST_CONTROL
+static void test_write(struct test_control *control, const char *format, ...) {
+	if (control->client_fd < 0) return;
+	va_list args;
+	va_start(args, format);
+	(void)vdprintf(control->client_fd, format, args);
+	va_end(args);
+}
+
+static void test_write_json_string(struct test_control *control, const char *text) {
+	test_write(control, "\"");
+	if (text == NULL) text = "";
+	for (const unsigned char *c = (const unsigned char *)text; *c != '\0'; ++c) {
+		switch (*c) {
+		case '\\': test_write(control, "\\\\"); break;
+		case '"': test_write(control, "\\\""); break;
+		case '\n': test_write(control, "\\n"); break;
+		case '\r': test_write(control, "\\r"); break;
+		case '\t': test_write(control, "\\t"); break;
+		default:
+			if (*c < 0x20) test_write(control, "\\u%04x", *c);
+			else test_write(control, "%c", *c);
+			break;
+		}
+	}
+	test_write(control, "\"");
+}
+
+static void test_write_state(struct test_control *control) {
+	struct server *server = control->server;
+	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
+	struct wlr_xdg_toplevel *focused_xdg = focused ?
+		wlr_xdg_toplevel_try_from_wlr_surface(focused) : NULL;
+	test_write(control, "OK STATE {\"frame\":%" PRIu64
+		",\"animation_ms\":%u,\"placement_seed\":%u,"
+		"\"cursor\":{\"x\":%.3f,\"y\":%.3f},\"focus\":",
+		server->frame_sequence, control->animation_ms, server->placement_index,
+		server->cursor->x, server->cursor->y);
+	if (focused_xdg == NULL) test_write(control, "null");
+	else test_write_json_string(control, focused_xdg->title);
+	test_write(control, ",\"windows\":[");
+	bool first = true;
+	unsigned stack = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!first) test_write(control, ",");
+		first = false;
+		test_write(control, "{\"title\":");
+		test_write_json_string(control, toplevel->xdg->title);
+		test_write(control, ",\"app_id\":");
+		test_write_json_string(control, toplevel->xdg->app_id);
+		test_write(control,
+			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
+			"\"title_height\":%d,\"stack\":%u,\"mapped\":%s,\"iconified\":%s}",
+			toplevel->tree->node.x, toplevel->tree->node.y,
+			toplevel->width, toplevel->height, toplevel->title_height, stack++,
+			toplevel->mapped ? "true" : "false",
+			toplevel->iconified ? "true" : "false");
+	}
+	test_write(control, "],\"icons\":[");
+	first = true;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!toplevel->iconified) continue;
+		if (!first) test_write(control, ",");
+		first = false;
+		test_write_json_string(control, toplevel->xdg->title);
+	}
+	test_write(control, "],\"menu\":");
+	if (server->menu.tree == NULL) {
+		test_write(control, "null");
+	} else {
+		test_write(control, "{\"name\":");
+		test_write_json_string(control, server->menu.definition->name);
+		test_write(control,
+			",\"x\":%d,\"y\":%d,\"width\":%d,\"row_height\":%d,\"selected\":%d}",
+			server->menu.x, server->menu.y, server->menu.width,
+			server->menu.row_height, server->menu.selected);
+	}
+	test_write(control, "}\n");
+}
+
+static bool test_render_stable(struct server *server, unsigned count) {
+	if (wl_list_empty(&server->outputs)) return false;
+	for (unsigned i = 0; i < count; ++i) {
+		struct output *output;
+		wl_list_for_each(output, &server->outputs, link) {
+			if (!render_output(output)) return false;
+		}
+	}
+	return true;
+}
+
+static bool test_capture_ppm(struct server *server, const char *path,
+	char *error, size_t error_size) {
+	if (wl_list_empty(&server->outputs)) {
+		snprintf(error, error_size, "no output");
+		return false;
+	}
+	struct output *output = wl_container_of(server->outputs.next, output, link);
+	struct wlr_scene_output *scene_output =
+		wlr_scene_get_scene_output(server->scene, output->wlr);
+	struct wlr_output_state state;
+	wlr_output_state_init(&state);
+	if (scene_output == NULL || !wlr_scene_output_build_state(scene_output, &state, NULL) ||
+		state.buffer == NULL) {
+		snprintf(error, error_size, "unable to render output");
+		wlr_output_state_finish(&state);
+		return false;
+	}
+	void *data = NULL;
+	uint32_t format = 0;
+	size_t stride = 0;
+	if (!wlr_buffer_begin_data_ptr_access(state.buffer,
+		WLR_BUFFER_DATA_PTR_ACCESS_READ, &data, &format, &stride)) {
+		snprintf(error, error_size, "render buffer is not CPU-readable");
+		wlr_output_state_finish(&state);
+		return false;
+	}
+	bool red_first = format == DRM_FORMAT_XBGR8888 || format == DRM_FORMAT_ABGR8888;
+	bool blue_first = format == DRM_FORMAT_XRGB8888 || format == DRM_FORMAT_ARGB8888;
+	if (!red_first && !blue_first) {
+		snprintf(error, error_size, "unsupported pixel format 0x%08x", format);
+		wlr_buffer_end_data_ptr_access(state.buffer);
+		wlr_output_state_finish(&state);
+		return false;
+	}
+	FILE *stream = fopen(path, "wb");
+	if (stream == NULL) {
+		snprintf(error, error_size, "%s", strerror(errno));
+		wlr_buffer_end_data_ptr_access(state.buffer);
+		wlr_output_state_finish(&state);
+		return false;
+	}
+	int width = state.buffer->width;
+	int height = state.buffer->height;
+	bool ok = fprintf(stream, "P6\n%d %d\n255\n", width, height) > 0;
+	for (int y = 0; ok && y < height; ++y) {
+		const unsigned char *row = (const unsigned char *)data + (size_t)y * stride;
+		for (int x = 0; ok && x < width; ++x) {
+			const unsigned char *pixel = row + (size_t)x * 4;
+			unsigned char rgb[3];
+			if (red_first) {
+				rgb[0] = pixel[0]; rgb[1] = pixel[1]; rgb[2] = pixel[2];
+			} else {
+				rgb[0] = pixel[2]; rgb[1] = pixel[1]; rgb[2] = pixel[0];
+			}
+			ok = fwrite(rgb, sizeof(rgb), 1, stream) == 1;
+		}
+	}
+	if (fclose(stream) != 0) ok = false;
+	wlr_buffer_end_data_ptr_access(state.buffer);
+	wlr_output_state_finish(&state);
+	if (!ok) snprintf(error, error_size, "failed to write capture");
+	return ok;
+}
+
+static void test_pointer(struct server *server, double x, double y) {
+	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
+	process_cursor_motion(server, ++server->test_control.input_time_ms);
+}
+
+static void test_execute(struct test_control *control,
+	const struct wtwm_test_command *command) {
+	struct server *server = control->server;
+	switch (command->type) {
+	case WTWM_TEST_COMMAND_PING:
+		test_write(control, "OK WTWM_TEST_CONTROL 1\n");
+		break;
+	case WTWM_TEST_COMMAND_OUTPUT: {
+		if (!wlr_backend_is_headless(server->backend)) {
+			test_write(control, "ERROR OUTPUT requires the headless backend\n");
+			break;
+		}
+		struct wlr_output *output = wlr_headless_add_output(server->backend,
+			(unsigned)command->first, (unsigned)command->second);
+		if (output == NULL) test_write(control, "ERROR unable to create output\n");
+		else test_write(control, "OK OUTPUT %s %d %d\n", output->name,
+			command->first, command->second);
+		break;
+	}
+	case WTWM_TEST_COMMAND_POINTER:
+	case WTWM_TEST_COMMAND_SET_CURSOR:
+		test_pointer(server, command->x, command->y);
+		test_write(control, "OK CURSOR %.3f %.3f\n", server->cursor->x, server->cursor->y);
+		break;
+	case WTWM_TEST_COMMAND_BUTTON: {
+		struct wlr_pointer_button_event event = {
+			.time_msec = ++control->input_time_ms,
+			.button = command->code,
+			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
+				WL_POINTER_BUTTON_STATE_RELEASED,
+		};
+		cursor_button(&server->cursor_button, &event);
+		wlr_seat_pointer_notify_frame(server->seat);
+		test_write(control, "OK BUTTON %u %s\n", command->code,
+			command->pressed ? "press" : "release");
+		break;
+	}
+	case WTWM_TEST_COMMAND_KEY: {
+		struct wlr_keyboard_key_event event = {
+			.time_msec = ++control->input_time_ms,
+			.keycode = command->code,
+			.update_state = true,
+			.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
+				WL_KEYBOARD_KEY_STATE_RELEASED,
+		};
+		wlr_keyboard_notify_key(&control->keyboard, &event);
+		test_write(control, "OK KEY %u %s\n", command->code,
+			command->pressed ? "press" : "release");
+		break;
+	}
+	case WTWM_TEST_COMMAND_STATE:
+		test_write_state(control);
+		break;
+	case WTWM_TEST_COMMAND_WAIT:
+		if (!test_render_stable(server, (unsigned)command->first))
+			test_write(control, "ERROR unable to render stable frame\n");
+		else test_write(control, "OK FRAME %" PRIu64 "\n", server->frame_sequence);
+		break;
+	case WTWM_TEST_COMMAND_CAPTURE: {
+		char error[256];
+		if (!test_capture_ppm(server, command->text, error, sizeof(error)))
+			test_write(control, "ERROR %s\n", error);
+		else test_write(control, "OK CAPTURE %s\n", command->text);
+		break;
+	}
+	case WTWM_TEST_COMMAND_SET_ANIMATION_MS:
+		control->animation_ms = (unsigned)command->first;
+		test_write(control, "OK ANIMATION_MS %u\n", control->animation_ms);
+		break;
+	case WTWM_TEST_COMMAND_SET_PLACEMENT_SEED:
+		server->placement_index = (unsigned)command->first;
+		test_write(control, "OK PLACEMENT_SEED %u\n", server->placement_index);
+		break;
+	case WTWM_TEST_COMMAND_SET_FONT:
+		if (strlen(command->text) >= sizeof(server->config.title_font)) {
+			test_write(control, "ERROR font description is too long\n");
+			break;
+		}
+		strcpy(server->config.title_font, command->text);
+		strcpy(server->config.menu_font, command->text);
+		strcpy(server->config.icon_font, command->text);
+		hide_menu(server);
+		struct toplevel *toplevel;
+		wl_list_for_each(toplevel, &server->toplevels, link) update_title_text(toplevel);
+		test_write(control, "OK FONT %s\n", command->text);
+		break;
+	case WTWM_TEST_COMMAND_QUIT:
+		test_write(control, "OK QUIT\n");
+		wl_display_terminate(server->display);
+		break;
+	}
+}
+
+static void test_close_client(struct test_control *control) {
+	if (control->client_source != NULL) {
+		wl_event_source_remove(control->client_source);
+		control->client_source = NULL;
+	}
+	if (control->client_fd >= 0) close(control->client_fd);
+	control->client_fd = -1;
+	control->input_length = 0;
+}
+
+static int test_client_ready(int fd, uint32_t mask, void *data) {
+	struct test_control *control = data;
+	if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
+		test_close_client(control);
+		return 0;
+	}
+	ssize_t count = read(fd, control->input + control->input_length,
+		sizeof(control->input) - control->input_length - 1);
+	if (count <= 0) {
+		test_close_client(control);
+		return 0;
+	}
+	control->input_length += (size_t)count;
+	control->input[control->input_length] = '\0';
+	char *line = control->input;
+	char *newline;
+	while ((newline = strchr(line, '\n')) != NULL) {
+		*newline = '\0';
+		struct wtwm_test_command command;
+		char error[256];
+		if (!wtwm_test_command_parse(line, &command, error, sizeof(error)))
+			test_write(control, "ERROR %s\n", error);
+		else test_execute(control, &command);
+		line = newline + 1;
+	}
+	control->input_length = strlen(line);
+	memmove(control->input, line, control->input_length + 1);
+	if (control->input_length == sizeof(control->input) - 1) {
+		test_write(control, "ERROR command is too long\n");
+		control->input_length = 0;
+	}
+	return 0;
+}
+
+static int test_accept_client(int fd, uint32_t mask, void *data) {
+	(void)mask;
+	struct test_control *control = data;
+	int client = accept(fd, NULL, NULL);
+	if (client < 0) return 0;
+	(void)fcntl(client, F_SETFD, FD_CLOEXEC);
+	if (control->client_fd >= 0) {
+		(void)dprintf(client, "ERROR another control client is active\n");
+		close(client);
+		return 0;
+	}
+	control->client_fd = client;
+	control->client_source = wl_event_loop_add_fd(
+		wl_display_get_event_loop(control->server->display), client,
+		WL_EVENT_READABLE, test_client_ready, control);
+	if (control->client_source == NULL) {
+		test_close_client(control);
+		return 0;
+	}
+	test_write(control, "OK WTWM_TEST_CONTROL 1\n");
+	return 0;
+}
+
+static bool test_control_start(struct server *server, const char *path) {
+	struct test_control *control = &server->test_control;
+	control->server = server;
+	if (strlen(path) >= sizeof(control->path)) {
+		wlr_log(WLR_ERROR, "%s", "test control path is too long");
+		return false;
+	}
+	strcpy(control->path, path);
+	control->listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (control->listen_fd < 0) return false;
+	(void)fcntl(control->listen_fd, F_SETFD, FD_CLOEXEC);
+	struct sockaddr_un address = {.sun_family = AF_UNIX};
+	strcpy(address.sun_path, path);
+	unlink(path);
+	if (bind(control->listen_fd, (struct sockaddr *)&address, sizeof(address)) < 0 ||
+		listen(control->listen_fd, 1) < 0) {
+		close(control->listen_fd);
+		control->listen_fd = -1;
+		unlink(path);
+		return false;
+	}
+	control->listen_source = wl_event_loop_add_fd(
+		wl_display_get_event_loop(server->display), control->listen_fd,
+		WL_EVENT_READABLE, test_accept_client, control);
+	if (control->listen_source == NULL) {
+		close(control->listen_fd);
+		control->listen_fd = -1;
+		unlink(path);
+		return false;
+	}
+	return true;
+}
+
+static void test_control_finish(struct server *server) {
+	struct test_control *control = &server->test_control;
+	test_close_client(control);
+	if (control->listen_source != NULL) wl_event_source_remove(control->listen_source);
+	if (control->listen_fd >= 0) close(control->listen_fd);
+	if (control->path[0] != '\0') unlink(control->path);
+	if (control->keyboard_initialized) wlr_keyboard_finish(&control->keyboard);
+}
+#endif
+
 static void usage(FILE *stream, const char *program) {
-	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]\n", program);
+	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]", program);
+#ifdef WTWM_TEST_CONTROL
+	fprintf(stream, " [--test-control path] [--test-socket name]"
+		" [--test-backend auto|headless|wayland]");
+#endif
+	fprintf(stream, "\n");
 }
 
 int main(int argc, char **argv) {
 	const char *config_path = NULL;
 	const char *startup = NULL;
+#ifdef WTWM_TEST_CONTROL
+	const char *test_control_path = NULL;
+	const char *test_socket = NULL;
+	const char *test_backend = "auto";
+	enum { OPTION_TEST_CONTROL = 256, OPTION_TEST_SOCKET, OPTION_TEST_BACKEND };
+	static const struct option options[] = {
+		{"debug", no_argument, NULL, 'd'},
+		{"config", required_argument, NULL, 'f'},
+		{"help", no_argument, NULL, 'h'},
+		{"startup", required_argument, NULL, 's'},
+		{"test-control", required_argument, NULL, OPTION_TEST_CONTROL},
+		{"test-socket", required_argument, NULL, OPTION_TEST_SOCKET},
+		{"test-backend", required_argument, NULL, OPTION_TEST_BACKEND},
+		{NULL, 0, NULL, 0},
+	};
+#else
+	static const struct option options[] = {
+		{"debug", no_argument, NULL, 'd'},
+		{"config", required_argument, NULL, 'f'},
+		{"help", no_argument, NULL, 'h'},
+		{"startup", required_argument, NULL, 's'},
+		{NULL, 0, NULL, 0},
+	};
+#endif
 	enum wlr_log_importance log_level = WLR_INFO;
 	int option;
-	while ((option = getopt(argc, argv, "df:hs:")) != -1) {
+	while ((option = getopt_long(argc, argv, "df:hs:", options, NULL)) != -1) {
 		switch (option) {
 		case 'd': log_level = WLR_DEBUG; break;
 		case 'f': config_path = optarg; break;
 		case 's': startup = optarg; break;
 		case 'h': usage(stdout, argv[0]); return 0;
+#ifdef WTWM_TEST_CONTROL
+		case OPTION_TEST_CONTROL: test_control_path = optarg; break;
+		case OPTION_TEST_SOCKET: test_socket = optarg; break;
+		case OPTION_TEST_BACKEND: test_backend = optarg; break;
+#endif
 		default: usage(stderr, argv[0]); return 2;
 		}
 	}
+#ifdef WTWM_TEST_CONTROL
+	if (strcmp(test_backend, "auto") != 0 && strcmp(test_backend, "headless") != 0 &&
+		strcmp(test_backend, "wayland") != 0) {
+		fprintf(stderr, "wtwm: invalid test backend: %s\n", test_backend);
+		return 2;
+	}
+#endif
 	wlr_log_init(log_level, NULL);
 	signal(SIGCHLD, SIG_IGN);
+#ifdef WTWM_TEST_CONTROL
+	signal(SIGPIPE, SIG_IGN);
+#endif
 	struct server server = {0};
+#ifdef WTWM_TEST_CONTROL
+	server.test_control.listen_fd = -1;
+	server.test_control.client_fd = -1;
+	server.test_control.input_time_ms = 1000;
+#endif
 	wtwm_config_init(&server.config);
 	char config_error[1024];
 	if (!wtwm_config_load(&server.config, config_path, config_error, sizeof(config_error))) {
@@ -1171,7 +1629,19 @@ int main(int argc, char **argv) {
 		wlr_log(WLR_INFO, "%zu twm directives accepted but not effective; run wtwm-config for details",
 			server.config.warning_count);
 	server.display = wl_display_create();
+#ifdef WTWM_TEST_CONTROL
+	if (strcmp(test_backend, "headless") == 0) {
+		server.backend = wlr_headless_backend_create(
+			wl_display_get_event_loop(server.display));
+	} else {
+		if (strcmp(test_backend, "wayland") == 0)
+			setenv("WLR_BACKENDS", "wayland", true);
+		server.backend = wlr_backend_autocreate(
+			wl_display_get_event_loop(server.display), NULL);
+	}
+#else
 	server.backend = wlr_backend_autocreate(wl_display_get_event_loop(server.display), NULL);
+#endif
 	if (server.backend == NULL) goto fail_display;
 	server.renderer = wlr_renderer_autocreate(server.backend);
 	if (server.renderer == NULL) goto fail_backend;
@@ -1218,13 +1688,36 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.seat->events.request_set_cursor, &server.request_cursor);
 	server.request_selection.notify = request_selection;
 	wl_signal_add(&server.seat->events.request_set_selection, &server.request_selection);
+#ifdef WTWM_TEST_CONTROL
+	static const struct wlr_keyboard_impl test_keyboard_impl = {
+		.name = "wtwm-test-keyboard",
+	};
+	wlr_keyboard_init(&server.test_control.keyboard, &test_keyboard_impl,
+		"wtwm-test-keyboard");
+	server.test_control.keyboard_initialized = true;
+	new_keyboard(&server, &server.test_control.keyboard.base);
+	const char *socket = test_socket;
+	if (socket != NULL && wl_display_add_socket(server.display, socket) < 0) socket = NULL;
+	else if (socket == NULL) socket = wl_display_add_socket_auto(server.display);
+#else
 	const char *socket = wl_display_add_socket_auto(server.display);
+#endif
 	if (socket == NULL || !wlr_backend_start(server.backend)) goto fail_runtime;
+#ifdef WTWM_TEST_CONTROL
+	if (test_control_path != NULL && !test_control_start(&server, test_control_path)) {
+		wlr_log(WLR_ERROR, "failed to create test control socket at %s: %s",
+			test_control_path, strerror(errno));
+		goto fail_runtime;
+	}
+#endif
 	setenv("WAYLAND_DISPLAY", socket, true);
 	if (startup != NULL) spawn_shell(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	wl_display_destroy_clients(server.display);
+#ifdef WTWM_TEST_CONTROL
+	test_control_finish(&server);
+#endif
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);
@@ -1233,9 +1726,16 @@ int main(int argc, char **argv) {
 	wlr_backend_destroy(server.backend);
 	wl_display_destroy(server.display);
 	wtwm_config_finish(&server.config);
+#ifdef WTWM_TEST_CONTROL
+	pango_cairo_font_map_set_default(NULL);
+	FcFini();
+#endif
 	return 0;
 
 fail_runtime:
+#ifdef WTWM_TEST_CONTROL
+	test_control_finish(&server);
+#endif
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);

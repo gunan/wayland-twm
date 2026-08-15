@@ -37,6 +37,62 @@ config_test = executable(
   dependencies: config_dep,
 )
 test('twmrc parser', config_test)
+
+test_control_protocol_lib = static_library(
+  'wtwm-test-control-protocol',
+  'src/test_control.c',
+  include_directories: include_directories('src'),
+)
+test_control_protocol_dep = declare_dependency(
+  link_with: test_control_protocol_lib,
+  include_directories: include_directories('src'),
+)
+test_control_protocol_test = executable(
+  'test-control-protocol-test',
+  'tests/integration/test_control_protocol_test.c',
+  dependencies: test_control_protocol_dep,
+)
+test('test control protocol', test_control_protocol_test)
+test(
+  'build platform contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/validate_build_platforms.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'session backend entrypoints',
+  find_program('sh'),
+  args: [files('tests/platform/session-entrypoints-test.sh')],
+)
+test(
+  'session launcher',
+  find_program('sh'),
+  args: [files('tests/platform/session-launcher-test.sh')],
+)
+test(
+  'package isolation contract',
+  find_program('sh'),
+  args: [files('tests/platform/package-isolation-test.sh')],
+)
+test(
+  'headless stability runner contract',
+  find_program('sh'),
+  args: [files('tests/platform/headless-stability-runner-test.sh')],
+)
+test(
+  'platform evidence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/validate-platform-evidence.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
 test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
 test(
   'upstream reference freeze',
@@ -155,11 +211,82 @@ if wlroots.found()
     output: 'xdg-shell-protocol.h',
     command: [wayland_scanner, 'server-header', '@INPUT@', '@OUTPUT@'],
   )
-  executable(
+  wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
     dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
     install: true,
+  )
+  wtwm_test_compositor = executable(
+    'wtwm-test-compositor',
+    ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
+    dependencies: [
+      config_dep,
+      wlroots,
+      pangocairo,
+      dependency('fontconfig'),
+      wayland_server,
+      xkbcommon,
+    ],
+    c_args: ['-DWTWM_TEST_CONTROL'],
+    install: false,
+  )
+  wayland_client = dependency('wayland-client')
+  xdg_shell_client_header = custom_target(
+    'xdg-shell-client-protocol-header',
+    input: xdg_shell_xml,
+    output: 'xdg-shell-client-protocol.h',
+    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+  )
+  xdg_shell_client_code = custom_target(
+    'xdg-shell-client-protocol-code',
+    input: xdg_shell_xml,
+    output: 'xdg-shell-client-protocol.c',
+    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+  )
+  wtwm_wayland_test_client = executable(
+    'wtwm-wayland-test-client',
+    [
+      'tests/integration/wayland_test_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  integration_runner = find_program('python3')
+  test(
+    'headless compositor integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'headless compositor stability (100 runs)',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+      '--repeat', '100',
+    ],
+    timeout: 600,
+    is_parallel: false,
+  )
+  test(
+    'nested Wayland compositor integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_compositor.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_wayland_test_client,
+      '--nested',
+    ],
+    timeout: 60,
   )
   install_data(
     'data/wtwm.desktop',
@@ -175,5 +302,10 @@ endif
 install_data(
   'data/system.twmrc',
   install_dir: get_option('datadir') / 'wtwm',
+)
+install_data(
+  'scripts/platform/wtwm-session',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
 )
 install_man('data/wtwm-config.1')

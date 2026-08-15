@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wtwm.example/schema/platform-evidence-1.json",
+  "title": "wtwm platform validation evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "recorded_at",
+    "revision",
+    "platform",
+    "environment",
+    "checks",
+    "artifacts",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$" },
+    "recorded_at": { "type": "string", "format": "date-time" },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "clean"],
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "clean": { "type": "boolean" }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "architecture",
+        "os_release",
+        "kernel",
+        "virtualized",
+        "manufacturer",
+        "model",
+        "login_manager",
+        "drm_devices",
+        "connectors",
+        "input_devices"
+      ],
+      "properties": {
+        "kind": { "enum": ["utm-arm64", "physical-linux"] },
+        "architecture": { "type": "string", "minLength": 1 },
+        "os_release": { "type": "string", "minLength": 1 },
+        "kernel": { "type": "string", "minLength": 1 },
+        "virtualized": { "type": "boolean" },
+        "manufacturer": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "login_manager": { "type": "string", "minLength": 1 },
+        "drm_devices": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "connectors": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "input_devices": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wtwm_version", "package_lock_sha256", "vm_image_build", "vm_image_sha512"],
+      "properties": {
+        "wtwm_version": { "type": "string", "minLength": 1 },
+        "package_lock_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "vm_image_build": { "type": ["string", "null"] },
+        "vm_image_sha512": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{128}$"
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host_native",
+        "headless_stability",
+        "nested_wayland",
+        "drm_login",
+        "launch_failure_recovery",
+        "package_lifecycle",
+        "session_isolation"
+      ],
+      "properties": {
+        "host_native": { "$ref": "#/$defs/check" },
+        "headless_stability": { "$ref": "#/$defs/check" },
+        "nested_wayland": { "$ref": "#/$defs/check" },
+        "drm_login": { "$ref": "#/$defs/check" },
+        "launch_failure_recovery": { "$ref": "#/$defs/check" },
+        "package_lifecycle": { "$ref": "#/$defs/check" },
+        "session_isolation": { "$ref": "#/$defs/check" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "description"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\./).+$" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "iterations",
+        "started_at",
+        "ended_at",
+        "command",
+        "assertions",
+        "log"
+      ],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "not-run"] },
+        "iterations": { "type": "integer", "minimum": 0 },
+        "started_at": { "type": ["string", "null"], "format": "date-time" },
+        "ended_at": { "type": ["string", "null"], "format": "date-time" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "assertions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "log": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/artifact" }
+          ]
+        }
+      }
+    }
+  }
+}

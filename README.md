@@ -193,9 +193,9 @@ Use several environments rather than relying on a single VM.
 
 Development environments:
 
-- [ ] Host-native unit tests for the parser and platform-independent logic.
+- [x] Host-native unit tests for the parser and platform-independent logic.
 - [ ] A Debian ARM64 VM under UTM for interactive development on Apple Silicon.
-- [ ] A headless wlroots backend for automated compositor tests.
+- [x] A headless wlroots backend for automated compositor tests.
 - [ ] A nested Wayland session for rapid visual testing.
 - [ ] A full VM login session using the DRM backend for realistic startup, input,
   and session testing.
@@ -203,20 +203,20 @@ Development environments:
 
 Automation:
 
-- [ ] Provide a script or image definition that provisions the reference VM.
-- [ ] Build debug, release, AddressSanitizer, and UndefinedBehaviorSanitizer
+- [x] Provide a script or image definition that provisions the reference VM.
+- [x] Build debug, release, AddressSanitizer, and UndefinedBehaviorSanitizer
   configurations.
-- [ ] Add CI builds on x86-64 and ARM64.
-- [ ] Introduce a test-only control interface that can create deterministic virtual
+- [x] Add CI builds on x86-64 and ARM64.
+- [x] Introduce a test-only control interface that can create deterministic virtual
   outputs, inject pointer and keyboard input, query focus, geometry, stacking,
   icons, and menus, wait for a stable frame, capture compositor output, and
   terminate a test cleanly.
-- [ ] Add deterministic test controls for animation timing, placement, cursor
+- [x] Add deterministic test controls for animation timing, placement, cursor
   position, and font selection.
 
 Testing:
 
-- [ ] Start the compositor headlessly and map a native Wayland test client.
+- [x] Start the compositor headlessly and map a native Wayland test client.
 - [ ] Start it nested inside another compositor.
 - [ ] Start it as the VM's login compositor.
 - [ ] Verify that a failed launch returns the user to a usable session.
@@ -224,8 +224,8 @@ Testing:
 
 Exit criteria:
 
-- [ ] A clean checkout builds and passes tests without manual configuration.
-- [ ] Headless tests are stable over at least 100 consecutive runs.
+- [x] A clean checkout builds and passes tests without manual configuration.
+- [x] Headless tests are stable over at least 100 consecutive runs.
 - [ ] The compositor works in headless, nested, and DRM-backed VM sessions.
 - [ ] Installation adds a separate session entry and does not alter the existing
   compositor.
