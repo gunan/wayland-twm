@@ -299,6 +299,15 @@ static void write_config(const char *path, int width) {
 	assert(fclose(file) == 0);
 }
 
+static void join_path(char *path, size_t path_size, const char *directory,
+	const char *suffix) {
+	size_t directory_length = strlen(directory);
+	size_t suffix_length = strlen(suffix);
+	assert(directory_length + suffix_length + 1 <= path_size);
+	memcpy(path, directory, directory_length);
+	memcpy(path + directory_length, suffix, suffix_length + 1);
+}
+
 static void loads_reference_search_order(void) {
 	const char *temporary_root = getenv("TMPDIR");
 	if (temporary_root == NULL || temporary_root[0] == '\0') temporary_root = "/tmp";
@@ -307,11 +316,11 @@ static void loads_reference_search_order(void) {
 	assert(mkdtemp(directory) != NULL);
 	char screen_path[PATH_MAX], general_path[PATH_MAX], system_path[PATH_MAX];
 	char explicit_path[PATH_MAX], missing_path[PATH_MAX];
-	snprintf(screen_path, sizeof(screen_path), "%s/.twmrc.3", directory);
-	snprintf(general_path, sizeof(general_path), "%s/.twmrc", directory);
-	snprintf(system_path, sizeof(system_path), "%s/system.twmrc", directory);
-	snprintf(explicit_path, sizeof(explicit_path), "%s/explicit.twmrc", directory);
-	snprintf(missing_path, sizeof(missing_path), "%s/missing.twmrc", directory);
+	join_path(screen_path, sizeof(screen_path), directory, "/.twmrc.3");
+	join_path(general_path, sizeof(general_path), directory, "/.twmrc");
+	join_path(system_path, sizeof(system_path), directory, "/system.twmrc");
+	join_path(explicit_path, sizeof(explicit_path), directory, "/explicit.twmrc");
+	join_path(missing_path, sizeof(missing_path), directory, "/missing.twmrc");
 	write_config(screen_path, 3); write_config(general_path, 4);
 	write_config(system_path, 5); write_config(explicit_path, 2);
 	const char *old_home_value = getenv("HOME");
