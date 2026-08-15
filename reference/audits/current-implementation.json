@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "audited_commit": "a98fe0f84f0c5c44a2fbe1f942c884336d635fec",
+  "audited_commit": "5e026dae60028117a4735533bad231c063061a3a",
   "status_enum": [
     "effective",
     "not_applicable",
@@ -39,7 +39,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:59",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -56,7 +56,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:276",
-        "src/wtwm.c:575"
+        "src/wtwm.c:611"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -74,7 +74,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:61",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -90,7 +90,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:60",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:46"
@@ -108,7 +108,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:62",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:21",
@@ -129,7 +129,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:63",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -145,7 +145,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:64",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:33",
@@ -163,7 +163,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:272",
-        "src/wtwm.c:559"
+        "src/wtwm.c:595"
       ],
       "tests": [
         "tests/config_test.c:87"
@@ -181,7 +181,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:65",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -197,7 +197,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:66",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -213,7 +213,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:67",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -231,7 +231,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:68",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:26",
@@ -250,7 +250,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:69",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -268,7 +268,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:70",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -286,7 +286,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:71",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -304,7 +304,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:72",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -322,7 +322,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:73",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:23",
@@ -341,7 +341,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:74",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -359,7 +359,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:75",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:21"
@@ -377,7 +377,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:76",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:25",
@@ -396,7 +396,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:77",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:21",
@@ -415,7 +415,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:78",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:43"
@@ -435,7 +435,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:79",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:47",
@@ -454,7 +454,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:80",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:22",
@@ -473,7 +473,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:81",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:30"
@@ -491,7 +491,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:82",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -509,7 +509,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:83",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:39",
@@ -528,7 +528,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:84",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -546,7 +546,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:85",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -564,7 +564,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:86",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [
         "data/system.twmrc:37",
@@ -585,7 +585,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:87",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -603,7 +603,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:88",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -621,7 +621,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:89",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -637,7 +637,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:90",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -653,7 +653,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:91",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -671,7 +671,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:92",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -689,7 +689,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:280",
         "src/config.c:93",
-        "src/wtwm.c:519"
+        "src/wtwm.c:555"
       ],
       "tests": [],
       "native_wayland_status": "parsed_only",
@@ -707,7 +707,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:270",
         "src/config.c:287",
-        "src/wtwm.c:575"
+        "src/wtwm.c:611"
       ],
       "tests": [
         "tests/config_test.c:85"
@@ -1067,7 +1067,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:597",
-        "src/wtwm.c:679"
+        "src/wtwm.c:715"
       ],
       "tests": [
         "tests/config_test.c:106",
@@ -1102,7 +1102,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:470",
-        "src/wtwm.c:1047"
+        "src/wtwm.c:1090"
       ],
       "tests": [
         "data/system.twmrc:11"
@@ -1120,7 +1120,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:538",
         "src/config.c:638",
-        "src/wtwm.c:270"
+        "src/wtwm.c:306"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -1153,7 +1153,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:622",
         "src/config.c:626",
-        "src/wtwm.c:757"
+        "src/wtwm.c:793"
       ],
       "tests": [
         "data/system.twmrc:25",
@@ -1189,7 +1189,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:578",
-        "src/wtwm.c:1047"
+        "src/wtwm.c:1090"
       ],
       "tests": [
         "data/system.twmrc:9",
@@ -1331,7 +1331,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:583",
-        "src/wtwm.c:564"
+        "src/wtwm.c:600"
       ],
       "tests": [
         "data/system.twmrc:21",
@@ -1500,7 +1500,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:584",
-        "src/wtwm.c:741"
+        "src/wtwm.c:777"
       ],
       "tests": [
         "tests/config_test.c:55"
@@ -1517,7 +1517,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:594",
-        "src/wtwm.c:966"
+        "src/wtwm.c:1009"
       ],
       "tests": [
         "tests/config_test.c:105"
@@ -1534,8 +1534,8 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:582",
-        "src/wtwm.c:411",
-        "src/wtwm.c:716"
+        "src/wtwm.c:483",
+        "src/wtwm.c:752"
       ],
       "tests": [
         "data/system.twmrc:35",
@@ -1553,7 +1553,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:473",
-        "src/wtwm.c:448"
+        "src/wtwm.c:484"
       ],
       "tests": [
         "data/system.twmrc:14"
@@ -1570,7 +1570,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:475",
-        "src/wtwm.c:447"
+        "src/wtwm.c:483"
       ],
       "tests": [
         "data/system.twmrc:16"
@@ -1588,7 +1588,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:542",
         "src/config.c:638",
-        "src/wtwm.c:442"
+        "src/wtwm.c:478"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -1604,7 +1604,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:553",
         "src/config.c:650",
-        "src/wtwm.c:438"
+        "src/wtwm.c:474"
       ],
       "tests": [
         "data/system.twmrc:6"
@@ -1621,7 +1621,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:474",
-        "src/wtwm.c:449"
+        "src/wtwm.c:485"
       ],
       "tests": [
         "data/system.twmrc:15"
@@ -1638,7 +1638,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:476",
-        "src/wtwm.c:461"
+        "src/wtwm.c:497"
       ],
       "tests": [
         "data/system.twmrc:17"
@@ -1655,7 +1655,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:477",
-        "src/wtwm.c:435"
+        "src/wtwm.c:471"
       ],
       "tests": [
         "data/system.twmrc:18"
@@ -1827,7 +1827,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:586",
-        "src/wtwm.c:963"
+        "src/wtwm.c:1006"
       ],
       "tests": [
         "tests/config_test.c:104",
@@ -1916,7 +1916,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:622",
         "src/config.c:624",
-        "src/wtwm.c:805"
+        "src/wtwm.c:841"
       ],
       "tests": [
         "data/system.twmrc:33",
@@ -1971,7 +1971,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:585",
-        "src/wtwm.c:741"
+        "src/wtwm.c:777"
       ],
       "tests": [
         "tests/config_test.c:56"
@@ -2041,7 +2041,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:604",
-        "src/wtwm.c:939"
+        "src/wtwm.c:982"
       ],
       "tests": [
         "tests/config_test.c:54"
@@ -2058,7 +2058,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:471",
-        "src/wtwm.c:1048"
+        "src/wtwm.c:1091"
       ],
       "tests": [
         "data/system.twmrc:12"
@@ -2093,7 +2093,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:555",
         "src/config.c:650",
-        "src/wtwm.c:258"
+        "src/wtwm.c:294"
       ],
       "tests": [
         "data/system.twmrc:4",
@@ -2111,7 +2111,7 @@
       "evidence": [
         "docs/COMPATIBILITY.md:27",
         "src/config.c:472",
-        "src/wtwm.c:1049"
+        "src/wtwm.c:1092"
       ],
       "tests": [
         "data/system.twmrc:13"
@@ -2129,7 +2129,7 @@
         "docs/COMPATIBILITY.md:27",
         "src/config.c:545",
         "src/config.c:638",
-        "src/wtwm.c:1041"
+        "src/wtwm.c:1084"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2195,7 +2195,7 @@
       "name": "auto-raise rule dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:676"
+        "src/wtwm.c:712"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2211,7 +2211,7 @@
       "name": "button binding dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:757"
+        "src/wtwm.c:793"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2227,7 +2227,7 @@
       "name": "configuration load at startup",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:1163"
+        "src/wtwm.c:1619"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2243,7 +2243,7 @@
       "name": "configured frame and title rendering",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:1041"
+        "src/wtwm.c:1084"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2259,7 +2259,7 @@
       "name": "execute configured action",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:516"
+        "src/wtwm.c:552"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2275,7 +2275,7 @@
       "name": "function action recursion",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:563"
+        "src/wtwm.c:599"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2291,7 +2291,7 @@
       "name": "key binding dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:805"
+        "src/wtwm.c:841"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2307,7 +2307,7 @@
       "name": "menu definition lookup and rendering",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:411"
+        "src/wtwm.c:483"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2323,7 +2323,7 @@
       "name": "menu item action dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:716"
+        "src/wtwm.c:752"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2339,7 +2339,7 @@
       "name": "start-iconified rule dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:939"
+        "src/wtwm.c:982"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2355,7 +2355,7 @@
       "name": "title button action dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:739"
+        "src/wtwm.c:775"
       ],
       "tests": [],
       "native_wayland_status": "effective",
@@ -2371,7 +2371,7 @@
       "name": "title decoration rule dispatch",
       "evidence": [
         "docs/COMPATIBILITY.md:27",
-        "src/wtwm.c:963"
+        "src/wtwm.c:1006"
       ],
       "tests": [],
       "native_wayland_status": "effective",
