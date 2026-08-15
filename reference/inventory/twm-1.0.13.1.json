@@ -1,0 +1,5644 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5"
+  },
+  "category_order": [
+    "directive",
+    "color-monochrome-option",
+    "window-list-directive",
+    "mouse-binding-form",
+    "key-binding-form",
+    "binding-context",
+    "binding-modifier",
+    "built-in-action",
+    "menu-construct",
+    "icon-option",
+    "icon-manager-option",
+    "cursor-option",
+    "pixmap-option",
+    "font-option",
+    "placement-option",
+    "title-button-option",
+    "direction-or-justification",
+    "lexical-form",
+    "grammar-structure"
+  ],
+  "category_descriptions": {
+    "directive": "Top-level startup-file directive or generic directive form.",
+    "color-monochrome-option": "Color, grayscale, monochrome, or saved-color syntax.",
+    "window-list-directive": "Directive or production whose behavior is selected by a window list.",
+    "mouse-binding-form": "Pointer-button binding syntax or its contexts.",
+    "key-binding-form": "Keyboard binding syntax or its name-selecting contexts.",
+    "binding-context": "Context accepted in a mouse or key binding.",
+    "binding-modifier": "Modifier accepted in a mouse or key binding.",
+    "built-in-action": "Built-in f.* action accepted by the parser.",
+    "menu-construct": "Menu or named-function declaration and entry syntax.",
+    "icon-option": "Icon configuration syntax.",
+    "icon-manager-option": "Icon-manager configuration syntax.",
+    "cursor-option": "Cursor declaration syntax or cursor role.",
+    "pixmap-option": "Pixmap declaration syntax.",
+    "font-option": "Font configuration directive.",
+    "placement-option": "Window, title, or icon placement/layout syntax.",
+    "title-button-option": "Title-button declaration or layout option.",
+    "direction-or-justification": "Direction, gravity, or title justification keyword.",
+    "lexical-form": "Accepted punctuation, literal, comment, or shorthand form.",
+    "grammar-structure": "Structural grammar production needed to express accepted syntax."
+  },
+  "source_observations": [
+    {
+      "id": "manual.configuration-model",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/man/twm.man",
+        "line": 206,
+        "text": "\\fITwm\\fP startup files are logically broken up into three types of"
+      }
+    },
+    {
+      "id": "manual.case-insensitive-keywords",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/man/twm.man",
+        "line": 220,
+        "text": "Variable names and keywords are case-insensitive."
+      }
+    },
+    {
+      "id": "manual.list-delimiters",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/man/twm.man",
+        "line": 234,
+        "text": "Lists are surrounded by braces and are usually separated by"
+      }
+    },
+    {
+      "id": "defaults.identity",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/system.twmrc",
+        "line": 2,
+        "text": "# Default twm configuration file; needs to be kept small to conserve string"
+      }
+    },
+    {
+      "id": "defaults.mouse-binding",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/system.twmrc",
+        "line": 51,
+        "text": "Button1 = : root : f.menu \"defops\""
+      }
+    },
+    {
+      "id": "defaults.menu",
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/system.twmrc",
+        "line": 69,
+        "text": "menu \"defops\""
+      }
+    }
+  ],
+  "keywords": [
+    {
+      "id": "keyword.all",
+      "spelling": "all",
+      "parser_token": "ALL",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 393,
+        "text": "    { \"all\",                    ALL, 0 },"
+      }
+    },
+    {
+      "id": "keyword.autoraise",
+      "spelling": "autoraise",
+      "parser_token": "AUTO_RAISE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 394,
+        "text": "    { \"autoraise\",              AUTO_RAISE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.autorelativeresize",
+      "spelling": "autorelativeresize",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_AutoRelativeResize",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 395,
+        "text": "    { \"autorelativeresize\",     KEYWORD, kw0_AutoRelativeResize },"
+      }
+    },
+    {
+      "id": "keyword.bordercolor",
+      "spelling": "bordercolor",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_BorderColor",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 396,
+        "text": "    { \"bordercolor\",            CLKEYWORD, kwcl_BorderColor },"
+      }
+    },
+    {
+      "id": "keyword.bordertilebackground",
+      "spelling": "bordertilebackground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_BorderTileBackground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 397,
+        "text": "    { \"bordertilebackground\",   CLKEYWORD, kwcl_BorderTileBackground },"
+      }
+    },
+    {
+      "id": "keyword.bordertileforeground",
+      "spelling": "bordertileforeground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_BorderTileForeground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 398,
+        "text": "    { \"bordertileforeground\",   CLKEYWORD, kwcl_BorderTileForeground },"
+      }
+    },
+    {
+      "id": "keyword.borderwidth",
+      "spelling": "borderwidth",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_BorderWidth",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 399,
+        "text": "    { \"borderwidth\",            NKEYWORD, kwn_BorderWidth },"
+      }
+    },
+    {
+      "id": "keyword.button",
+      "spelling": "button",
+      "parser_token": "BUTTON",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 400,
+        "text": "    { \"button\",                 BUTTON, 0 },"
+      }
+    },
+    {
+      "id": "keyword.buttonindent",
+      "spelling": "buttonindent",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_ButtonIndent",
+      "categories": [
+        "directive",
+        "title-button-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 401,
+        "text": "    { \"buttonindent\",           NKEYWORD, kwn_ButtonIndent },"
+      }
+    },
+    {
+      "id": "keyword.c",
+      "spelling": "c",
+      "parser_token": "CONTROL",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 402,
+        "text": "    { \"c\",                      CONTROL, 0 },"
+      }
+    },
+    {
+      "id": "keyword.center",
+      "spelling": "center",
+      "parser_token": "JKEYWORD",
+      "parser_value": "J_CENTER",
+      "categories": [
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 403,
+        "text": "    { \"center\",                 JKEYWORD, J_CENTER },"
+      }
+    },
+    {
+      "id": "keyword.clientborderwidth",
+      "spelling": "clientborderwidth",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_ClientBorderWidth",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 404,
+        "text": "    { \"clientborderwidth\",      KEYWORD, kw0_ClientBorderWidth },"
+      }
+    },
+    {
+      "id": "keyword.color",
+      "spelling": "color",
+      "parser_token": "COLOR",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 405,
+        "text": "    { \"color\",                  COLOR, 0 },"
+      }
+    },
+    {
+      "id": "keyword.constrainedmovetime",
+      "spelling": "constrainedmovetime",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_ConstrainedMoveTime",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 406,
+        "text": "    { \"constrainedmovetime\",    NKEYWORD, kwn_ConstrainedMoveTime },"
+      }
+    },
+    {
+      "id": "keyword.control",
+      "spelling": "control",
+      "parser_token": "CONTROL",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 407,
+        "text": "    { \"control\",                CONTROL, 0 },"
+      }
+    },
+    {
+      "id": "keyword.cursors",
+      "spelling": "cursors",
+      "parser_token": "CURSORS",
+      "parser_value": "0",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 408,
+        "text": "    { \"cursors\",                CURSORS, 0 },"
+      }
+    },
+    {
+      "id": "keyword.decoratetransients",
+      "spelling": "decoratetransients",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_DecorateTransients",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 409,
+        "text": "    { \"decoratetransients\",     KEYWORD, kw0_DecorateTransients },"
+      }
+    },
+    {
+      "id": "keyword.defaultbackground",
+      "spelling": "defaultbackground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_DefaultBackground",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 410,
+        "text": "    { \"defaultbackground\",      CKEYWORD, kwc_DefaultBackground },"
+      }
+    },
+    {
+      "id": "keyword.defaultforeground",
+      "spelling": "defaultforeground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_DefaultForeground",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 411,
+        "text": "    { \"defaultforeground\",      CKEYWORD, kwc_DefaultForeground },"
+      }
+    },
+    {
+      "id": "keyword.defaultfunction",
+      "spelling": "defaultfunction",
+      "parser_token": "DEFAULT_FUNCTION",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 412,
+        "text": "    { \"defaultfunction\",        DEFAULT_FUNCTION, 0 },"
+      }
+    },
+    {
+      "id": "keyword.destroy",
+      "spelling": "destroy",
+      "parser_token": "KILL",
+      "parser_value": "0",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 413,
+        "text": "    { \"destroy\",                KILL, 0 },"
+      }
+    },
+    {
+      "id": "keyword.donticonifybyunmapping",
+      "spelling": "donticonifybyunmapping",
+      "parser_token": "DONT_ICONIFY_BY_UNMAPPING",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 414,
+        "text": "    { \"donticonifybyunmapping\", DONT_ICONIFY_BY_UNMAPPING, 0 },"
+      }
+    },
+    {
+      "id": "keyword.dontmoveoff",
+      "spelling": "dontmoveoff",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_DontMoveOff",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 415,
+        "text": "    { \"dontmoveoff\",            KEYWORD, kw0_DontMoveOff },"
+      }
+    },
+    {
+      "id": "keyword.dontsqueezetitle",
+      "spelling": "dontsqueezetitle",
+      "parser_token": "DONT_SQUEEZE_TITLE",
+      "parser_value": "0",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 416,
+        "text": "    { \"dontsqueezetitle\",       DONT_SQUEEZE_TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.east",
+      "spelling": "east",
+      "parser_token": "DKEYWORD",
+      "parser_value": "D_EAST",
+      "categories": [
+        "directive",
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 417,
+        "text": "    { \"east\",                   DKEYWORD, D_EAST },"
+      }
+    },
+    {
+      "id": "keyword.f",
+      "spelling": "f",
+      "parser_token": "FRAME",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 418,
+        "text": "    { \"f\",                      FRAME, 0 },"
+      }
+    },
+    {
+      "id": "keyword.f.autoraise",
+      "spelling": "f.autoraise",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_AUTORAISE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 419,
+        "text": "    { \"f.autoraise\",            FKEYWORD, F_AUTORAISE },"
+      }
+    },
+    {
+      "id": "keyword.f.backiconmgr",
+      "spelling": "f.backiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_BACKICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 420,
+        "text": "    { \"f.backiconmgr\",          FKEYWORD, F_BACKICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.beep",
+      "spelling": "f.beep",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_BEEP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 421,
+        "text": "    { \"f.beep\",                 FKEYWORD, F_BEEP },"
+      }
+    },
+    {
+      "id": "keyword.f.bottomzoom",
+      "spelling": "f.bottomzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_BOTTOMZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 422,
+        "text": "    { \"f.bottomzoom\",           FKEYWORD, F_BOTTOMZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.circledown",
+      "spelling": "f.circledown",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_CIRCLEDOWN",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 423,
+        "text": "    { \"f.circledown\",           FKEYWORD, F_CIRCLEDOWN },"
+      }
+    },
+    {
+      "id": "keyword.f.circleup",
+      "spelling": "f.circleup",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_CIRCLEUP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 424,
+        "text": "    { \"f.circleup\",             FKEYWORD, F_CIRCLEUP },"
+      }
+    },
+    {
+      "id": "keyword.f.colormap",
+      "spelling": "f.colormap",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_COLORMAP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 425,
+        "text": "    { \"f.colormap\",             FSKEYWORD, F_COLORMAP },"
+      }
+    },
+    {
+      "id": "keyword.f.cut",
+      "spelling": "f.cut",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_CUT",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 426,
+        "text": "    { \"f.cut\",                  FSKEYWORD, F_CUT },"
+      }
+    },
+    {
+      "id": "keyword.f.cutfile",
+      "spelling": "f.cutfile",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_CUTFILE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 427,
+        "text": "    { \"f.cutfile\",              FKEYWORD, F_CUTFILE },"
+      }
+    },
+    {
+      "id": "keyword.f.deiconify",
+      "spelling": "f.deiconify",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_DEICONIFY",
+      "categories": [
+        "built-in-action",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 428,
+        "text": "    { \"f.deiconify\",            FKEYWORD, F_DEICONIFY },"
+      }
+    },
+    {
+      "id": "keyword.f.delete",
+      "spelling": "f.delete",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_DELETE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 429,
+        "text": "    { \"f.delete\",               FKEYWORD, F_DELETE },"
+      }
+    },
+    {
+      "id": "keyword.f.deltastop",
+      "spelling": "f.deltastop",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_DELTASTOP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 430,
+        "text": "    { \"f.deltastop\",            FKEYWORD, F_DELTASTOP },"
+      }
+    },
+    {
+      "id": "keyword.f.destroy",
+      "spelling": "f.destroy",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_DESTROY",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 431,
+        "text": "    { \"f.destroy\",              FKEYWORD, F_DESTROY },"
+      }
+    },
+    {
+      "id": "keyword.f.downiconmgr",
+      "spelling": "f.downiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_DOWNICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 432,
+        "text": "    { \"f.downiconmgr\",          FKEYWORD, F_DOWNICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.exec",
+      "spelling": "f.exec",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_EXEC",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 433,
+        "text": "    { \"f.exec\",                 FSKEYWORD, F_EXEC },"
+      }
+    },
+    {
+      "id": "keyword.f.file",
+      "spelling": "f.file",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_FILE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 434,
+        "text": "    { \"f.file\",                 FSKEYWORD, F_FILE },"
+      }
+    },
+    {
+      "id": "keyword.f.focus",
+      "spelling": "f.focus",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_FOCUS",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 435,
+        "text": "    { \"f.focus\",                FKEYWORD, F_FOCUS },"
+      }
+    },
+    {
+      "id": "keyword.f.forcemove",
+      "spelling": "f.forcemove",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_FORCEMOVE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 436,
+        "text": "    { \"f.forcemove\",            FKEYWORD, F_FORCEMOVE },"
+      }
+    },
+    {
+      "id": "keyword.f.forwiconmgr",
+      "spelling": "f.forwiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_FORWICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 437,
+        "text": "    { \"f.forwiconmgr\",          FKEYWORD, F_FORWICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.fullzoom",
+      "spelling": "f.fullzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_FULLZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 438,
+        "text": "    { \"f.fullzoom\",             FKEYWORD, F_FULLZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.function",
+      "spelling": "f.function",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_FUNCTION",
+      "categories": [
+        "built-in-action",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 439,
+        "text": "    { \"f.function\",             FSKEYWORD, F_FUNCTION },"
+      }
+    },
+    {
+      "id": "keyword.f.hbzoom",
+      "spelling": "f.hbzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_BOTTOMZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 440,
+        "text": "    { \"f.hbzoom\",               FKEYWORD, F_BOTTOMZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.hideiconmgr",
+      "spelling": "f.hideiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_HIDELIST",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 441,
+        "text": "    { \"f.hideiconmgr\",          FKEYWORD, F_HIDELIST },"
+      }
+    },
+    {
+      "id": "keyword.f.horizoom",
+      "spelling": "f.horizoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_HORIZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 442,
+        "text": "    { \"f.horizoom\",             FKEYWORD, F_HORIZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.htzoom",
+      "spelling": "f.htzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_TOPZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 443,
+        "text": "    { \"f.htzoom\",               FKEYWORD, F_TOPZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.hzoom",
+      "spelling": "f.hzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_HORIZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 444,
+        "text": "    { \"f.hzoom\",                FKEYWORD, F_HORIZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.iconify",
+      "spelling": "f.iconify",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_ICONIFY",
+      "categories": [
+        "built-in-action",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 445,
+        "text": "    { \"f.iconify\",              FKEYWORD, F_ICONIFY },"
+      }
+    },
+    {
+      "id": "keyword.f.identify",
+      "spelling": "f.identify",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_IDENTIFY",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 446,
+        "text": "    { \"f.identify\",             FKEYWORD, F_IDENTIFY },"
+      }
+    },
+    {
+      "id": "keyword.f.lefticonmgr",
+      "spelling": "f.lefticonmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_LEFTICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 447,
+        "text": "    { \"f.lefticonmgr\",          FKEYWORD, F_LEFTICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.leftzoom",
+      "spelling": "f.leftzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_LEFTZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 448,
+        "text": "    { \"f.leftzoom\",             FKEYWORD, F_LEFTZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.lower",
+      "spelling": "f.lower",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_LOWER",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 449,
+        "text": "    { \"f.lower\",                FKEYWORD, F_LOWER },"
+      }
+    },
+    {
+      "id": "keyword.f.menu",
+      "spelling": "f.menu",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_MENU",
+      "categories": [
+        "built-in-action",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 450,
+        "text": "    { \"f.menu\",                 FSKEYWORD, F_MENU },"
+      }
+    },
+    {
+      "id": "keyword.f.move",
+      "spelling": "f.move",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_MOVE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 451,
+        "text": "    { \"f.move\",                 FKEYWORD, F_MOVE },"
+      }
+    },
+    {
+      "id": "keyword.f.nexticonmgr",
+      "spelling": "f.nexticonmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_NEXTICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 452,
+        "text": "    { \"f.nexticonmgr\",          FKEYWORD, F_NEXTICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.nop",
+      "spelling": "f.nop",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_NOP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 453,
+        "text": "    { \"f.nop\",                  FKEYWORD, F_NOP },"
+      }
+    },
+    {
+      "id": "keyword.f.previconmgr",
+      "spelling": "f.previconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_PREVICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 454,
+        "text": "    { \"f.previconmgr\",          FKEYWORD, F_PREVICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.priority",
+      "spelling": "f.priority",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_PRIORITY",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 455,
+        "text": "    { \"f.priority\",             FSKEYWORD, F_PRIORITY },"
+      }
+    },
+    {
+      "id": "keyword.f.quit",
+      "spelling": "f.quit",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_QUIT",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 456,
+        "text": "    { \"f.quit\",                 FKEYWORD, F_QUIT },"
+      }
+    },
+    {
+      "id": "keyword.f.raise",
+      "spelling": "f.raise",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RAISE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 457,
+        "text": "    { \"f.raise\",                FKEYWORD, F_RAISE },"
+      }
+    },
+    {
+      "id": "keyword.f.raiselower",
+      "spelling": "f.raiselower",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RAISELOWER",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 458,
+        "text": "    { \"f.raiselower\",           FKEYWORD, F_RAISELOWER },"
+      }
+    },
+    {
+      "id": "keyword.f.refresh",
+      "spelling": "f.refresh",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_REFRESH",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 459,
+        "text": "    { \"f.refresh\",              FKEYWORD, F_REFRESH },"
+      }
+    },
+    {
+      "id": "keyword.f.resize",
+      "spelling": "f.resize",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RESIZE",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 460,
+        "text": "    { \"f.resize\",               FKEYWORD, F_RESIZE },"
+      }
+    },
+    {
+      "id": "keyword.f.restart",
+      "spelling": "f.restart",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RESTART",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 461,
+        "text": "    { \"f.restart\",              FKEYWORD, F_RESTART },"
+      }
+    },
+    {
+      "id": "keyword.f.righticonmgr",
+      "spelling": "f.righticonmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RIGHTICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 462,
+        "text": "    { \"f.righticonmgr\",         FKEYWORD, F_RIGHTICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.rightzoom",
+      "spelling": "f.rightzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RIGHTZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 463,
+        "text": "    { \"f.rightzoom\",            FKEYWORD, F_RIGHTZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.saveyourself",
+      "spelling": "f.saveyourself",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_SAVEYOURSELF",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 464,
+        "text": "    { \"f.saveyourself\",         FKEYWORD, F_SAVEYOURSELF },"
+      }
+    },
+    {
+      "id": "keyword.f.showiconmgr",
+      "spelling": "f.showiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_SHOWLIST",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 465,
+        "text": "    { \"f.showiconmgr\",          FKEYWORD, F_SHOWLIST },"
+      }
+    },
+    {
+      "id": "keyword.f.sorticonmgr",
+      "spelling": "f.sorticonmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_SORTICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 466,
+        "text": "    { \"f.sorticonmgr\",          FKEYWORD, F_SORTICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.source",
+      "spelling": "f.source",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_BEEP",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 467,
+        "text": "    { \"f.source\",               FSKEYWORD, F_BEEP },  /* XXX - don't work */"
+      }
+    },
+    {
+      "id": "keyword.f.startwm",
+      "spelling": "f.startwm",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_STARTWM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 468,
+        "text": "    { \"f.startwm\",              FSKEYWORD, F_STARTWM },"
+      }
+    },
+    {
+      "id": "keyword.f.title",
+      "spelling": "f.title",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_TITLE",
+      "categories": [
+        "built-in-action",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 469,
+        "text": "    { \"f.title\",                FKEYWORD, F_TITLE },"
+      }
+    },
+    {
+      "id": "keyword.f.topzoom",
+      "spelling": "f.topzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_TOPZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 470,
+        "text": "    { \"f.topzoom\",              FKEYWORD, F_TOPZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.twmrc",
+      "spelling": "f.twmrc",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RESTART",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 471,
+        "text": "    { \"f.twmrc\",                FKEYWORD, F_RESTART },"
+      }
+    },
+    {
+      "id": "keyword.f.unfocus",
+      "spelling": "f.unfocus",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_UNFOCUS",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 472,
+        "text": "    { \"f.unfocus\",              FKEYWORD, F_UNFOCUS },"
+      }
+    },
+    {
+      "id": "keyword.f.upiconmgr",
+      "spelling": "f.upiconmgr",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_UPICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 473,
+        "text": "    { \"f.upiconmgr\",            FKEYWORD, F_UPICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.version",
+      "spelling": "f.version",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_VERSION",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 474,
+        "text": "    { \"f.version\",              FKEYWORD, F_VERSION },"
+      }
+    },
+    {
+      "id": "keyword.f.vlzoom",
+      "spelling": "f.vlzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_LEFTZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 475,
+        "text": "    { \"f.vlzoom\",               FKEYWORD, F_LEFTZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.vrzoom",
+      "spelling": "f.vrzoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_RIGHTZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 476,
+        "text": "    { \"f.vrzoom\",               FKEYWORD, F_RIGHTZOOM },"
+      }
+    },
+    {
+      "id": "keyword.f.warpnext",
+      "spelling": "f.warpnext",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_WARPNEXT",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 477,
+        "text": "    { \"f.warpnext\",             FKEYWORD, F_WARPNEXT },"
+      }
+    },
+    {
+      "id": "keyword.f.warpprev",
+      "spelling": "f.warpprev",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_WARPPREV",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 478,
+        "text": "    { \"f.warpprev\",             FKEYWORD, F_WARPPREV },"
+      }
+    },
+    {
+      "id": "keyword.f.warpring",
+      "spelling": "f.warpring",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_WARPRING",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 479,
+        "text": "    { \"f.warpring\",             FSKEYWORD, F_WARPRING },"
+      }
+    },
+    {
+      "id": "keyword.f.warpto",
+      "spelling": "f.warpto",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_WARPTO",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 480,
+        "text": "    { \"f.warpto\",               FSKEYWORD, F_WARPTO },"
+      }
+    },
+    {
+      "id": "keyword.f.warptoiconmgr",
+      "spelling": "f.warptoiconmgr",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_WARPTOICONMGR",
+      "categories": [
+        "built-in-action",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 481,
+        "text": "    { \"f.warptoiconmgr\",        FSKEYWORD, F_WARPTOICONMGR },"
+      }
+    },
+    {
+      "id": "keyword.f.warptoscreen",
+      "spelling": "f.warptoscreen",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_WARPTOSCREEN",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 482,
+        "text": "    { \"f.warptoscreen\",         FSKEYWORD, F_WARPTOSCREEN },"
+      }
+    },
+    {
+      "id": "keyword.f.winrefresh",
+      "spelling": "f.winrefresh",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_WINREFRESH",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 483,
+        "text": "    { \"f.winrefresh\",           FKEYWORD, F_WINREFRESH },"
+      }
+    },
+    {
+      "id": "keyword.f.zoom",
+      "spelling": "f.zoom",
+      "parser_token": "FKEYWORD",
+      "parser_value": "F_ZOOM",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 484,
+        "text": "    { \"f.zoom\",                 FKEYWORD, F_ZOOM },"
+      }
+    },
+    {
+      "id": "keyword.forceicons",
+      "spelling": "forceicons",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_ForceIcons",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 485,
+        "text": "    { \"forceicons\",             KEYWORD, kw0_ForceIcons },"
+      }
+    },
+    {
+      "id": "keyword.frame",
+      "spelling": "frame",
+      "parser_token": "FRAME",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 486,
+        "text": "    { \"frame\",                  FRAME, 0 },"
+      }
+    },
+    {
+      "id": "keyword.framepadding",
+      "spelling": "framepadding",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_FramePadding",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 487,
+        "text": "    { \"framepadding\",           NKEYWORD, kwn_FramePadding },"
+      }
+    },
+    {
+      "id": "keyword.function",
+      "spelling": "function",
+      "parser_token": "FUNCTION",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 488,
+        "text": "    { \"function\",               FUNCTION, 0 },"
+      }
+    },
+    {
+      "id": "keyword.grayscale",
+      "spelling": "grayscale",
+      "parser_token": "GRAYSCALE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 489,
+        "text": "    { \"grayscale\",              GRAYSCALE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.greyscale",
+      "spelling": "greyscale",
+      "parser_token": "GRAYSCALE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 490,
+        "text": "    { \"greyscale\",              GRAYSCALE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.i",
+      "spelling": "i",
+      "parser_token": "ICON",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 491,
+        "text": "    { \"i\",                      ICON, 0 },"
+      }
+    },
+    {
+      "id": "keyword.icon",
+      "spelling": "icon",
+      "parser_token": "ICON",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "icon-option",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 492,
+        "text": "    { \"icon\",                   ICON, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconbackground",
+      "spelling": "iconbackground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconBackground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 493,
+        "text": "    { \"iconbackground\",         CLKEYWORD, kwcl_IconBackground },"
+      }
+    },
+    {
+      "id": "keyword.iconbordercolor",
+      "spelling": "iconbordercolor",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconBorderColor",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 494,
+        "text": "    { \"iconbordercolor\",        CLKEYWORD, kwcl_IconBorderColor },"
+      }
+    },
+    {
+      "id": "keyword.iconborderwidth",
+      "spelling": "iconborderwidth",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_IconBorderWidth",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 495,
+        "text": "    { \"iconborderwidth\",        NKEYWORD, kwn_IconBorderWidth },"
+      }
+    },
+    {
+      "id": "keyword.icondirectory",
+      "spelling": "icondirectory",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_IconDirectory",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 496,
+        "text": "    { \"icondirectory\",          SKEYWORD, kws_IconDirectory },"
+      }
+    },
+    {
+      "id": "keyword.iconfont",
+      "spelling": "iconfont",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_IconFont",
+      "categories": [
+        "directive",
+        "icon-option",
+        "font-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 497,
+        "text": "    { \"iconfont\",               SKEYWORD, kws_IconFont },"
+      }
+    },
+    {
+      "id": "keyword.iconforeground",
+      "spelling": "iconforeground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconForeground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 498,
+        "text": "    { \"iconforeground\",         CLKEYWORD, kwcl_IconForeground },"
+      }
+    },
+    {
+      "id": "keyword.iconifybyunmapping",
+      "spelling": "iconifybyunmapping",
+      "parser_token": "ICONIFY_BY_UNMAPPING",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 499,
+        "text": "    { \"iconifybyunmapping\",     ICONIFY_BY_UNMAPPING, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagerbackground",
+      "spelling": "iconmanagerbackground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconManagerBackground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 500,
+        "text": "    { \"iconmanagerbackground\",  CLKEYWORD, kwcl_IconManagerBackground },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagerdontshow",
+      "spelling": "iconmanagerdontshow",
+      "parser_token": "ICONMGR_NOSHOW",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 501,
+        "text": "    { \"iconmanagerdontshow\",    ICONMGR_NOSHOW, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagerfont",
+      "spelling": "iconmanagerfont",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_IconManagerFont",
+      "categories": [
+        "directive",
+        "icon-manager-option",
+        "font-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 502,
+        "text": "    { \"iconmanagerfont\",        SKEYWORD, kws_IconManagerFont },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagerforeground",
+      "spelling": "iconmanagerforeground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconManagerForeground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 503,
+        "text": "    { \"iconmanagerforeground\",  CLKEYWORD, kwcl_IconManagerForeground },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagergeometry",
+      "spelling": "iconmanagergeometry",
+      "parser_token": "ICONMGR_GEOMETRY",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 504,
+        "text": "    { \"iconmanagergeometry\",    ICONMGR_GEOMETRY, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagerhighlight",
+      "spelling": "iconmanagerhighlight",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_IconManagerHighlight",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 505,
+        "text": "    { \"iconmanagerhighlight\",   CLKEYWORD, kwcl_IconManagerHighlight },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagers",
+      "spelling": "iconmanagers",
+      "parser_token": "ICONMGRS",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 506,
+        "text": "    { \"iconmanagers\",           ICONMGRS, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconmanagershow",
+      "spelling": "iconmanagershow",
+      "parser_token": "ICONMGR_SHOW",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 507,
+        "text": "    { \"iconmanagershow\",        ICONMGR_SHOW, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconmgr",
+      "spelling": "iconmgr",
+      "parser_token": "ICONMGR",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "icon-manager-option",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 508,
+        "text": "    { \"iconmgr\",                ICONMGR, 0 },"
+      }
+    },
+    {
+      "id": "keyword.iconregion",
+      "spelling": "iconregion",
+      "parser_token": "ICON_REGION",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "icon-option",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 509,
+        "text": "    { \"iconregion\",             ICON_REGION, 0 },"
+      }
+    },
+    {
+      "id": "keyword.icons",
+      "spelling": "icons",
+      "parser_token": "ICONS",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 510,
+        "text": "    { \"icons\",                  ICONS, 0 },"
+      }
+    },
+    {
+      "id": "keyword.interpolatemenucolors",
+      "spelling": "interpolatemenucolors",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_InterpolateMenuColors",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 511,
+        "text": "    { \"interpolatemenucolors\",  KEYWORD, kw0_InterpolateMenuColors },"
+      }
+    },
+    {
+      "id": "keyword.l",
+      "spelling": "l",
+      "parser_token": "LOCK",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 512,
+        "text": "    { \"l\",                      LOCK, 0 },"
+      }
+    },
+    {
+      "id": "keyword.left",
+      "spelling": "left",
+      "parser_token": "JKEYWORD",
+      "parser_value": "J_LEFT",
+      "categories": [
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 513,
+        "text": "    { \"left\",                   JKEYWORD, J_LEFT },"
+      }
+    },
+    {
+      "id": "keyword.lefttitlebutton",
+      "spelling": "lefttitlebutton",
+      "parser_token": "LEFT_TITLEBUTTON",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "title-button-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 514,
+        "text": "    { \"lefttitlebutton\",        LEFT_TITLEBUTTON, 0 },"
+      }
+    },
+    {
+      "id": "keyword.lock",
+      "spelling": "lock",
+      "parser_token": "LOCK",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 515,
+        "text": "    { \"lock\",                   LOCK, 0 },"
+      }
+    },
+    {
+      "id": "keyword.m",
+      "spelling": "m",
+      "parser_token": "META",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 516,
+        "text": "    { \"m\",                      META, 0 },"
+      }
+    },
+    {
+      "id": "keyword.maketitle",
+      "spelling": "maketitle",
+      "parser_token": "MAKE_TITLE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 517,
+        "text": "    { \"maketitle\",              MAKE_TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.maxwindowsize",
+      "spelling": "maxwindowsize",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_MaxWindowSize",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 518,
+        "text": "    { \"maxwindowsize\",          SKEYWORD, kws_MaxWindowSize },"
+      }
+    },
+    {
+      "id": "keyword.menu",
+      "spelling": "menu",
+      "parser_token": "MENU",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "menu-construct",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 519,
+        "text": "    { \"menu\",                   MENU, 0 },"
+      }
+    },
+    {
+      "id": "keyword.menubackground",
+      "spelling": "menubackground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuBackground",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 520,
+        "text": "    { \"menubackground\",         CKEYWORD, kwc_MenuBackground },"
+      }
+    },
+    {
+      "id": "keyword.menubordercolor",
+      "spelling": "menubordercolor",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuBorderColor",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 521,
+        "text": "    { \"menubordercolor\",        CKEYWORD, kwc_MenuBorderColor },"
+      }
+    },
+    {
+      "id": "keyword.menuborderwidth",
+      "spelling": "menuborderwidth",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_MenuBorderWidth",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 522,
+        "text": "    { \"menuborderwidth\",        NKEYWORD, kwn_MenuBorderWidth },"
+      }
+    },
+    {
+      "id": "keyword.menufont",
+      "spelling": "menufont",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_MenuFont",
+      "categories": [
+        "directive",
+        "menu-construct",
+        "font-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 523,
+        "text": "    { \"menufont\",               SKEYWORD, kws_MenuFont },"
+      }
+    },
+    {
+      "id": "keyword.menuforeground",
+      "spelling": "menuforeground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuForeground",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 524,
+        "text": "    { \"menuforeground\",         CKEYWORD, kwc_MenuForeground },"
+      }
+    },
+    {
+      "id": "keyword.menushadowcolor",
+      "spelling": "menushadowcolor",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuShadowColor",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 525,
+        "text": "    { \"menushadowcolor\",        CKEYWORD, kwc_MenuShadowColor },"
+      }
+    },
+    {
+      "id": "keyword.menutitlebackground",
+      "spelling": "menutitlebackground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuTitleBackground",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 526,
+        "text": "    { \"menutitlebackground\",    CKEYWORD, kwc_MenuTitleBackground },"
+      }
+    },
+    {
+      "id": "keyword.menutitleforeground",
+      "spelling": "menutitleforeground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_MenuTitleForeground",
+      "categories": [
+        "color-monochrome-option",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 527,
+        "text": "    { \"menutitleforeground\",    CKEYWORD, kwc_MenuTitleForeground },"
+      }
+    },
+    {
+      "id": "keyword.meta",
+      "spelling": "meta",
+      "parser_token": "META",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 528,
+        "text": "    { \"meta\",                   META, 0 },"
+      }
+    },
+    {
+      "id": "keyword.mod",
+      "spelling": "mod",
+      "parser_token": "META",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 529,
+        "text": "    { \"mod\",                    META, 0 },  /* fake it */"
+      }
+    },
+    {
+      "id": "keyword.monochrome",
+      "spelling": "monochrome",
+      "parser_token": "MONOCHROME",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 530,
+        "text": "    { \"monochrome\",             MONOCHROME, 0 },"
+      }
+    },
+    {
+      "id": "keyword.move",
+      "spelling": "move",
+      "parser_token": "MOVE",
+      "parser_value": "0",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 531,
+        "text": "    { \"move\",                   MOVE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.movedelta",
+      "spelling": "movedelta",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_MoveDelta",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 532,
+        "text": "    { \"movedelta\",              NKEYWORD, kwn_MoveDelta },"
+      }
+    },
+    {
+      "id": "keyword.nobackingstore",
+      "spelling": "nobackingstore",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoBackingStore",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 533,
+        "text": "    { \"nobackingstore\",         KEYWORD, kw0_NoBackingStore },"
+      }
+    },
+    {
+      "id": "keyword.nocasesensitive",
+      "spelling": "nocasesensitive",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoCaseSensitive",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 534,
+        "text": "    { \"nocasesensitive\",        KEYWORD, kw0_NoCaseSensitive },"
+      }
+    },
+    {
+      "id": "keyword.nodefaults",
+      "spelling": "nodefaults",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoDefaults",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 535,
+        "text": "    { \"nodefaults\",             KEYWORD, kw0_NoDefaults },"
+      }
+    },
+    {
+      "id": "keyword.nograbserver",
+      "spelling": "nograbserver",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoGrabServer",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 536,
+        "text": "    { \"nograbserver\",           KEYWORD, kw0_NoGrabServer },"
+      }
+    },
+    {
+      "id": "keyword.nohighlight",
+      "spelling": "nohighlight",
+      "parser_token": "NO_HILITE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 537,
+        "text": "    { \"nohighlight\",            NO_HILITE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.noiconmanagers",
+      "spelling": "noiconmanagers",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoIconManagers",
+      "categories": [
+        "directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 538,
+        "text": "    { \"noiconmanagers\",         KEYWORD, kw0_NoIconManagers },"
+      }
+    },
+    {
+      "id": "keyword.nomenushadows",
+      "spelling": "nomenushadows",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoMenuShadows",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 539,
+        "text": "    { \"nomenushadows\",          KEYWORD, kw0_NoMenuShadows },"
+      }
+    },
+    {
+      "id": "keyword.noraiseondeiconify",
+      "spelling": "noraiseondeiconify",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoRaiseOnDeiconify",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 540,
+        "text": "    { \"noraiseondeiconify\",     KEYWORD, kw0_NoRaiseOnDeiconify },"
+      }
+    },
+    {
+      "id": "keyword.noraiseonmove",
+      "spelling": "noraiseonmove",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoRaiseOnMove",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 541,
+        "text": "    { \"noraiseonmove\",          KEYWORD, kw0_NoRaiseOnMove },"
+      }
+    },
+    {
+      "id": "keyword.noraiseonresize",
+      "spelling": "noraiseonresize",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoRaiseOnResize",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 542,
+        "text": "    { \"noraiseonresize\",        KEYWORD, kw0_NoRaiseOnResize },"
+      }
+    },
+    {
+      "id": "keyword.noraiseonwarp",
+      "spelling": "noraiseonwarp",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoRaiseOnWarp",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 543,
+        "text": "    { \"noraiseonwarp\",          KEYWORD, kw0_NoRaiseOnWarp },"
+      }
+    },
+    {
+      "id": "keyword.north",
+      "spelling": "north",
+      "parser_token": "DKEYWORD",
+      "parser_value": "D_NORTH",
+      "categories": [
+        "directive",
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 544,
+        "text": "    { \"north\",                  DKEYWORD, D_NORTH },"
+      }
+    },
+    {
+      "id": "keyword.nosaveunders",
+      "spelling": "nosaveunders",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoSaveUnders",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 545,
+        "text": "    { \"nosaveunders\",           KEYWORD, kw0_NoSaveUnders },"
+      }
+    },
+    {
+      "id": "keyword.nostackmode",
+      "spelling": "nostackmode",
+      "parser_token": "NO_STACKMODE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 546,
+        "text": "    { \"nostackmode\",            NO_STACKMODE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.notitle",
+      "spelling": "notitle",
+      "parser_token": "NO_TITLE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 547,
+        "text": "    { \"notitle\",                NO_TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.notitlefocus",
+      "spelling": "notitlefocus",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoTitleFocus",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 548,
+        "text": "    { \"notitlefocus\",           KEYWORD, kw0_NoTitleFocus },"
+      }
+    },
+    {
+      "id": "keyword.notitlehighlight",
+      "spelling": "notitlehighlight",
+      "parser_token": "NO_TITLE_HILITE",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 549,
+        "text": "    { \"notitlehighlight\",       NO_TITLE_HILITE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.noversion",
+      "spelling": "noversion",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_NoVersion",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 550,
+        "text": "    { \"noversion\",              KEYWORD, kw0_NoVersion },"
+      }
+    },
+    {
+      "id": "keyword.opaquemove",
+      "spelling": "opaquemove",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_OpaqueMove",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 551,
+        "text": "    { \"opaquemove\",             KEYWORD, kw0_OpaqueMove },"
+      }
+    },
+    {
+      "id": "keyword.pixmaps",
+      "spelling": "pixmaps",
+      "parser_token": "PIXMAPS",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 552,
+        "text": "    { \"pixmaps\",                PIXMAPS, 0 },"
+      }
+    },
+    {
+      "id": "keyword.pointerbackground",
+      "spelling": "pointerbackground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_PointerBackground",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 553,
+        "text": "    { \"pointerbackground\",      CKEYWORD, kwc_PointerBackground },"
+      }
+    },
+    {
+      "id": "keyword.pointerforeground",
+      "spelling": "pointerforeground",
+      "parser_token": "CKEYWORD",
+      "parser_value": "kwc_PointerForeground",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 554,
+        "text": "    { \"pointerforeground\",      CKEYWORD, kwc_PointerForeground },"
+      }
+    },
+    {
+      "id": "keyword.priority",
+      "spelling": "priority",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_Priority",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 555,
+        "text": "    { \"priority\",               NKEYWORD, kwn_Priority },"
+      }
+    },
+    {
+      "id": "keyword.r",
+      "spelling": "r",
+      "parser_token": "ROOT",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 556,
+        "text": "    { \"r\",                      ROOT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.randomplacement",
+      "spelling": "randomplacement",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_RandomPlacement",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 557,
+        "text": "    { \"randomplacement\",        KEYWORD, kw0_RandomPlacement },"
+      }
+    },
+    {
+      "id": "keyword.resize",
+      "spelling": "resize",
+      "parser_token": "RESIZE",
+      "parser_value": "0",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 558,
+        "text": "    { \"resize\",                 RESIZE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.resizefont",
+      "spelling": "resizefont",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_ResizeFont",
+      "categories": [
+        "directive",
+        "font-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 559,
+        "text": "    { \"resizefont\",             SKEYWORD, kws_ResizeFont },"
+      }
+    },
+    {
+      "id": "keyword.restartpreviousstate",
+      "spelling": "restartpreviousstate",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_RestartPreviousState",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 560,
+        "text": "    { \"restartpreviousstate\",   KEYWORD, kw0_RestartPreviousState },"
+      }
+    },
+    {
+      "id": "keyword.right",
+      "spelling": "right",
+      "parser_token": "JKEYWORD",
+      "parser_value": "J_RIGHT",
+      "categories": [
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 561,
+        "text": "    { \"right\",                  JKEYWORD, J_RIGHT },"
+      }
+    },
+    {
+      "id": "keyword.righttitlebutton",
+      "spelling": "righttitlebutton",
+      "parser_token": "RIGHT_TITLEBUTTON",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "title-button-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 562,
+        "text": "    { \"righttitlebutton\",       RIGHT_TITLEBUTTON, 0 },"
+      }
+    },
+    {
+      "id": "keyword.root",
+      "spelling": "root",
+      "parser_token": "ROOT",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 563,
+        "text": "    { \"root\",                   ROOT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.s",
+      "spelling": "s",
+      "parser_token": "SHIFT",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 564,
+        "text": "    { \"s\",                      SHIFT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.savecolor",
+      "spelling": "savecolor",
+      "parser_token": "SAVECOLOR",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 565,
+        "text": "    { \"savecolor\",              SAVECOLOR, 0},"
+      }
+    },
+    {
+      "id": "keyword.select",
+      "spelling": "select",
+      "parser_token": "SELECT",
+      "parser_value": "0",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 566,
+        "text": "    { \"select\",                 SELECT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.shift",
+      "spelling": "shift",
+      "parser_token": "SHIFT",
+      "parser_value": "0",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 567,
+        "text": "    { \"shift\",                  SHIFT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.showiconmanager",
+      "spelling": "showiconmanager",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_ShowIconManager",
+      "categories": [
+        "directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 568,
+        "text": "    { \"showiconmanager\",        KEYWORD, kw0_ShowIconManager },"
+      }
+    },
+    {
+      "id": "keyword.sorticonmanager",
+      "spelling": "sorticonmanager",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_SortIconManager",
+      "categories": [
+        "directive",
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 569,
+        "text": "    { \"sorticonmanager\",        KEYWORD, kw0_SortIconManager },"
+      }
+    },
+    {
+      "id": "keyword.south",
+      "spelling": "south",
+      "parser_token": "DKEYWORD",
+      "parser_value": "D_SOUTH",
+      "categories": [
+        "directive",
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 570,
+        "text": "    { \"south\",                  DKEYWORD, D_SOUTH },"
+      }
+    },
+    {
+      "id": "keyword.squeezetitle",
+      "spelling": "squeezetitle",
+      "parser_token": "SQUEEZE_TITLE",
+      "parser_value": "0",
+      "categories": [
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 571,
+        "text": "    { \"squeezetitle\",           SQUEEZE_TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.starticonified",
+      "spelling": "starticonified",
+      "parser_token": "START_ICONIFIED",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 572,
+        "text": "    { \"starticonified\",         START_ICONIFIED, 0 },"
+      }
+    },
+    {
+      "id": "keyword.t",
+      "spelling": "t",
+      "parser_token": "TITLE",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 573,
+        "text": "    { \"t\",                      TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.title",
+      "spelling": "title",
+      "parser_token": "TITLE",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context",
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 574,
+        "text": "    { \"title\",                  TITLE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.titlebackground",
+      "spelling": "titlebackground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_TitleBackground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 575,
+        "text": "    { \"titlebackground\",        CLKEYWORD, kwcl_TitleBackground },"
+      }
+    },
+    {
+      "id": "keyword.titlebuttonborderwidth",
+      "spelling": "titlebuttonborderwidth",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_TitleButtonBorderWidth",
+      "categories": [
+        "directive",
+        "title-button-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 576,
+        "text": "    { \"titlebuttonborderwidth\", NKEYWORD, kwn_TitleButtonBorderWidth },"
+      }
+    },
+    {
+      "id": "keyword.titlefont",
+      "spelling": "titlefont",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_TitleFont",
+      "categories": [
+        "directive",
+        "font-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 577,
+        "text": "    { \"titlefont\",              SKEYWORD, kws_TitleFont },"
+      }
+    },
+    {
+      "id": "keyword.titleforeground",
+      "spelling": "titleforeground",
+      "parser_token": "CLKEYWORD",
+      "parser_value": "kwcl_TitleForeground",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 578,
+        "text": "    { \"titleforeground\",        CLKEYWORD, kwcl_TitleForeground },"
+      }
+    },
+    {
+      "id": "keyword.titlehighlight",
+      "spelling": "titlehighlight",
+      "parser_token": "TITLE_HILITE",
+      "parser_value": "0",
+      "categories": [
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 579,
+        "text": "    { \"titlehighlight\",         TITLE_HILITE, 0 },"
+      }
+    },
+    {
+      "id": "keyword.titlepadding",
+      "spelling": "titlepadding",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_TitlePadding",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 580,
+        "text": "    { \"titlepadding\",           NKEYWORD, kwn_TitlePadding },"
+      }
+    },
+    {
+      "id": "keyword.unknownicon",
+      "spelling": "unknownicon",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_UnknownIcon",
+      "categories": [
+        "directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 581,
+        "text": "    { \"unknownicon\",            SKEYWORD, kws_UnknownIcon },"
+      }
+    },
+    {
+      "id": "keyword.usepposition",
+      "spelling": "usepposition",
+      "parser_token": "SKEYWORD",
+      "parser_value": "kws_UsePPosition",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 582,
+        "text": "    { \"usepposition\",           SKEYWORD, kws_UsePPosition },"
+      }
+    },
+    {
+      "id": "keyword.w",
+      "spelling": "w",
+      "parser_token": "WINDOW",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 583,
+        "text": "    { \"w\",                      WINDOW, 0 },"
+      }
+    },
+    {
+      "id": "keyword.wait",
+      "spelling": "wait",
+      "parser_token": "WAIT",
+      "parser_value": "0",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 584,
+        "text": "    { \"wait\",                   WAIT, 0 },"
+      }
+    },
+    {
+      "id": "keyword.warpcursor",
+      "spelling": "warpcursor",
+      "parser_token": "WARP_CURSOR",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 585,
+        "text": "    { \"warpcursor\",             WARP_CURSOR, 0 },"
+      }
+    },
+    {
+      "id": "keyword.warpunmapped",
+      "spelling": "warpunmapped",
+      "parser_token": "KEYWORD",
+      "parser_value": "kw0_WarpUnmapped",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 586,
+        "text": "    { \"warpunmapped\",           KEYWORD, kw0_WarpUnmapped },"
+      }
+    },
+    {
+      "id": "keyword.west",
+      "spelling": "west",
+      "parser_token": "DKEYWORD",
+      "parser_value": "D_WEST",
+      "categories": [
+        "directive",
+        "direction-or-justification"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 587,
+        "text": "    { \"west\",                   DKEYWORD, D_WEST },"
+      }
+    },
+    {
+      "id": "keyword.window",
+      "spelling": "window",
+      "parser_token": "WINDOW",
+      "parser_value": "0",
+      "categories": [
+        "mouse-binding-form",
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 588,
+        "text": "    { \"window\",                 WINDOW, 0 },"
+      }
+    },
+    {
+      "id": "keyword.windowfunction",
+      "spelling": "windowfunction",
+      "parser_token": "WINDOW_FUNCTION",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 589,
+        "text": "    { \"windowfunction\",         WINDOW_FUNCTION, 0 },"
+      }
+    },
+    {
+      "id": "keyword.windowring",
+      "spelling": "windowring",
+      "parser_token": "WINDOW_RING",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 590,
+        "text": "    { \"windowring\",             WINDOW_RING, 0 },"
+      }
+    },
+    {
+      "id": "keyword.xorvalue",
+      "spelling": "xorvalue",
+      "parser_token": "NKEYWORD",
+      "parser_value": "kwn_XorValue",
+      "categories": [
+        "directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 591,
+        "text": "    { \"xorvalue\",               NKEYWORD, kwn_XorValue },"
+      }
+    },
+    {
+      "id": "keyword.zoom",
+      "spelling": "zoom",
+      "parser_token": "ZOOM",
+      "parser_value": "0",
+      "categories": [
+        "directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/parse.c",
+        "line": 592,
+        "text": "    { \"zoom\",                   ZOOM, 0 },"
+      }
+    }
+  ],
+  "grammar": [
+    {
+      "id": "grammar.twmrc.1",
+      "production": "twmrc",
+      "ordinal": 1,
+      "syntax": "stmts",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 138,
+        "text": "twmrc           : stmts"
+      }
+    },
+    {
+      "id": "grammar.stmts.1",
+      "production": "stmts",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 141,
+        "text": "stmts           : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.stmts.2",
+      "production": "stmts",
+      "ordinal": 2,
+      "syntax": "stmts stmt",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 142,
+        "text": "                | stmts stmt"
+      }
+    },
+    {
+      "id": "grammar.stmt.1",
+      "production": "stmt",
+      "ordinal": 1,
+      "syntax": "error",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 145,
+        "text": "stmt            : error"
+      }
+    },
+    {
+      "id": "grammar.stmt.2",
+      "production": "stmt",
+      "ordinal": 2,
+      "syntax": "noarg",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 146,
+        "text": "                | noarg"
+      }
+    },
+    {
+      "id": "grammar.stmt.3",
+      "production": "stmt",
+      "ordinal": 3,
+      "syntax": "sarg",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 147,
+        "text": "                | sarg"
+      }
+    },
+    {
+      "id": "grammar.stmt.4",
+      "production": "stmt",
+      "ordinal": 4,
+      "syntax": "narg",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 148,
+        "text": "                | narg"
+      }
+    },
+    {
+      "id": "grammar.stmt.5",
+      "production": "stmt",
+      "ordinal": 5,
+      "syntax": "squeeze",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 149,
+        "text": "                | squeeze"
+      }
+    },
+    {
+      "id": "grammar.stmt.6",
+      "production": "stmt",
+      "ordinal": 6,
+      "syntax": "ICON_REGION string DKEYWORD DKEYWORD number number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 150,
+        "text": "                | ICON_REGION string DKEYWORD DKEYWORD number number"
+      }
+    },
+    {
+      "id": "grammar.stmt.7",
+      "production": "stmt",
+      "ordinal": 7,
+      "syntax": "ICONMGR_GEOMETRY string number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 152,
+        "text": "                | ICONMGR_GEOMETRY string number        { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.8",
+      "production": "stmt",
+      "ordinal": 8,
+      "syntax": "ICONMGR_GEOMETRY string",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 158,
+        "text": "                | ICONMGR_GEOMETRY string       { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.9",
+      "production": "stmt",
+      "ordinal": 9,
+      "syntax": "ZOOM number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 161,
+        "text": "                | ZOOM number           { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.10",
+      "production": "stmt",
+      "ordinal": 10,
+      "syntax": "ZOOM",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 167,
+        "text": "                | ZOOM                  { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.11",
+      "production": "stmt",
+      "ordinal": 11,
+      "syntax": "PIXMAPS pixmap_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 169,
+        "text": "                | PIXMAPS pixmap_list   {}"
+      }
+    },
+    {
+      "id": "grammar.stmt.12",
+      "production": "stmt",
+      "ordinal": 12,
+      "syntax": "CURSORS cursor_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 170,
+        "text": "                | CURSORS cursor_list   {}"
+      }
+    },
+    {
+      "id": "grammar.stmt.13",
+      "production": "stmt",
+      "ordinal": 13,
+      "syntax": "ICONIFY_BY_UNMAPPING win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 171,
+        "text": "                | ICONIFY_BY_UNMAPPING  { list = &Scr->IconifyByUn; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.14",
+      "production": "stmt",
+      "ordinal": 14,
+      "syntax": "ICONIFY_BY_UNMAPPING",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 173,
+        "text": "                | ICONIFY_BY_UNMAPPING  { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.15",
+      "production": "stmt",
+      "ordinal": 15,
+      "syntax": "LEFT_TITLEBUTTON string EQUALS action",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 175,
+        "text": "                | LEFT_TITLEBUTTON string EQUALS action {"
+      }
+    },
+    {
+      "id": "grammar.stmt.16",
+      "production": "stmt",
+      "ordinal": 16,
+      "syntax": "RIGHT_TITLEBUTTON string EQUALS action",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 178,
+        "text": "                | RIGHT_TITLEBUTTON string EQUALS action {"
+      }
+    },
+    {
+      "id": "grammar.stmt.17",
+      "production": "stmt",
+      "ordinal": 17,
+      "syntax": "button string",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 181,
+        "text": "                | button string         { root = GetRoot($2, NULLSTR, NULLSTR);"
+      }
+    },
+    {
+      "id": "grammar.stmt.18",
+      "production": "stmt",
+      "ordinal": 18,
+      "syntax": "button action",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 185,
+        "text": "                | button action         { Scr->Mouse[$1][C_ROOT][0].func = $2;"
+      }
+    },
+    {
+      "id": "grammar.stmt.19",
+      "production": "stmt",
+      "ordinal": 19,
+      "syntax": "string fullkey",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 201,
+        "text": "                | string fullkey        { GotKey($1, $2); }"
+      }
+    },
+    {
+      "id": "grammar.stmt.20",
+      "production": "stmt",
+      "ordinal": 20,
+      "syntax": "button full",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 202,
+        "text": "                | button full           { GotButton($1, $2); }"
+      }
+    },
+    {
+      "id": "grammar.stmt.21",
+      "production": "stmt",
+      "ordinal": 21,
+      "syntax": "DONT_ICONIFY_BY_UNMAPPING win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 203,
+        "text": "                | DONT_ICONIFY_BY_UNMAPPING { list = &Scr->DontIconify; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.22",
+      "production": "stmt",
+      "ordinal": 22,
+      "syntax": "ICONMGR_NOSHOW win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 205,
+        "text": "                | ICONMGR_NOSHOW        { list = &Scr->IconMgrNoShow; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.23",
+      "production": "stmt",
+      "ordinal": 23,
+      "syntax": "ICONMGR_NOSHOW",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 207,
+        "text": "                | ICONMGR_NOSHOW        { Scr->IconManagerDontShow = TRUE; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.24",
+      "production": "stmt",
+      "ordinal": 24,
+      "syntax": "ICONMGRS iconm_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 208,
+        "text": "                | ICONMGRS              { list = &Scr->IconMgrs; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.25",
+      "production": "stmt",
+      "ordinal": 25,
+      "syntax": "ICONMGR_SHOW win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 210,
+        "text": "                | ICONMGR_SHOW          { list = &Scr->IconMgrShow; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.26",
+      "production": "stmt",
+      "ordinal": 26,
+      "syntax": "NO_TITLE_HILITE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 212,
+        "text": "                | NO_TITLE_HILITE       { list = &Scr->NoTitleHighlight; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.27",
+      "production": "stmt",
+      "ordinal": 27,
+      "syntax": "NO_TITLE_HILITE",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 214,
+        "text": "                | NO_TITLE_HILITE       { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.28",
+      "production": "stmt",
+      "ordinal": 28,
+      "syntax": "NO_HILITE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 216,
+        "text": "                | NO_HILITE             { list = &Scr->NoHighlight; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.29",
+      "production": "stmt",
+      "ordinal": 29,
+      "syntax": "NO_HILITE",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 218,
+        "text": "                | NO_HILITE             { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.30",
+      "production": "stmt",
+      "ordinal": 30,
+      "syntax": "NO_STACKMODE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 220,
+        "text": "                | NO_STACKMODE          { list = &Scr->NoStackModeL; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.31",
+      "production": "stmt",
+      "ordinal": 31,
+      "syntax": "NO_STACKMODE",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 222,
+        "text": "                | NO_STACKMODE          { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.32",
+      "production": "stmt",
+      "ordinal": 32,
+      "syntax": "NO_TITLE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 224,
+        "text": "                | NO_TITLE              { list = &Scr->NoTitle; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.33",
+      "production": "stmt",
+      "ordinal": 33,
+      "syntax": "NO_TITLE",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 226,
+        "text": "                | NO_TITLE              { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.34",
+      "production": "stmt",
+      "ordinal": 34,
+      "syntax": "MAKE_TITLE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 228,
+        "text": "                | MAKE_TITLE            { list = &Scr->MakeTitle; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.35",
+      "production": "stmt",
+      "ordinal": 35,
+      "syntax": "START_ICONIFIED win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 230,
+        "text": "                | START_ICONIFIED       { list = &Scr->StartIconified; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.36",
+      "production": "stmt",
+      "ordinal": 36,
+      "syntax": "AUTO_RAISE win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 232,
+        "text": "                | AUTO_RAISE            { list = &Scr->AutoRaise; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.37",
+      "production": "stmt",
+      "ordinal": 37,
+      "syntax": "MENU string LP string COLON string RP menu",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 234,
+        "text": "                | MENU string LP string COLON string RP {"
+      }
+    },
+    {
+      "id": "grammar.stmt.38",
+      "production": "stmt",
+      "ordinal": 38,
+      "syntax": "MENU string menu",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 237,
+        "text": "                | MENU string           { root = GetRoot($2, NULLSTR, NULLSTR); }"
+      }
+    },
+    {
+      "id": "grammar.stmt.39",
+      "production": "stmt",
+      "ordinal": 39,
+      "syntax": "FUNCTION string function",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 239,
+        "text": "                | FUNCTION string       { root = GetRoot($2, NULLSTR, NULLSTR); }"
+      }
+    },
+    {
+      "id": "grammar.stmt.40",
+      "production": "stmt",
+      "ordinal": 40,
+      "syntax": "ICONS icon_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 241,
+        "text": "                | ICONS                 { list = &Scr->IconNames; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.41",
+      "production": "stmt",
+      "ordinal": 41,
+      "syntax": "COLOR color_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 243,
+        "text": "                | COLOR                 { color = COLOR; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.42",
+      "production": "stmt",
+      "ordinal": 42,
+      "syntax": "GRAYSCALE color_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 245,
+        "text": "                | GRAYSCALE             { color = GRAYSCALE; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.43",
+      "production": "stmt",
+      "ordinal": 43,
+      "syntax": "SAVECOLOR save_color_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 247,
+        "text": "                | SAVECOLOR"
+      }
+    },
+    {
+      "id": "grammar.stmt.44",
+      "production": "stmt",
+      "ordinal": 44,
+      "syntax": "MONOCHROME color_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 249,
+        "text": "                | MONOCHROME            { color = MONOCHROME; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.45",
+      "production": "stmt",
+      "ordinal": 45,
+      "syntax": "DEFAULT_FUNCTION action",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 251,
+        "text": "                | DEFAULT_FUNCTION action { Scr->DefaultFunction.func = $2;"
+      }
+    },
+    {
+      "id": "grammar.stmt.46",
+      "production": "stmt",
+      "ordinal": 46,
+      "syntax": "WINDOW_FUNCTION action",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 267,
+        "text": "                | WINDOW_FUNCTION action { Scr->WindowFunction.func = $2;"
+      }
+    },
+    {
+      "id": "grammar.stmt.47",
+      "production": "stmt",
+      "ordinal": 47,
+      "syntax": "WARP_CURSOR win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 275,
+        "text": "                | WARP_CURSOR           { list = &Scr->WarpCursorL; }"
+      }
+    },
+    {
+      "id": "grammar.stmt.48",
+      "production": "stmt",
+      "ordinal": 48,
+      "syntax": "WARP_CURSOR",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 277,
+        "text": "                | WARP_CURSOR           { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.stmt.49",
+      "production": "stmt",
+      "ordinal": 49,
+      "syntax": "WINDOW_RING win_list",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 279,
+        "text": "                | WINDOW_RING           { list = &Scr->WindowRingL; }"
+      }
+    },
+    {
+      "id": "grammar.noarg.1",
+      "production": "noarg",
+      "ordinal": 1,
+      "syntax": "KEYWORD",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 284,
+        "text": "noarg           : KEYWORD               { if (!do_single_keyword ($1)) {"
+      }
+    },
+    {
+      "id": "grammar.sarg.1",
+      "production": "sarg",
+      "ordinal": 1,
+      "syntax": "SKEYWORD string",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 293,
+        "text": "sarg            : SKEYWORD string       { if (!do_string_keyword ($1, $2)) {"
+      }
+    },
+    {
+      "id": "grammar.narg.1",
+      "production": "narg",
+      "ordinal": 1,
+      "syntax": "NKEYWORD number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 302,
+        "text": "narg            : NKEYWORD number       { if (!do_number_keyword ($1, $2)) {"
+      }
+    },
+    {
+      "id": "grammar.full.1",
+      "production": "full",
+      "ordinal": 1,
+      "syntax": "EQUALS keys COLON contexts COLON action",
+      "categories": [
+        "mouse-binding-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 313,
+        "text": "full            : EQUALS keys COLON contexts COLON action  { $$ = $6; }"
+      }
+    },
+    {
+      "id": "grammar.fullkey.1",
+      "production": "fullkey",
+      "ordinal": 1,
+      "syntax": "EQUALS keys COLON contextkeys COLON action",
+      "categories": [
+        "key-binding-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 316,
+        "text": "fullkey         : EQUALS keys COLON contextkeys COLON action  { $$ = $6; }"
+      }
+    },
+    {
+      "id": "grammar.keys.1",
+      "production": "keys",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 319,
+        "text": "keys            : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.keys.2",
+      "production": "keys",
+      "ordinal": 2,
+      "syntax": "keys key",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 320,
+        "text": "                | keys key"
+      }
+    },
+    {
+      "id": "grammar.key.1",
+      "production": "key",
+      "ordinal": 1,
+      "syntax": "META",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 323,
+        "text": "key             : META                  { mods |= Mod1Mask; }"
+      }
+    },
+    {
+      "id": "grammar.key.2",
+      "production": "key",
+      "ordinal": 2,
+      "syntax": "SHIFT",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 324,
+        "text": "                | SHIFT                 { mods |= ShiftMask; }"
+      }
+    },
+    {
+      "id": "grammar.key.3",
+      "production": "key",
+      "ordinal": 3,
+      "syntax": "LOCK",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 325,
+        "text": "                | LOCK                  { mods |= LockMask; }"
+      }
+    },
+    {
+      "id": "grammar.key.4",
+      "production": "key",
+      "ordinal": 4,
+      "syntax": "CONTROL",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 326,
+        "text": "                | CONTROL               { mods |= ControlMask; }"
+      }
+    },
+    {
+      "id": "grammar.key.5",
+      "production": "key",
+      "ordinal": 5,
+      "syntax": "META number",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 327,
+        "text": "                | META number           { if ($2 < 1 || $2 > 5) {"
+      }
+    },
+    {
+      "id": "grammar.key.6",
+      "production": "key",
+      "ordinal": 6,
+      "syntax": "OR",
+      "categories": [
+        "binding-modifier"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 336,
+        "text": "                | OR                    { }"
+      }
+    },
+    {
+      "id": "grammar.contexts.1",
+      "production": "contexts",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 339,
+        "text": "contexts        : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.contexts.2",
+      "production": "contexts",
+      "ordinal": 2,
+      "syntax": "contexts context",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 340,
+        "text": "                | contexts context"
+      }
+    },
+    {
+      "id": "grammar.context.1",
+      "production": "context",
+      "ordinal": 1,
+      "syntax": "WINDOW",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 343,
+        "text": "context         : WINDOW                { cont |= C_WINDOW_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.2",
+      "production": "context",
+      "ordinal": 2,
+      "syntax": "TITLE",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 344,
+        "text": "                | TITLE                 { cont |= C_TITLE_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.3",
+      "production": "context",
+      "ordinal": 3,
+      "syntax": "ICON",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 345,
+        "text": "                | ICON                  { cont |= C_ICON_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.4",
+      "production": "context",
+      "ordinal": 4,
+      "syntax": "ROOT",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 346,
+        "text": "                | ROOT                  { cont |= C_ROOT_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.5",
+      "production": "context",
+      "ordinal": 5,
+      "syntax": "FRAME",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 347,
+        "text": "                | FRAME                 { cont |= C_FRAME_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.6",
+      "production": "context",
+      "ordinal": 6,
+      "syntax": "ICONMGR",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 348,
+        "text": "                | ICONMGR               { cont |= C_ICONMGR_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.7",
+      "production": "context",
+      "ordinal": 7,
+      "syntax": "META",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 349,
+        "text": "                | META                  { cont |= C_ICONMGR_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.context.8",
+      "production": "context",
+      "ordinal": 8,
+      "syntax": "ALL",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 350,
+        "text": "                | ALL                   { cont |= C_ALL_BITS; }"
+      }
+    },
+    {
+      "id": "grammar.context.9",
+      "production": "context",
+      "ordinal": 9,
+      "syntax": "OR",
+      "categories": [
+        "mouse-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 351,
+        "text": "                | OR                    {  }"
+      }
+    },
+    {
+      "id": "grammar.contextkeys.1",
+      "production": "contextkeys",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 354,
+        "text": "contextkeys     : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.contextkeys.2",
+      "production": "contextkeys",
+      "ordinal": 2,
+      "syntax": "contextkeys contextkey",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 355,
+        "text": "                | contextkeys contextkey"
+      }
+    },
+    {
+      "id": "grammar.contextkey.1",
+      "production": "contextkey",
+      "ordinal": 1,
+      "syntax": "WINDOW",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 358,
+        "text": "contextkey      : WINDOW                { cont |= C_WINDOW_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.2",
+      "production": "contextkey",
+      "ordinal": 2,
+      "syntax": "TITLE",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 359,
+        "text": "                | TITLE                 { cont |= C_TITLE_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.3",
+      "production": "contextkey",
+      "ordinal": 3,
+      "syntax": "ICON",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 360,
+        "text": "                | ICON                  { cont |= C_ICON_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.4",
+      "production": "contextkey",
+      "ordinal": 4,
+      "syntax": "ROOT",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 361,
+        "text": "                | ROOT                  { cont |= C_ROOT_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.5",
+      "production": "contextkey",
+      "ordinal": 5,
+      "syntax": "FRAME",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 362,
+        "text": "                | FRAME                 { cont |= C_FRAME_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.6",
+      "production": "contextkey",
+      "ordinal": 6,
+      "syntax": "ICONMGR",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 363,
+        "text": "                | ICONMGR               { cont |= C_ICONMGR_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.7",
+      "production": "contextkey",
+      "ordinal": 7,
+      "syntax": "META",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 364,
+        "text": "                | META                  { cont |= C_ICONMGR_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.8",
+      "production": "contextkey",
+      "ordinal": 8,
+      "syntax": "ALL",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 365,
+        "text": "                | ALL                   { cont |= C_ALL_BITS; }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.9",
+      "production": "contextkey",
+      "ordinal": 9,
+      "syntax": "OR",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 366,
+        "text": "                | OR                    { }"
+      }
+    },
+    {
+      "id": "grammar.contextkey.10",
+      "production": "contextkey",
+      "ordinal": 10,
+      "syntax": "string",
+      "categories": [
+        "key-binding-form",
+        "binding-context"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 367,
+        "text": "                | string                { Name = $1; cont |= C_NAME_BIT; }"
+      }
+    },
+    {
+      "id": "grammar.pixmap_list.1",
+      "production": "pixmap_list",
+      "ordinal": 1,
+      "syntax": "LB pixmap_entries RB",
+      "categories": [
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 371,
+        "text": "pixmap_list     : LB pixmap_entries RB"
+      }
+    },
+    {
+      "id": "grammar.pixmap_entries.1",
+      "production": "pixmap_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 374,
+        "text": "pixmap_entries  : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.pixmap_entries.2",
+      "production": "pixmap_entries",
+      "ordinal": 2,
+      "syntax": "pixmap_entries pixmap_entry",
+      "categories": [
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 375,
+        "text": "                | pixmap_entries pixmap_entry"
+      }
+    },
+    {
+      "id": "grammar.pixmap_entry.1",
+      "production": "pixmap_entry",
+      "ordinal": 1,
+      "syntax": "TITLE_HILITE string",
+      "categories": [
+        "pixmap-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 378,
+        "text": "pixmap_entry    : TITLE_HILITE string { SetHighlightPixmap ($2); }"
+      }
+    },
+    {
+      "id": "grammar.cursor_list.1",
+      "production": "cursor_list",
+      "ordinal": 1,
+      "syntax": "LB cursor_entries RB",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 382,
+        "text": "cursor_list     : LB cursor_entries RB"
+      }
+    },
+    {
+      "id": "grammar.cursor_entries.1",
+      "production": "cursor_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 385,
+        "text": "cursor_entries  : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.cursor_entries.2",
+      "production": "cursor_entries",
+      "ordinal": 2,
+      "syntax": "cursor_entries cursor_entry",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 386,
+        "text": "                | cursor_entries cursor_entry"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.1",
+      "production": "cursor_entry",
+      "ordinal": 1,
+      "syntax": "FRAME string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 389,
+        "text": "cursor_entry    : FRAME string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.2",
+      "production": "cursor_entry",
+      "ordinal": 2,
+      "syntax": "FRAME string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 391,
+        "text": "                | FRAME string  {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.3",
+      "production": "cursor_entry",
+      "ordinal": 3,
+      "syntax": "TITLE string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 393,
+        "text": "                | TITLE string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.4",
+      "production": "cursor_entry",
+      "ordinal": 4,
+      "syntax": "TITLE string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 395,
+        "text": "                | TITLE string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.5",
+      "production": "cursor_entry",
+      "ordinal": 5,
+      "syntax": "ICON string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 397,
+        "text": "                | ICON string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.6",
+      "production": "cursor_entry",
+      "ordinal": 6,
+      "syntax": "ICON string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 399,
+        "text": "                | ICON string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.7",
+      "production": "cursor_entry",
+      "ordinal": 7,
+      "syntax": "ICONMGR string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 401,
+        "text": "                | ICONMGR string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.8",
+      "production": "cursor_entry",
+      "ordinal": 8,
+      "syntax": "ICONMGR string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 403,
+        "text": "                | ICONMGR string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.9",
+      "production": "cursor_entry",
+      "ordinal": 9,
+      "syntax": "BUTTON string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 405,
+        "text": "                | BUTTON string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.10",
+      "production": "cursor_entry",
+      "ordinal": 10,
+      "syntax": "BUTTON string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 407,
+        "text": "                | BUTTON string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.11",
+      "production": "cursor_entry",
+      "ordinal": 11,
+      "syntax": "MOVE string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 409,
+        "text": "                | MOVE string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.12",
+      "production": "cursor_entry",
+      "ordinal": 12,
+      "syntax": "MOVE string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 411,
+        "text": "                | MOVE string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.13",
+      "production": "cursor_entry",
+      "ordinal": 13,
+      "syntax": "RESIZE string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 413,
+        "text": "                | RESIZE string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.14",
+      "production": "cursor_entry",
+      "ordinal": 14,
+      "syntax": "RESIZE string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 415,
+        "text": "                | RESIZE string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.15",
+      "production": "cursor_entry",
+      "ordinal": 15,
+      "syntax": "WAIT string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 417,
+        "text": "                | WAIT string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.16",
+      "production": "cursor_entry",
+      "ordinal": 16,
+      "syntax": "WAIT string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 419,
+        "text": "                | WAIT string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.17",
+      "production": "cursor_entry",
+      "ordinal": 17,
+      "syntax": "MENU string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 421,
+        "text": "                | MENU string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.18",
+      "production": "cursor_entry",
+      "ordinal": 18,
+      "syntax": "MENU string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 423,
+        "text": "                | MENU string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.19",
+      "production": "cursor_entry",
+      "ordinal": 19,
+      "syntax": "SELECT string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 425,
+        "text": "                | SELECT string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.20",
+      "production": "cursor_entry",
+      "ordinal": 20,
+      "syntax": "SELECT string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 427,
+        "text": "                | SELECT string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.21",
+      "production": "cursor_entry",
+      "ordinal": 21,
+      "syntax": "KILL string string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 429,
+        "text": "                | KILL string string {"
+      }
+    },
+    {
+      "id": "grammar.cursor_entry.22",
+      "production": "cursor_entry",
+      "ordinal": 22,
+      "syntax": "KILL string",
+      "categories": [
+        "cursor-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 431,
+        "text": "                | KILL string {"
+      }
+    },
+    {
+      "id": "grammar.color_list.1",
+      "production": "color_list",
+      "ordinal": 1,
+      "syntax": "LB color_entries RB",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 435,
+        "text": "color_list      : LB color_entries RB"
+      }
+    },
+    {
+      "id": "grammar.color_entries.1",
+      "production": "color_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 439,
+        "text": "color_entries   : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.color_entries.2",
+      "production": "color_entries",
+      "ordinal": 2,
+      "syntax": "color_entries color_entry",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 440,
+        "text": "                | color_entries color_entry"
+      }
+    },
+    {
+      "id": "grammar.color_entry.1",
+      "production": "color_entry",
+      "ordinal": 1,
+      "syntax": "CLKEYWORD string",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 443,
+        "text": "color_entry     : CLKEYWORD string      { if (!do_colorlist_keyword ($1, color,"
+      }
+    },
+    {
+      "id": "grammar.color_entry.2",
+      "production": "color_entry",
+      "ordinal": 2,
+      "syntax": "CLKEYWORD string win_color_list",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 451,
+        "text": "                | CLKEYWORD string      { list = do_colorlist_keyword($1,color,"
+      }
+    },
+    {
+      "id": "grammar.color_entry.3",
+      "production": "color_entry",
+      "ordinal": 3,
+      "syntax": "CKEYWORD string",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 461,
+        "text": "                | CKEYWORD string       { if (!do_color_keyword ($1, color,"
+      }
+    },
+    {
+      "id": "grammar.save_color_list.1",
+      "production": "save_color_list",
+      "ordinal": 1,
+      "syntax": "LB s_color_entries RB",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 471,
+        "text": "save_color_list : LB s_color_entries RB"
+      }
+    },
+    {
+      "id": "grammar.s_color_entries.1",
+      "production": "s_color_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 474,
+        "text": "s_color_entries : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.s_color_entries.2",
+      "production": "s_color_entries",
+      "ordinal": 2,
+      "syntax": "s_color_entries s_color_entry",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 475,
+        "text": "                | s_color_entries s_color_entry"
+      }
+    },
+    {
+      "id": "grammar.s_color_entry.1",
+      "production": "s_color_entry",
+      "ordinal": 1,
+      "syntax": "string",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 478,
+        "text": "s_color_entry   : string            { do_string_savecolor(color, $1); }"
+      }
+    },
+    {
+      "id": "grammar.s_color_entry.2",
+      "production": "s_color_entry",
+      "ordinal": 2,
+      "syntax": "CLKEYWORD",
+      "categories": [
+        "color-monochrome-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 479,
+        "text": "                | CLKEYWORD         { do_var_savecolor($1); }"
+      }
+    },
+    {
+      "id": "grammar.win_color_list.1",
+      "production": "win_color_list",
+      "ordinal": 1,
+      "syntax": "LB win_color_entries RB",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 482,
+        "text": "win_color_list  : LB win_color_entries RB"
+      }
+    },
+    {
+      "id": "grammar.win_color_entries.1",
+      "production": "win_color_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 485,
+        "text": "win_color_entries       : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.win_color_entries.2",
+      "production": "win_color_entries",
+      "ordinal": 2,
+      "syntax": "win_color_entries win_color_entry",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 486,
+        "text": "                | win_color_entries win_color_entry"
+      }
+    },
+    {
+      "id": "grammar.win_color_entry.1",
+      "production": "win_color_entry",
+      "ordinal": 1,
+      "syntax": "string string",
+      "categories": [
+        "color-monochrome-option",
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 489,
+        "text": "win_color_entry : string string         { if (Scr->FirstTime &&"
+      }
+    },
+    {
+      "id": "grammar.squeeze.1",
+      "production": "squeeze",
+      "ordinal": 1,
+      "syntax": "SQUEEZE_TITLE",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 494,
+        "text": "squeeze         : SQUEEZE_TITLE {"
+      }
+    },
+    {
+      "id": "grammar.squeeze.2",
+      "production": "squeeze",
+      "ordinal": 2,
+      "syntax": "SQUEEZE_TITLE LB win_sqz_entries RB",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 497,
+        "text": "                | SQUEEZE_TITLE { list = &Scr->SqueezeTitleL;"
+      }
+    },
+    {
+      "id": "grammar.squeeze.3",
+      "production": "squeeze",
+      "ordinal": 3,
+      "syntax": "DONT_SQUEEZE_TITLE",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 502,
+        "text": "                | DONT_SQUEEZE_TITLE { Scr->SqueezeTitle = FALSE; }"
+      }
+    },
+    {
+      "id": "grammar.squeeze.4",
+      "production": "squeeze",
+      "ordinal": 4,
+      "syntax": "DONT_SQUEEZE_TITLE win_list",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 503,
+        "text": "                | DONT_SQUEEZE_TITLE { list = &Scr->DontSqueezeTitleL; }"
+      }
+    },
+    {
+      "id": "grammar.win_sqz_entries.1",
+      "production": "win_sqz_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 507,
+        "text": "win_sqz_entries : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.win_sqz_entries.2",
+      "production": "win_sqz_entries",
+      "ordinal": 2,
+      "syntax": "win_sqz_entries string JKEYWORD signed_number number",
+      "categories": [
+        "window-list-directive",
+        "placement-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 508,
+        "text": "                | win_sqz_entries string JKEYWORD signed_number number  {"
+      }
+    },
+    {
+      "id": "grammar.iconm_list.1",
+      "production": "iconm_list",
+      "ordinal": 1,
+      "syntax": "LB iconm_entries RB",
+      "categories": [
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 516,
+        "text": "iconm_list      : LB iconm_entries RB"
+      }
+    },
+    {
+      "id": "grammar.iconm_entries.1",
+      "production": "iconm_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 519,
+        "text": "iconm_entries   : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.iconm_entries.2",
+      "production": "iconm_entries",
+      "ordinal": 2,
+      "syntax": "iconm_entries iconm_entry",
+      "categories": [
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 520,
+        "text": "                | iconm_entries iconm_entry"
+      }
+    },
+    {
+      "id": "grammar.iconm_entry.1",
+      "production": "iconm_entry",
+      "ordinal": 1,
+      "syntax": "string string number",
+      "categories": [
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 523,
+        "text": "iconm_entry     : string string number  { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.iconm_entry.2",
+      "production": "iconm_entry",
+      "ordinal": 2,
+      "syntax": "string string string number",
+      "categories": [
+        "icon-manager-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 528,
+        "text": "                | string string string number"
+      }
+    },
+    {
+      "id": "grammar.win_list.1",
+      "production": "win_list",
+      "ordinal": 1,
+      "syntax": "LB win_entries RB",
+      "categories": [
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 536,
+        "text": "win_list        : LB win_entries RB"
+      }
+    },
+    {
+      "id": "grammar.win_entries.1",
+      "production": "win_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 539,
+        "text": "win_entries     : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.win_entries.2",
+      "production": "win_entries",
+      "ordinal": 2,
+      "syntax": "win_entries win_entry",
+      "categories": [
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 540,
+        "text": "                | win_entries win_entry"
+      }
+    },
+    {
+      "id": "grammar.win_entry.1",
+      "production": "win_entry",
+      "ordinal": 1,
+      "syntax": "string",
+      "categories": [
+        "window-list-directive"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 543,
+        "text": "win_entry       : string                { if (Scr->FirstTime)"
+      }
+    },
+    {
+      "id": "grammar.icon_list.1",
+      "production": "icon_list",
+      "ordinal": 1,
+      "syntax": "LB icon_entries RB",
+      "categories": [
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 548,
+        "text": "icon_list       : LB icon_entries RB"
+      }
+    },
+    {
+      "id": "grammar.icon_entries.1",
+      "production": "icon_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 551,
+        "text": "icon_entries    : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.icon_entries.2",
+      "production": "icon_entries",
+      "ordinal": 2,
+      "syntax": "icon_entries icon_entry",
+      "categories": [
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 552,
+        "text": "                | icon_entries icon_entry"
+      }
+    },
+    {
+      "id": "grammar.icon_entry.1",
+      "production": "icon_entry",
+      "ordinal": 1,
+      "syntax": "string string",
+      "categories": [
+        "window-list-directive",
+        "icon-option"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 555,
+        "text": "icon_entry      : string string         { if (Scr->FirstTime) AddToList(list, $1, $2); }"
+      }
+    },
+    {
+      "id": "grammar.function.1",
+      "production": "function",
+      "ordinal": 1,
+      "syntax": "LB function_entries RB",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 558,
+        "text": "function        : LB function_entries RB"
+      }
+    },
+    {
+      "id": "grammar.function_entries.1",
+      "production": "function_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 561,
+        "text": "function_entries: /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.function_entries.2",
+      "production": "function_entries",
+      "ordinal": 2,
+      "syntax": "function_entries function_entry",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 562,
+        "text": "                | function_entries function_entry"
+      }
+    },
+    {
+      "id": "grammar.function_entry.1",
+      "production": "function_entry",
+      "ordinal": 1,
+      "syntax": "action",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 565,
+        "text": "function_entry  : action                { AddToMenu(root, empty, Action, NULL, $1,"
+      }
+    },
+    {
+      "id": "grammar.menu.1",
+      "production": "menu",
+      "ordinal": 1,
+      "syntax": "LB menu_entries RB",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 571,
+        "text": "menu            : LB menu_entries RB"
+      }
+    },
+    {
+      "id": "grammar.menu_entries.1",
+      "production": "menu_entries",
+      "ordinal": 1,
+      "syntax": "",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 574,
+        "text": "menu_entries    : /* Empty */"
+      }
+    },
+    {
+      "id": "grammar.menu_entries.2",
+      "production": "menu_entries",
+      "ordinal": 2,
+      "syntax": "menu_entries menu_entry",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 575,
+        "text": "                | menu_entries menu_entry"
+      }
+    },
+    {
+      "id": "grammar.menu_entry.1",
+      "production": "menu_entry",
+      "ordinal": 1,
+      "syntax": "string action",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 578,
+        "text": "menu_entry      : string action         { AddToMenu(root, $1, Action, pull, $2,"
+      }
+    },
+    {
+      "id": "grammar.menu_entry.2",
+      "production": "menu_entry",
+      "ordinal": 2,
+      "syntax": "string LP string COLON string RP action",
+      "categories": [
+        "menu-construct"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 583,
+        "text": "                | string LP string COLON string RP action {"
+      }
+    },
+    {
+      "id": "grammar.action.1",
+      "production": "action",
+      "ordinal": 1,
+      "syntax": "FKEYWORD",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 591,
+        "text": "action          : FKEYWORD      { $$ = $1; }"
+      }
+    },
+    {
+      "id": "grammar.action.2",
+      "production": "action",
+      "ordinal": 2,
+      "syntax": "FSKEYWORD string",
+      "categories": [
+        "built-in-action"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 592,
+        "text": "                | FSKEYWORD string {"
+      }
+    },
+    {
+      "id": "grammar.signed_number.1",
+      "production": "signed_number",
+      "ordinal": 1,
+      "syntax": "number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 631,
+        "text": "signed_number   : number                { $$ = $1; }"
+      }
+    },
+    {
+      "id": "grammar.signed_number.2",
+      "production": "signed_number",
+      "ordinal": 2,
+      "syntax": "PLUS number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 632,
+        "text": "                | PLUS number           { $$ = $2; }"
+      }
+    },
+    {
+      "id": "grammar.signed_number.3",
+      "production": "signed_number",
+      "ordinal": 3,
+      "syntax": "MINUS number",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 633,
+        "text": "                | MINUS number          { $$ = -($2); }"
+      }
+    },
+    {
+      "id": "grammar.button.1",
+      "production": "button",
+      "ordinal": 1,
+      "syntax": "BUTTON number",
+      "categories": [
+        "mouse-binding-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 636,
+        "text": "button          : BUTTON number         { $$ = $2;"
+      }
+    },
+    {
+      "id": "grammar.string.1",
+      "production": "string",
+      "ordinal": 1,
+      "syntax": "STRING",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 648,
+        "text": "string          : STRING                { ptr = strdup($1);"
+      }
+    },
+    {
+      "id": "grammar.number.1",
+      "production": "number",
+      "ordinal": 1,
+      "syntax": "NUMBER",
+      "categories": [
+        "grammar-structure"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/gram.y",
+        "line": 653,
+        "text": "number          : NUMBER                { $$ = $1; }"
+      }
+    }
+  ],
+  "lexical_forms": [
+    {
+      "id": "lexical.left-brace",
+      "pattern": "\"{\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 103,
+        "text": "\"{\"                             { return (LB); }"
+      }
+    },
+    {
+      "id": "lexical.right-brace",
+      "pattern": "\"}\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 104,
+        "text": "\"}\"                             { return (RB); }"
+      }
+    },
+    {
+      "id": "lexical.left-parenthesis",
+      "pattern": "\"(\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 105,
+        "text": "\"(\"                             { return (LP); }"
+      }
+    },
+    {
+      "id": "lexical.right-parenthesis",
+      "pattern": "\")\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 106,
+        "text": "\")\"                             { return (RP); }"
+      }
+    },
+    {
+      "id": "lexical.equals",
+      "pattern": "\"=\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 107,
+        "text": "\"=\"                             { return (EQUALS); }"
+      }
+    },
+    {
+      "id": "lexical.colon",
+      "pattern": "\":\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 108,
+        "text": "\":\"                             { return (COLON); }"
+      }
+    },
+    {
+      "id": "lexical.plus",
+      "pattern": "\"+\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 109,
+        "text": "\"+\"                             { return PLUS; }"
+      }
+    },
+    {
+      "id": "lexical.minus",
+      "pattern": "\"-\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 110,
+        "text": "\"-\"                             { return MINUS; }"
+      }
+    },
+    {
+      "id": "lexical.or",
+      "pattern": "\"|\"",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 111,
+        "text": "\"|\"                             { return OR; }"
+      }
+    },
+    {
+      "id": "lexical.keyword",
+      "pattern": "[a-zA-Z\\.]+",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 113,
+        "text": "[a-zA-Z\\.]+                     { int token = parse_keyword ((char *)yytext,"
+      }
+    },
+    {
+      "id": "lexical.exec-shorthand",
+      "pattern": "\"!\"",
+      "categories": [
+        "built-in-action",
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 124,
+        "text": "\"!\"                             { yylval.num = F_EXEC; return FSKEYWORD; }"
+      }
+    },
+    {
+      "id": "lexical.cut-shorthand",
+      "pattern": "\"^\"",
+      "categories": [
+        "built-in-action",
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 125,
+        "text": "\"^\"                             { yylval.num = F_CUT; return FSKEYWORD; }"
+      }
+    },
+    {
+      "id": "lexical.string",
+      "pattern": "{string}",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 127,
+        "text": "{string}                        { yylval.ptr = (char *)yytext; return STRING; }"
+      }
+    },
+    {
+      "id": "lexical.number",
+      "pattern": "{number}",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 128,
+        "text": "{number}                        { (void)sscanf((char *)yytext, \"%d\", &yylval.num);"
+      }
+    },
+    {
+      "id": "lexical.comment",
+      "pattern": "\\#[^\\n]*\\n",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 131,
+        "text": "\\#[^\\n]*\\n                      {;}"
+      }
+    },
+    {
+      "id": "lexical.whitespace",
+      "pattern": "[\\r\\n\\t ]",
+      "categories": [
+        "lexical-form"
+      ],
+      "evidence": {
+        "archive_member": "twm-1.0.13.1/src/lex.l",
+        "line": 132,
+        "text": "[\\r\\n\\t ]                       {;}"
+      }
+    }
+  ]
+}

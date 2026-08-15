@@ -159,7 +159,7 @@ Implementation work:
 
 - [x] Freeze the upstream `twm` source, manual, default bindings, and sample
   configurations used as the reference.
-- [ ] Inventory every configuration directive, color and monochrome option,
+- [x] Inventory every configuration directive, color and monochrome option,
   window-list directive, mouse and key binding form, context and modifier,
   built-in function, menu construct, icon and icon-manager option, cursor,
   pixmap, font, placement option, and title-button option.

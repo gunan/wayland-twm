@@ -43,6 +43,16 @@ test(
   find_program('sh'),
   args: [files('tests/reference/upstream_reference_test.sh'), meson.project_source_root()],
 )
+test(
+  'upstream configuration inventory',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_upstream_inventory.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
