@@ -65,6 +65,8 @@ EXCLUDED_COMPARISONS = (
     "pixel rendering and decoration appearance (Milestone 5)",
     "native-Wayland and cross-protocol semantics (later Milestone 3 testing)",
 )
+REQUIRED_STABLE_CAPTURES = 3
+MAX_CONVERGENCE_CAPTURES = 24
 
 
 def checked_program(path: Path, requested_name: str) -> Path:
@@ -458,6 +460,95 @@ def normalize_wtwm(
     return results
 
 
+def write_convergence_history(
+    evidence: Path,
+    backend: str,
+    samples: list[list[dict[str, object]]],
+) -> None:
+    (evidence / f"{backend}-convergence.json").write_text(
+        json.dumps({
+            "backend": backend,
+            "required_consecutive_equal": REQUIRED_STABLE_CAPTURES,
+            "samples": samples,
+            "schema_version": 1,
+        }, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def converge_reference(
+    probe: Path,
+    environment: dict[str, str],
+    evidence: Path,
+) -> list[dict[str, object]]:
+    deadline = time.monotonic() + 15
+    samples: list[list[dict[str, object]]] = []
+    previous: list[dict[str, object]] | None = None
+    consecutive = 0
+    write_convergence_history(evidence, "reference", samples)
+    for _ in range(MAX_CONVERGENCE_CAPTURES):
+        if time.monotonic() >= deadline:
+            break
+        wait_command(
+            [str(probe), "ready"], environment,
+            "reference twm convergence sentinel reparent",
+        )
+        observed = wait_capture(
+            probe, environment, reference_ready,
+            "reference twm reparented workload",
+        )
+        current = normalize_reference(observed)
+        samples.append(current)
+        write_convergence_history(evidence, "reference", samples)
+        if current == previous:
+            consecutive += 1
+        else:
+            previous = current
+            consecutive = 1
+        if consecutive >= REQUIRED_STABLE_CAPTURES:
+            return current
+    raise RuntimeError(
+        "reference normalized X11 observations did not converge across "
+        f"{len(samples)} sentinel reparent barriers"
+    )
+
+
+def converge_wtwm(
+    control: Control,
+    probe: Path,
+    environment: dict[str, str],
+    evidence: Path,
+) -> list[dict[str, object]]:
+    deadline = time.monotonic() + 15
+    samples: list[list[dict[str, object]]] = []
+    previous: list[dict[str, object]] | None = None
+    consecutive = 0
+    write_convergence_history(evidence, "wtwm", samples)
+    for _ in range(MAX_CONVERGENCE_CAPTURES):
+        if time.monotonic() >= deadline:
+            break
+        control.command("WAIT 3")
+        state = wait_control(control)
+        observed = wait_capture(
+            probe, environment, lambda item: True,
+            "wtwm/Xwayland convergence capture",
+        )
+        current = normalize_wtwm(observed, state)
+        samples.append(current)
+        write_convergence_history(evidence, "wtwm", samples)
+        if current == previous:
+            consecutive += 1
+        else:
+            previous = current
+            consecutive = 1
+        if consecutive >= REQUIRED_STABLE_CAPTURES:
+            return current
+    raise RuntimeError(
+        "wtwm normalized X11 observations did not converge across "
+        f"{len(samples)} compositor frame barriers"
+    )
+
+
 def run_reference(
     reference_twm: Path,
     scenario: Path,
@@ -500,14 +591,14 @@ def run_reference(
             "reference twm sentinel reparent readiness",
         )
         apps, icccm = launch_workload(commands, icccm_client, environment)
-        observed = wait_capture(probe, environment, reference_ready,
-                                "reference twm reparented workload")
         dialog_app = next(app for app in apps if app.label == "terminal-dialog")
         dialog_pid = wait_dialog_process(dialog_app.process.pid, dialog)
         verify_workload_alive(apps, icccm)
+        stable = converge_reference(probe, environment, evidence)
+        verify_workload_alive(apps, icccm)
         if twm.poll() is not None:
             raise RuntimeError(f"reference twm exited with {twm.returncode}")
-        return normalize_reference(observed)
+        return stable
     except Exception as error:
         raise RuntimeError(f"reference session failed: {error}") from error
     finally:
@@ -568,19 +659,13 @@ def run_wtwm(
         client_environment = environment.copy()
         client_environment["DISPLAY"] = display
         apps, icccm = launch_workload(commands, icccm_client, client_environment)
-        state = wait_control(control)
-        observed = wait_capture(probe, client_environment, lambda item: True,
-                                "wtwm/Xwayland workload")
+        wait_control(control)
         dialog_app = next(app for app in apps if app.label == "terminal-dialog")
         dialog_pid = wait_dialog_process(dialog_app.process.pid, dialog)
         verify_workload_alive(apps, icccm)
-        control.command("WAIT 3")
-        stable_state = wait_control(control)
-        stable_observed = wait_capture(probe, client_environment, lambda item: True,
-                                       "stable wtwm/Xwayland workload")
-        if normalize_wtwm(observed, state) != normalize_wtwm(stable_observed, stable_state):
-            raise RuntimeError("wtwm normalized X11 observation changed across frame gate")
-        return normalize_wtwm(stable_observed, stable_state)
+        stable = converge_wtwm(control, probe, client_environment, evidence)
+        verify_workload_alive(apps, icccm)
+        return stable
     except Exception as error:
         raise RuntimeError(f"wtwm session failed: {error}") from error
     finally:
@@ -602,8 +687,10 @@ def run(arguments: argparse.Namespace) -> None:
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     evidence = arguments.output.parent / "x11-differential-evidence"
     evidence.mkdir(parents=True, exist_ok=True)
-    for name in ("reference-session.log", "reference.json", "runner-error.log",
-                 "wtwm-session.log", "wtwm.json"):
+    for name in (
+        "reference-convergence.json", "reference-session.log", "reference.json",
+        "runner-error.log", "wtwm-convergence.json", "wtwm-session.log", "wtwm.json",
+    ):
         (evidence / name).unlink(missing_ok=True)
     arguments.output.unlink(missing_ok=True)
     programs = {

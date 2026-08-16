@@ -75,11 +75,17 @@ def validate_text(
         "if reference != wtwm:",
         'version != "twm 1.0.13.1"',
         '"reference twm sentinel reparent readiness"',
+        "REQUIRED_STABLE_CAPTURES = 3",
+        "MAX_CONVERGENCE_CAPTURES = 24",
+        "def converge_reference(",
+        "def converge_wtwm(",
+        'control.command("WAIT 3")',
+        'write_convergence_history(evidence, "reference", samples)',
+        'write_convergence_history(evidence, "wtwm", samples)',
         "reference_ready(observed)",
         "wtwm_control_ready(state)",
         'state["xwayland_lifecycle"]',
         "if not item[\"root_parent\"]:",
-        'control.command("WAIT 3")',
         "wait_dialog_process(dialog_app.process.pid, dialog)",
         'icccm.stdin.write("EXIT\\n")',
         '"result": "equivalent"',
@@ -98,6 +104,10 @@ def validate_text(
             errors.append(f"X11 differential runner lacks {marker!r}")
     if runner.count("canonical_commands(programs)") != 1:
         errors.append("canonical client commands must be constructed exactly once and shared")
+    if runner.count("if current == previous:") != 2 or runner.count(
+        "if consecutive >= REQUIRED_STABLE_CAPTURES:"
+    ) != 2:
+        errors.append("both backends must require consecutive equal normalized captures")
     if "WM_S0" in runner:
         errors.append("runner must prove reference readiness by reparenting, not WM_S0 ownership")
     if runner.count("launch_workload(commands, icccm_client, environment)") != 1 or runner.count(
@@ -221,6 +231,14 @@ def self_test_tamper(source_root: Path) -> list[str]:
             "timing-gate",
             workflow,
             runner.replace("time.sleep(0.01)", "time.sleep(1)", 1),
+            probe,
+            compatibility,
+            config,
+        ),
+        (
+            "convergence-depth",
+            workflow,
+            runner.replace("REQUIRED_STABLE_CAPTURES = 3", "REQUIRED_STABLE_CAPTURES = 1", 1),
             probe,
             compatibility,
             config,
