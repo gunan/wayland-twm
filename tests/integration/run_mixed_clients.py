@@ -242,8 +242,14 @@ def focus_and_key(
 ) -> dict[str, object]:
     wayland.command(f"ARM {token}", f"OK ARMED {token}")
     x11.command(f"ARM {token}", f"OK ARMED {token}")
-    click(control, control.state(), role, 272)
     title = EXPECTED[role]["title"]
+    current = control.state()
+    button = (
+        273
+        if current["focus"] == title and current["focus_root"] is False
+        else 272
+    )
+    click(control, current, role, button)
     state = wait_state(
         control,
         lambda item: item["focus"] == title and
@@ -371,7 +377,8 @@ def run(compositor: Path, wayland_binary: Path, x11_binary: Path) -> None:
             "NoDefaults\nRandomPlacement\nNoGrabServer\nNoIconManagers\n"
             'Function "focus-raise" { f.focus f.raise }\n'
             'Button1 = : window : f.function "focus-raise"\n'
-            "Button2 = : window : f.lower\n",
+            "Button2 = : window : f.lower\n"
+            "Button3 = : window : f.raise\n",
             encoding="utf-8",
         )
         display_name = f"wtwm-mixed-{os.getpid()}"

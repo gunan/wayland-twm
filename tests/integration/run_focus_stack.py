@@ -74,7 +74,7 @@ def point(item: dict[str, object], context: str) -> tuple[int, int]:
     if context == "title":
         return (x + int(item["outer_width"]) // 2, y + border + 6)
     if context == "frame":
-        return (x + int(item["outer_width"]) - 1,
+        return (x + 1,
                 y + int(item["outer_height"]) // 2)
     raise ValueError(context)
 

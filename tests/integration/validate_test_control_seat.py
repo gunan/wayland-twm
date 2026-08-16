@@ -60,6 +60,8 @@ def validate_bridge_handshake(
         'int(item["stack"]) < int(target["stack"])',
         'int(other["outer_width"])',
         'int(other["outer_height"])',
+        'Button1 = : window : f.focus',
+        'state["focus"] == title and state["focus_root"] is False',
     ):
         if fragment not in runner:
             raise ValueError(f"selection focus targeting lacks {fragment}")

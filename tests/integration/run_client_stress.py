@@ -252,10 +252,12 @@ def visible_content_point(
 
 
 def click_content(control: Control, state: dict[str, object], title: str) -> None:
+    if state["focus"] == title and state["focus_root"] is False:
+        return
     x, y = visible_content_point(state, title)
     control.command(f"POINTER {x} {y}")
-    control.command("BUTTON 272 press")
-    control.command("BUTTON 272 release")
+    control.command("BUTTON 273 press")
+    control.command("BUTTON 273 release")
 
 
 def click_title(control: Control, state: dict[str, object], title: str, button: int) -> None:
@@ -307,7 +309,8 @@ def run(
         config.write_text(
             "RandomPlacement\n"
             "Button1 = : title : f.delete\n"
-            "Button2 = : title : f.destroy\n",
+            "Button2 = : title : f.destroy\n"
+            "Button3 = : window : f.focus\n",
             encoding="utf-8",
         )
         startup = f'printf "%s\\n" "$DISPLAY" > {shlex.quote(str(display_marker))}'
