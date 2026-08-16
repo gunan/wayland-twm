@@ -24,6 +24,7 @@ struct atoms {
 
 struct repaint_target {
 	xcb_window_t window;
+	xcb_gcontext_t gc;
 	uint32_t black_pixel;
 	uint32_t white_pixel;
 	bool paint_white;
@@ -166,9 +167,14 @@ static bool repaint_target_window(xcb_connection_t *connection,
 	if (!target->desired_mapped) return false;
 	uint32_t pixel = target->paint_white ? target->white_pixel : target->black_pixel;
 	target->paint_white = !target->paint_white;
-	xcb_change_window_attributes(connection, target->window,
-		XCB_CW_BACK_PIXEL, &pixel);
-	xcb_clear_area(connection, false, target->window, 0, 0, 0, 0);
+	xcb_change_gc(connection, target->gc, XCB_GC_FOREGROUND, &pixel);
+	xcb_rectangle_t rectangle = {
+		.x = 0,
+		.y = 0,
+		.width = UINT16_MAX,
+		.height = UINT16_MAX,
+	};
+	xcb_poly_fill_rectangle(connection, target->window, target->gc, 1, &rectangle);
 	return true;
 }
 
@@ -177,9 +183,15 @@ static void map_and_damage_window(xcb_connection_t *connection,
 	target->window = window;
 	target->black_pixel = screen->black_pixel;
 	target->white_pixel = screen->white_pixel;
+	if (target->gc == XCB_NONE) {
+		target->gc = xcb_generate_id(connection);
+		uint32_t foreground = screen->white_pixel;
+		xcb_create_gc(connection, target->gc, window,
+			XCB_GC_FOREGROUND, &foreground);
+	}
 	target->desired_mapped = true;
 	xcb_map_window(connection, window);
-	/* Painting the background creates redirected pixmap damage for Xwayland. */
+	/* Direct pixel drawing creates redirected pixmap damage for Xwayland. */
 	repaint_target_window(connection, target);
 }
 
