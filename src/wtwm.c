@@ -2613,14 +2613,20 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	if (toplevel->mapped) return;
+	int previous_width = toplevel->width;
+	int previous_height = toplevel->height;
 	struct wlr_box geometry;
 	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
 	if (geometry.width > 0) toplevel->width = geometry.width;
 	if (geometry.height > 0) toplevel->height = geometry.height;
+	update_decoration(toplevel);
+	if (toplevel->width != previous_width || toplevel->height != previous_height)
+		test_trace_toplevel_event(toplevel, "configure", "client");
 	bool initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
+	sync_toplevel_scene_stack(toplevel);
 	place_native_toplevel(toplevel);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
@@ -2916,6 +2922,15 @@ static void position_xwayland_transient(struct toplevel *toplevel) {
 	test_trace_toplevel_event(toplevel, "restack", "frame");
 }
 
+static void position_xwayland_transient_children(struct toplevel *parent) {
+	struct toplevel *child;
+	wl_list_for_each(child, &parent->server->xwayland_views, xwayland_link) {
+		if (child != parent && child->mapped && child->associated &&
+				child->xwayland->parent == parent->xwayland)
+			position_xwayland_transient(child);
+	}
+}
+
 static bool xwayland_position_flag(const struct toplevel *toplevel,
 		uint32_t flag) {
 	return toplevel->xwayland->size_hints != NULL &&
@@ -2976,6 +2991,7 @@ static void expose_managed_xwayland(struct toplevel *toplevel,
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
 	position_xwayland_transient(toplevel);
+	position_xwayland_transient_children(toplevel);
 	if (start_iconified) {
 		set_toplevel_iconified(toplevel, true);
 	} else {
