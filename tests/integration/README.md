@@ -41,3 +41,13 @@ clients must have a reparent frame, while the matching wtwm test-control entry
 must have a scene decoration; the normalized results must otherwise match
 exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
 native/cross-protocol semantics assigned to later tests and milestones.
+
+The `mixed native and Xwayland client integration` test maps two native xdg
+toplevels and two managed X11 toplevels together. It checks their exact
+identities and simultaneous lifecycle associations, drives
+native→X11→native and X11→native→X11 focus paths, and requires the actual
+protocol recipient to acknowledge keyboard press/release while the other
+protocol reports zero keys. It also raises, lowers, and restores clients across
+the unified managed stack, then unmap/remaps one native and one X11 client while
+the other protocol remains live. Selection bridging and popup/override-redirect
+ordering remain separate focused scenarios.

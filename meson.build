@@ -288,6 +288,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'mixed native and Xwayland session contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_mixed_clients.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
@@ -433,6 +443,22 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_mixed_wayland_client = executable(
+    'wtwm-mixed-wayland-client',
+    [
+      'tests/integration/mixed_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_mixed_x11_client = executable(
+    'wtwm-mixed-x11-client',
+    'tests/integration/mixed_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   canonical_xterm = find_program('xterm', required: true)
   canonical_xclock = find_program('xclock', required: true)
   canonical_xload = find_program('xload', required: true)
@@ -493,6 +519,17 @@ if wlroots.found()
       '--compositor', wtwm_test_compositor,
       '--wayland-client', wtwm_selection_wayland_client,
       '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 90,
+  )
+  test(
+    'mixed native and Xwayland client integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_mixed_clients.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_mixed_wayland_client,
+      '--x11-client', wtwm_mixed_x11_client,
     ],
     timeout: 90,
   )
