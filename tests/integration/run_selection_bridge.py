@@ -243,6 +243,10 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
 
             focus_window(control, "wtwm-selection-x11")
             expect_command(
+                x11, "WAIT BRIDGE",
+                "BRIDGE focus=1 clipboard=other primary=other",
+            )
+            expect_command(
                 x11, "TARGETS CLIPBOARD", "TARGETS CLIPBOARD utf8=1 text=1"
             )
             expect_command(
@@ -260,6 +264,10 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
             expect_command(native, "CANCELS", "CANCELS clipboard=1 primary=0")
             focus_window(control, "wtwm-selection-x11")
             expect_command(
+                x11, "WAIT BRIDGE",
+                "BRIDGE focus=1 clipboard=other primary=other",
+            )
+            expect_command(
                 x11, "GET CLIPBOARD", "DATA CLIPBOARD native-clipboard-two"
             )
 
@@ -270,6 +278,7 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
             recipient = start_wayland_client(wayland_binary, wayland_environment)
             clients.append(recipient)
             focus_window(control, "wtwm-selection-x11")
+            expect_command(x11, "WAIT FOCUS", "FOCUS 1")
             expect_command(x11, "OWN CLIPBOARD", "OWN CLIPBOARD 1")
             expect_command(x11, "OWN PRIMARY", "OWN PRIMARY 1")
             wait_x_targets_served(x11)

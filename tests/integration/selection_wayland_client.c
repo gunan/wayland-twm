@@ -662,8 +662,8 @@ static void set_clipboard(struct client *client, const char *payload) {
 	wl_data_source_offer(source->proxy, MIME_TEXT);
 	client->clipboard_source = source;
 	wl_data_device_set_selection(client->data_device, source->proxy, client->serial);
-	wl_display_flush(client->display);
-	printf("SET CLIPBOARD %s\n", payload);
+	if (wl_display_roundtrip(client->display) < 0) printf("ERROR CLIPBOARD sync\n");
+	else printf("SET CLIPBOARD %s\n", payload);
 }
 
 static void set_primary(struct client *client, const char *payload) {
@@ -688,8 +688,8 @@ static void set_primary(struct client *client, const char *payload) {
 	client->primary_source = source;
 	zwp_primary_selection_device_v1_set_selection(client->primary_device,
 		source->proxy, client->serial);
-	wl_display_flush(client->display);
-	printf("SET PRIMARY %s\n", payload);
+	if (wl_display_roundtrip(client->display) < 0) printf("ERROR PRIMARY sync\n");
+	else printf("SET PRIMARY %s\n", payload);
 }
 
 static bool read_transfer(struct client *client, int fd, char *buffer,

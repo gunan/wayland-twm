@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 
@@ -164,6 +165,43 @@ static void handle_x_event(struct client *client, xcb_generic_event_t *event) {
 	}
 }
 
+static bool input_focus_is_window(struct client *client) {
+	xcb_get_input_focus_cookie_t cookie = xcb_get_input_focus(client->connection);
+	xcb_get_input_focus_reply_t *reply =
+		xcb_get_input_focus_reply(client->connection, cookie, NULL);
+	bool focused = reply != NULL && reply->focus == client->window;
+	free(reply);
+	return focused;
+}
+
+static bool wait_for_input_focus(struct client *client) {
+	struct timespec deadline;
+	if (clock_gettime(CLOCK_MONOTONIC, &deadline) < 0) return false;
+	deadline.tv_sec += 10;
+	for (;;) {
+		xcb_generic_event_t *event;
+		while ((event = xcb_poll_for_event(client->connection)) != NULL) {
+			handle_x_event(client, event);
+			free(event);
+		}
+		if (input_focus_is_window(client)) return true;
+		struct timespec now;
+		if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) return false;
+		int64_t remaining = (int64_t)(deadline.tv_sec - now.tv_sec) * 1000 +
+			(deadline.tv_nsec - now.tv_nsec) / 1000000;
+		if (remaining <= 0) return false;
+		struct pollfd descriptor = {
+			.fd = xcb_get_file_descriptor(client->connection),
+			.events = POLLIN,
+		};
+		int result;
+		do result = poll(&descriptor, 1, (int)remaining);
+		while (result < 0 && errno == EINTR);
+		if (result <= 0 || (descriptor.revents & (POLLERR | POLLHUP)) != 0)
+			return false;
+	}
+}
+
 static void own_selection(struct client *client, xcb_atom_t selection) {
 	xcb_set_selection_owner(client->connection, client->window, selection,
 		XCB_TIME_CURRENT_TIME);
@@ -228,6 +266,17 @@ static void handle_command(struct client *client, char *command) {
 		const char *clipboard = owner_status(client, client->clipboard);
 		const char *primary = owner_status(client, client->primary);
 		printf("STATUS clipboard=%s primary=%s\n", clipboard, primary);
+	} else if (strcmp(command, "WAIT FOCUS") == 0) {
+		printf(wait_for_input_focus(client) ? "FOCUS 1\n" : "ERROR FOCUS timeout\n");
+	} else if (strcmp(command, "WAIT BRIDGE") == 0) {
+		if (!wait_for_input_focus(client)) {
+			printf("ERROR FOCUS timeout\n");
+		} else {
+			const char *clipboard = owner_status(client, client->clipboard);
+			const char *primary = owner_status(client, client->primary);
+			printf("BRIDGE focus=1 clipboard=%s primary=%s\n",
+				clipboard, primary);
+		}
 	} else if (strcmp(command, "SERVED") == 0) {
 		printf("SERVED clipboard=%u primary=%u\n",
 			client->clipboard_targets_served, client->primary_targets_served);
@@ -261,7 +310,8 @@ static bool initialize(struct client *client) {
 	client->window = xcb_generate_id(client->connection);
 	uint32_t values[] = {
 		UINT32_C(0x806020),
-		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE,
+		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE |
+			XCB_EVENT_MASK_FOCUS_CHANGE,
 	};
 	xcb_create_window(client->connection, XCB_COPY_FROM_PARENT, client->window,
 		client->screen->root, 360, 80, 180, 100, 0,

@@ -33,6 +33,39 @@ def validate(source: str) -> None:
         )
 
 
+def validate_bridge_handshake(
+    wayland_client: str, x11_client: str, runner: str
+) -> None:
+    for request in (
+        "wl_data_device_set_selection(client->data_device",
+        "zwp_primary_selection_device_v1_set_selection(client->primary_device",
+    ):
+        start = wayland_client.find(request)
+        if start < 0 or "wl_display_roundtrip(client->display)" not in (
+            wayland_client[start:start + 500]
+        ):
+            raise ValueError(f"Wayland source request lacks a roundtrip: {request}")
+    for fragment in (
+        "static bool wait_for_input_focus",
+        "xcb_get_input_focus(client->connection)",
+        'strcmp(command, "WAIT BRIDGE")',
+        'strcmp(command, "WAIT FOCUS")',
+    ):
+        if fragment not in x11_client:
+            raise ValueError(f"X11 bridge handshake lacks {fragment}")
+    first_x_focus = runner.find('focus_window(control, "wtwm-selection-x11")')
+    first_bridge = runner.find('x11, "WAIT BRIDGE"', first_x_focus)
+    first_targets = runner.find('x11, "TARGETS CLIPBOARD"', first_bridge)
+    if not 0 <= first_x_focus < first_bridge < first_targets:
+        raise ValueError("TARGETS request is not gated by the X bridge handshake")
+    if runner.count('x11, "WAIT BRIDGE"') < 2:
+        raise ValueError("each Wayland-owned selection read needs a bridge handshake")
+    x_owned = runner.find('x11, "OWN CLIPBOARD"')
+    focus_gate = runner.rfind('x11, "WAIT FOCUS"', 0, x_owned)
+    if focus_gate < 0:
+        raise ValueError("X-owned selection import lacks an X focus handshake")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
@@ -40,6 +73,16 @@ def main() -> None:
     arguments = parser.parse_args()
     source = (arguments.source_root / "src/wtwm.c").read_text(encoding="utf-8")
     validate(source)
+    wayland_client = (
+        arguments.source_root / "tests/integration/selection_wayland_client.c"
+    ).read_text(encoding="utf-8")
+    x11_client = (
+        arguments.source_root / "tests/integration/selection_x11_client.c"
+    ).read_text(encoding="utf-8")
+    runner = (
+        arguments.source_root / "tests/integration/run_selection_bridge.py"
+    ).read_text(encoding="utf-8")
+    validate_bridge_handshake(wayland_client, x11_client, runner)
     if arguments.self_test_tamper:
         tampered = source.replace(
             "WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER",
@@ -52,7 +95,14 @@ def main() -> None:
             pass
         else:
             raise ValueError("synthetic seat contract accepted missing POINTER")
-        print("synthetic seat tamper rejected")
+        tampered_runner = runner.replace('x11, "WAIT BRIDGE"', 'x11, "STATUS"', 1)
+        try:
+            validate_bridge_handshake(wayland_client, x11_client, tampered_runner)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("selection bridge contract accepted ungated TARGETS")
+        print("synthetic seat and bridge-handshake tampers rejected")
     print("test control synthetic seat contract valid")
 
 
