@@ -1,0 +1,805 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "name": "X.Org twm",
+    "version": "1.0.13.1"
+  },
+  "evidence": {
+    "kind": "source-derived-contract",
+    "committed_live_baseline": false,
+    "live_capture_run": false,
+    "reason": "The local host has no Xvfb. Expectations below are executable derivations from the pinned upstream source, not claimed observations."
+  },
+  "coverage_groups": [
+    "move-threshold",
+    "constrained-move",
+    "move-bounds",
+    "move-functions",
+    "move-rendering",
+    "resize-origin",
+    "resize-rendering",
+    "focus-context",
+    "focus-policy",
+    "stacking",
+    "placement"
+  ],
+  "sources": [
+    {
+      "id": "defaults",
+      "member": "twm-1.0.13.1/src/twm.c",
+      "lines": [739, 764],
+      "anchors": [
+        "Scr->UsePPosition = PPOS_OFF;",
+        "Scr->FocusRoot = TRUE;",
+        "Scr->TitleFocus = TRUE;",
+        "Scr->DontMoveOff = FALSE;",
+        "Scr->RandomPlacement = FALSE;",
+        "Scr->OpaqueMove = FALSE;",
+        "Scr->MoveDelta = 1;"
+      ]
+    },
+    {
+      "id": "move-start",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1496, 1552],
+      "anchors": [
+        "if (ConstrainedMoveTime &&",
+        "(eventp->xbutton.time - last_time) < (Time) ConstrainedMoveTime",
+        "ConstMoveXL = ConstMoveX + width / 3;",
+        "XWarpPointer(dpy, None, w,",
+        "if (!Scr->OpaqueMove)",
+        "if (!Scr->MoveDelta)",
+        "MoveOutline(rootw,",
+        "DragWindow = w;"
+      ]
+    },
+    {
+      "id": "move-threshold-and-axis",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1641, 1677],
+      "anchors": [
+        "abs(eventp->xmotion.x_root - origX) < Scr->MoveDelta",
+        "abs(eventp->xmotion.y_root - origY) < Scr->MoveDelta",
+        "WindowMoved = TRUE;",
+        "ConstMoveDir = MOVE_HORIZ;",
+        "ConstMoveDir = MOVE_VERT;"
+      ]
+    },
+    {
+      "id": "move-bounds-and-rendering",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1683, 1750],
+      "anchors": [
+        "if (Scr->DontMoveOff && MoveFunction != F_FORCEMOVE)",
+        "if (xl < 0)",
+        "xl = Scr->MyDisplayWidth - w2;",
+        "yt = Scr->MyDisplayHeight - h;",
+        "if (Scr->OpaqueMove)",
+        "XMoveWindow(dpy, DragWindow, xl, yt);",
+        "MoveOutline(eventp->xmotion.root, xl, yt, w2, h,"
+      ]
+    },
+    {
+      "id": "move-release",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [1540, 1582],
+      "anchors": [
+        "if (ConstMoveDir == MOVE_HORIZ)",
+        "if (ConstMoveDir == MOVE_VERT)",
+        "if (Scr->DontMoveOff && MoveFunction != F_FORCEMOVE)",
+        "SetupWindow(Tmp_win, xl, yt,",
+        "if (!Scr->NoRaiseMove && !Scr->OpaqueMove)"
+      ]
+    },
+    {
+      "id": "delta-stop",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1261, 1269],
+      "anchors": [
+        "case F_DELTASTOP:",
+        "if (WindowMoved)",
+        "do_next_action = FALSE;"
+      ]
+    },
+    {
+      "id": "resize-delta",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [1484, 1497],
+      "anchors": [
+        "abs(Event.xmotion.x - ResizeOrigX) >= Scr->MoveDelta",
+        "abs(Event.xmotion.y - ResizeOrigY) >= Scr->MoveDelta",
+        "WindowMoved = TRUE;",
+        "DoResize(Event.xmotion.x_root, Event.xmotion.y_root, Tmp_win);"
+      ]
+    },
+    {
+      "id": "auto-relative-resize",
+      "member": "twm-1.0.13.1/src/resize.c",
+      "lines": [95, 185],
+      "anchors": [
+        "h = ((x - dragx) / (dragWidth < 3 ? 1 : (dragWidth / 3)));",
+        "v = ((y - dragy - tmp_win->title_height) /",
+        "if (h <= 0)",
+        "else if (h >= 2)",
+        "if (v <= 0)",
+        "else if (v >= 2)",
+        "if (Scr->AutoRelativeResize && !fromtitlebar)",
+        "MoveOutline(Scr->Root, dragx - tmp_win->frame_bw,"
+      ]
+    },
+    {
+      "id": "resize-outline-commit",
+      "member": "twm-1.0.13.1/src/resize.c",
+      "lines": [452, 545],
+      "anchors": [
+        "MoveOutline(Scr->Root,",
+        "void",
+        "EndResize(void)",
+        "MoveOutline(Scr->Root, 0, 0, 0, 0, 0, 0);",
+        "SetupWindow(tmp_win, dragx - tmp_win->frame_bw, dragy - tmp_win->frame_bw,"
+      ]
+    },
+    {
+      "id": "interaction-abort",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [1726, 1745],
+      "anchors": [
+        "we got another butt press in addition to one still held",
+        "Cancel = TRUE;",
+        "CurrentDragX = origDragX;",
+        "if (Scr->OpaqueMove && DragWindow != None)",
+        "XMoveWindow(dpy, DragWindow, origDragX, origDragY);",
+        "MoveOutline(Scr->Root, 0, 0, 0, 0, 0, 0);",
+        "ResizeWindow = None;",
+        "DragWindow = None;"
+      ]
+    },
+    {
+      "id": "focus-contexts",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [574, 590],
+      "anchors": [
+        "Context = C_ROOT;",
+        "Context = C_TITLE;",
+        "Context = C_WINDOW;",
+        "Context = C_ICON;",
+        "Context = C_FRAME;",
+        "Context = C_ICONMGR;"
+      ]
+    },
+    {
+      "id": "binding-context-definitions",
+      "member": "twm-1.0.13.1/src/twm.h",
+      "lines": [119, 140],
+      "anchors": [
+        "#define C_WINDOW        0",
+        "#define C_TITLE         1",
+        "#define C_ICON          2",
+        "#define C_ROOT          3",
+        "#define C_FRAME         4",
+        "#define C_ICONMGR       5",
+        "#define C_ALL_BITS"
+      ]
+    },
+    {
+      "id": "no-menu-binding-context",
+      "members": [
+        "twm-1.0.13.1/src/twm.h",
+        "twm-1.0.13.1/src/events.c",
+        "twm-1.0.13.1/src/menus.c"
+      ],
+      "absent": "C_MENU"
+    },
+    {
+      "id": "focus-enter",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [2038, 2096],
+      "anchors": [
+        "if (Scr->FocusRoot && (!scanArgs.leaves || scanArgs.inferior))",
+        "if (ewp->window == Tmp_win->frame ||",
+        "Tmp_win->list && ewp->window == Tmp_win->list->w",
+        "Tmp_win->title_w && Scr->TitleFocus",
+        "SetFocus(Tmp_win, ewp->time);",
+        "SendTakeFocusMessage(Tmp_win, ewp->time);",
+        "else if (ewp->window == Tmp_win->w)"
+      ]
+    },
+    {
+      "id": "focus-leave",
+      "member": "twm-1.0.13.1/src/events.c",
+      "lines": [2207, 2235],
+      "anchors": [
+        "if (Scr->FocusRoot)",
+        "Event.xcrossing.detail != NotifyInferior",
+        "SetBorder(Tmp_win, False);",
+        "SetFocus((TwmWindow *) NULL, Event.xcrossing.time);",
+        "Scr->Focus = NULL;"
+      ]
+    },
+    {
+      "id": "focus-toggle",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1835, 1859],
+      "anchors": [
+        "case F_FOCUS:",
+        "if (!Scr->FocusRoot && Scr->Focus == tmp_win)",
+        "FocusOnRoot();",
+        "SetFocus(tmp_win, eventp->xbutton.time);",
+        "Scr->FocusRoot = FALSE;",
+        "Scr->Focus = tmp_win;"
+      ]
+    },
+    {
+      "id": "no-title-focus-option",
+      "member": "twm-1.0.13.1/src/parse.c",
+      "lines": [706, 716],
+      "anchors": [
+        "case kw0_NoTitleFocus:",
+        "Scr->TitleFocus = FALSE;"
+      ]
+    },
+    {
+      "id": "pointer-root",
+      "member": "twm-1.0.13.1/src/util.c",
+      "lines": [814, 830],
+      "anchors": [
+        "Window w = (tmp_win ? tmp_win->w : PointerRoot);",
+        "XSetInputFocus(dpy, w, RevertToPointerRoot, time);"
+      ]
+    },
+    {
+      "id": "focus-on-root",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [2345, 2359],
+      "anchors": [
+        "FocusOnRoot(void)",
+        "SetFocus((TwmWindow *) NULL, LastTimestamp());",
+        "SetBorder(Scr->Focus, False);",
+        "Scr->Focus = NULL;",
+        "Scr->FocusRoot = TRUE;"
+      ]
+    },
+    {
+      "id": "stacking",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1798, 1900],
+      "anchors": [
+        "xwc.stack_mode = Opposite;",
+        "XConfigureWindow(dpy, w, CWStackMode, &xwc);",
+        "XRaiseWindow(dpy, tmp_win->frame);",
+        "XLowerWindow(dpy, tmp_win->frame);",
+        "XCirculateSubwindowsUp(dpy, Scr->Root);",
+        "XCirculateSubwindowsDown(dpy, Scr->Root);"
+      ]
+    },
+    {
+      "id": "stacking-observable-semantics",
+      "member": "twm-1.0.13.1/man/twm.man",
+      "lines": [1203, 1206],
+      "anchors": [
+        "fBf.circledown",
+        "lowers the top-most window that occludes another window",
+        "fBf.circleup",
+        "raises the bottom-most window that is occluded by another window"
+      ]
+    },
+    {
+      "id": "raise-lower-observable-semantics",
+      "member": "twm-1.0.13.1/man/twm.man",
+      "lines": [1361, 1365],
+      "anchors": [
+        "fBf.raise",
+        "fBf.raiselower",
+        "raises the selected window to the top of the stacking order if",
+        "it is occluded by any windows, otherwise the window will be lowered"
+      ]
+    },
+    {
+      "id": "placement-policy",
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "lines": [382, 425],
+      "anchors": [
+        "if (tmp_win->transient ||",
+        "(tmp_win->hints.flags & USPosition) ||",
+        "(tmp_win->hints.flags & PPosition) && Scr->UsePPosition",
+        "Scr->UsePPosition == PPOS_ON ||",
+        "tmp_win->attr.x != 0 || tmp_win->attr.y != 0",
+        "if (Scr->RandomPlacement)",
+        "tmp_win->attr.x = PlaceX;",
+        "PlaceX += 30;",
+        "PlaceY += 30;"
+      ]
+    },
+    {
+      "id": "placement-seed",
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "lines": [83, 89],
+      "anchors": [
+        "static int PlaceX = 50;",
+        "static int PlaceY = 50;"
+      ]
+    },
+    {
+      "id": "max-window-size",
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "lines": [230, 236],
+      "anchors": [
+        "if (tmp_win->attr.width > Scr->MaxWindowWidth)",
+        "tmp_win->attr.width = Scr->MaxWindowWidth;",
+        "if (tmp_win->attr.height > Scr->MaxWindowHeight)",
+        "tmp_win->attr.height = Scr->MaxWindowHeight;"
+      ]
+    },
+    {
+      "id": "max-window-default",
+      "member": "twm-1.0.13.1/src/twm.c",
+      "lines": [469, 472],
+      "anchors": [
+        "Scr->MaxWindowWidth = 32767 - Scr->MyDisplayWidth;",
+        "Scr->MaxWindowHeight = 32767 - Scr->MyDisplayHeight;"
+      ]
+    },
+    {
+      "id": "no-opaque-resize",
+      "members": [
+        "twm-1.0.13.1/src/parse.c",
+        "twm-1.0.13.1/src/resize.c",
+        "twm-1.0.13.1/src/screen.h",
+        "twm-1.0.13.1/man/twm.man"
+      ],
+      "absent": "OpaqueResize"
+    }
+  ],
+  "cases": [
+    {
+      "id": "move-delta-below-both",
+      "group": "move-threshold",
+      "operation": "move-threshold",
+      "input": {"delta": 3, "dx": 2, "dy": -2},
+      "expected": {"movement_starts": false},
+      "sources": ["move-threshold-and-axis"]
+    },
+    {
+      "id": "move-delta-equality-starts",
+      "group": "move-threshold",
+      "operation": "move-threshold",
+      "input": {"delta": 3, "dx": 3, "dy": 0},
+      "expected": {"movement_starts": true},
+      "sources": ["move-threshold-and-axis"]
+    },
+    {
+      "id": "move-delta-zero-starts",
+      "group": "move-threshold",
+      "operation": "move-threshold",
+      "input": {"delta": 0, "dx": 0, "dy": 0},
+      "expected": {"movement_starts": true},
+      "sources": ["move-start", "move-threshold-and-axis"]
+    },
+    {
+      "id": "constrained-time-zero-disabled",
+      "group": "constrained-move",
+      "operation": "constrained-entry",
+      "input": {"configured_ms": 0, "elapsed_ms": 0},
+      "expected": {"constrained": false},
+      "sources": ["move-start"]
+    },
+    {
+      "id": "constrained-strictly-inside-window",
+      "group": "constrained-move",
+      "operation": "constrained-entry",
+      "input": {"configured_ms": 400, "elapsed_ms": 399},
+      "expected": {"constrained": true},
+      "sources": ["move-start"]
+    },
+    {
+      "id": "constrained-equality-is-too-late",
+      "group": "constrained-move",
+      "operation": "constrained-entry",
+      "input": {"configured_ms": 400, "elapsed_ms": 400},
+      "expected": {"constrained": false},
+      "sources": ["move-start"]
+    },
+    {
+      "id": "constrained-middle-third-no-axis",
+      "group": "constrained-move",
+      "operation": "constrained-axis",
+      "input": {"width": 90, "height": 90, "pointer_x": 45, "pointer_y": 45},
+      "expected": {"axis": "none"},
+      "sources": ["move-start", "move-threshold-and-axis"]
+    },
+    {
+      "id": "constrained-horizontal-grid-exit",
+      "group": "constrained-move",
+      "operation": "constrained-axis",
+      "input": {"width": 90, "height": 90, "pointer_x": 61, "pointer_y": 45},
+      "expected": {"axis": "horizontal"},
+      "sources": ["move-start", "move-threshold-and-axis"]
+    },
+    {
+      "id": "constrained-both-exits-vertical-wins",
+      "group": "constrained-move",
+      "operation": "constrained-axis",
+      "input": {"width": 90, "height": 90, "pointer_x": 61, "pointer_y": 61},
+      "expected": {"axis": "vertical"},
+      "sources": ["move-start", "move-threshold-and-axis"]
+    },
+    {
+      "id": "dont-move-off-left-top",
+      "group": "move-bounds",
+      "operation": "move-clamp",
+      "input": {"screen": [640, 480], "outer_size": [100, 80], "position": [-7, -9], "force": false},
+      "expected": {"position": [0, 0]},
+      "sources": ["move-bounds-and-rendering", "move-release"]
+    },
+    {
+      "id": "dont-move-off-right-bottom",
+      "group": "move-bounds",
+      "operation": "move-clamp",
+      "input": {"screen": [640, 480], "outer_size": [100, 80], "position": [600, 450], "force": false},
+      "expected": {"position": [540, 400]},
+      "sources": ["move-bounds-and-rendering", "move-release"]
+    },
+    {
+      "id": "dont-move-off-oversize-prefers-far-edge",
+      "group": "move-bounds",
+      "operation": "move-clamp",
+      "input": {"screen": [640, 480], "outer_size": [700, 500], "position": [-5, -5], "force": false},
+      "expected": {"position": [-60, -20]},
+      "sources": ["move-bounds-and-rendering", "move-release"]
+    },
+    {
+      "id": "force-move-bypasses-bounds",
+      "group": "move-functions",
+      "operation": "move-clamp",
+      "input": {"screen": [640, 480], "outer_size": [100, 80], "position": [-7, 450], "force": true},
+      "expected": {"position": [-7, 450]},
+      "sources": ["move-bounds-and-rendering", "move-release"]
+    },
+    {
+      "id": "delta-stop-before-threshold",
+      "group": "move-functions",
+      "operation": "delta-stop",
+      "input": {"window_moved": false},
+      "expected": {"continue_function": true},
+      "sources": ["delta-stop"]
+    },
+    {
+      "id": "delta-stop-after-threshold",
+      "group": "move-functions",
+      "operation": "delta-stop",
+      "input": {"window_moved": true},
+      "expected": {"continue_function": false},
+      "sources": ["delta-stop", "resize-delta"]
+    },
+    {
+      "id": "outline-move-preview",
+      "group": "move-rendering",
+      "operation": "render-path",
+      "input": {"action": "move", "opaque_move": false},
+      "expected": {"during_motion": "outline", "commit": "release"},
+      "sources": ["move-start", "move-bounds-and-rendering", "move-release"]
+    },
+    {
+      "id": "opaque-move-preview",
+      "group": "move-rendering",
+      "operation": "render-path",
+      "input": {"action": "move", "opaque_move": true},
+      "expected": {"during_motion": "window", "commit": "motion"},
+      "sources": ["move-bounds-and-rendering"]
+    },
+    {
+      "id": "resize-is-always-outline",
+      "group": "resize-rendering",
+      "operation": "render-path",
+      "input": {"action": "resize", "opaque_move": true},
+      "expected": {"during_motion": "outline", "commit": "release", "opaque_resize_directive": false},
+      "sources": ["resize-outline-commit", "no-opaque-resize"]
+    },
+    {
+      "id": "abort-outline-move-keeps-original-geometry",
+      "group": "move-rendering",
+      "operation": "abort-path",
+      "input": {"action": "move", "opaque_move": false},
+      "expected": {"geometry": "original", "preview_cleared": true},
+      "sources": ["interaction-abort"]
+    },
+    {
+      "id": "abort-opaque-move-restores-original-geometry",
+      "group": "move-rendering",
+      "operation": "abort-path",
+      "input": {"action": "move", "opaque_move": true},
+      "expected": {"geometry": "original", "preview_cleared": true},
+      "sources": ["interaction-abort"]
+    },
+    {
+      "id": "abort-resize-keeps-original-geometry",
+      "group": "resize-rendering",
+      "operation": "abort-path",
+      "input": {"action": "resize", "opaque_move": false},
+      "expected": {"geometry": "original", "preview_cleared": true},
+      "sources": ["interaction-abort", "resize-outline-commit"]
+    },
+    {
+      "id": "auto-relative-top-left",
+      "group": "resize-origin",
+      "operation": "auto-resize-origin",
+      "input": {"size": [90, 90], "title_height": 18, "pointer": [10, 25], "from_titlebar": false},
+      "expected": {"horizontal": "left", "vertical": "top"},
+      "sources": ["auto-relative-resize"]
+    },
+    {
+      "id": "auto-relative-bottom-right",
+      "group": "resize-origin",
+      "operation": "auto-resize-origin",
+      "input": {"size": [90, 90], "title_height": 18, "pointer": [75, 90], "from_titlebar": false},
+      "expected": {"horizontal": "right", "vertical": "bottom"},
+      "sources": ["auto-relative-resize"]
+    },
+    {
+      "id": "auto-relative-center-waits",
+      "group": "resize-origin",
+      "operation": "auto-resize-origin",
+      "input": {"size": [90, 90], "title_height": 18, "pointer": [45, 63], "from_titlebar": false},
+      "expected": {"horizontal": "none", "vertical": "none"},
+      "sources": ["auto-relative-resize"]
+    },
+    {
+      "id": "auto-relative-titlebar-disabled",
+      "group": "resize-origin",
+      "operation": "auto-resize-origin",
+      "input": {"size": [90, 90], "title_height": 18, "pointer": [10, 25], "from_titlebar": true},
+      "expected": {"horizontal": "none", "vertical": "none"},
+      "sources": ["auto-relative-resize"]
+    },
+    {
+      "id": "event-context-map",
+      "group": "focus-context",
+      "operation": "context-map",
+      "input": {},
+      "expected": {"root": "root", "title": "title", "client": "window", "icon": "icon", "frame": "frame", "icon_manager_entry": "iconmgr", "menu": "no-binding-context"},
+      "sources": ["focus-contexts", "binding-context-definitions", "no-menu-binding-context"]
+    },
+    {
+      "id": "pointer-root-default",
+      "group": "focus-policy",
+      "operation": "focus-default",
+      "input": {},
+      "expected": {"focus_root": true, "title_focus": true, "x_focus_when_unfocused": "PointerRoot"},
+      "sources": ["defaults", "pointer-root"]
+    },
+    {
+      "id": "frame-enter-title-focus",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "frame", "title_focus": true, "has_title": true, "input_hint": true, "take_focus": false},
+      "expected": {"activate": true, "set_input_focus": true, "send_take_focus": false},
+      "sources": ["focus-enter"]
+    },
+    {
+      "id": "frame-enter-no-title-focus",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "frame", "title_focus": false, "has_title": true, "input_hint": true, "take_focus": false},
+      "expected": {"activate": true, "set_input_focus": false, "send_take_focus": false},
+      "sources": ["focus-enter", "no-title-focus-option"]
+    },
+    {
+      "id": "frame-enter-take-focus-protocol",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "frame", "title_focus": false, "has_title": true, "input_hint": false, "take_focus": true},
+      "expected": {"activate": true, "set_input_focus": false, "send_take_focus": true},
+      "sources": ["focus-enter"]
+    },
+    {
+      "id": "client-enter-only-installs-colormap",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "client", "title_focus": true, "has_title": true, "input_hint": true, "take_focus": false},
+      "expected": {"activate": false, "set_input_focus": false, "send_take_focus": false},
+      "sources": ["focus-enter", "pointer-root"]
+    },
+    {
+      "id": "icon-enter-does-not-activate-client",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "icon", "title_focus": true, "has_title": true, "input_hint": true, "take_focus": false},
+      "expected": {"activate": false, "set_input_focus": false, "send_take_focus": false},
+      "sources": ["focus-enter"]
+    },
+    {
+      "id": "icon-manager-enter-activates-client",
+      "group": "focus-policy",
+      "operation": "focus-enter",
+      "input": {"focus_root": true, "surface": "iconmgr", "title_focus": true, "has_title": true, "input_hint": true, "take_focus": false},
+      "expected": {"activate": true, "set_input_focus": true, "send_take_focus": false},
+      "sources": ["focus-enter"]
+    },
+    {
+      "id": "frame-leave-pointer-root-clears-focus",
+      "group": "focus-policy",
+      "operation": "focus-leave",
+      "input": {"focus_root": true, "surface": "frame", "detail_inferior": false, "queued_match": false, "title_focus": true, "take_focus": false},
+      "expected": {"deactivate": true, "set_pointer_root": true},
+      "sources": ["focus-leave", "pointer-root"]
+    },
+    {
+      "id": "frame-leave-no-title-focus-clears-model-only",
+      "group": "focus-policy",
+      "operation": "focus-leave",
+      "input": {"focus_root": true, "surface": "frame", "detail_inferior": false, "queued_match": false, "title_focus": false, "take_focus": false},
+      "expected": {"deactivate": true, "set_pointer_root": false},
+      "sources": ["focus-leave", "no-title-focus-option"]
+    },
+    {
+      "id": "frame-leave-click-focus-is-ignored",
+      "group": "focus-policy",
+      "operation": "focus-leave",
+      "input": {"focus_root": false, "surface": "frame", "detail_inferior": false, "queued_match": false, "title_focus": true, "take_focus": false},
+      "expected": {"deactivate": false, "set_pointer_root": false},
+      "sources": ["focus-leave"]
+    },
+    {
+      "id": "click-focus-locks",
+      "group": "focus-policy",
+      "operation": "focus-toggle",
+      "input": {"focus_root": true, "selected_is_current": false, "iconified": false},
+      "expected": {"result": "click-focus", "focus_root": false},
+      "sources": ["focus-toggle"]
+    },
+    {
+      "id": "click-focus-toggle-restores-sloppy",
+      "group": "focus-policy",
+      "operation": "focus-toggle",
+      "input": {"focus_root": false, "selected_is_current": true, "iconified": false},
+      "expected": {"result": "pointer-root", "focus_root": true},
+      "sources": ["focus-toggle", "focus-on-root", "pointer-root"]
+    },
+    {
+      "id": "focus-on-icon-is-no-op",
+      "group": "focus-policy",
+      "operation": "focus-toggle",
+      "input": {"focus_root": true, "selected_is_current": false, "iconified": true},
+      "expected": {"result": "unchanged", "focus_root": true},
+      "sources": ["focus-toggle"]
+    },
+    {
+      "id": "unfocus-restores-pointer-root",
+      "group": "focus-policy",
+      "operation": "unfocus",
+      "input": {},
+      "expected": {"focus_root": true, "focused_window": null, "x_focus": "PointerRoot"},
+      "sources": ["focus-on-root", "pointer-root"]
+    },
+    {
+      "id": "raise-frame",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "raise", "target": "frame", "window_moved": false},
+      "expected": {"x_request": "XRaiseWindow(frame)"},
+      "sources": ["stacking"]
+    },
+    {
+      "id": "lower-icon",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "lower", "target": "icon", "window_moved": false},
+      "expected": {"x_request": "XLowerWindow(icon)"},
+      "sources": ["stacking"]
+    },
+    {
+      "id": "raise-lower-opposite",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "raiselower", "target": "frame", "window_moved": false},
+      "expected": {"x_request": "XConfigureWindow(Opposite)", "visible_result": "raise-if-occluded-otherwise-lower"},
+      "sources": ["stacking", "raise-lower-observable-semantics"]
+    },
+    {
+      "id": "raise-lower-suppressed-after-move",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "raiselower", "target": "frame", "window_moved": true},
+      "expected": {"x_request": "none"},
+      "sources": ["stacking"]
+    },
+    {
+      "id": "circle-up-delegates-to-x",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "circleup", "target": "root", "window_moved": false},
+      "expected": {"x_request": "XCirculateSubwindowsUp(root)", "visible_result": "raise-bottommost-occluded"},
+      "sources": ["stacking", "stacking-observable-semantics"]
+    },
+    {
+      "id": "circle-down-delegates-to-x",
+      "group": "stacking",
+      "operation": "stack-action",
+      "input": {"action": "circledown", "target": "root", "window_moved": false},
+      "expected": {"x_request": "XCirculateSubwindowsDown(root)", "visible_result": "lower-topmost-occluding"},
+      "sources": ["stacking", "stacking-observable-semantics"]
+    },
+    {
+      "id": "us-position-always-honored",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": false, "us_position": true, "p_position": false, "use_p_position": "off", "position": [0, 0]},
+      "expected": {"ask_user": false},
+      "sources": ["placement-policy"]
+    },
+    {
+      "id": "p-position-off-prompts",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": false, "us_position": false, "p_position": true, "use_p_position": "off", "position": [40, 50]},
+      "expected": {"ask_user": true},
+      "sources": ["placement-policy", "defaults"]
+    },
+    {
+      "id": "p-position-on-honored",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": false, "us_position": false, "p_position": true, "use_p_position": "on", "position": [0, 0]},
+      "expected": {"ask_user": false},
+      "sources": ["placement-policy"]
+    },
+    {
+      "id": "p-position-nonzero-origin-prompts",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": false, "us_position": false, "p_position": true, "use_p_position": "non-zero", "position": [0, 0]},
+      "expected": {"ask_user": true},
+      "sources": ["placement-policy"]
+    },
+    {
+      "id": "p-position-nonzero-honored",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": false, "us_position": false, "p_position": true, "use_p_position": "non-zero", "position": [0, 7]},
+      "expected": {"ask_user": false},
+      "sources": ["placement-policy"]
+    },
+    {
+      "id": "transient-position-always-honored",
+      "group": "placement",
+      "operation": "placement-prompt",
+      "input": {"transient": true, "us_position": false, "p_position": false, "use_p_position": "off", "position": [0, 0]},
+      "expected": {"ask_user": false},
+      "sources": ["placement-policy"]
+    },
+    {
+      "id": "random-placement-sequence",
+      "group": "placement",
+      "operation": "random-placement",
+      "input": {"screen": [640, 480], "sizes": [[100, 80], [100, 80], [100, 80]]},
+      "expected": {"positions": [[50, 50], [80, 80], [110, 110]], "next": [140, 140]},
+      "sources": ["placement-policy", "placement-seed"]
+    },
+    {
+      "id": "random-placement-edge-reset",
+      "group": "placement",
+      "operation": "random-placement",
+      "input": {"screen": [120, 100], "sizes": [[100, 80], [100, 80]]},
+      "expected": {"positions": [[20, 20], [20, 20]], "next": [50, 50]},
+      "sources": ["placement-policy", "placement-seed"]
+    },
+    {
+      "id": "max-window-initial-clip",
+      "group": "placement",
+      "operation": "max-window-clip",
+      "input": {"size": [900, 700], "maximum": [800, 600]},
+      "expected": {"size": [800, 600]},
+      "sources": ["max-window-size"]
+    },
+    {
+      "id": "max-window-default-derived-from-screen",
+      "group": "placement",
+      "operation": "max-window-default",
+      "input": {"screen": [640, 480]},
+      "expected": {"maximum": [32127, 32287]},
+      "sources": ["max-window-default"]
+    }
+  ]
+}
