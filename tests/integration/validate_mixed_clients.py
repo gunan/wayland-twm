@@ -124,10 +124,31 @@ def validate_text(
         'sscanf(command, "REMAP %63s"',
         "xcb_unmap_window",
         "xcb_map_window",
+        "bool desired_mapped;",
+        "bool paint_alternate;",
+        "if (!role->desired_mapped) return false;",
+        "role->paint_alternate = !role->paint_alternate;",
+        "static void repaint_mapped_roles",
+        "if (sent) xcb_flush(client->connection);",
+        "poll(descriptors, 2, 100)",
+        "repaint_mapped_roles(&client);",
+        "stop_repainting(client);",
     )
     for marker in x11_markers:
         if marker not in x11_client:
             errors.append(f"mixed X11 input/lifecycle client lacks {marker!r}")
+    map_start = x11_client.find("static void map_role")
+    map_end = x11_client.find("static void repaint_mapped_roles", map_start)
+    map_body = x11_client[map_start:map_end]
+    if not (0 <= map_body.find("role->desired_mapped = true;") <
+            map_body.find("xcb_map_window")):
+        errors.append("mixed X11 remap does not arm sustained damage before mapping")
+    unmap_start = x11_client.find('if (sscanf(command, "UNMAP %63s"')
+    unmap_end = x11_client.find('if (sscanf(command, "REMAP %63s"', unmap_start)
+    unmap_body = x11_client[unmap_start:unmap_end]
+    if not (0 <= unmap_body.find("role->desired_mapped = false;") <
+            unmap_body.find("xcb_unmap_window")):
+        errors.append("mixed X11 unmap does not disarm damage before the request")
 
     contract_start = meson.find("'mixed native and Xwayland session contract'")
     runtime_start = meson.find("'mixed native and Xwayland client integration'")
@@ -239,6 +260,48 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
             runner, wayland,
             x11.replace("XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_KEY_PRESS",
                         "XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_NO_EVENT", 1),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "alternating-damage",
+            runner, wayland,
+            x11.replace("role->paint_alternate = !role->paint_alternate;", "", 1),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "remap-rearm-order",
+            runner, wayland,
+            x11.replace(
+                "role->desired_mapped = true;\n"
+                "\txcb_map_window(client->connection, role->window);",
+                "xcb_map_window(client->connection, role->window);\n"
+                "\trole->desired_mapped = true;",
+                1,
+            ),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "unmap-disarm-order",
+            runner, wayland,
+            x11.replace(
+                "role->desired_mapped = false;\n"
+                "\t\txcb_unmap_window(client->connection, role->window);",
+                "xcb_unmap_window(client->connection, role->window);\n"
+                "\t\trole->desired_mapped = false;",
+                1,
+            ),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "sustained-damage",
+            runner, wayland,
+            x11.replace("\t\trepaint_mapped_roles(&client);\n", "", 1),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "damage-flush",
+            runner, wayland,
+            x11.replace("if (sent) xcb_flush(client->connection);", "", 1),
             meson, compatibility, integration_readme,
         ),
         (

@@ -24,8 +24,10 @@ struct role {
 	const char *instance;
 	const char *class_name;
 	xcb_window_t window;
-	uint32_t color;
-	bool mapped;
+	uint32_t primary_color;
+	uint32_t alternate_color;
+	bool paint_alternate;
+	bool desired_mapped;
 };
 
 struct client {
@@ -75,33 +77,52 @@ static void set_class(struct client *client, struct role *role) {
 		(uint32_t)(instance_length + class_length), value);
 }
 
-static void repaint(struct client *client, struct role *role) {
+static bool repaint_role(struct client *client, struct role *role) {
+	if (!role->desired_mapped) return false;
+	uint32_t color = role->paint_alternate ?
+		role->alternate_color : role->primary_color;
+	role->paint_alternate = !role->paint_alternate;
 	xcb_change_window_attributes(client->connection, role->window,
-		XCB_CW_BACK_PIXEL, &role->color);
-	xcb_clear_area(client->connection, false, role->window, 0, 0, 180, 120);
+		XCB_CW_BACK_PIXEL, &color);
+	xcb_clear_area(client->connection, false, role->window, 0, 0, 0, 0);
+	return true;
 }
 
 static void map_role(struct client *client, struct role *role) {
-	role->mapped = true;
+	role->desired_mapped = true;
 	xcb_map_window(client->connection, role->window);
-	repaint(client, role);
+	(void)repaint_role(client, role);
 	xcb_flush(client->connection);
+}
+
+static void repaint_mapped_roles(struct client *client) {
+	bool sent = false;
+	for (size_t i = 0; i < ROLE_COUNT; ++i)
+		sent |= repaint_role(client, &client->roles[i]);
+	if (sent) xcb_flush(client->connection);
+}
+
+static void stop_repainting(struct client *client) {
+	for (size_t i = 0; i < ROLE_COUNT; ++i)
+		client->roles[i].desired_mapped = false;
 }
 
 static bool initialize_role(struct client *client, enum role_index index,
 		const char *name, const char *title, const char *instance,
-		const char *class_name, uint32_t color) {
+		const char *class_name, uint32_t primary_color,
+		uint32_t alternate_color) {
 	struct role *role = &client->roles[index];
 	*role = (struct role){
 		.name = name,
 		.title = title,
 		.instance = instance,
 		.class_name = class_name,
-		.color = color,
+		.primary_color = primary_color,
+		.alternate_color = alternate_color,
 		.window = xcb_generate_id(client->connection),
 	};
 	uint32_t values[] = {
-		color,
+		primary_color,
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_EXPOSURE |
 			XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_KEY_PRESS |
 			XCB_EVENT_MASK_KEY_RELEASE,
@@ -132,9 +153,11 @@ static bool initialize(struct client *client) {
 	client->screen = screens.data;
 	if (client->screen == NULL) return false;
 	return initialize_role(client, ROLE_X11_A, "x11-a", "wtwm-mixed-x11-a",
-			"wtwm-mixed-x11-a", "WtwmMixedX11A", UINT32_C(0x0060a040)) &&
+			"wtwm-mixed-x11-a", "WtwmMixedX11A",
+			UINT32_C(0x0060a040), UINT32_C(0x0060c060)) &&
 		initialize_role(client, ROLE_X11_B, "x11-b", "wtwm-mixed-x11-b",
-			"wtwm-mixed-x11-b", "WtwmMixedX11B", UINT32_C(0x00a04080));
+			"wtwm-mixed-x11-b", "WtwmMixedX11B",
+			UINT32_C(0x00a04080), UINT32_C(0x00c060a0));
 }
 
 static void handle_event(struct client *client, xcb_generic_event_t *event) {
@@ -142,7 +165,8 @@ static void handle_event(struct client *client, xcb_generic_event_t *event) {
 	if (type == XCB_EXPOSE) {
 		const xcb_expose_event_t *expose = (const xcb_expose_event_t *)event;
 		struct role *role = role_for_window(client, expose->window);
-		if (role != NULL && expose->count == 0) repaint(client, role);
+		if (role != NULL && expose->count == 0 && repaint_role(client, role))
+			xcb_flush(client->connection);
 		return;
 	}
 	if (type == XCB_FOCUS_IN) {
@@ -214,8 +238,8 @@ static bool handle_command(struct client *client, char *command) {
 	}
 	if (sscanf(command, "UNMAP %63s", name) == 1) {
 		struct role *role = role_named(client, name);
-		if (role == NULL || !role->mapped) return false;
-		role->mapped = false;
+		if (role == NULL || !role->desired_mapped) return false;
+		role->desired_mapped = false;
 		xcb_unmap_window(client->connection, role->window);
 		xcb_flush(client->connection);
 		printf("OK UNMAPPED %s\n", role->name);
@@ -223,12 +247,13 @@ static bool handle_command(struct client *client, char *command) {
 	}
 	if (sscanf(command, "REMAP %63s", name) == 1) {
 		struct role *role = role_named(client, name);
-		if (role == NULL || role->mapped) return false;
+		if (role == NULL || role->desired_mapped) return false;
 		map_role(client, role);
 		printf("OK REMAPPED %s\n", role->name);
 		return true;
 	}
 	if (strcmp(command, "EXIT") == 0) {
+		stop_repainting(client);
 		puts("OK EXIT");
 		client->running = false;
 		return true;
@@ -255,7 +280,7 @@ int main(void) {
 			{.fd = STDIN_FILENO, .events = POLLIN},
 		};
 		int result;
-		do result = poll(descriptors, 2, -1);
+		do result = poll(descriptors, 2, 100);
 		while (result < 0 && errno == EINTR);
 		if (result < 0) break;
 		if ((descriptors[0].revents & (POLLIN | POLLERR | POLLHUP)) != 0)
@@ -265,6 +290,7 @@ int main(void) {
 			command[strcspn(command, "\r\n")] = '\0';
 			if (!handle_command(&client, command)) break;
 		}
+		repaint_mapped_roles(&client);
 		if (xcb_connection_has_error(client.connection) != 0) break;
 	}
 
