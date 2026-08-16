@@ -118,6 +118,8 @@ static void parses_every_construct_family(void) {
 	assert(wtwm_config_parse(&config, "families.twmrc", source, error, sizeof(error)));
 	assert(config.border_width == 4);
 	assert(config.color_count == 22);
+	assert(config.colors[0].mode == WTWM_COLOR_MODE_COLOR);
+	assert(config.colors[21].mode == WTWM_COLOR_MODE_MONOCHROME);
 	assert(config.colors[0].override_count == 1);
 	assert(config.saved_colors.count == 3);
 	assert(config.cursor_count == 3);
@@ -155,6 +157,37 @@ static void parses_every_construct_family(void) {
 		}
 	}
 	assert(saw_effective && saw_translated && saw_parsed && saw_unsupported);
+	wtwm_config_finish(&config);
+}
+
+static void resolves_display_mode_and_window_colors(void) {
+	static const char source[] =
+		"Color { BorderColor \"black\" { \"xterm\" \"red\" } }\n"
+		"Monochrome { BorderColor \"white\" { \"xterm\" \"black\" } }\n"
+		"Color { BorderColor \"blue\" { \"XTerm\" \"green\" } }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "colors", source, error, sizeof(error)));
+	struct wtwm_client_identity lower = {
+		.name = "xterm",
+		.resource_name = "xterm",
+		.resource_class = "lower",
+	};
+	struct wtwm_client_identity upper = {.name = "XTerm"};
+	struct wtwm_client_identity plain = {.name = "clock"};
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &lower), "red") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &upper), "green") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &plain), "blue") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_MONOCHROME, &lower), "black") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_MONOCHROME, &plain), "white") == 0);
+	assert(wtwm_config_color_value(&config, "MenuForeground",
+		WTWM_COLOR_MODE_GRAYSCALE, &plain) == NULL);
 	wtwm_config_finish(&config);
 }
 
@@ -564,6 +597,7 @@ int main(void) {
 	parse_lexical_reference_forms();
 	rejects_reference_lexical_errors();
 	parses_every_construct_family();
+	resolves_display_mode_and_window_colors();
 	preserves_order_and_replacement_rules();
 	uses_reference_intrinsic_defaults_and_aliases();
 	failed_parse_is_atomic_and_leak_safe();

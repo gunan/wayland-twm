@@ -814,7 +814,7 @@ static const struct color_option *find_color_option(const char *name) {
 	return NULL;
 }
 
-static bool parse_color_block(struct parser *parser) {
+static bool parse_color_block(struct parser *parser, enum wtwm_color_mode mode) {
 	if (!expect(parser, TOK_LBRACE, "'{'")) return false;
 	while (parser->token.type != TOK_RBRACE) {
 		if (parser->token.type == TOK_EOF) return fail(parser, "unterminated color block");
@@ -828,6 +828,7 @@ static bool parse_color_block(struct parser *parser) {
 		struct wtwm_color_setting *setting = &items[parser->config->color_count++];
 		memset(setting, 0, sizeof(*setting));
 		copy_text(setting->name, sizeof(setting->name), option->name);
+		setting->mode = mode;
 		if (!next_token(parser) || !take_string(parser, setting->value,
 			sizeof(setting->value))) return false;
 		char *slot = (char *)parser->config + option->offset;
@@ -1060,9 +1061,12 @@ static bool parse_statement_body(struct parser *parser, const char *keyword,
 	enum token_type keyword_type) {
 	if (keyword_type == TOK_STRING) return parse_key(parser, keyword);
 	if (equal_ci(keyword, "Button")) return parse_button(parser);
-	if (equal_ci(keyword, "Color") || equal_ci(keyword, "Grayscale") ||
-		equal_ci(keyword, "Greyscale") || equal_ci(keyword, "Monochrome"))
-		return parse_color_block(parser);
+	if (equal_ci(keyword, "Color"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_COLOR);
+	if (equal_ci(keyword, "Grayscale") || equal_ci(keyword, "Greyscale"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_GRAYSCALE);
+	if (equal_ci(keyword, "Monochrome"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_MONOCHROME);
 	if (equal_ci(keyword, "SaveColor")) return parse_save_color(parser);
 	if (equal_ci(keyword, "Menu")) return parse_menu(parser);
 	if (equal_ci(keyword, "Function")) return parse_function(parser);
@@ -1416,6 +1420,29 @@ bool wtwm_config_match_client(const struct wtwm_string_list *list,
 		return wtwm_config_match_x11(list, identity->name, identity->resource_name,
 			identity->resource_class);
 	return wtwm_config_match_native(list, identity->title, identity->app_id);
+}
+
+const char *wtwm_config_color_value(const struct wtwm_config *config,
+		const char *name, enum wtwm_color_mode mode,
+		const struct wtwm_client_identity *identity) {
+	if (config == NULL || name == NULL) return NULL;
+	const char *base = NULL;
+	for (size_t i = config->color_count; i > 0; --i) {
+		const struct wtwm_color_setting *setting = &config->colors[i - 1];
+		if (setting->mode != mode || !equal_ci(setting->name, name)) continue;
+		if (base == NULL) base = setting->value;
+		if (identity == NULL) continue;
+		for (size_t j = 0; j < setting->override_count; ++j) {
+			const char *candidate = setting->overrides[j].name;
+			struct wtwm_string_list singleton = {
+				.items = (char **)&candidate,
+				.count = 1,
+			};
+			if (wtwm_config_match_client(&singleton, identity))
+				return setting->overrides[j].value;
+		}
+	}
+	return base;
 }
 
 static bool prefix_match(const char *selector, const char *value) {

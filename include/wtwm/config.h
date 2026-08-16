@@ -142,9 +142,16 @@ struct wtwm_window_value {
 	char value[WTWM_NAME_MAX];
 };
 
+enum wtwm_color_mode {
+	WTWM_COLOR_MODE_COLOR,
+	WTWM_COLOR_MODE_GRAYSCALE,
+	WTWM_COLOR_MODE_MONOCHROME,
+};
+
 struct wtwm_color_setting {
 	char name[WTWM_NAME_MAX];
 	char value[WTWM_NAME_MAX];
+	enum wtwm_color_mode mode;
 	struct wtwm_window_value *overrides;
 	size_t override_count;
 };
@@ -338,6 +345,10 @@ bool wtwm_config_match_x11(const struct wtwm_string_list *list,
 bool wtwm_config_match_native(const struct wtwm_string_list *list,
 	const char *title, const char *app_id);
 bool wtwm_config_match_client(const struct wtwm_string_list *list,
+	const struct wtwm_client_identity *identity);
+/* Resolve the active display-mode color, including twm's window overrides. */
+const char *wtwm_config_color_value(const struct wtwm_config *config,
+	const char *name, enum wtwm_color_mode mode,
 	const struct wtwm_client_identity *identity);
 /* Named-key/f.warpto selectors are case-sensitive prefixes, not globs. */
 bool wtwm_config_prefix_x11(const char *selector, const char *name,
