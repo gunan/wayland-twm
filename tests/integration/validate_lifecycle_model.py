@@ -137,6 +137,8 @@ def validate_sources(
         "focus names a stale or hidden client",
         "creation identity was reused or changed",
         "duplicate Xwayland lifecycle entry",
+        'int(entry["xid"]) != client.xid',
+        "exact X11 lifecycle teardown",
         "event sequence is stale or duplicated",
         "seeded lifecycle runtime was not repeatable",
         "for iteration in range(RUNTIME_RUNS)",
@@ -147,6 +149,10 @@ def validate_sources(
     for forbidden in ("SystemExit(77)", "continue-on-error", "|| true"):
         if forbidden in runner:
             errors.append(f"randomized lifecycle runner contains fallback {forbidden!r}")
+    if runner.count("wait_for_client_teardown(control, target)") != 1:
+        errors.append("randomized destroy lacks its exact teardown gate")
+    if runner.count("wait_for_client_teardown(control, item)") != 1:
+        errors.append("final cleanup lacks its exact teardown gate")
 
     contract_start = meson.find("'randomized lifecycle model contract'")
     runtime_start = meson.find("'randomized lifecycle and stacking integration'")
@@ -223,6 +229,18 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
             "runtime-destroy", contract, header, source, model_test,
             runner.replace('"raiselower", "circle_up", "circle_down", "destroy",',
                            '"raiselower", "circle_up", "circle_down",', 1),
+            meson, readme,
+        ),
+        (
+            "runtime-xid-teardown", contract, header, source, model_test,
+            runner.replace('int(entry["xid"]) != client.xid',
+                           'int(entry["xid"]) == client.xid', 1),
+            meson, readme,
+        ),
+        (
+            "runtime-final-teardown", contract, header, source, model_test,
+            runner.replace("wait_for_client_teardown(control, item)",
+                           "wait_for_title(control, item.title, False)", 1),
             meson, readme,
         ),
         (

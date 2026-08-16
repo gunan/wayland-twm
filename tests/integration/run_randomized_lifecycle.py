@@ -49,6 +49,22 @@ def wait_for_title(control: Control, title: str, present: bool) -> dict[str, obj
     )
 
 
+def wait_for_client_teardown(
+    control: Control, client: RuntimeClient
+) -> dict[str, object]:
+    state = wait_for_title(control, client.title, False)
+    if client.xid is None:
+        return state
+    return wait_state(
+        control,
+        lambda item: all(
+            int(entry["xid"]) != client.xid
+            for entry in item["xwayland_lifecycle"]
+        ),
+        f"{client.title} exact X11 lifecycle teardown",
+    )
+
+
 def assert_runtime_invariants(
     control: Control,
     clients: list[RuntimeClient],
@@ -318,8 +334,8 @@ def run_once(
                     target.channel.command("EXIT", "OK EXIT")
                     if target.process.wait(timeout=10) != 0:
                         raise RuntimeError(f"{target.title} did not exit cleanly")
+                    wait_for_client_teardown(control, target)
                     clients.remove(target)
-                    wait_for_title(control, target.title, False)
                 elif action in {"raise", "lower", "raiselower"} and mapped:
                     button = {"raise": 272, "lower": 273, "raiselower": 274}[action]
                     if not title_action(control, control.state(), button):
@@ -352,6 +368,7 @@ def run_once(
                 item.channel.command("EXIT", "OK EXIT")
                 if item.process.wait(timeout=10) != 0:
                     raise RuntimeError(f"{item.title} teardown failed")
+                wait_for_client_teardown(control, item)
                 clients.remove(item)
             wait_state(
                 control,
