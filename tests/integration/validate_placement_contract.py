@@ -73,14 +73,14 @@ def validate_text(placement: str, config: str, wtwm: str,
             errors.append(f"live placement matrix lacks {marker!r}")
     for marker in (
         '"placement-default-max-width", 10, 12,',
-        '40000, 16, HINT_US_POSITION',
+        '32200, 16, HINT_US_POSITION',
         '"placement-default-max-height", 10, 12,',
-        '16, 40000, HINT_US_POSITION',
+        '16, 32300, HINT_US_POSITION',
     ):
         if marker not in client:
             errors.append(f"safe X11 maximum fixture lacks {marker!r}")
-    if "40000, 40000" in client:
-        errors.append("X11 maximum fixture allocates an unsafe two-axis pixmap")
+    if "40000" in client:
+        errors.append("X11 maximum fixture exceeds the renderer-safe bitmap limit")
     for marker in (
         "'src/placement.c'",
         "test('twm placement policy', placement_test)",

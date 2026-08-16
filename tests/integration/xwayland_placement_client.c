@@ -113,9 +113,9 @@ static void create_scenario(struct client *client, const char *scenario) {
 			HINT_US_POSITION));
 	} else if (strcmp(scenario, "defaultmax") == 0) {
 		map(client, create_window(client, "placement-default-max-width", 10, 12,
-			40000, 16, HINT_US_POSITION));
+			32200, 16, HINT_US_POSITION));
 		map(client, create_window(client, "placement-default-max-height", 10, 12,
-			16, 40000, HINT_US_POSITION));
+			16, 32300, HINT_US_POSITION));
 	} else if (strcmp(scenario, "remap") == 0) {
 		client->remap = create_window(client, "placement-remap", 66, 77,
 			100, 80, HINT_US_POSITION);

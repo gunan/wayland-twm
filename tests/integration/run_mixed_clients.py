@@ -369,7 +369,8 @@ def run(compositor: Path, wayland_binary: Path, x11_binary: Path) -> None:
         config = temporary / "mixed.twmrc"
         config.write_text(
             "NoDefaults\nRandomPlacement\nNoGrabServer\nNoIconManagers\n"
-            "Button1 = : window : f.raise\n"
+            'Function "focus-raise" { f.focus f.raise }\n'
+            'Button1 = : window : f.function "focus-raise"\n'
             "Button2 = : window : f.lower\n",
             encoding="utf-8",
         )

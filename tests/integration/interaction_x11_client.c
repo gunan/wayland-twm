@@ -49,6 +49,7 @@ static void set_class(struct client *client, xcb_window_t window,
 
 static void set_size_hints(struct client *client, xcb_window_t window) {
 	enum {
+		US_POSITION = 1 << 0,
 		P_MIN_SIZE = 1 << 4,
 		P_MAX_SIZE = 1 << 5,
 		P_RESIZE_INC = 1 << 6,
@@ -57,8 +58,10 @@ static void set_size_hints(struct client *client, xcb_window_t window) {
 		P_WIN_GRAVITY = 1 << 9,
 	};
 	uint32_t hints[18] = {0};
-	hints[0] = P_MIN_SIZE | P_MAX_SIZE | P_RESIZE_INC | P_ASPECT |
+	hints[0] = US_POSITION | P_MIN_SIZE | P_MAX_SIZE | P_RESIZE_INC | P_ASPECT |
 		P_BASE_SIZE | P_WIN_GRAVITY;
+	hints[1] = 100;
+	hints[2] = 100;
 	hints[5] = 80;
 	hints[6] = 60;
 	hints[7] = 360;
@@ -72,6 +75,17 @@ static void set_size_hints(struct client *client, xcb_window_t window) {
 	hints[15] = 40;
 	hints[16] = 30;
 	hints[17] = XCB_GRAVITY_NORTH_WEST;
+	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, window,
+		client->wm_normal_hints, client->wm_size_hints, 32, 18, hints);
+}
+
+static void set_position_hints(struct client *client, xcb_window_t window,
+		int x, int y) {
+	enum { US_POSITION = 1 << 0 };
+	uint32_t hints[18] = {0};
+	hints[0] = US_POSITION;
+	hints[1] = (uint32_t)x;
+	hints[2] = (uint32_t)y;
 	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, window,
 		client->wm_normal_hints, client->wm_size_hints, 32, 18, hints);
 }
@@ -107,6 +121,7 @@ static bool initialize(struct client *client) {
 		"interaction-secondary", "interaction-secondary");
 	client->primary = create_window(client, 100, 100, 180, 120,
 		"interaction-primary", "interaction-primary");
+	set_position_hints(client, client->secondary, 330, 180);
 	set_size_hints(client, client->primary);
 	xcb_map_window(client->connection, client->secondary);
 	xcb_map_window(client->connection, client->primary);

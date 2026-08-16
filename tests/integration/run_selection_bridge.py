@@ -177,7 +177,7 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
         control_path = temporary / "control.sock"
         display_path = temporary / "xwayland-display"
         config_path = temporary / "selection.twmrc"
-        config_path.write_text("", encoding="utf-8")
+        config_path.write_text("RandomPlacement\n", encoding="utf-8")
         socket_name = f"wtwm-selection-{os.getpid()}"
         startup = (
             "printf '%s\\n' \"$DISPLAY\" > " + shlex.quote(str(display_path))

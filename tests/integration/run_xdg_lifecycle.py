@@ -76,6 +76,8 @@ def exercise_target_cleanup(control: Control, state: dict[str, object]) -> None:
     if not control.state()["interactive"]:
         raise RuntimeError("title press did not begin an interactive operation")
     control.command("BUTTON 273 press")
+    control.command("BUTTON 273 release")
+    control.command("BUTTON 273 press")
     target_state = control.state()
     if target_state["menu"] is None:
         raise RuntimeError("title binding did not open a target-owned menu")

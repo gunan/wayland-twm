@@ -303,6 +303,7 @@ def run(
         display_marker = temporary / "display"
         config = temporary / "stress.twmrc"
         config.write_text(
+            "RandomPlacement\n"
             "Button1 = : title : f.delete\n"
             "Button2 = : title : f.destroy\n",
             encoding="utf-8",

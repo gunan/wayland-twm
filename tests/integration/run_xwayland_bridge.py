@@ -21,8 +21,8 @@ SIZE_HINT_KEYS = (
     "min_aspect_num", "min_aspect_den", "max_aspect_num", "max_aspect_den",
     "gravity",
 )
-INITIAL_SIZE_HINTS = (880, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
-UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
+INITIAL_SIZE_HINTS = (881, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
+UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
 
 
 def wait_path(path: Path) -> str:

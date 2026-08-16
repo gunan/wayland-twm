@@ -8,8 +8,8 @@ import ast
 from pathlib import Path
 
 
-INITIAL_SIZE_HINTS = (880, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
-UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
+INITIAL_SIZE_HINTS = (881, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
+UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
 MUTATION_COMMANDS = (
     'command(client, "UPDATE", "UPDATED")',
     'command(client, "TRUNCATE_ICON", "TRUNCATED_ICON_SET")',
@@ -169,8 +169,8 @@ def read_sources(source_root: Path) -> tuple[str, str, str] | None:
 def self_test_tamper(client: str, runner: str, meson: str) -> list[str]:
     failures: list[str] = []
     tampered = runner.replace(
-        "UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15,",
-        "UPDATED_SIZE_HINTS = (880, 101, 70, 300, 220, 50, 40, 25, 15,",
+        "UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15,",
+        "UPDATED_SIZE_HINTS = (881, 101, 70, 300, 220, 50, 40, 25, 15,",
         1,
     )
     if not validate_text(client, tampered, meson):
