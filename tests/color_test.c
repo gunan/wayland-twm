@@ -38,6 +38,16 @@ int main(void) {
 	assert(middle.red == 67 && middle.green == 500 && middle.blue == 400);
 	struct wtwm_color end = wtwm_color_interpolate(first, last, 3, 3);
 	assert(end.red == last.red && end.green == last.green && end.blue == last.blue);
+	struct wtwm_color gray = wtwm_color_grayscale(
+		(struct wtwm_color){65535, 0, 0});
+	assert(gray.red == 19595);
+	assert(gray.red == gray.green && gray.green == gray.blue);
+	struct wtwm_color black = wtwm_color_monochrome(
+		(struct wtwm_color){65535, 0, 0});
+	assert(black.red == 0 && black.green == 0 && black.blue == 0);
+	struct wtwm_color white = wtwm_color_monochrome(
+		(struct wtwm_color){0, 65535, 0});
+	assert(white.red == 65535 && white.green == 65535 && white.blue == 65535);
 
 	float normalized[4];
 	wtwm_color_to_float(&(struct wtwm_color){65535, 32768, 0}, normalized);

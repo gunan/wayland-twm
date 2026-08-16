@@ -136,3 +136,19 @@ struct wtwm_color wtwm_color_interpolate(struct wtwm_color first,
 		.blue = interpolate_channel(first.blue, last.blue, index, steps),
 	};
 }
+
+struct wtwm_color wtwm_color_grayscale(struct wtwm_color color) {
+	/* Integer Rec. 601 luma, with coefficients summing to 65536. */
+	uint32_t luminance = ((uint32_t)color.red * 19595u +
+		(uint32_t)color.green * 38470u + (uint32_t)color.blue * 7471u +
+		32768u) >> 16;
+	if (luminance > 65535u) luminance = 65535u;
+	return (struct wtwm_color){(uint16_t)luminance, (uint16_t)luminance,
+		(uint16_t)luminance};
+}
+
+struct wtwm_color wtwm_color_monochrome(struct wtwm_color color) {
+	struct wtwm_color grayscale = wtwm_color_grayscale(color);
+	uint16_t channel = grayscale.red >= 32768u ? 65535u : 0u;
+	return (struct wtwm_color){channel, channel, channel};
+}

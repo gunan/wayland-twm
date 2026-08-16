@@ -21,4 +21,8 @@ void wtwm_color_to_float(const struct wtwm_color *color, float result[static 4])
 struct wtwm_color wtwm_color_interpolate(struct wtwm_color first,
 	struct wtwm_color last, unsigned index, unsigned steps);
 
+/* Deterministic Wayland translations for GrayScale and Monochrome visuals. */
+struct wtwm_color wtwm_color_grayscale(struct wtwm_color color);
+struct wtwm_color wtwm_color_monochrome(struct wtwm_color color);
+
 #endif
