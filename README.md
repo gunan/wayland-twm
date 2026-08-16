@@ -286,7 +286,7 @@ Implementation work:
 - [x] Apply `.twmrc` window lists identically to Xwayland clients.
 - [x] Define a documented mapping from native `app_id` and title to `twm` name/class
   rules.
-- [ ] Implement clipboard and selection interoperation where legacy actions require
+- [x] Implement clipboard and selection interoperation where legacy actions require
   it.
 - [ ] Ensure popups, menus, and unmanaged X11 windows stack correctly.
 
