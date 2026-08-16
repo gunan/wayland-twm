@@ -174,6 +174,19 @@ def normalize_window(item: dict[str, object]) -> dict[str, object]:
     return result
 
 
+def normalize_reference(observation: dict[str, object]) -> dict[str, object]:
+    client = observation["client"]
+    frame = observation["frame"]
+    assert isinstance(client, dict) and isinstance(frame, dict)
+    title = observation["title"]
+    return {
+        "client_inner": client["inner"],
+        "extents": observation["extents"],
+        "frame_outer": frame["outer"],
+        "title_outer": title["outer"] if isinstance(title, dict) else None,
+    }
+
+
 def compare_case(
     case: dict[str, Any], config: dict[str, Any], item: dict[str, object]
 ) -> dict[str, object]:
@@ -399,9 +412,25 @@ def main() -> int:
         runs.append(observations)
     if any(run != runs[0] for run in runs[1:]):
         raise RuntimeError("wtwm geometry matrix differs across clean runs")
+    baseline_path = source_root / matrix["capture"]["baseline"]["path"]
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    baseline_cases = {
+        item["case_id"]: normalize_reference(item["observation"])
+        for item in baseline["cases"]
+    }
+    for item in runs[0]:
+        normalized = item["normalized"]
+        exact = {
+            key: normalized[key]
+            for key in ("client_inner", "frame_outer", "title_outer", "extents")
+        }
+        if exact != baseline_cases.get(item["case_id"]):
+            raise RuntimeError(
+                f"matrix case {item['case_id']} differs from the reference baseline"
+            )
     report = {
         "cases": runs[0],
-        "reference_numeric_baseline": False,
+        "reference_numeric_baseline": True,
         "schema_version": 1,
         "source_matrix": {
             "path": str(MATRIX_PATH),
