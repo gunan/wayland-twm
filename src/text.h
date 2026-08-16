@@ -8,4 +8,7 @@
 struct wlr_buffer *wtwm_render_text(const char *text, const char *font,
 	const float color[static 4], int *width, int *height);
 
+/* Return Pango's logical line height for the configured title font. */
+int wtwm_measure_font_height(const char *font);
+
 #endif

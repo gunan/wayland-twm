@@ -74,7 +74,10 @@ def validate_text(client: str, runner: str, meson: str) -> list[str]:
         "updated_net_icon",
         'window(item, "xwm-transient")["parent"] == 0',
         'window(item, "xwm-transient")["parent"] ==',
-        'entry["width"] == 275 and entry["height"] == 190 and',
+        'entry["width"] == 277 and entry["height"] == 199 and',
+        'entry["client_y"] == 100 + entry["title_height"]',
+        "assert_frame_contract(parent, frame_x=44, frame_y=55,",
+        'frame_x=120 - int(parent["border_width"]),',
         "size_hint_values(entry) == UPDATED_SIZE_HINTS",
         'control.command("WAIT 1")',
     ):

@@ -9,7 +9,8 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | --- | --- | --- |
 | `~/.twmrc.0`, `~/.twmrc`, `-f` search | Effective | Same precedence, followed by packaged defaults |
 | `Color` / `Monochrome` blocks | Effective in part | Frame and title colors accept `#RRGGBB`, `rgb:r/g/b`, gray percentages, and common names |
-| Border/title padding and widths | Partial | Border width and title padding have consumers; other stored widths/padding remain parsed-only |
+| Frame, border, and title extents | Effective for the core extent model | Managed windows retain a frame border with or without a title; title height is the font line height plus twice `FramePadding`, rounded up to odd, and the title extent includes its lower border. Exact X11 gravity/client-border coordinate translation and full title-item layout remain pending |
+| Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
 | `ButtonN` and quoted key bindings | Effective | libinput buttons and xkbcommon key symbols |
 | `root`, `window`, `title`, `frame`, `all` contexts | Effective | Scene hit-test contexts |
 | Shift, Control, Lock, Meta modifiers | Partial | Shift, Control, Lock, Meta/Mod1, and Meta4 have native mappings; other parsed Meta numbers lack audited runtime evidence |
@@ -94,10 +95,14 @@ action model. Override-redirect windows remain undecorated and outside the
 managed focus/action list. They share an overlay stack above managed clients
 with native xdg popups, so each popup or override-redirect map/remap raises that
 surface above older overlay siblings. Transient relationships are mirrored in
-both the X and scene stacks, and configure requests preserve X11 client
-coordinates while enforcing advertised minimum, maximum, base-size, and
-resize-increment hints. Aspect and gravity values are retained for later
-placement/geometry parity work.
+both the X and scene stacks. As in reference `twm`, ordinary X11 client
+configure requests are not snapped to `WM_NORMAL_HINTS`, and changing the
+hints alone does not resize a mapped client. Compositor-driven resizing applies
+minimum, maximum, base-size, resize-increment, and aspect constraints in
+reference order: clamp, snap down to the base/increment lattice, then adjust
+aspect without a final reclamp. Native xdg-shell has no base-size, increment,
+or aspect protocol fields, so only its advertised minimum and maximum sizes
+can be honored. Exact X11 gravity translation remains later placement work.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling

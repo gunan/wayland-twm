@@ -14,7 +14,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
 ```
 
 `src/config.c` is ISO C plus POSIX file handling. It has no X11, Wayland, or
-wlroots dependency. `wtwm-config` and the parser tests therefore build on any
+wlroots dependency. `src/geometry.c` likewise keeps twm's frame math and
+`ConstrainSize` ordering portable, so exhaustive host-native tests do not need
+a graphics stack. `wtwm-config` and the portable tests therefore build on any
 ordinary Unix host. `src/wtwm.c` is the Linux compositor adapter and targets
 the wlroots 0.18 public API.
 

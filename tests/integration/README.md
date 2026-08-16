@@ -9,9 +9,13 @@ Commands are `PING`, `OUTPUT width height`, `POINTER x y`, `BUTTON code
 press|release`, `KEY code press|release`, `STATE`, `WAIT [frames]`, `CAPTURE
 path`, `SET ANIMATION_MS n`, `SET PLACEMENT_SEED n`, `SET CURSOR x y`, `SET
 FONT description`, and `QUIT`. `STATE` returns JSON containing focus, client
-geometry, top-to-bottom stacking order, iconified clients, menu state, cursor
-position, and deterministic-control values. `CAPTURE` writes the first output
-as a binary PPM.
+geometry, exact frame/title/border extents, advertised size constraints,
+top-to-bottom stacking order, iconified clients, menu state, cursor position,
+and deterministic-control values. `CAPTURE` writes the first output as a binary
+PPM. The host-native `geometry runtime wiring contract` additionally guards
+that only compositor-driven resize paths call the portable constraint model;
+ordinary X11 configure requests and hint-property changes remain unsnapped as
+they are under reference `twm`.
 
 Run the headless stability check explicitly with:
 

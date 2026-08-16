@@ -215,7 +215,9 @@ RUNTIME_CONTRACT_FRAGMENTS = {
     ],
     "runtime_dispatch.button-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
     "runtime_dispatch.configuration-load-at-startup": ["wtwm_config_load(&server.config,"],
-    "runtime_dispatch.configured-frame-and-title-rendering": ["toplevel->title_height = server->config.title_padding"],
+    "runtime_dispatch.configured-frame-and-title-rendering": [
+        "static int configured_title_bar_height("
+    ],
     "runtime_dispatch.execute-configured-action": ["switch (action->type)"],
     "runtime_dispatch.function-action-recursion": [
         "server->config.functions[i].action_count",
@@ -237,7 +239,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
         "&toplevel->server->config.auto_raise_windows,",
     ],
     "directive.bordercolor": ["color_value(server->config.border_color, border);"],
-    "directive.borderwidth": ["int border = toplevel->server->config.border_width;"],
+    "directive.borderwidth": ["return server->config.border_width;"],
     "directive.buttonn-binding": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
     "directive.color": ["color_value(server->config.border_color, border);"],
     "directive.function": [
@@ -270,7 +272,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.titlebackground": ["color_value(server->config.title_background, title);"],
     "directive.titlefont": ["toplevel->server->config.title_font, foreground, &width, &height);"],
     "directive.titleforeground": ["color_value(server->config.title_foreground, foreground);"],
-    "directive.titlepadding": ["toplevel->title_height = server->config.title_padding * 2 + 10;"],
+    "directive.titlepadding": ["int title_padding = toplevel->server->config.title_padding;"],
 }
 
 

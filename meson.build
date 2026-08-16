@@ -24,6 +24,33 @@ config_dep = declare_dependency(
   include_directories: inc,
 )
 
+geometry_lib = static_library(
+  'wtwm-geometry-lib',
+  'src/geometry.c',
+  include_directories: inc,
+)
+geometry_dep = declare_dependency(
+  link_with: geometry_lib,
+  include_directories: inc,
+)
+
+geometry_test = executable(
+  'geometry-test',
+  'tests/geometry_test.c',
+  dependencies: geometry_dep,
+)
+test('twm geometry and size constraints', geometry_test)
+test(
+  'geometry runtime wiring contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_geometry_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 config_tool = executable(
   'wtwm-config',
   'src/config_check.c',
@@ -338,14 +365,14 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
+    dependencies: [config_dep, geometry_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep,
+      config_dep, geometry_dep,
       wlroots,
       pangocairo,
       dependency('fontconfig'),

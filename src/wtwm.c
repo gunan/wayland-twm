@@ -8,6 +8,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/geometry.h"
 #include "text.h"
 #ifdef WTWM_TEST_CONTROL
 #include "test_control.h"
@@ -111,7 +112,15 @@ struct toplevel {
 	int title_text_height;
 	int width;
 	int height;
+	int border_width;
+	int original_client_border;
+	bool border_initialized;
+	int title_bar_height;
 	int title_height;
+	int frame_x;
+	int frame_y;
+	bool frame_positioned;
+	uint16_t pending_configure_mask;
 	bool mapped;
 	bool placed;
 	bool iconified;
@@ -492,8 +501,57 @@ static bool should_start_iconified(const struct toplevel *toplevel,
 
 static void sync_toplevel_popups(struct toplevel *toplevel);
 
+static int configured_border_width(const struct server *server) {
+	return server->config.border_width;
+}
+
+static int configured_title_bar_height(const struct server *server) {
+	return wtwm_title_bar_height(wtwm_measure_font_height(server->config.title_font),
+		server->config.frame_padding);
+}
+
+static bool toplevel_has_frame(const struct toplevel *toplevel) {
+	return toplevel->xwayland == NULL || !toplevel->xwayland->override_redirect;
+}
+
+static void toplevel_geometry(const struct toplevel *toplevel,
+		struct wtwm_frame_geometry *geometry) {
+	wtwm_frame_geometry(toplevel->width, toplevel->height,
+		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,
+		toplevel->title_bar_height,
+		toplevel_has_frame(toplevel) && toplevel->decorated, geometry);
+}
+
+static void xwayland_gravity_offsets(const struct toplevel *toplevel,
+		int *gravity_x, int *gravity_y) {
+	uint32_t gravity = XCB_GRAVITY_NORTH_WEST;
+	if (toplevel->xwayland != NULL && toplevel->xwayland->size_hints != NULL &&
+			(toplevel->xwayland->size_hints->flags &
+				XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) != 0)
+		gravity = toplevel->xwayland->size_hints->win_gravity;
+	switch (gravity) {
+	case XCB_GRAVITY_NORTH_EAST:
+	case XCB_GRAVITY_EAST:
+	case XCB_GRAVITY_SOUTH_EAST: *gravity_x = 1; break;
+	case XCB_GRAVITY_NORTH:
+	case XCB_GRAVITY_CENTER:
+	case XCB_GRAVITY_SOUTH: *gravity_x = 0; break;
+	default: *gravity_x = -1; break;
+	}
+	switch (gravity) {
+	case XCB_GRAVITY_SOUTH_WEST:
+	case XCB_GRAVITY_SOUTH:
+	case XCB_GRAVITY_SOUTH_EAST: *gravity_y = 1; break;
+	case XCB_GRAVITY_WEST:
+	case XCB_GRAVITY_CENTER:
+	case XCB_GRAVITY_EAST: *gravity_y = 0; break;
+	default: *gravity_y = -1; break;
+	}
+}
+
 static void update_title_text(struct toplevel *toplevel) {
 	if (toplevel->title_text == NULL) return;
+	toplevel->title_bar_height = configured_title_bar_height(toplevel->server);
 	float foreground[4];
 	color_value(toplevel->server->config.title_foreground, foreground);
 	int width = 0, height = 0;
@@ -506,45 +564,51 @@ static void update_title_text(struct toplevel *toplevel) {
 }
 
 static void update_decoration(struct toplevel *toplevel) {
-	if (!toplevel->decorated) {
-		wlr_scene_node_set_position(&toplevel->content->node, 0, 0);
-		sync_toplevel_popups(toplevel);
-		return;
-	}
-	int border = toplevel->server->config.border_width;
-	int button = toplevel->title_height - 4;
-	int full_width = toplevel->width + 2 * border;
-	int full_height = toplevel->height + toplevel->title_height + 2 * border;
-	wlr_scene_rect_set_size(toplevel->frame, full_width, full_height);
-	wlr_scene_rect_set_size(toplevel->title, toplevel->width, toplevel->title_height);
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	toplevel->title_height = geometry.title_extent;
+	int border = geometry.border_width;
+	int button = geometry.title_bar_height -
+		2 * (toplevel->server->config.frame_padding +
+			toplevel->server->config.button_indent);
+	if (button < 1) button = 1;
+	int title_padding = toplevel->server->config.title_padding;
+	if (title_padding < 1) title_padding = 1;
+	wlr_scene_rect_set_size(toplevel->frame,
+		geometry.outer_width, geometry.outer_height);
+	wlr_scene_rect_set_size(toplevel->title,
+		geometry.client_width, geometry.title_bar_height > 0 ?
+			geometry.title_bar_height : 1);
 	wlr_scene_rect_set_size(toplevel->focus_mark,
-		toplevel->width > 2 * button + 12 ? toplevel->width - 2 * button - 12 : 1, 2);
+		geometry.client_width > 2 * (button + title_padding) ?
+			geometry.client_width - 2 * (button + title_padding) : 1, 2);
 	wlr_scene_rect_set_size(toplevel->left_button, button, button);
 	wlr_scene_rect_set_size(toplevel->right_button, button, button);
 	wlr_scene_rect_set_size(toplevel->right_inner, button > 8 ? button - 8 : 1,
 		button > 8 ? button - 8 : 1);
 	wlr_scene_node_set_position(&toplevel->title->node, border, border);
 	wlr_scene_node_set_position(&toplevel->focus_mark->node,
-		border + button + 6, border + toplevel->title_height - 4);
+		border + button + title_padding,
+		border + geometry.title_bar_height - 4);
 	wlr_scene_node_set_position(&toplevel->left_button->node, border + 2, border + 2);
 	wlr_scene_node_set_position(&toplevel->left_dot->node,
 		border + button / 2, border + button / 2);
 	wlr_scene_node_set_position(&toplevel->right_button->node,
-		border + toplevel->width - button - 2, border + 2);
+		border + geometry.client_width - button - 2, border + 2);
 	wlr_scene_node_set_position(&toplevel->right_inner->node,
-		border + toplevel->width - button + 2, border + 6);
+		border + geometry.client_width - button + 2, border + 6);
 	wlr_scene_node_set_position(&toplevel->title_text->node,
-		border + button + 7,
-		border + (toplevel->title_height - toplevel->title_text_height) / 2);
+		border + button + title_padding + 1,
+		border + (geometry.title_bar_height - toplevel->title_text_height) / 2);
 	wlr_scene_node_set_position(&toplevel->content->node,
-		border, border + toplevel->title_height);
+		geometry.content_x, geometry.content_y);
 	sync_toplevel_popups(toplevel);
 }
 
 static void set_decorated(struct toplevel *toplevel, bool enabled) {
 	toplevel->decorated = enabled;
 	if (toplevel->title == NULL) return;
-	wlr_scene_node_set_enabled(&toplevel->frame->node, enabled);
+	wlr_scene_node_set_enabled(&toplevel->frame->node, toplevel_has_frame(toplevel));
 	wlr_scene_node_set_enabled(&toplevel->title->node, enabled);
 	wlr_scene_node_set_enabled(&toplevel->focus_mark->node, false);
 	wlr_scene_node_set_enabled(&toplevel->left_button->node, enabled);
@@ -565,68 +629,97 @@ static void set_focused_marker(struct server *server, struct toplevel *focused) 
 }
 
 static int toplevel_content_x(const struct toplevel *toplevel) {
-	return toplevel->decorated ? toplevel->server->config.border_width : 0;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	return geometry.content_x;
 }
 
 static int toplevel_content_y(const struct toplevel *toplevel) {
-	return toplevel->decorated ?
-		toplevel->server->config.border_width + toplevel->title_height : 0;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	return geometry.content_y;
 }
 
-static void constrain_xwayland_size(struct toplevel *toplevel,
+static void constrain_toplevel_size(struct toplevel *toplevel,
 		int *width, int *height) {
-	if (toplevel->xwayland == NULL || toplevel->xwayland->size_hints == NULL) return;
-	xcb_size_hints_t *hints = toplevel->xwayland->size_hints;
-	bool has_min = (hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) != 0;
-	bool has_max = (hints->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) != 0;
-	if (has_min && hints->min_width > 0 && *width < hints->min_width)
-		*width = hints->min_width;
-	if (has_min && hints->min_height > 0 && *height < hints->min_height)
-		*height = hints->min_height;
-	if (has_max && hints->max_width > 0 &&
-			(!has_min || hints->max_width >= hints->min_width) &&
-			*width > hints->max_width) *width = hints->max_width;
-	if (has_max && hints->max_height > 0 &&
-			(!has_min || hints->max_height >= hints->min_height) &&
-			*height > hints->max_height) *height = hints->max_height;
-	int base_width = (hints->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) != 0 ?
-		hints->base_width : (has_min ? hints->min_width : 0);
-	int base_height = (hints->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) != 0 ?
-		hints->base_height : (has_min ? hints->min_height : 0);
-	if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) != 0 &&
-			hints->width_inc > 0 && *width > base_width)
-		*width = base_width + (*width - base_width) / hints->width_inc * hints->width_inc;
-	if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) != 0 &&
-			hints->height_inc > 0 && *height > base_height)
-		*height = base_height + (*height - base_height) / hints->height_inc * hints->height_inc;
+	struct wtwm_size_hints constraints = {0};
+	int limit = toplevel->xwayland != NULL ? UINT16_MAX : INT_MAX;
+	if (toplevel->xwayland != NULL && toplevel->xwayland->size_hints != NULL) {
+		xcb_size_hints_t *hints = toplevel->xwayland->size_hints;
+		if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) != 0)
+			constraints.flags |= WTWM_SIZE_HINT_MIN;
+		if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) != 0)
+			constraints.flags |= WTWM_SIZE_HINT_MAX;
+		if ((hints->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) != 0)
+			constraints.flags |= WTWM_SIZE_HINT_BASE;
+		if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) != 0)
+			constraints.flags |= WTWM_SIZE_HINT_INCREMENT;
+		if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) != 0)
+			constraints.flags |= WTWM_SIZE_HINT_ASPECT;
+		constraints.min_width = hints->min_width;
+		constraints.min_height = hints->min_height;
+		constraints.max_width = hints->max_width;
+		constraints.max_height = hints->max_height;
+		constraints.base_width = hints->base_width;
+		constraints.base_height = hints->base_height;
+		constraints.width_increment = hints->width_inc;
+		constraints.height_increment = hints->height_inc;
+		constraints.min_aspect_x = hints->min_aspect_num;
+		constraints.min_aspect_y = hints->min_aspect_den;
+		constraints.max_aspect_x = hints->max_aspect_num;
+		constraints.max_aspect_y = hints->max_aspect_den;
+	} else if (toplevel->xdg != NULL) {
+		if (toplevel->xdg->current.min_width > 0 ||
+				toplevel->xdg->current.min_height > 0)
+			constraints.flags |= WTWM_SIZE_HINT_MIN;
+		if (toplevel->xdg->current.max_width > 0 ||
+				toplevel->xdg->current.max_height > 0)
+			constraints.flags |= WTWM_SIZE_HINT_MAX;
+		constraints.min_width = toplevel->xdg->current.min_width > 0 ?
+			toplevel->xdg->current.min_width : 1;
+		constraints.min_height = toplevel->xdg->current.min_height > 0 ?
+			toplevel->xdg->current.min_height : 1;
+		constraints.max_width = toplevel->xdg->current.max_width > 0 ?
+			toplevel->xdg->current.max_width : limit;
+		constraints.max_height = toplevel->xdg->current.max_height > 0 ?
+			toplevel->xdg->current.max_height : limit;
+	}
+	wtwm_constrain_size(&constraints, limit, limit, width, height);
 }
 
-static void configure_xwayland_toplevel(struct toplevel *toplevel,
-		int client_x, int client_y, int width, int height) {
+static void configure_xwayland_frame(struct toplevel *toplevel,
+		int frame_x, int frame_y, int width, int height) {
 	if (width < 1) width = 1;
 	if (height < 1) height = 1;
-	constrain_xwayland_size(toplevel, &width, &height);
 	if (width > UINT16_MAX) width = UINT16_MAX;
 	if (height > UINT16_MAX) height = UINT16_MAX;
+	toplevel->width = width;
+	toplevel->height = height;
+	if (toplevel->tree != NULL) {
+		wlr_scene_node_set_position(&toplevel->tree->node, frame_x, frame_y);
+		if (!toplevel->xwayland->override_redirect) {
+			toplevel->frame_x = frame_x;
+			toplevel->frame_y = frame_y;
+			toplevel->frame_positioned = true;
+		}
+	}
+	int client_x = frame_x + toplevel_content_x(toplevel);
+	int client_y = frame_y + toplevel_content_y(toplevel);
 	if (client_x < INT16_MIN) client_x = INT16_MIN;
 	if (client_x > INT16_MAX) client_x = INT16_MAX;
 	if (client_y < INT16_MIN) client_y = INT16_MIN;
 	if (client_y > INT16_MAX) client_y = INT16_MAX;
-	toplevel->width = width;
-	toplevel->height = height;
-	if (toplevel->tree != NULL) {
-		int x = client_x;
-		int y = client_y;
-		if (!toplevel->xwayland->override_redirect) {
-			x -= toplevel_content_x(toplevel);
-			y -= toplevel_content_y(toplevel);
-		}
-		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
-	}
 	wlr_xwayland_surface_configure(toplevel->xwayland,
 		(int16_t)client_x, (int16_t)client_y, (uint16_t)width, (uint16_t)height);
 	if (toplevel->tree != NULL && toplevel->content != NULL)
 		update_decoration(toplevel);
+}
+
+static void configure_xwayland_client(struct toplevel *toplevel,
+		int client_x, int client_y, int width, int height) {
+	configure_xwayland_frame(toplevel,
+		client_x - toplevel_content_x(toplevel),
+		client_y - toplevel_content_y(toplevel), width, height);
 }
 
 static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
@@ -635,22 +728,17 @@ static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
 		sync_toplevel_popups(toplevel);
 		return;
 	}
-	configure_xwayland_toplevel(toplevel,
-		x + (toplevel->xwayland->override_redirect ? 0 : toplevel_content_x(toplevel)),
-		y + (toplevel->xwayland->override_redirect ? 0 : toplevel_content_y(toplevel)),
-		toplevel->width, toplevel->height);
+	configure_xwayland_frame(toplevel, x, y, toplevel->width, toplevel->height);
 }
 
 static void set_toplevel_size(struct toplevel *toplevel, int width, int height) {
+	constrain_toplevel_size(toplevel, &width, &height);
 	if (toplevel->xwayland == NULL) {
 		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
 		return;
 	}
-	int client_x = toplevel->tree->node.x +
-		(toplevel->xwayland->override_redirect ? 0 : toplevel_content_x(toplevel));
-	int client_y = toplevel->tree->node.y +
-		(toplevel->xwayland->override_redirect ? 0 : toplevel_content_y(toplevel));
-	configure_xwayland_toplevel(toplevel, client_x, client_y, width, height);
+	configure_xwayland_frame(toplevel, toplevel->tree->node.x,
+		toplevel->tree->node.y, width, height);
 }
 
 static void activate_toplevel(struct toplevel *toplevel, bool activated) {
@@ -1090,7 +1178,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		if (server->resize_edges & WLR_EDGE_BOTTOM) bottom = edge_y;
 		int width = right - left;
 		int height = bottom - top;
-		if (width >= 40 && height >= 30) {
+		if (width >= 1 && height >= 1) {
 			set_toplevel_position(server->grabbed, left, top);
 			set_toplevel_size(server->grabbed, width, height);
 		}
@@ -1507,7 +1595,7 @@ static void update_toplevel_metadata(struct toplevel *toplevel, bool title_chang
 	set_decorated(toplevel, should_decorate(toplevel));
 	if (toplevel->xwayland != NULL && toplevel->associated && toplevel->mapped &&
 			was_decorated != toplevel->decorated)
-		configure_xwayland_toplevel(toplevel, toplevel->xwayland->x,
+		configure_xwayland_client(toplevel, toplevel->xwayland->x,
 			toplevel->xwayland->y, toplevel->xwayland->width,
 			toplevel->xwayland->height);
 }
@@ -1534,8 +1622,8 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	wl_list_init(&toplevel->link);
 	toplevel->width = 640;
 	toplevel->height = 480;
-	toplevel->title_height = server->config.title_padding * 2 + 10;
-	if (toplevel->title_height < 18) toplevel->title_height = 18;
+	toplevel->border_width = configured_border_width(server);
+	toplevel->title_bar_height = configured_title_bar_height(server);
 	toplevel->tree = wlr_scene_tree_create(server->view_tree);
 	if (toplevel->tree == NULL) {
 		free(toplevel);
@@ -1651,8 +1739,22 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
 	} else {
 		wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
-		configure_xwayland_toplevel(toplevel,
-			toplevel->xwayland->x, toplevel->xwayland->y,
+		int frame_x = toplevel->frame_x;
+		int frame_y = toplevel->frame_y;
+		if (!toplevel->frame_positioned) {
+			struct wtwm_frame_geometry geometry;
+			toplevel_geometry(toplevel, &geometry);
+			int gravity_x = -1, gravity_y = -1;
+			xwayland_gravity_offsets(toplevel, &gravity_x, &gravity_y);
+			struct wtwm_window_position position;
+			wtwm_initial_window_position(toplevel->xwayland->x,
+				toplevel->xwayland->y, toplevel->original_client_border,
+				&geometry, toplevel->server->config.client_border_width,
+				gravity_x, gravity_y, &position);
+			frame_x = position.frame_x;
+			frame_y = position.frame_y;
+		}
+		configure_xwayland_frame(toplevel, frame_x, frame_y,
 			toplevel->xwayland->width, toplevel->xwayland->height);
 		toplevel->placed = true;
 	}
@@ -1810,14 +1912,6 @@ static void xwayland_deferred_sync(void *data) {
 		}
 		free(reply);
 	}
-	if (!toplevel->associated || !toplevel->mapped ||
-			toplevel->xwayland->override_redirect) return;
-	int width = toplevel->xwayland->width;
-	int height = toplevel->xwayland->height;
-	constrain_xwayland_size(toplevel, &width, &height);
-	if (width != toplevel->xwayland->width || height != toplevel->xwayland->height)
-		configure_xwayland_toplevel(toplevel, toplevel->xwayland->x,
-			toplevel->xwayland->y, width, height);
 }
 
 static void schedule_xwayland_sync(struct toplevel *toplevel) {
@@ -1827,10 +1921,40 @@ static void schedule_xwayland_sync(struct toplevel *toplevel) {
 		xwayland_deferred_sync, toplevel);
 }
 
+static void initialize_xwayland_border(struct toplevel *toplevel) {
+	if (toplevel->border_initialized) return;
+	toplevel->border_initialized = true;
+	if (toplevel->xwayland->override_redirect) {
+		toplevel->border_width = 0;
+		return;
+	}
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+	if (connection != NULL) {
+		xcb_get_geometry_cookie_t cookie = xcb_get_geometry(connection,
+			toplevel->xwayland->window_id);
+		xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(connection, cookie, NULL);
+		if (reply != NULL) {
+			toplevel->original_client_border = reply->border_width;
+			free(reply);
+		}
+		if (toplevel->original_client_border > 0) {
+			uint32_t border = 0;
+			xcb_configure_window(connection, toplevel->xwayland->window_id,
+				XCB_CONFIG_WINDOW_BORDER_WIDTH, &border);
+			xcb_flush(connection);
+		}
+	}
+	toplevel->border_width = toplevel->server->config.client_border_width ?
+		toplevel->original_client_border :
+		configured_border_width(toplevel->server);
+}
+
 static void xwayland_associate(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, associate);
 	if (toplevel->associated || toplevel->xwayland->surface == NULL) return;
+	initialize_xwayland_border(toplevel);
 	if (!create_xwayland_scene(toplevel)) return;
 	toplevel->associated = true;
 	read_xwayland_icon_name(toplevel);
@@ -1874,8 +1998,36 @@ static void xwayland_dissociate(struct wl_listener *listener, void *data) {
 static void xwayland_request_configure(struct wl_listener *listener, void *data) {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, request_configure);
 	struct wlr_xwayland_surface_configure_event *event = data;
-	configure_xwayland_toplevel(toplevel, event->x, event->y,
-		event->width, event->height);
+	if (!toplevel->associated || !toplevel->mapped || toplevel->tree == NULL) {
+		toplevel->pending_configure_mask = 0;
+		configure_xwayland_client(toplevel, event->x, event->y,
+			event->width, event->height);
+		return;
+	}
+	if (toplevel->xwayland->override_redirect) {
+		configure_xwayland_frame(toplevel, event->x, event->y,
+			event->width, event->height);
+		return;
+	}
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int gravity_x = -1, gravity_y = -1;
+	xwayland_gravity_offsets(toplevel, &gravity_x, &gravity_y);
+	(void)gravity_x;
+	uint16_t mask = toplevel->pending_configure_mask;
+	toplevel->pending_configure_mask = 0;
+	struct wtwm_window_position position;
+	wtwm_configure_request_position(toplevel->tree->node.x,
+		toplevel->tree->node.y, event->x, event->y,
+		(mask & XCB_CONFIG_WINDOW_X) != 0,
+		(mask & XCB_CONFIG_WINDOW_Y) != 0,
+		&geometry, gravity_y, &position);
+	int width = (mask & XCB_CONFIG_WINDOW_WIDTH) != 0 ?
+		event->width : toplevel->width;
+	int height = (mask & XCB_CONFIG_WINDOW_HEIGHT) != 0 ?
+		event->height : toplevel->height;
+	configure_xwayland_frame(toplevel, position.frame_x, position.frame_y,
+		width, height);
 }
 
 static void xwayland_set_title(struct wl_listener *listener, void *data) {
@@ -1930,6 +2082,8 @@ static void xwayland_set_override_redirect(struct wl_listener *listener, void *d
 	bool remap = toplevel->mapped;
 	if (remap) unmanage_toplevel(toplevel);
 	destroy_xwayland_scene(toplevel);
+	toplevel->border_initialized = false;
+	initialize_xwayland_border(toplevel);
 	if (!create_xwayland_scene(toplevel)) return;
 	if (remap) map_xwayland_toplevel(toplevel);
 }
@@ -1971,9 +2125,8 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	toplevel->xwayland = xwayland;
 	toplevel->width = xwayland->width;
 	toplevel->height = xwayland->height;
-	int xwayland_title_height = server->config.title_padding * 2 + 10;
-	toplevel->title_height = xwayland_title_height;
-	if (toplevel->title_height < 18) toplevel->title_height = 18;
+	toplevel->border_width = configured_border_width(server);
+	toplevel->title_bar_height = configured_title_bar_height(server);
 	wl_list_init(&toplevel->link);
 	wl_list_insert(&server->xwayland_views, &toplevel->xwayland_link);
 	xwayland->data = toplevel;
@@ -2080,6 +2233,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	struct toplevel *toplevel =
 		xwayland_toplevel_for_window(server, configure->window);
 	if (toplevel == NULL) return 0;
+	toplevel->pending_configure_mask = configure->value_mask;
 	if (toplevel->xwayland->override_redirect) {
 		xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
 		if (connection != NULL) configure_override_redirect(connection, configure);
@@ -2382,6 +2536,8 @@ static void test_write_state(struct test_control *control) {
 	wl_list_for_each(toplevel, &server->toplevels, link) {
 		if (!first) test_write(control, ",");
 		first = false;
+		struct wtwm_frame_geometry geometry;
+		toplevel_geometry(toplevel, &geometry);
 		test_write(control, "{\"title\":");
 		test_write_json_string(control, toplevel_title(toplevel));
 		test_write(control, ",\"app_id\":");
@@ -2395,10 +2551,18 @@ static void test_write_state(struct test_control *control) {
 			toplevel->xwayland->class : "");
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
-			"\"title_height\":%d,\"stack\":%u,\"mapped\":%s,\"iconified\":%s,"
+			"\"border_width\":%d,\"title_bar_height\":%d,\"title_height\":%d,"
+			"\"frame_width\":%d,\"frame_height\":%d,"
+			"\"outer_width\":%d,\"outer_height\":%d,"
+			"\"content_x\":%d,\"content_y\":%d,"
+			"\"stack\":%u,\"mapped\":%s,\"iconified\":%s,"
 			"\"decorated\":%s,\"auto_raise\":%s",
 			toplevel->tree->node.x, toplevel->tree->node.y,
-			toplevel->width, toplevel->height, toplevel->title_height, stack++,
+			toplevel->width, toplevel->height,
+			geometry.border_width, geometry.title_bar_height, geometry.title_extent,
+			geometry.frame_width, geometry.frame_height,
+			geometry.outer_width, geometry.outer_height,
+			geometry.content_x, geometry.content_y, stack++,
 			toplevel->mapped ? "true" : "false",
 			toplevel->iconified ? "true" : "false",
 			toplevel->decorated ? "true" : "false",
@@ -2453,6 +2617,22 @@ static void test_write_state(struct test_control *control) {
 				size != NULL ? size->max_aspect_num : 0,
 				size != NULL ? size->max_aspect_den : 0,
 				size != NULL ? size->win_gravity : 0);
+		} else {
+			uint32_t flags = 0;
+			if (toplevel->xdg->current.min_width > 0 ||
+					toplevel->xdg->current.min_height > 0)
+				flags |= WTWM_SIZE_HINT_MIN;
+			if (toplevel->xdg->current.max_width > 0 ||
+					toplevel->xdg->current.max_height > 0)
+				flags |= WTWM_SIZE_HINT_MAX;
+			test_write(control,
+				",\"size_hints\":{\"flags\":%" PRIu32
+				",\"min_width\":%d,\"min_height\":%d,"
+				"\"max_width\":%d,\"max_height\":%d}",
+				flags, toplevel->xdg->current.min_width,
+				toplevel->xdg->current.min_height,
+				toplevel->xdg->current.max_width,
+				toplevel->xdg->current.max_height);
 		}
 		test_write(control, "}");
 	}
@@ -2687,7 +2867,10 @@ static void test_execute(struct test_control *control,
 		strcpy(server->config.icon_font, command->text);
 		hide_menu(server);
 		struct toplevel *toplevel;
-		wl_list_for_each(toplevel, &server->toplevels, link) update_title_text(toplevel);
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			update_title_text(toplevel);
+			update_decoration(toplevel);
+		}
 		test_write(control, "OK FONT %s\n", command->text);
 		break;
 	case WTWM_TEST_COMMAND_QUIT:
