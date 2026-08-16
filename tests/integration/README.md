@@ -23,3 +23,12 @@ python3 tests/integration/run_compositor.py \
 
 Pass `--nested` to use the parent `WAYLAND_DISPLAY`; the harness exits with the
 standard skip status when there is no usable parent Wayland socket.
+
+The `canonical X11 applications under wtwm` test is Linux-only because it runs
+inside a real wtwm/Xwayland session. Meson requires the Debian-packaged `xterm`,
+`xclock`, `xload`, `emacs`, and `dialog` executables at configure time. The
+runner waits for their exact X11 identities and mapped lifecycle state, proves
+the terminal dialog process is live, and observes the existing purpose-built
+ICCCM normal, transient, hint, and override-redirect fixtures. A second state
+snapshot after compositor frames verifies that none exited during observation;
+bounded teardown then checks that all client surfaces and the compositor exit.

@@ -1,4 +1,6 @@
 build-essential
+dialog
+emacs-gtk
 libfontconfig-dev
 libpango1.0-dev
 libwayland-dev
@@ -10,5 +12,8 @@ ninja-build
 pkgconf
 python3
 wayland-protocols
+x11-apps
+xfonts-base
 xkb-data
+xterm
 xwayland

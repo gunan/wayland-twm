@@ -258,6 +258,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'canonical X11 runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_canonical_clients.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
@@ -403,7 +413,28 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  canonical_xterm = find_program('xterm', required: true)
+  canonical_xclock = find_program('xclock', required: true)
+  canonical_xload = find_program('xload', required: true)
+  canonical_emacs = find_program('emacs', required: true)
+  canonical_dialog = find_program('dialog', required: true)
   integration_runner = find_program('python3')
+  test(
+    'canonical X11 applications under wtwm',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_canonical_x11_apps.py'),
+      '--compositor', wtwm_test_compositor,
+      '--icccm-client', wtwm_xwayland_bridge_client,
+      '--xterm', canonical_xterm,
+      '--xclock', canonical_xclock,
+      '--xload', canonical_xload,
+      '--emacs', canonical_emacs,
+      '--dialog', canonical_dialog,
+    ],
+    timeout: 90,
+    is_parallel: false,
+  )
   test(
     'Xwayland lifecycle integration',
     integration_runner,
