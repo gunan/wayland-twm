@@ -83,6 +83,26 @@ def validate_text(packages_text: str, meson: str, runner: str) -> list[str]:
             errors.append(f"canonical runtime runner lacks {marker!r}")
     if runner.count(EMACS_IDENTITY) != 1:
         errors.append("canonical runtime runner lacks the Debian emacs-gtk identity")
+    for marker in (
+        "def stop_dialog_child(parent:",
+        "if parent.poll() is not None:",
+        "os.kill(dialog_pid, signal.SIGTERM)",
+        "os.kill(dialog_pid, signal.SIGKILL)",
+        "wait_pid_gone(dialog_pid, 2)",
+        "wait_pid_gone(dialog_pid, 3)",
+    ):
+        if marker not in runner:
+            errors.append(f"terminal-dialog parent-reap cleanup lacks {marker!r}")
+    dialog_stop = runner.find("stop_dialog_child(dialog_app.process, dialog_pid)")
+    group_stop = runner.find(
+        "for app in apps:\n                diagnostic_logs.append(stop_group(app))",
+        dialog_stop,
+    )
+    xid_cleanup = runner.find(
+        'lambda item: xids_absent(item, observed_xids.real)', group_stop
+    )
+    if not 0 <= dialog_stop < group_stop < xid_cleanup:
+        errors.append("dialog child must be reaped before app groups and XIDs are cleaned")
     for forbidden in ("SystemExit(77)", "continue-on-error", "pytest.skip"):
         if forbidden in runner:
             errors.append(f"canonical runtime runner contains forbidden fallback {forbidden!r}")
@@ -136,6 +156,17 @@ def self_test_tamper(source_root: Path) -> list[str]:
     )
     if not any("emacs-gtk identity" in error for error in errors):
         failures.append("emacs class tamper was accepted")
+    errors = validate_text(
+        packages,
+        meson,
+        runner.replace(
+            "stop_dialog_child(dialog_app.process, dialog_pid)",
+            "stop_group(dialog_app)",
+            1,
+        ),
+    )
+    if not any("reaped before app groups" in error for error in errors):
+        failures.append("dialog parent-reap sequencing tamper was accepted")
     return failures
 
 

@@ -255,13 +255,32 @@ def ensure_alive(apps: list[RunningApp], dialog_pid: int) -> None:
         raise RuntimeError("terminal dialog exited during observation")
 
 
-def wait_process_gone(pid: int, description: str) -> None:
-    deadline = time.monotonic() + 5
+def wait_pid_gone(pid: int, timeout: float) -> bool:
+    deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if not Path(f"/proc/{pid}").exists():
-            return
+            return True
         time.sleep(0.01)
-    raise RuntimeError(f"{description} remained after bounded cleanup")
+    return not Path(f"/proc/{pid}").exists()
+
+
+def stop_dialog_child(parent: subprocess.Popen[str], dialog_pid: int) -> None:
+    if parent.poll() is not None:
+        raise RuntimeError("terminal xterm exited before dialog teardown")
+    try:
+        os.kill(dialog_pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    if wait_pid_gone(dialog_pid, 2):
+        return
+    if parent.poll() is not None:
+        raise RuntimeError("terminal xterm exited without reaping dialog after SIGTERM")
+    try:
+        os.kill(dialog_pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    if not wait_pid_gone(dialog_pid, 3):
+        raise RuntimeError("terminal xterm did not reap dialog after bounded SIGKILL")
 
 
 def stop_group(app: RunningApp) -> str:
@@ -418,6 +437,7 @@ def run(arguments: argparse.Namespace) -> None:
                 "purpose-built ICCCM managed and override-redirect cleanup",
             )
 
+            stop_dialog_child(dialog_app.process, dialog_pid)
             for app in apps:
                 diagnostic_logs.append(stop_group(app))
             apps.clear()
@@ -426,7 +446,6 @@ def run(arguments: argparse.Namespace) -> None:
                 lambda item: xids_absent(item, observed_xids.real),
                 "real canonical application cleanup",
             )
-            wait_process_gone(dialog_pid, "terminal dialog")
             control.command("QUIT")
             process.wait(timeout=5)
             if process.returncode != 0:
