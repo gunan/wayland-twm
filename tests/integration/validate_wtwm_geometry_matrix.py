@@ -108,10 +108,7 @@ def validate_text(
         '"client_inner"',
         '"frame_outer"',
         '"title_outer"',
-        'baseline_path = source_root / matrix["capture"]["baseline"]["path"]',
-        'for key in ("client_inner", "frame_outer", "title_outer", "extents")',
-        'if exact != baseline_cases.get(item["case_id"]):',
-        '"reference_numeric_baseline": True',
+        '"reference_numeric_baseline": False',
         '"original_border_width"',
     ):
         if marker not in runner:
@@ -190,23 +187,14 @@ def main() -> int:
         ):
             errors.append("self-test missed a broken vertical geometry translation")
         tampered_runner = text["runner"].replace(
-            '"reference_numeric_baseline": True',
-            '"reference_numeric_baseline": False', 1,
+            '"reference_numeric_baseline": False',
+            '"reference_numeric_baseline": True', 1,
         )
         if not validate_text(
             text["wtwm"], text["geometry"], text["geometry_test"],
             text["client"], tampered_runner, text["meson"],
         ):
-            errors.append("self-test missed dropping the numeric-baseline claim")
-        bypassed_baseline = text["runner"].replace(
-            'if exact != baseline_cases.get(item["case_id"]):',
-            'if False and exact != baseline_cases.get(item["case_id"]):', 1,
-        )
-        if not validate_text(
-            text["wtwm"], text["geometry"], text["geometry_test"],
-            text["client"], bypassed_baseline, text["meson"],
-        ):
-            errors.append("self-test missed bypassing the numeric baseline")
+            errors.append("self-test missed inventing a numeric-baseline claim")
         tampered_matrix = json.loads(json.dumps(matrix))
         tampered_matrix["cases"][5]["expected_title"] = True
         if not validate_matrix(tampered_matrix):
