@@ -81,7 +81,7 @@ def stop_process(process: subprocess.Popen[str] | None) -> tuple[str, str]:
 def capture_reference(probe: Path, environment: dict[str, str]) -> dict[str, object]:
     result = subprocess.run(
         [str(probe)], env=environment, text=True, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, check=False,
+        stderr=subprocess.PIPE, check=False, timeout=10,
     )
     if result.returncode != 0:
         raise RuntimeError(f"reference observer failed: {result.stderr.strip()}")
@@ -229,7 +229,7 @@ def reference_input(
         command = [str(driver), "key", str(event["key"]), str(event["state"])]
     else:
         raise RuntimeError(f"unknown input event: {event!r}")
-    subprocess.run(command, env=environment, check=True)
+    subprocess.run(command, env=environment, check=True, timeout=10)
 
 
 def wtwm_input(control: Control, event: dict[str, object]) -> None:
@@ -308,6 +308,8 @@ def run_reference(
             )
         trace = [tagged(0, None, initial)]
         for index, event in enumerate(events, 1):
+            print(f"reference trace input {index}/{len(events)}: {event['id']}",
+                  flush=True)
             reference_input(driver, event, environment)
             state = converge(
                 lambda: capture_reference(probe, environment),
@@ -379,6 +381,8 @@ def run_wtwm(
             initial = converge(capture, evidence, "wtwm", 0)
             trace = [tagged(0, None, initial)]
             for index, event in enumerate(events, 1):
+                print(f"wtwm trace input {index}/{len(events)}: {event['id']}",
+                      flush=True)
                 wtwm_input(control, event)
                 trace.append(tagged(
                     index, event, converge(capture, evidence, "wtwm", index)

@@ -128,6 +128,10 @@ def validate_sources(
     for marker in (
         "STABLE_SAMPLES = 3",
         "MAX_SAMPLES = 24",
+        "check=False, timeout=10",
+        "check=True, timeout=10",
+        'print(f"reference trace input {index}/{len(events)}:',
+        'print(f"wtwm trace input {index}/{len(events)}:',
         "def oracle_windows(",
         'outer_x = int(frame["x"]) - border',
         'if initial["windows"] != oracle:',
