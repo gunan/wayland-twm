@@ -48,6 +48,39 @@ def wait_windows(control: Control, titles: set[str]) -> dict[str, object]:
     raise RuntimeError(f"timed out waiting for {sorted(titles)}: {control.state()!r}")
 
 
+def wait_mapped_window(control: Control, title: str) -> dict[str, object]:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        state = control.state()
+        try:
+            item = window(state, title)
+        except KeyError:
+            pass
+        else:
+            if item["mapped"] and not item["placement_pending"]:
+                return state
+        time.sleep(0.01)
+    raise RuntimeError(f"timed out waiting for mapped {title!r}: {control.state()!r}")
+
+
+def map_serial_windows(control: Control, client: subprocess.Popen[str],
+                       scenario: str) -> None:
+    if scenario not in ("random", "edge"):
+        return
+    titles = ["placement-random-1", "placement-random-2"]
+    titles.append(
+        "placement-random-3" if scenario == "random"
+        else "placement-random-oversized"
+    )
+    wait_mapped_window(control, titles[0])
+    assert client.stdin is not None
+    for title in titles[1:]:
+        client.stdin.write("NEXT\n")
+        client.stdin.flush()
+        wait_line(client, "MAPPED")
+        wait_mapped_window(control, title)
+
+
 def wait_xwayland_unmapped(
     control: Control, xid: int, title: str
 ) -> dict[str, object]:
@@ -184,6 +217,7 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
                 stderr=subprocess.PIPE, bufsize=1,
             )
             wait_line(client, "READY")
+            map_serial_windows(control, client, scenario)
             dynamic = perform_interactive_placements(control, interactive or [])
             expected = {**dynamic, **expected}
             state = wait_windows(control, set(expected))
