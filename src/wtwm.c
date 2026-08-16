@@ -402,7 +402,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec);
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
 static void clear_keyboard_focus(struct server *server);
 static void set_xwayland_input_focus(struct server *server,
-	struct toplevel *toplevel, uint32_t time);
+	struct toplevel *toplevel);
 static void finish_initial_placement(struct server *server);
 static void cancel_initial_placement(struct toplevel *toplevel);
 static void start_next_initial_placement(struct server *server);
@@ -430,7 +430,7 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
-		set_xwayland_input_focus(server, NULL, XCB_CURRENT_TIME);
+		set_xwayland_input_focus(server, NULL);
 	}
 	wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
 }
@@ -1167,13 +1167,16 @@ static void send_xwayland_take_focus(struct toplevel *toplevel, uint32_t time) {
 }
 
 static void set_xwayland_input_focus(struct server *server,
-		struct toplevel *toplevel, uint32_t time) {
+		struct toplevel *toplevel) {
 	if (server->xwayland == NULL) return;
 	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
 	if (connection == NULL) return;
 	xcb_window_t focus = toplevel != NULL ? toplevel->xwayland->window_id :
 		XCB_INPUT_FOCUS_POINTER_ROOT;
-	xcb_set_input_focus(connection, XCB_INPUT_FOCUS_POINTER_ROOT, focus, time);
+	/* Wayland input times aren't guaranteed to share the X server's timestamp
+	 * domain. wlroots' XWM uses CurrentTime for the same X core request. */
+	xcb_set_input_focus(connection, XCB_INPUT_FOCUS_POINTER_ROOT, focus,
+		XCB_CURRENT_TIME);
 	xcb_flush(connection);
 }
 
@@ -1202,10 +1205,8 @@ static void focus_toplevel(struct toplevel *toplevel, bool set_input_focus,
 	set_focused_marker(server, toplevel);
 	if (set_input_focus) {
 		if (toplevel->xwayland != NULL)
-			set_xwayland_input_focus(server, toplevel,
-				server->current_input_time_ms);
-		else set_xwayland_input_focus(server, NULL,
-			server->current_input_time_ms);
+			set_xwayland_input_focus(server, toplevel);
+		else set_xwayland_input_focus(server, NULL);
 		struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
 		if (keyboard != NULL) {
 			wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
@@ -1228,7 +1229,7 @@ static void clear_focus(struct server *server, bool clear_input_focus) {
 	}
 	server->focus = NULL;
 	if (clear_input_focus) {
-		set_xwayland_input_focus(server, NULL, server->current_input_time_ms);
+		set_xwayland_input_focus(server, NULL);
 		wlr_seat_keyboard_clear_focus(server->seat);
 	}
 	set_focused_marker(server, NULL);
