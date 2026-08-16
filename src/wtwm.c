@@ -1818,6 +1818,12 @@ static void xwayland_set_title(struct wl_listener *listener, void *data) {
 	update_title_text(toplevel);
 }
 
+static void xwayland_set_class(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_class);
+	update_title_text(toplevel);
+}
+
 static void xwayland_set_parent(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_parent);
@@ -1915,7 +1921,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xwayland->events.request_configure, &toplevel->request_configure);
 	toplevel->set_title.notify = xwayland_set_title;
 	wl_signal_add(&xwayland->events.set_title, &toplevel->set_title);
-	toplevel->set_class.notify = xwayland_set_title;
+	toplevel->set_class.notify = xwayland_set_class;
 	wl_signal_add(&xwayland->events.set_class, &toplevel->set_class);
 	toplevel->set_parent.notify = xwayland_set_parent;
 	wl_signal_add(&xwayland->events.set_parent, &toplevel->set_parent);
