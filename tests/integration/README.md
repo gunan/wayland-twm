@@ -32,3 +32,12 @@ the terminal dialog process is live, and observes the existing purpose-built
 ICCCM normal, transient, hint, and override-redirect fixtures. A second state
 snapshot after compositor frames verifies that none exited during observation;
 bounded teardown then checks that all client surfaces and the compositor exit.
+
+The dedicated `x11-differential` CI job builds frozen `twm` 1.0.13.1 and wtwm,
+then launches one shared command list containing those five real applications
+and the purpose-built XCB ICCCM client under both window managers. An Xlib
+observer normalizes client properties without window IDs. Managed reference
+clients must have a reparent frame, while the matching wtwm test-control entry
+must have a scene decoration; the normalized results must otherwise match
+exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
+native/cross-protocol semantics assigned to later tests and milestones.

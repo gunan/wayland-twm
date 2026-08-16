@@ -269,6 +269,16 @@ test(
   ],
 )
 test(
+  'reference twm and wtwm X11 differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_x11_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Xwayland metadata mutation contract',
   find_program('python3'),
   args: [
