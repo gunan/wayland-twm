@@ -73,6 +73,10 @@ def validate_source(source: str) -> None:
             raise ValueError(f"event trace JSON schema lacks {fragment!r}")
     for fragment in (
         "TEST_TRACE_MAX_EVENTS = 4096",
+        "char test_title[TEST_TRACE_IDENTITY_MAX]",
+        "static void test_trace_snapshot_identity(struct toplevel *toplevel)",
+        'if (strcmp(event, "destroy") != 0) test_trace_snapshot_identity(toplevel);',
+        "test_trace_copy(trace->title, toplevel->test_title);",
         "++control->trace_dropped",
         "toplevel->test_id = ++toplevel->server->test_control.trace_next_window_id",
         "control->trace_event_count = 0",
@@ -117,6 +121,7 @@ def validate_documentation(readme: str) -> None:
         "creation-order window ID",
         "border/title extents",
         "pointer, button, and key",
+        "last pre-destroy identity snapshot",
         "4096",
         "`dropped`",
     ):
@@ -159,6 +164,17 @@ def main() -> None:
             pass
         else:
             raise ValueError("event trace contract accepted nondeterministic clear")
+        tampered_identity = source.replace(
+            'if (strcmp(event, "destroy") != 0) test_trace_snapshot_identity(toplevel);',
+            "test_trace_snapshot_identity(toplevel);",
+            1,
+        )
+        try:
+            validate_source(tampered_identity)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("event trace contract accepted destroy-time identity loss")
         tampered_runner = runner.replace('"pointer", "button", "key",', '"button", "key",', 1)
         try:
             validate_runner(tampered_runner)

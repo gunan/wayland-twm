@@ -161,7 +161,9 @@ def assert_survivor_only(state: dict[str, object]) -> None:
         survivor["type"] != "wayland"
         or survivor["app_id"] != SURVIVOR_APP_ID
         or not survivor["decorated"]
-        or state["focus"] != SURVIVOR_TITLE
+        or state["focus"] not in (None, SURVIVOR_TITLE)
+        or state["active"] != state["focus"]
+        or (state["focus"] is None and not state["focus_root"])
         or state["xwayland_lifecycle"]
         or state["interactive"]
         or state["menu"] is not None

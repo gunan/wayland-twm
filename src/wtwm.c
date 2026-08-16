@@ -204,6 +204,11 @@ struct toplevel {
 	struct wl_event_source *xwayland_sync_idle;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
+	char test_title[TEST_TRACE_IDENTITY_MAX];
+	char test_app_id[TEST_TRACE_IDENTITY_MAX];
+	char test_instance[TEST_TRACE_IDENTITY_MAX];
+	char test_class_name[TEST_TRACE_IDENTITY_MAX];
+	char test_icon_name[TEST_TRACE_IDENTITY_MAX];
 #endif
 	struct wl_listener map;
 	struct wl_listener unmap;
@@ -659,6 +664,18 @@ static void test_trace_copy(char destination[TEST_TRACE_IDENTITY_MAX],
 	(void)snprintf(destination, TEST_TRACE_IDENTITY_MAX, "%s", source);
 }
 
+static void test_trace_snapshot_identity(struct toplevel *toplevel) {
+	test_trace_copy(toplevel->test_title, toplevel_title(toplevel));
+	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
+		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+	test_trace_copy(toplevel->test_app_id, app_id);
+	test_trace_copy(toplevel->test_instance, toplevel->xwayland != NULL ?
+		toplevel->xwayland->instance : NULL);
+	test_trace_copy(toplevel->test_class_name, toplevel->xwayland != NULL ?
+		toplevel->xwayland->class : NULL);
+	test_trace_copy(toplevel->test_icon_name, toplevel->icon_name);
+}
+
 static int test_trace_stack_index(const struct toplevel *toplevel) {
 	if (!toplevel->mapped || toplevel->placement_pending ||
 			(toplevel->xwayland != NULL &&
@@ -676,6 +693,10 @@ static struct test_trace_event *test_trace_append(struct toplevel *toplevel,
 		const char *event, const char *context, int frame_x, int frame_y,
 		int width, int height) {
 	struct test_control *control = &toplevel->server->test_control;
+	/* wlroots resets xdg-toplevel metadata before emitting its destroy signal.
+	 * Retain the last pre-destroy snapshot so the final event keeps the stable
+	 * protocol identity observed throughout the rest of the ledger. */
+	if (strcmp(event, "destroy") != 0) test_trace_snapshot_identity(toplevel);
 	uint64_t sequence = ++control->trace_next_sequence;
 	if (control->trace_event_count == TEST_TRACE_MAX_EVENTS) {
 		++control->trace_dropped;
@@ -703,15 +724,11 @@ static struct test_trace_event *test_trace_append(struct toplevel *toplevel,
 	(void)snprintf(trace->context, sizeof(trace->context), "%s", context);
 	(void)snprintf(trace->type, sizeof(trace->type), "%s",
 		toplevel->xwayland != NULL ? "x11" : "wayland");
-	test_trace_copy(trace->title, toplevel_title(toplevel));
-	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
-	test_trace_copy(trace->app_id, app_id);
-	test_trace_copy(trace->instance, toplevel->xwayland != NULL ?
-		toplevel->xwayland->instance : NULL);
-	test_trace_copy(trace->class_name, toplevel->xwayland != NULL ?
-		toplevel->xwayland->class : NULL);
-	test_trace_copy(trace->icon_name, toplevel->icon_name);
+	test_trace_copy(trace->title, toplevel->test_title);
+	test_trace_copy(trace->app_id, toplevel->test_app_id);
+	test_trace_copy(trace->instance, toplevel->test_instance);
+	test_trace_copy(trace->class_name, toplevel->test_class_name);
+	test_trace_copy(trace->icon_name, toplevel->test_icon_name);
 	struct wtwm_frame_geometry geometry;
 	wtwm_frame_geometry(width, height,
 		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,

@@ -39,6 +39,11 @@ raise/lower/restack, title and icon-name changes, and destroy. Synthetic
 pointer, button, and key commands also append a post-dispatch snapshot for each
 managed window, including its resulting stack index.
 
+Destroy entries retain the last pre-destroy identity snapshot. This matters for
+native clients because wlroots clears xdg-toplevel title and app-id metadata
+before it emits the role destroy signal; the stable creation-order ID and the
+last protocol identity therefore continue to identify the same ledger entry.
+
 The ledger retains at most 4096 entries. It stops appending on overflow and
 increments `dropped`, making incomplete evidence explicit. `TRACE CLEAR` resets
 the entries, sequence, and `dropped` count; live windows keep their unique IDs.
@@ -123,8 +128,10 @@ connection mapped while separate native and X11 connections fail. Purpose-built
 clients exit through `SIGABRT`, become deliberately non-dispatching, and ignore
 graceful close requests. Bounded control `PING`, state, and frame barriers plus
 survivor keyboard acknowledgements prove that neither dead nor hung clients
-stall the compositor. The runner then kills hung clients and requires exact
-focus, scene, and Xwayland lifecycle cleanup. A close-capable client for each
+stall the compositor. Random placement leaves focus on PointerRoot until the
+explicit survivor click, matching twm instead of inventing map-time focus. The
+runner then kills hung clients and requires exact focus, scene, and Xwayland
+lifecycle cleanup. A close-capable client for each
 protocol receives and ignores `f.delete` while remaining mapped. Native
 `f.destroy` is necessarily another xdg-shell close request and is ignored too;
 X11 `f.destroy` terminates only the selected X client connection. Finally, each

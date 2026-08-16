@@ -76,6 +76,9 @@ def validate_text(
         'f"explicit pointer focus for {protocol} target {title}"',
         'description + " survivor refocus"',
         'if state["focus"] != title:',
+        'state["focus"] not in (None, SURVIVOR_TITLE)',
+        'state["active"] != state["focus"]',
+        '(state["focus"] is None and not state["focus_root"])',
     )
     for marker in runner_markers:
         if marker not in runner:
@@ -184,6 +187,7 @@ def validate_text(
         "ignores `f.delete`",
         "native `f.destroy`",
         "X11 `f.destroy`",
+        "Random placement leaves focus on PointerRoot",
     )
     for marker in doc_markers:
         if marker not in documentation:
@@ -206,6 +210,10 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
          wayland, x11, meson, compatibility, integration_readme),
         ("focused-exit", runner.replace('if state["focus"] != title:',
                                         "if False:", 1),
+         wayland, x11, meson, compatibility, integration_readme),
+        ("survivor-root-focus", runner.replace(
+            'state["focus"] not in (None, SURVIVOR_TITLE)',
+            'state["focus"] != SURVIVOR_TITLE', 1),
          wayland, x11, meson, compatibility, integration_readme),
         ("hang-liveness", runner.replace('control.command("PING")',
                                          'control.command("WAIT 1")', 1),
