@@ -303,12 +303,12 @@ Testing:
 
 Exit criteria:
 
-- [ ] Xwayland applications receive the same visible management behavior as under
+- [x] Xwayland applications receive the same visible management behavior as under
   `twm`.
-- [ ] Native and Xwayland applications can coexist without incorrect focus or
+- [x] Native and Xwayland applications can coexist without incorrect focus or
   stacking.
-- [ ] `f.delete` requests a graceful close.
-- [ ] `f.destroy` forcibly disconnects or terminates the selected client with
+- [x] `f.delete` requests a graceful close.
+- [x] `f.destroy` forcibly disconnects or terminates the selected client with
   appropriate safeguards.
 
 ### Milestone 4: Match core window-management behavior
