@@ -34,6 +34,7 @@ static void test_default_title_layout(void) {
 	assert(layout.button_stride == 15);
 	assert(layout.button_border_width == 1);
 	assert(layout.button_geometry_valid);
+	assert(layout.squeezed_title_width == 156);
 	assert(layout.focus_highlight_visible);
 	assert_box(layout.focus_highlight, 110, 2, 68, 13);
 
@@ -43,6 +44,26 @@ static void test_default_title_layout(void) {
 	assert(wtwm_title_button_box(&layout, true, 0, &box));
 	assert_box(box, 186, 3, 11, 11);
 	assert(!wtwm_title_button_box(&layout, true, 1, &box));
+}
+
+static void test_title_squeezing_and_justification(void) {
+	struct wtwm_title_layout layout;
+	wtwm_title_layout_compute(NULL, 200, 13, 11, 80, 1, 1, true,
+		&layout);
+	assert(layout.squeezed_title_width == 156);
+	assert(wtwm_title_squeeze_x(200, 144, 2,
+		WTWM_TITLE_JUSTIFY_LEFT, 0, 0) == -2);
+	assert(wtwm_title_squeeze_x(200, 144, 2,
+		WTWM_TITLE_JUSTIFY_CENTER, 0, 0) == 26);
+	assert(wtwm_title_squeeze_x(200, 144, 2,
+		WTWM_TITLE_JUSTIFY_RIGHT, 0, 0) == 55);
+	assert(wtwm_title_squeeze_x(200, 60, 3,
+		WTWM_TITLE_JUSTIFY_CENTER, 1, 4) == 17);
+	assert(wtwm_title_squeeze_x(200, 60, 3,
+		WTWM_TITLE_JUSTIFY_RIGHT, -1, 4) == 88);
+	/* Reference clips titles wider than the frame back to the left edge. */
+	assert(wtwm_title_squeeze_x(40, 100, 2,
+		WTWM_TITLE_JUSTIFY_RIGHT, 0, 0) == -2);
 }
 
 static void test_configured_title_spacing(void) {
@@ -147,11 +168,29 @@ static void test_configured_and_narrow_menus(void) {
 	assert(y == 2);
 }
 
+static void test_fractional_scale_projection(void) {
+	assert(wtwm_visual_scale_edge(17, 0) == 17);
+	assert(wtwm_visual_scale_edge(17, 120) == 17);
+	assert(wtwm_visual_scale_edge(17, 240) == 34);
+	assert(wtwm_visual_scale_edge(1, 150) == 1);
+	assert(wtwm_visual_scale_edge(2, 150) == 3);
+	assert(wtwm_visual_scale_edge(-2, 150) == -3);
+	struct wtwm_visual_box first = wtwm_visual_scale_box(
+		(struct wtwm_visual_box){1, 2, 1, 3}, 150);
+	struct wtwm_visual_box second = wtwm_visual_scale_box(
+		(struct wtwm_visual_box){2, 2, 4, 3}, 150);
+	assert_box(first, 1, 3, 2, 3);
+	assert_box(second, 3, 3, 5, 3);
+	assert(first.x + first.width == second.x);
+}
+
 int main(void) {
 	test_default_title_layout();
 	test_configured_title_spacing();
+	test_title_squeezing_and_justification();
 	test_narrow_title_and_invalid_button_metrics();
 	test_default_menu_layout();
 	test_configured_and_narrow_menus();
+	test_fractional_scale_projection();
 	return 0;
 }

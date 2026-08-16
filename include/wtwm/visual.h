@@ -32,6 +32,12 @@ struct wtwm_visual_box {
 	int height;
 };
 
+enum wtwm_title_justification {
+	WTWM_TITLE_JUSTIFY_LEFT,
+	WTWM_TITLE_JUSTIFY_CENTER,
+	WTWM_TITLE_JUSTIFY_RIGHT,
+};
+
 struct wtwm_title_layout {
 	struct wtwm_visual_box title;
 	struct wtwm_visual_box text;
@@ -45,6 +51,7 @@ struct wtwm_title_layout {
 	int button_y;
 	int left_button_x;
 	int right_button_x;
+	int squeezed_title_width;
 	unsigned int left_button_count;
 	unsigned int right_button_count;
 	bool button_geometry_valid;
@@ -82,6 +89,11 @@ void wtwm_title_layout_compute(const struct wtwm_visual_config *config,
 bool wtwm_title_button_box(const struct wtwm_title_layout *layout,
 	bool right_side, unsigned int index, struct wtwm_visual_box *box);
 
+/* Return twm's title-window x coordinate, including its negative border. */
+int wtwm_title_squeeze_x(int frame_width, int title_width, int frame_border,
+	enum wtwm_title_justification justification, int numerator,
+	int denominator);
+
 /*
  * Reproduce MakeMenu's dimensions. max_text_width is the largest measured
  * entry width and has_pull_entry corresponds to MenuRoot.pull.
@@ -97,5 +109,14 @@ bool wtwm_menu_row_box(const struct wtwm_menu_layout *layout,
 /* Return the baseline origin for a normal or centered F_TITLE menu entry. */
 bool wtwm_menu_text_origin(const struct wtwm_menu_layout *layout,
 	unsigned int index, int text_width, bool title_entry, int *x, int *y);
+
+/*
+ * Project logical compatibility pixels onto a fractional-scale output.  Scale
+ * is expressed in Wayland's conventional 120ths; zero selects canonical 1x.
+ * Boxes are projected by their edges so adjacent logical boxes stay adjacent.
+ */
+int wtwm_visual_scale_edge(int logical, unsigned int scale_120);
+struct wtwm_visual_box wtwm_visual_scale_box(struct wtwm_visual_box logical,
+	unsigned int scale_120);
 
 #endif

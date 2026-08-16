@@ -101,6 +101,14 @@ void wtwm_title_layout_compute(const struct wtwm_visual_config *config,
 		highlight_width = saturate_int((int64_t)highlight_width -
 			metrics.title_padding);
 	bool highlight_visible = has_focus_highlight && highlight_width > 0;
+	int squeezed_right_x = saturate_int((int64_t)highlight_x +
+		(has_focus_highlight ? (int64_t)button_width * 2 : 0) +
+		(right_button_count > 0 ? metrics.title_padding : 0) +
+		metrics.frame_padding);
+	if (squeezed_right_x > right_x) squeezed_right_x = right_x;
+	int squeezed_width = saturate_int((int64_t)squeezed_right_x + right_offset);
+	if (squeezed_width > title_width) squeezed_width = title_width;
+	if (squeezed_width < 0) squeezed_width = 0;
 
 	*layout = (struct wtwm_title_layout){
 		.title = {0, 0, title_width, title_height},
@@ -124,12 +132,38 @@ void wtwm_title_layout_compute(const struct wtwm_visual_config *config,
 		.button_y = left_x,
 		.left_button_x = left_x,
 		.right_button_x = right_x,
+		.squeezed_title_width = squeezed_width,
 		.left_button_count = left_button_count,
 		.right_button_count = right_button_count,
 		.button_geometry_valid = button_width > 0 && button_inner_size > 0 &&
 			button_stride > 0,
 		.focus_highlight_visible = highlight_visible,
 	};
+}
+
+int wtwm_title_squeeze_x(int frame_width, int title_width, int frame_border,
+		enum wtwm_title_justification justification, int numerator,
+		int denominator) {
+	frame_width = nonnegative(frame_width);
+	title_width = nonnegative(title_width);
+	frame_border = nonnegative(frame_border);
+	int64_t base = numerator;
+	if (denominator == 0) {
+		if (numerator == 0) {
+			if (justification == WTWM_TITLE_JUSTIFY_RIGHT) base = frame_width;
+			else if (justification == WTWM_TITLE_JUSTIFY_CENTER)
+				base = frame_width / 2;
+		}
+	} else {
+		base = (int64_t)numerator * frame_width / denominator;
+		if (numerator < 0) base += frame_width;
+	}
+	if (justification == WTWM_TITLE_JUSTIFY_CENTER) base -= title_width / 2;
+	else if (justification == WTWM_TITLE_JUSTIFY_RIGHT) base -= title_width - 1;
+	int64_t maximum = (int64_t)frame_width - title_width + 1;
+	if (base > maximum) base = maximum;
+	if (base < 0) base = 0;
+	return saturate_int(base - frame_border);
 }
 
 bool wtwm_title_button_box(const struct wtwm_title_layout *layout,
@@ -230,4 +264,28 @@ bool wtwm_menu_text_origin(const struct wtwm_menu_layout *layout,
 	*y = saturate_int((int64_t)layout->text_baseline_offset +
 		(int64_t)index * layout->row_height);
 	return true;
+}
+
+int wtwm_visual_scale_edge(int logical, unsigned int scale_120) {
+	if (scale_120 == 0) scale_120 = 120;
+	int64_t magnitude = logical;
+	bool negative = magnitude < 0;
+	if (negative) magnitude = -magnitude;
+	int64_t scaled = magnitude * scale_120;
+	scaled = (scaled + 60) / 120;
+	if (negative) scaled = -scaled;
+	return saturate_int(scaled);
+}
+
+struct wtwm_visual_box wtwm_visual_scale_box(struct wtwm_visual_box logical,
+		unsigned int scale_120) {
+	int left = wtwm_visual_scale_edge(logical.x, scale_120);
+	int top = wtwm_visual_scale_edge(logical.y, scale_120);
+	int right = wtwm_visual_scale_edge(
+		saturate_int((int64_t)logical.x + logical.width), scale_120);
+	int bottom = wtwm_visual_scale_edge(
+		saturate_int((int64_t)logical.y + logical.height), scale_120);
+	return (struct wtwm_visual_box){left, top,
+		saturate_int((int64_t)right - left),
+		saturate_int((int64_t)bottom - top)};
 }
