@@ -60,6 +60,9 @@ def validate(root: Path) -> None:
         "Wayland input times aren't guaranteed to share the X server's timestamp",
         "xcb_set_input_focus(connection, XCB_INPUT_FOCUS_POINTER_ROOT, focus,",
         "XCB_CURRENT_TIME);",
+        "sync_xwayland_input_focus(server, toplevel)",
+        "sync_xwayland_input_focus(server, NULL);",
+        "send_take_focus && !xwm_sent_take_focus",
         "set_xwayland_input_focus(server, NULL);",
         "if (type == XCB_FOCUS_IN)",
         "if (entered->auto_raise) raise_toplevel(entered);",
@@ -71,8 +74,12 @@ def validate(root: Path) -> None:
         'toplevel->icon_width = 96;',
         '\\"icon_views\\"',
     ), "compositor focus/stack wiring")
-    if "wlr_xwayland_surface_activate" in compositor:
-        raise ValueError("managed X11 focus must not use wlroots' conflated activate API")
+    activation_start = compositor.find("static bool sync_xwayland_input_focus(")
+    activation_end = compositor.find("\nstatic void suspend_toplevel(", activation_start)
+    if (activation_start < 0 or activation_end < activation_start or
+            compositor[activation_end:].count(
+                "wlr_xwayland_surface_activate") != 0):
+        raise ValueError("wlroots XWM activation escaped its bookkeeping helper")
     require(runner, (
         'state["focus_root"] is not False',
         'state["active"] != "focus-a"',
@@ -80,7 +87,7 @@ def validate(root: Path) -> None:
         '{"window", "title", "frame", "icon"}',
         'event["context"] == "menu"',
         'event["state"]["focused"] is False',
-        'int(b["y"]) + int(b["outer_height"]) - 1',
+        'opposite_point = point(a, "frame")',
         'status.split()[3] != "a"',
         'status.split()[3] != "root"',
         'state["active"] != "focus-b"',

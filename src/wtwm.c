@@ -387,6 +387,7 @@ struct server {
 	bool last_interaction_moved;
 	uint64_t frame_sequence;
 	struct toplevel *focus;
+	struct toplevel *xwayland_input_focus;
 	struct toplevel *pointer_toplevel;
 	uint32_t pointer_context;
 	bool focus_root;
@@ -1180,6 +1181,22 @@ static void set_xwayland_input_focus(struct server *server,
 	xcb_flush(connection);
 }
 
+static bool sync_xwayland_input_focus(struct server *server,
+		struct toplevel *toplevel) {
+	if (server->xwayland_input_focus == toplevel) return false;
+	/* wlroots gates X11 selection transfers on its XWM focus record.  Keep
+	 * that private bookkeeping aligned only with direct X input focus; the
+	 * caller immediately reasserts wtwm's exact client/PointerRoot target. */
+	if (toplevel != NULL) {
+		wlr_xwayland_surface_activate(toplevel->xwayland, true);
+	} else if (server->xwayland_input_focus != NULL) {
+		wlr_xwayland_surface_activate(
+			server->xwayland_input_focus->xwayland, false);
+	}
+	server->xwayland_input_focus = toplevel;
+	return toplevel != NULL;
+}
+
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended) {
 	if (toplevel->xdg != NULL)
 		wlr_xdg_toplevel_set_suspended(toplevel->xdg, suspended);
@@ -1203,17 +1220,22 @@ static void focus_toplevel(struct toplevel *toplevel, bool set_input_focus,
 	server->focus = toplevel;
 	if (toplevel->xdg != NULL) wlr_xdg_toplevel_set_activated(toplevel->xdg, true);
 	set_focused_marker(server, toplevel);
+	bool xwm_sent_take_focus = false;
 	if (set_input_focus) {
-		if (toplevel->xwayland != NULL)
+		if (toplevel->xwayland != NULL) {
+			xwm_sent_take_focus = sync_xwayland_input_focus(server, toplevel);
 			set_xwayland_input_focus(server, toplevel);
-		else set_xwayland_input_focus(server, NULL);
+		} else {
+			sync_xwayland_input_focus(server, NULL);
+			set_xwayland_input_focus(server, NULL);
+		}
 		struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
 		if (keyboard != NULL) {
 			wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
 				keyboard->num_keycodes, &keyboard->modifiers);
 		}
 	}
-	if (send_take_focus)
+	if (send_take_focus && !xwm_sent_take_focus)
 		send_xwayland_take_focus(toplevel, server->current_input_time_ms);
 	if (changed) {
 		if (strcmp(context, "client") == 0)
@@ -1229,6 +1251,7 @@ static void clear_focus(struct server *server, bool clear_input_focus) {
 	}
 	server->focus = NULL;
 	if (clear_input_focus) {
+		sync_xwayland_input_focus(server, NULL);
 		set_xwayland_input_focus(server, NULL);
 		wlr_seat_keyboard_clear_focus(server->seat);
 	}

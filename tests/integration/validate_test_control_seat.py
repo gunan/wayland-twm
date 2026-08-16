@@ -31,6 +31,13 @@ def validate(source: str) -> None:
             "test control must advertise POINTER|KEYBOARD after installing "
             "its synthetic keyboard"
         )
+    for fragment in (
+        "sync_xwayland_input_focus(server, toplevel)",
+        "wlr_xwayland_surface_activate(toplevel->xwayland, true);",
+        "send_take_focus && !xwm_sent_take_focus",
+    ):
+        if fragment not in source:
+            raise ValueError(f"XWM selection focus synchronization lacks {fragment}")
 
 
 def validate_bridge_handshake(
