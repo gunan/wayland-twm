@@ -1790,7 +1790,18 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	wl_signal_add(&toplevel->xwayland->surface->events.unmap, &toplevel->unmap);
 	toplevel->commit.notify = xwayland_surface_commit;
 	wl_signal_add(&toplevel->xwayland->surface->events.commit, &toplevel->commit);
-	if (toplevel->xwayland->surface->mapped) map_xwayland_toplevel(toplevel);
+	if (toplevel->xwayland->surface->mapped) {
+		map_xwayland_toplevel(toplevel);
+	} else if (wlr_surface_has_buffer(toplevel->xwayland->surface)) {
+		/* Xwayland may commit its buffer and queue a frame callback before
+		 * wlroots pairs WL_SURFACE_ID with this X window. The Xwayland role
+		 * then misses that commit and remains unmapped while waiting for the
+		 * callback. Complete it only after our association listeners exist so
+		 * Xwayland produces a post-association commit for the role to map. */
+		struct timespec now;
+		if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
+			wlr_surface_send_frame_done(toplevel->xwayland->surface, &now);
+	}
 }
 
 static void xwayland_dissociate(struct wl_listener *listener, void *data) {
@@ -2363,10 +2374,12 @@ static void test_write_state(struct test_control *control) {
 		first = false;
 		test_write(control,
 			"{\"xid\":%" PRIu32 ",\"associated\":%s,\"mapped\":%s,"
-			"\"override_redirect\":%s}",
+			"\"has_buffer\":%s,\"override_redirect\":%s}",
 			toplevel->xwayland->window_id,
 			toplevel->associated ? "true" : "false",
 			toplevel->mapped ? "true" : "false",
+			toplevel->xwayland->surface != NULL &&
+				wlr_surface_has_buffer(toplevel->xwayland->surface) ? "true" : "false",
 			toplevel->xwayland->override_redirect ? "true" : "false");
 	}
 	test_write(control, "],\"icons\":[");
