@@ -87,7 +87,11 @@ def run_differential(args: argparse.Namespace) -> dict[str, object]:
                     case, config, run_index, case_index, stable_observations,
                 )
                 reference_normalized = normalize_reference(reference_observation)
-                wtwm_normalized = wtwm_observation["normalized"]
+                wtwm_raw = wtwm_observation["normalized"]
+                wtwm_normalized = {
+                    key: wtwm_raw[key]
+                    for key in ("client_inner", "frame_outer", "title_outer", "extents")
+                }
                 record = {
                     "axes": case["axes"],
                     "case_id": case["id"],

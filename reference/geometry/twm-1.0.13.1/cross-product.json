@@ -45,7 +45,7 @@
     },
     {
       "path": "tests/integration/run_m4_geometry_differential.py",
-      "sha256": "5cdeeccac8e4f569f690d9d0215e35acd5bef7452cc17fecc8d0232ffc85b06e"
+      "sha256": "5fc2fdc87cda9e06873f18fdf19dd970c6adf3fedd3dc404beb4f9e09abee345"
     },
     {
       "path": "tests/reference/geometry_matrix_client.c",
