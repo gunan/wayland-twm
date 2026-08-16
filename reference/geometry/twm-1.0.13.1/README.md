@@ -30,3 +30,18 @@ capture additionally checks that the title spans the frame top, frame-border
 selection follows `ClientBorderWidth`, side and bottom extents equal the frame
 border, titleless top extent equals the border, and decorated top extent equals
 the observed title outer height.
+
+`cross-product.json` closes the representative-set limitation without
+duplicating 48 handwritten cases. Its four ordered axes generate every
+combination of titled/untitled policy, frame/client border ownership, normal or
+transient decoration policy, and none/min-max/base-increment/aspect size hints.
+The generated 48 cases and 12 configurations have canonical hashes. A portable
+tamper validator checks those hashes, cardinalities, and the complete Cartesian
+coverage.
+
+The controlled Linux `x11-differential` job runs those generated clients under
+both frozen `twm` and wtwm twice. Each backend must converge for three equal
+observations. The comparison is exact over root-relative client inner boxes,
+frame outer boxes, title outer boxes, and all four extents; it has no geometry
+case, field, or numeric-tolerance exclusions. The job always uploads the report
+and success or failure evidence.

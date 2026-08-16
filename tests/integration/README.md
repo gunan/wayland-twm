@@ -64,6 +64,13 @@ reference matrix deliberately has no committed numeric observation baseline,
 so this structural runner records `reference_numeric_baseline: false` and does
 not claim a live differential pass.
 
+The CI-only Milestone 4 geometry differential supplements that representative
+matrix with a generated 48-case Cartesian product. It starts the same client
+semantics under frozen reference twm and wtwm, requires three stable samples per
+backend in each of two clean runs, and compares the normalized client-inner,
+frame-outer, title-outer, and extent records exactly. No geometry field or case
+is excluded from this differential.
+
 The `initial placement integration` test maps tailored X11 windows through all
 three `UsePPosition` modes, `USPosition`, missing hints, transients, random
 sequences and edge resets (including an oversized client), explicit and

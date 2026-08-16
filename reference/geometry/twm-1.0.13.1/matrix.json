@@ -214,7 +214,7 @@
   "observer_sources": [
     {
       "path": "tests/reference/geometry_matrix_client.c",
-      "sha256": "d0a7ff0fd85a3ee0d6be730ee203413248d399ca720c0e84a891b5006229b69e"
+      "sha256": "ad5b13bc197ef81c5a6bb73b382eeba5cfc87f5c37191da112f393dd8c404b31"
     },
     {
       "path": "tests/reference/run_reference_geometry_matrix.py",

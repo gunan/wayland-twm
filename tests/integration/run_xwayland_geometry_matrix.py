@@ -114,6 +114,12 @@ def expected_hint_values(profile: str) -> dict[str, int]:
             "base_width": 17, "base_height": 11,
             "width_inc": 10, "height_inc": 7,
         })
+    elif profile == "aspect":
+        values.update({
+            "flags": 3 | 128,
+            "min_aspect_num": 4, "min_aspect_den": 3,
+            "max_aspect_num": 16, "max_aspect_den": 9,
+        })
     elif profile == "complete":
         values.update({
             "flags": 3 | 16 | 32 | 64 | 128 | 256,
@@ -124,7 +130,7 @@ def expected_hint_values(profile: str) -> dict[str, int]:
             "min_aspect_num": 4, "min_aspect_den": 3,
             "max_aspect_num": 16, "max_aspect_den": 9,
         })
-    elif profile != "position-size":
+    elif profile not in {"none", "position-size"}:
         raise ValueError(f"unknown hint profile: {profile}")
     return values
 

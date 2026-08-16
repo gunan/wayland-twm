@@ -174,6 +174,9 @@ jobs:
             $(pkg-config --cflags x11) tests/integration/x11_differential_probe.c \
             -o /tmp/x11-differential-probe $(pkg-config --libs x11)
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/reference/geometry_matrix_client.c \
+            -o /tmp/reference-geometry-matrix-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/m4_trace_client.c \
             -o /tmp/m4-trace-client $(pkg-config --libs x11)
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
@@ -207,6 +210,16 @@ jobs:
             --contract "$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json" \
             --oracle "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline/phase-alpha.json" \
             --output /tmp/m4-trace-differential.json
+      - name: Compare the complete Milestone 4 geometry cross-product live
+        run: |
+          python3 -B tests/integration/run_m4_geometry_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --reference-client /tmp/reference-geometry-matrix-client \
+            --wtwm-client "$GITHUB_WORKSPACE/build-differential/wtwm-xwayland-geometry-matrix-client" \
+            --output /tmp/m4-geometry-differential.json \
+            --evidence-dir /tmp/m4-geometry-differential-evidence
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -224,4 +237,13 @@ jobs:
           path: |
             /tmp/m4-trace-differential.json
             /tmp/m4-trace-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 4 geometry differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-geometry-differential
+          path: |
+            /tmp/m4-geometry-differential.json
+            /tmp/m4-geometry-differential-evidence
           if-no-files-found: error

@@ -103,7 +103,7 @@ static void set_normal_hints(struct client *client, xcb_window_t window,
 	hints[2] = (uint32_t)y;
 	hints[3] = (uint32_t)width;
 	hints[4] = (uint32_t)height;
-	if (strcmp(profile, "position-size") == 0) {
+	if (strcmp(profile, "position-size") == 0 || strcmp(profile, "none") == 0) {
 		/* The positioning flags are the intentionally minimal profile. */
 	} else if (strcmp(profile, "min-max") == 0) {
 		hints[0] |= P_MIN_SIZE | P_MAX_SIZE;
@@ -117,6 +117,12 @@ static void set_normal_hints(struct client *client, xcb_window_t window,
 		hints[10] = 7;
 		hints[15] = 17;
 		hints[16] = 11;
+	} else if (strcmp(profile, "aspect") == 0) {
+		hints[0] |= P_ASPECT;
+		hints[11] = 4;
+		hints[12] = 3;
+		hints[13] = 16;
+		hints[14] = 9;
 	} else if (strcmp(profile, "complete") == 0) {
 		hints[0] |= P_MIN_SIZE | P_MAX_SIZE | P_BASE_SIZE |
 			P_RESIZE_INC | P_ASPECT;
@@ -164,7 +170,7 @@ static bool initialize(struct client *client) {
 
 static _Noreturn void usage(const char *program) {
 	fprintf(stderr, "usage: %s CASE normal|transient BORDER WIDTH HEIGHT "
-		"position-size|min-max|base-increment|complete\n", program);
+		"none|position-size|min-max|base-increment|aspect|complete\n", program);
 	exit(EXIT_FAILURE);
 }
 

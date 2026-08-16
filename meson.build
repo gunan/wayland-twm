@@ -407,6 +407,16 @@ test(
   ],
 )
 test(
+  'Milestone 4 geometry cross-product contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_geometry_cross_product.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'reference interaction source contract',
   find_program('python3'),
   args: [

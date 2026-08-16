@@ -75,7 +75,8 @@ static void set_metadata(Display *display, Window window, const char *instance,
 	hints.y = y;
 	hints.width = width;
 	hints.height = height;
-	if (strcmp(hint_profile, "position-size") == 0) {
+	if (strcmp(hint_profile, "position-size") == 0 ||
+		strcmp(hint_profile, "none") == 0) {
 		/* The positioning flags are the intentionally minimal profile. */
 	}
 	else if (strcmp(hint_profile, "min-max") == 0) {
@@ -91,6 +92,13 @@ static void set_metadata(Display *display, Window window, const char *instance,
 		hints.base_height = 11;
 		hints.width_inc = 10;
 		hints.height_inc = 7;
+	}
+	else if (strcmp(hint_profile, "aspect") == 0) {
+		hints.flags |= PAspect;
+		hints.min_aspect.x = 4;
+		hints.min_aspect.y = 3;
+		hints.max_aspect.x = 16;
+		hints.max_aspect.y = 9;
 	}
 	else if (strcmp(hint_profile, "complete") == 0) {
 		hints.flags |= PMinSize | PMaxSize | PBaseSize | PResizeInc | PAspect;
@@ -262,7 +270,8 @@ static void print_normal_hints(Display *display, Window window) {
 
 static _Noreturn void usage(const char *program) {
 	fprintf(stderr, "usage: %s CASE normal|transient CLIENT_BORDER WIDTH HEIGHT "
-		"position-size|min-max|base-increment|complete title|no-title\n",
+		"none|position-size|min-max|base-increment|aspect|complete "
+		"title|no-title\n",
 		program);
 	exit(EXIT_FAILURE);
 }

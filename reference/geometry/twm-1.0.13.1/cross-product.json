@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "base_matrix": {
+    "path": "reference/geometry/twm-1.0.13.1/matrix.json",
+    "sha256": "aea22f237971be13c167647c8124d6854e4f3ef2a6d1a52e0991fa9228a95d1d"
+  },
+  "axes": {
+    "title_policy": ["titled", "untitled"],
+    "border_policy": ["frame-border", "client-border"],
+    "transient_policy": ["normal", "transient-suppressed", "transient-decorated"],
+    "hint_profile": ["none", "min-max", "base-increment", "aspect"]
+  },
+  "hint_profiles": [
+    {"id": "none", "size": [137, 91]},
+    {"id": "min-max", "size": [137, 91]},
+    {"id": "base-increment", "size": [137, 88]},
+    {"id": "aspect", "size": [144, 96]}
+  ],
+  "frame_profile": {
+    "border_width": 2,
+    "frame_padding": 2,
+    "title_padding": 8,
+    "title_font": "fixed"
+  },
+  "initial_client_border_width": 4,
+  "configuration_prelude": [
+    "NoDefaults",
+    "NoGrabServer",
+    "NoIconManagers",
+    "NoHighlight",
+    "NoTitleHighlight",
+    "NoTitleFocus",
+    "NoMenuShadows"
+  ],
+  "generated": {
+    "case_count": 48,
+    "configuration_count": 12,
+    "cases_sha256": "cbd1db9fb55d20b7388af09a3c6d9f16f31f47a7188585382ea3d36dc83e56db",
+    "configurations_sha256": "8ad5a61637d91701e21ef5fcc7850042cc8cd75188cb9394e707a6e57564b3a7"
+  },
+  "sources": [
+    {
+      "path": "tests/reference/geometry_cross_product.py",
+      "sha256": "29d5db0ba034d514d76ed6ec2411a3093faf23c35b597689569f2df554a49aac"
+    },
+    {
+      "path": "tests/integration/run_m4_geometry_differential.py",
+      "sha256": "5cdeeccac8e4f569f690d9d0215e35acd5bef7452cc17fecc8d0232ffc85b06e"
+    },
+    {
+      "path": "tests/reference/geometry_matrix_client.c",
+      "sha256": "ad5b13bc197ef81c5a6bb73b382eeba5cfc87f5c37191da112f393dd8c404b31"
+    },
+    {
+      "path": "tests/integration/xwayland_geometry_matrix_client.c",
+      "sha256": "a3bb6a77a60628a137da695b60626a2789dc6cd87ca7c093466f66ceef617a6a"
+    }
+  ]
+}
