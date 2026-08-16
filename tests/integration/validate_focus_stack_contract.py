@@ -88,6 +88,7 @@ def validate(root: Path) -> None:
         'event["context"] == "menu"',
         'event["state"]["focused"] is False',
         'opposite_point = point(a, "frame")',
+        'b_window_exposed = (',
         'status.split()[3] != "a"',
         'status.split()[3] != "root"',
         'state["active"] != "focus-b"',

@@ -168,7 +168,13 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if int(status.split()[1]) != 1 or status.split()[3] != "a":
                 raise RuntimeError(f"f.focus conflated direct focus with TAKE_FOCUS: {status}")
 
-            control.command(f"POINTER {point(b, 'window')[0]} {point(b, 'window')[1]}")
+            b_window_exposed = (
+                int(b["x"]) + int(b["outer_width"]) - 12,
+                int(b["y"]) + int(b["outer_height"]) - 12,
+            )
+            control.command(
+                f"POINTER {b_window_exposed[0]} {b_window_exposed[1]}"
+            )
             state = control.state()
             if state["active"] != "focus-a" or state["focus"] != "focus-a":
                 raise RuntimeError(f"locked focus followed pointer or AutoRaise: {state!r}")
@@ -205,7 +211,9 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if status.split()[3] != "root":
                 raise RuntimeError(f"f.focus toggle did not restore X PointerRoot: {status}")
 
-            control.command(f"POINTER {point(b, 'window')[0]} {point(b, 'window')[1]}")
+            control.command(
+                f"POINTER {b_window_exposed[0]} {b_window_exposed[1]}"
+            )
             state = control.state()
             if state["active"] != "focus-b" or state["focus"] is not None:
                 raise RuntimeError(f"input=false TAKE_FOCUS changed direct input: {state!r}")
@@ -213,7 +221,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             status = client_command(client, "STATUS", "STATUS")
             if int(status.split()[2]) != 1 or status.split()[3] != "root":
                 raise RuntimeError(f"input=false TAKE_FOCUS protocol split failed: {status}")
-            click(control, point(b, "window"), 272)
+            click(control, b_window_exposed, 272)
             state = control.state()
             if (state["focus_root"] is not False or state["active"] != "focus-b"
                     or state["focus"] is not None):
@@ -221,7 +229,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             status = client_command(client, "STATUS", "STATUS")
             if int(status.split()[2]) != 1 or status.split()[3] != "root":
                 raise RuntimeError(f"input=false f.focus changed X input or sent TAKE: {status}")
-            click(control, point(b, "window"), 272)
+            click(control, b_window_exposed, 272)
 
             click(control, point(a, "title"), 272)
             state = wait_state(control, lambda item: len(item["icon_views"]) == 1,
