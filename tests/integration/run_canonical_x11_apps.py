@@ -42,7 +42,7 @@ REAL_WINDOWS = (
     ExpectedWindow("xterm", "WTWM Real Xterm", "wtwm-real-xterm", "WtwmRealXterm"),
     ExpectedWindow("xclock", "WTWM Real XClock", "wtwm-real-xclock", "XClock"),
     ExpectedWindow("xload", "WTWM Real XLoad", "wtwm-real-xload", "XLoad"),
-    ExpectedWindow("emacs", "WTWM Real Emacs", "wtwm-real-emacs", "Emacs"),
+    ExpectedWindow("emacs", "WTWM Real Emacs", "wtwm-real-emacs", "Emacs-gtk"),
     ExpectedWindow(
         "terminal-dialog",
         "WTWM Terminal Dialog",

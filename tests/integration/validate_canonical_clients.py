@@ -10,6 +10,10 @@ from pathlib import Path
 
 REQUIRED_PACKAGES = {"dialog", "emacs-gtk", "x11-apps", "xfonts-base", "xterm"}
 REQUIRED_PROGRAMS = ("xterm", "xclock", "xload", "emacs", "dialog")
+EMACS_IDENTITY = (
+    'ExpectedWindow("emacs", "WTWM Real Emacs", '
+    '"wtwm-real-emacs", "Emacs-gtk")'
+)
 
 
 def validate_text(packages_text: str, meson: str, runner: str) -> list[str]:
@@ -77,6 +81,8 @@ def validate_text(packages_text: str, meson: str, runner: str) -> list[str]:
     ):
         if marker not in runner:
             errors.append(f"canonical runtime runner lacks {marker!r}")
+    if runner.count(EMACS_IDENTITY) != 1:
+        errors.append("canonical runtime runner lacks the Debian emacs-gtk identity")
     for forbidden in ("SystemExit(77)", "continue-on-error", "pytest.skip"):
         if forbidden in runner:
             errors.append(f"canonical runtime runner contains forbidden fallback {forbidden!r}")
@@ -119,6 +125,17 @@ def self_test_tamper(source_root: Path) -> list[str]:
     )
     if not any("arbitrary sleep" in error or "WAIT 3" in error for error in errors):
         failures.append("sleep-based success tamper was accepted")
+    errors = validate_text(
+        packages,
+        meson,
+        runner.replace(
+            '"wtwm-real-emacs", "Emacs-gtk")',
+            '"wtwm-real-emacs", "Emacs")',
+            1,
+        ),
+    )
+    if not any("emacs-gtk identity" in error for error in errors):
+        failures.append("emacs class tamper was accepted")
     return failures
 
 
