@@ -119,7 +119,8 @@ jobs:
       - name: Build portable configuration checker
         run: |
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
-            -Iinclude src/config.c src/config_check.c -o /tmp/wtwm-config
+            -Iinclude src/config.c src/placement.c src/config_check.c \
+            -o /tmp/wtwm-config
       - name: Compare the complete parser with reference twm
         run: sh tests/reference/run_reference_parser_comparison.sh "$GITHUB_WORKSPACE" /tmp/wtwm-config /tmp/wtwm-parser-comparison.json
       - name: Upload parser differential
