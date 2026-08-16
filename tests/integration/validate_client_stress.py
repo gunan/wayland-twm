@@ -92,6 +92,9 @@ def validate_text(
         'printf("EVENT CLOSE %u\\n", client->close_count);',
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
+        'sscanf(command, "TITLE %127s", title)',
+        "xdg_toplevel_set_title(client->toplevel, client->title);",
+        'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
         "cycle != client->cycle",
         "wl_surface_attach(client->surface, NULL, 0, 0);",
@@ -104,6 +107,10 @@ def validate_text(
     for marker in wayland_markers:
         if marker not in wayland_client:
             errors.append(f"stress Wayland client lacks {marker!r}")
+    if wayland_client.count(
+        "xdg_toplevel_set_title(client->toplevel, client->title);"
+    ) != 2:
+        errors.append("stress Wayland client must set its title on map and mutation")
 
     x11_markers = (
         '"WM_DELETE_WINDOW"',
@@ -111,6 +118,9 @@ def validate_text(
         'printf("EVENT DELETE %u\\n", client->close_count);',
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
+        'sscanf(command, "TITLE %127s", title)',
+        "set_string(client, XCB_ATOM_WM_NAME, client->title);",
+        'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
         "cycle != client->cycle",
         "client->desired_mapped = false;",
@@ -127,6 +137,10 @@ def validate_text(
     for marker in x11_markers:
         if marker not in x11_client:
             errors.append(f"stress X11 client lacks {marker!r}")
+    if x11_client.count(
+        "set_string(client, XCB_ATOM_WM_NAME, client->title);"
+    ) != 2:
+        errors.append("stress X11 client must set its title on map and mutation")
     unmap = x11_client[x11_client.find("static bool unmap_client"):]
     unmap = unmap[:unmap.find("static bool initialize")]
     if not (0 <= unmap.find("client->desired_mapped = false;") <
@@ -216,8 +230,16 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
         ("wayland-hang", runner,
          wayland.replace("for (;;) pause();", "return true;", 1),
          x11, meson, compatibility, integration_readme),
+        ("wayland-title", runner,
+         wayland.replace(
+             "xdg_toplevel_set_title(client->toplevel, client->title);", "", 1),
+         x11, meson, compatibility, integration_readme),
         ("x11-delete-protocol", runner, wayland,
          x11.replace('"WM_DELETE_WINDOW"', '"WM_TAKE_FOCUS"', 1),
+         meson, compatibility, integration_readme),
+        ("x11-title", runner, wayland,
+         x11.replace("set_string(client, XCB_ATOM_WM_NAME, client->title);",
+                     "", 1),
          meson, compatibility, integration_readme),
         ("x11-remap-order", runner, wayland,
          x11.replace(

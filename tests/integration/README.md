@@ -114,3 +114,15 @@ protocol receives and ignores `f.delete` while remaining mapped. Native
 X11 `f.destroy` terminates only the selected X client connection. Finally, each
 protocol completes 32 numbered unmap/remap cycles, with protocol roundtrips and
 exact no-duplicate scene/lifecycle assertions at every transition.
+
+The portable randomized lifecycle oracle applies 6,000 operations over five
+fixed seeds, validating stable creation IDs, map/list membership, focus and icon
+cleanup, stack uniqueness, and transient-parent references after every step. A
+second-run history digest proves each seeded sequence is deterministic. The
+model takes focus selection and reference occlusion/circulation decisions as
+explicit inputs, so its assertions cover safety without inventing policy. The
+Linux headless companion drives 96 lifecycle/stack actions twice across native
+and X11 clients, including live title mutations and an iconify/deiconify action
+cycle. It checks STATE and TRACE structural invariants continuously
+and compares the normalized histories without freezing focus or stacking
+outcomes that belong to the focused interaction compatibility tests.

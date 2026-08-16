@@ -81,6 +81,23 @@ interaction_test = executable(
 )
 test('twm move and resize interaction model', interaction_test)
 
+lifecycle_model_lib = static_library(
+  'wtwm-lifecycle-model-lib',
+  'src/lifecycle_model.c',
+  include_directories: inc,
+)
+lifecycle_model_dep = declare_dependency(
+  link_with: lifecycle_model_lib,
+  include_directories: inc,
+)
+
+lifecycle_model_test = executable(
+  'lifecycle-model-test',
+  'tests/lifecycle_model_test.c',
+  dependencies: lifecycle_model_dep,
+)
+test('randomized lifecycle and stacking model', lifecycle_model_test)
+
 geometry_test = executable(
   'geometry-test',
   'tests/geometry_test.c',
@@ -432,6 +449,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'randomized lifecycle model contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_lifecycle_model.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
@@ -745,6 +772,18 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'randomized lifecycle and stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_randomized_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
     is_parallel: false,
   )
   test(

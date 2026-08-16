@@ -18,7 +18,7 @@ struct client {
 	xcb_window_t window;
 	xcb_atom_t wm_protocols;
 	xcb_atom_t wm_delete_window;
-	const char *title;
+	char title[128];
 	const char *instance;
 	const char *class_name;
 	unsigned close_count;
@@ -164,7 +164,17 @@ static void drain_events(struct client *client) {
 }
 
 static bool handle_command(struct client *client, char *command) {
+	char title[128];
 	unsigned cycle;
+	if (sscanf(command, "TITLE %127s", title) == 1) {
+		if (!client->desired_mapped) return false;
+		strcpy(client->title, title);
+		set_string(client, XCB_ATOM_WM_NAME, client->title);
+		xcb_flush(client->connection);
+		if (!roundtrip(client)) return false;
+		printf("OK TITLE %s\n", client->title);
+		return true;
+	}
 	if (sscanf(command, "UNMAP %u", &cycle) == 1) {
 		if (!client->desired_mapped || cycle != client->cycle + 1 ||
 				!unmap_client(client)) return false;
@@ -209,11 +219,11 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	struct client client = {
-		.title = argv[1],
 		.instance = argv[2],
 		.class_name = argv[3],
 		.running = true,
 	};
+	(void)snprintf(client.title, sizeof(client.title), "%s", argv[1]);
 	if (!initialize(&client)) {
 		fprintf(stderr, "stress X11 client: initialization failed\n");
 		if (client.connection != NULL) xcb_disconnect(client.connection);
