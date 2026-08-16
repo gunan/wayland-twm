@@ -288,7 +288,7 @@ Implementation work:
   rules.
 - [x] Implement clipboard and selection interoperation where legacy actions require
   it.
-- [ ] Ensure popups, menus, and unmanaged X11 windows stack correctly.
+- [x] Ensure popups, menus, and unmanaged X11 windows stack correctly.
 
 Testing:
 
