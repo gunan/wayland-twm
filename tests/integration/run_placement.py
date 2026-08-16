@@ -48,6 +48,29 @@ def wait_windows(control: Control, titles: set[str]) -> dict[str, object]:
     raise RuntimeError(f"timed out waiting for {sorted(titles)}: {control.state()!r}")
 
 
+def wait_xwayland_unmapped(
+    control: Control, xid: int, title: str
+) -> dict[str, object]:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        state = control.state()
+        lifecycle = [
+            item for item in state["xwayland_lifecycle"] if int(item["xid"]) == xid
+        ]
+        if (
+            not any(item["title"] == title for item in state["windows"])
+            and len(lifecycle) == 1
+            and not lifecycle[0]["associated"]
+            and not lifecycle[0]["mapped"]
+            and not lifecycle[0]["has_buffer"]
+        ):
+            return state
+        time.sleep(0.01)
+    raise RuntimeError(
+        f"timed out waiting for Xwayland to unmap {title!r}: {control.state()!r}"
+    )
+
+
 def wait_interaction(control: Control, title: str) -> dict[str, object]:
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
@@ -201,6 +224,12 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
             if remap:
                 before = window(state, "placement-remap")
                 assert client.stdin is not None
+                client.stdin.write("UNMAP\n")
+                client.stdin.flush()
+                wait_line(client, "UNMAPPED")
+                wait_xwayland_unmapped(
+                    control, int(before["xid"]), "placement-remap"
+                )
                 client.stdin.write("REMAP\n")
                 client.stdin.flush()
                 wait_line(client, "REMAPPED")

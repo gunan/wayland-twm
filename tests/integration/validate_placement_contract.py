@@ -66,6 +66,11 @@ def validate_text(placement: str, config: str, wtwm: str,
         '"placement-resize", (50, 55), "resize"',
         '"placement-fill", (40, 45), "fill"',
         'run_native_translation(compositor, native_client)',
+        'client.stdin.write("UNMAP\\n")',
+        'wait_xwayland_unmapped(\n'
+        '                    control, int(before["xid"]), "placement-remap"\n'
+        '                )',
+        'client.stdin.write("REMAP\\n")',
         'after["placement"] == "remapped"',
         'event["state"]["placement"]',
     ):
@@ -76,6 +81,8 @@ def validate_text(placement: str, config: str, wtwm: str,
         '32200, 16, HINT_US_POSITION',
         '"placement-default-max-height", 10, 12,',
         '16, 32300, HINT_US_POSITION',
+        'strcmp(command, "UNMAP\\n") == 0',
+        'strcmp(command, "REMAP\\n") == 0',
     ):
         if marker not in client:
             errors.append(f"safe X11 maximum fixture lacks {marker!r}")
@@ -123,6 +130,16 @@ def main() -> int:
         )
         if not validate_text(*tampered):
             errors.append("self-test accepted missing remap assertion")
+        tampered = list(values)
+        tampered[3] = tampered[3].replace(
+            'wait_xwayland_unmapped(\n'
+            '                    control, int(before["xid"]), "placement-remap"\n'
+            '                )',
+            'control.state()',
+            1,
+        )
+        if not validate_text(*tampered):
+            errors.append("self-test accepted unsynchronized Xwayland remap")
         tampered = list(values)
         tampered[2] = tampered[2].replace(
             "interaction->intent = INTERACTION_INITIAL_CONFIRM;",

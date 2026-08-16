@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 enum {
 	HINT_US_POSITION = 1u << 0,
@@ -145,11 +144,13 @@ int main(int argc, char **argv) {
 	fflush(stdout);
 	char command[64];
 	while (fgets(command, sizeof(command), stdin) != NULL) {
-		if (strcmp(command, "REMAP\n") == 0 && client.remap != XCB_WINDOW_NONE) {
+		if (strcmp(command, "UNMAP\n") == 0 && client.remap != XCB_WINDOW_NONE) {
 			xcb_unmap_window(client.connection, client.remap);
 			xcb_flush(client.connection);
-			struct timespec delay = {.tv_sec = 0, .tv_nsec = 100000000};
-			(void)nanosleep(&delay, NULL);
+			puts("UNMAPPED");
+			fflush(stdout);
+		} else if (strcmp(command, "REMAP\n") == 0 &&
+				client.remap != XCB_WINDOW_NONE) {
 			xcb_map_window(client.connection, client.remap);
 			xcb_flush(client.connection);
 			puts("REMAPPED");
