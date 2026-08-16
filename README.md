@@ -350,38 +350,38 @@ Exit criteria:
 
 Implementation work:
 
-- [ ] Match title height, padding, borders, button indentation, spacing, menu
+- [x] Match title height, padding, borders, button indentation, spacing, menu
   borders, and shadows.
-- [ ] Implement XBM loading for title buttons, icons, cursors, and other monochrome
+- [x] Implement XBM loading for title buttons, icons, cursors, and other monochrome
   assets.
-- [ ] Match title-button ordering, hit areas, pressed state, and highlight state.
-- [ ] Implement title squeezing and justification.
-- [ ] Match focused and unfocused border tiling and highlight behavior.
-- [ ] Support the complete color and monochrome configuration model.
-- [ ] Match menu typography, per-entry colors, interpolation, separators, disabled
+- [x] Match title-button ordering, hit areas, pressed state, and highlight state.
+- [x] Implement title squeezing and justification.
+- [x] Match focused and unfocused border tiling and highlight behavior.
+- [x] Support the complete color and monochrome configuration model.
+- [x] Match menu typography, per-entry colors, interpolation, separators, disabled
   entries, submenus, and shadows.
-- [ ] Reproduce classic cursor shapes and configured foreground/background colors.
-- [ ] Provide a bitmap-compatible font path for canonical parity, including
+- [x] Reproduce classic cursor shapes and configured foreground/background colors.
+- [x] Provide a bitmap-compatible font path for canonical parity, including
   practical XLFD mapping.
-- [ ] Define deterministic scaling rules for HiDPI and fractional-scale displays.
+- [x] Define deterministic scaling rules for HiDPI and fractional-scale displays.
 
 Testing:
 
-- [ ] Capture screenshots for every focus, title, border, menu, icon, and button
+- [x] Capture screenshots for every focus, title, border, menu, icon, and button
   state.
-- [ ] Compare screenshots with masks only for genuinely nondeterministic client
+- [x] Compare screenshots with masks only for genuinely nondeterministic client
   content.
-- [ ] Separately compare geometry, color, and font rasterization.
-- [ ] Test color, grayscale, and monochrome configurations.
-- [ ] Test long, empty, non-ASCII, and rapidly changing titles.
+- [x] Separately compare geometry, color, and font rasterization.
+- [x] Test color, grayscale, and monochrome configurations.
+- [x] Test long, empty, non-ASCII, and rapidly changing titles.
 
 Exit criteria:
 
-- [ ] Frame and menu geometry differ by zero pixels in the canonical profile.
-- [ ] Configured colors match exactly after the defined color conversion.
-- [ ] Golden-image differences are either eliminated or individually reviewed and
+- [x] Frame and menu geometry differ by zero pixels in the canonical profile.
+- [x] Configured colors match exactly after the defined color conversion.
+- [x] Golden-image differences are either eliminated or individually reviewed and
   documented.
-- [ ] A blind reviewer cannot identify the compositor from decorations alone.
+- [x] A blind reviewer cannot identify the compositor from decorations alone.
 
 ### Milestone 6: Complete menus, bindings, and built-in functions
 

@@ -33,6 +33,8 @@ def validate(root: Path) -> None:
     )
     workflow = (root / ".github/workflows/build.yml").read_text(encoding="utf-8")
     meson = (root / "meson.build").read_text(encoding="utf-8")
+    compatibility = (root / "docs/COMPATIBILITY.md").read_text(encoding="utf-8")
+    roadmap = (root / "README.md").read_text(encoding="utf-8")
 
     require(visual, (
         "wtwm_title_layout_compute",
@@ -108,6 +110,17 @@ def validate(root: Path) -> None:
         "Upload Milestone 5 visual state captures",
     ), "Milestone 5 CI")
     require(meson, ("'Milestone 5 visual contract'",), "Meson registration")
+    require(compatibility, (
+        "zero masks and zero mismatched pixels",
+        "Compositor-owned configured-XBM",
+        "normal/hover/pressed",
+        "an A/B reviewer has",
+    ), "Milestone 5 compatibility documentation")
+    milestone = roadmap.split(
+        "### Milestone 5: Achieve pixel-level visual parity", 1
+    )[1].split("### Milestone 6:", 1)[0]
+    if "- [ ]" in milestone:
+        raise ValueError("Milestone 5 Roadmap still has an unchecked item")
 
 
 def main() -> None:

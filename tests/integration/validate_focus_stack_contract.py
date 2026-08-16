@@ -110,7 +110,7 @@ def validate(root: Path) -> None:
     require(docs, (
         "PointerRoot/sloppy focus",
         "overlap-dependent `f.raiselower`",
-        "minimal compositor-owned icon hit target",
+        "Compositor-owned configured-XBM",
     ), "focus/stack compatibility documentation")
 
 
