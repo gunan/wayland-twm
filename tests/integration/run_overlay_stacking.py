@@ -295,14 +295,14 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
                                  (BLACK, WHITE))
 
             control.command(f"POINTER {point[0]} {point[1]}")
-            control.command("BUTTON 274 press")
+            control.command("BUTTON 273 press")
             state = wait_state(control, lambda item: item["menu"] is not None,
                                "compositor menu map")
             menu = state["menu"]
             menu_point = (int(menu["x"]) + 3,
                           int(menu["y"]) + int(menu["row_height"]) - 3)
             assert_top_color(control, temporary, "menu-above-overlay", menu_point, YELLOW)
-            control.command("BUTTON 274 release")
+            control.command("BUTTON 273 release")
             wait_state(control, lambda item: item["menu"] is None,
                        "compositor menu dismissal")
             assert_top_color_any(control, temporary, "x-after-menu", menu_point,

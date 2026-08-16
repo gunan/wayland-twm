@@ -83,6 +83,17 @@ def validate_bridge_handshake(
         raise ValueError("X-owned selection import lacks an X focus handshake")
 
 
+def validate_overlay_menu_button(runner: str) -> None:
+    if 'Button3 = : all : f.menu "stacking"' not in runner:
+        raise ValueError("overlay runner does not bind its compositor menu to Button3")
+    for state in ("press", "release"):
+        command = f'control.command("BUTTON 273 {state}")'
+        if runner.count(command) != 1:
+            raise ValueError(
+                f"overlay Button3 must inject Linux BTN_RIGHT code 273 on {state}"
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-root", type=Path, required=True)
@@ -100,6 +111,10 @@ def main() -> None:
         arguments.source_root / "tests/integration/run_selection_bridge.py"
     ).read_text(encoding="utf-8")
     validate_bridge_handshake(wayland_client, x11_client, runner)
+    overlay_runner = (
+        arguments.source_root / "tests/integration/run_overlay_stacking.py"
+    ).read_text(encoding="utf-8")
+    validate_overlay_menu_button(overlay_runner)
     if arguments.self_test_tamper:
         tampered = source.replace(
             "WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER",
@@ -130,7 +145,18 @@ def main() -> None:
             pass
         else:
             raise ValueError("bridge contract accepted a focus-only readiness gate")
-        print("synthetic seat and bridge-handshake tampers rejected")
+        tampered_overlay = overlay_runner.replace(
+            'control.command("BUTTON 273 press")',
+            'control.command("BUTTON 274 press")',
+            1,
+        )
+        try:
+            validate_overlay_menu_button(tampered_overlay)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("overlay menu contract accepted BTN_MIDDLE for Button3")
+        print("synthetic seat, bridge-handshake, and overlay button tampers rejected")
     print("test control synthetic seat contract valid")
 
 
