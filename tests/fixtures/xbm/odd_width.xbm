@@ -1,0 +1,11 @@
+/* Odd-width rows remain byte packed, with their right-hand padding ignored. */
+#define odd_width 13
+#define odd_height 3
+#define odd_x_hot 12
+#define odd_y_hot 1
+
+static unsigned /* a declaration comment */ char odd_bits[] = {
+	0x01, 0x10, // first and last visible pixel
+	0xaa, 0x0a,
+	0xff, 0x1f,
+};

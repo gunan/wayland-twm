@@ -1,0 +1,3 @@
+#define unsigned_short_width 16
+#define unsigned_short_height 1
+static unsigned short unsigned_short_bits[] = { 0xffff };

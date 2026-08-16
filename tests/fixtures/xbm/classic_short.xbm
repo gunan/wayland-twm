@@ -1,0 +1,6 @@
+#define classic_short_width 17
+#define classic_short_height 2
+static short classic_short_bits[] = {
+	0x0201, 0xaa03,
+	0x0504, 0xffff
+};

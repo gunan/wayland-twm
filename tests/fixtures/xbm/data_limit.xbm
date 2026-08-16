@@ -1,0 +1,3 @@
+#define data_limit_width 32768
+#define data_limit_height 4097
+static unsigned char data_limit_bits[] = { 0x00 };

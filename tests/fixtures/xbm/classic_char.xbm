@@ -1,0 +1,6 @@
+#define classic_char_width 8
+#define classic_char_height 2
+static char classic_char_bits[] = {
+	0x81,
+	0x42
+};

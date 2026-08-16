@@ -1,0 +1,4 @@
+#define unterminated_comment_width 8
+#define unterminated_comment_height 1
+/* no closing delimiter
+static unsigned char unterminated_comment_bits[] = { 0x00 };

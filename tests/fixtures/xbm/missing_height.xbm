@@ -1,0 +1,2 @@
+#define missing_height_width 8
+static unsigned char missing_height_bits[] = { 0x00 };
