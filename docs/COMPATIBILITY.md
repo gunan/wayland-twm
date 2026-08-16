@@ -28,6 +28,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
+| Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -110,6 +111,27 @@ map begins a fresh cycle that snapshots `AutoRaise` again and re-applies
 `StartIconified`. A native xdg toplevel retains its snapshots across a
 protocol unmap and remap because it remains the same managed object.
 Override-redirect windows bypass all of these managed-window rules.
+
+The ordinary Wayland `wl_data_device` selection maps to the X11 `CLIPBOARD`
+selection, while `zwp_primary_selection_v1` maps to X11 `PRIMARY`. Both paths
+share the compositor seat supplied to the wlroots Xwayland window manager.
+MIME type `text/plain;charset=utf-8` is exposed to X11 as `UTF8_STRING`, and
+`text/plain` is exposed as `TEXT`; other MIME names are interned as X target
+atoms. Transfer data remains client-owned and moves through file descriptors
+and X selection properties rather than a compositor-side text cache.
+
+The bridge follows Wayland's keyboard-focus and input-serial rules. A native
+client needs a valid seat serial to claim either selection, and offers are sent
+to the keyboard-focused native client. An X11 requestor needs a focused
+Xwayland surface to read a Wayland-owned selection. Replacing a source cancels
+the prior source, and disconnecting either a native or X11 owner clears the
+corresponding proxy ownership instead of leaving stale `CLIPBOARD` or `PRIMARY`
+contents.
+Clipboard-manager persistence after the owning client exits is not provided.
+Native PRIMARY support requires clients to implement the standard unstable-v1
+primary-selection protocol. Legacy X cut buffers and the twm cut-buffer actions
+remain separate later-roadmap work; they are not silently treated as these
+selections.
 
 For X11 clients, `f.delete` follows `twm`: it sends `WM_DELETE_WINDOW` only
 when the client advertises that protocol and never falls back to killing a

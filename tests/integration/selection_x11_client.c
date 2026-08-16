@@ -1,0 +1,324 @@
+/* SPDX-License-Identifier: MIT */
+#define _POSIX_C_SOURCE 200809L
+
+#include <errno.h>
+#include <inttypes.h>
+#include <poll.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <xcb/xcb.h>
+
+enum pending_request {
+	PENDING_NONE,
+	PENDING_CLIPBOARD_DATA,
+	PENDING_PRIMARY_DATA,
+	PENDING_CLIPBOARD_TARGETS,
+	PENDING_PRIMARY_TARGETS,
+};
+
+struct client {
+	xcb_connection_t *connection;
+	xcb_screen_t *screen;
+	xcb_window_t window;
+	xcb_atom_t clipboard;
+	xcb_atom_t primary;
+	xcb_atom_t targets;
+	xcb_atom_t utf8;
+	xcb_atom_t text;
+	xcb_atom_t result_property;
+	enum pending_request pending;
+	bool owns_clipboard;
+	bool owns_primary;
+	bool running;
+	uint32_t repaint;
+	unsigned clipboard_targets_served;
+	unsigned primary_targets_served;
+};
+
+static xcb_atom_t atom(struct client *client, const char *name) {
+	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(client->connection, false,
+		(uint16_t)strlen(name), name);
+	xcb_intern_atom_reply_t *reply =
+		xcb_intern_atom_reply(client->connection, cookie, NULL);
+	if (reply == NULL) return XCB_ATOM_NONE;
+	xcb_atom_t value = reply->atom;
+	free(reply);
+	return value;
+}
+
+static const char *selection_name(struct client *client, xcb_atom_t selection) {
+	return selection == client->clipboard ? "CLIPBOARD" : "PRIMARY";
+}
+
+static const char *selection_payload(struct client *client,
+	xcb_atom_t selection) {
+	(void)client;
+	return selection == client->clipboard ? "x11-clipboard" : "x11-primary";
+}
+
+static void send_selection_notify(struct client *client,
+	const xcb_selection_request_event_t *request, xcb_atom_t property) {
+	xcb_selection_notify_event_t notify = {
+		.response_type = XCB_SELECTION_NOTIFY,
+		.time = request->time,
+		.requestor = request->requestor,
+		.selection = request->selection,
+		.target = request->target,
+		.property = property,
+	};
+	xcb_send_event(client->connection, false, request->requestor,
+		XCB_EVENT_MASK_NO_EVENT, (const char *)&notify);
+	xcb_flush(client->connection);
+}
+
+static void handle_selection_request(struct client *client,
+	const xcb_selection_request_event_t *request) {
+	xcb_atom_t property = request->property == XCB_ATOM_NONE ?
+		request->target : request->property;
+	bool owns = request->selection == client->clipboard ?
+		client->owns_clipboard : client->owns_primary;
+	if (!owns) {
+		send_selection_notify(client, request, XCB_ATOM_NONE);
+		return;
+	}
+	if (request->target == client->targets) {
+		if (request->selection == client->clipboard)
+			client->clipboard_targets_served++;
+		else
+			client->primary_targets_served++;
+		xcb_atom_t values[] = {client->targets, client->utf8, client->text};
+		xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+			request->requestor, property, XCB_ATOM_ATOM, 32,
+			(uint32_t)(sizeof(values) / sizeof(values[0])), values);
+	} else if (request->target == client->utf8 ||
+			request->target == client->text) {
+		const char *payload = selection_payload(client, request->selection);
+		xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+			request->requestor, property, request->target, 8,
+			(uint32_t)strlen(payload), payload);
+	} else {
+		send_selection_notify(client, request, XCB_ATOM_NONE);
+		return;
+	}
+	send_selection_notify(client, request, property);
+}
+
+static void print_selection_data(struct client *client,
+	const xcb_selection_notify_event_t *notify) {
+	const char *name = selection_name(client, notify->selection);
+	if (notify->property == XCB_ATOM_NONE) {
+		printf("ERROR %s conversion\n", name);
+		client->pending = PENDING_NONE;
+		return;
+	}
+	xcb_get_property_cookie_t cookie = xcb_get_property(client->connection, true,
+		notify->requestor, notify->property, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
+	xcb_get_property_reply_t *reply =
+		xcb_get_property_reply(client->connection, cookie, NULL);
+	if (reply == NULL) {
+		printf("ERROR %s property\n", name);
+		client->pending = PENDING_NONE;
+		return;
+	}
+	if (client->pending == PENDING_CLIPBOARD_TARGETS ||
+			client->pending == PENDING_PRIMARY_TARGETS) {
+		bool has_utf8 = false;
+		bool has_text = false;
+		if (reply->type == XCB_ATOM_ATOM && reply->format == 32) {
+			const xcb_atom_t *values = xcb_get_property_value(reply);
+			for (uint32_t i = 0; i < reply->value_len; ++i) {
+				if (values[i] == client->utf8) has_utf8 = true;
+				if (values[i] == client->text) has_text = true;
+			}
+		}
+		printf("TARGETS %s utf8=%d text=%d\n", name, has_utf8, has_text);
+	} else if (reply->format == 8) {
+		int length = xcb_get_property_value_length(reply);
+		printf("DATA %s %.*s\n", name, length,
+			(const char *)xcb_get_property_value(reply));
+	} else {
+		printf("ERROR %s format\n", name);
+	}
+	free(reply);
+	client->pending = PENDING_NONE;
+	fflush(stdout);
+}
+
+static void handle_x_event(struct client *client, xcb_generic_event_t *event) {
+	uint8_t type = event->response_type & UINT8_C(0x7f);
+	if (type == XCB_SELECTION_REQUEST) {
+		handle_selection_request(client,
+			(const xcb_selection_request_event_t *)event);
+	} else if (type == XCB_SELECTION_NOTIFY) {
+		print_selection_data(client,
+			(const xcb_selection_notify_event_t *)event);
+	} else if (type == XCB_SELECTION_CLEAR) {
+		const xcb_selection_clear_event_t *clear =
+			(const xcb_selection_clear_event_t *)event;
+		if (clear->selection == client->clipboard) client->owns_clipboard = false;
+		if (clear->selection == client->primary) client->owns_primary = false;
+	}
+}
+
+static void own_selection(struct client *client, xcb_atom_t selection) {
+	xcb_set_selection_owner(client->connection, client->window, selection,
+		XCB_TIME_CURRENT_TIME);
+	xcb_flush(client->connection);
+	xcb_get_selection_owner_cookie_t cookie =
+		xcb_get_selection_owner(client->connection, selection);
+	xcb_get_selection_owner_reply_t *reply =
+		xcb_get_selection_owner_reply(client->connection, cookie, NULL);
+	bool owned = reply != NULL && reply->owner == client->window;
+	free(reply);
+	if (selection == client->clipboard) client->owns_clipboard = owned;
+	else client->owns_primary = owned;
+	printf("OWN %s %d\n", selection_name(client, selection), owned);
+}
+
+static const char *owner_status(struct client *client, xcb_atom_t selection) {
+	xcb_get_selection_owner_cookie_t cookie =
+		xcb_get_selection_owner(client->connection, selection);
+	xcb_get_selection_owner_reply_t *reply =
+		xcb_get_selection_owner_reply(client->connection, cookie, NULL);
+	const char *status = "none";
+	if (reply != NULL && reply->owner != XCB_WINDOW_NONE)
+		status = reply->owner == client->window ? "self" : "other";
+	free(reply);
+	return status;
+}
+
+static void request_selection(struct client *client, xcb_atom_t selection,
+	bool request_targets) {
+	if (client->pending != PENDING_NONE) {
+		printf("ERROR pending\n");
+		return;
+	}
+	if (selection == client->clipboard) {
+		client->pending = request_targets ? PENDING_CLIPBOARD_TARGETS :
+			PENDING_CLIPBOARD_DATA;
+	} else {
+		client->pending = request_targets ? PENDING_PRIMARY_TARGETS :
+			PENDING_PRIMARY_DATA;
+	}
+	xcb_convert_selection(client->connection, client->window, selection,
+		request_targets ? client->targets : client->utf8,
+		client->result_property, XCB_TIME_CURRENT_TIME);
+	xcb_flush(client->connection);
+}
+
+static void handle_command(struct client *client, char *command) {
+	command[strcspn(command, "\r\n")] = '\0';
+	if (strcmp(command, "OWN CLIPBOARD") == 0) {
+		own_selection(client, client->clipboard);
+	} else if (strcmp(command, "OWN PRIMARY") == 0) {
+		own_selection(client, client->primary);
+	} else if (strcmp(command, "GET CLIPBOARD") == 0) {
+		request_selection(client, client->clipboard, false);
+	} else if (strcmp(command, "GET PRIMARY") == 0) {
+		request_selection(client, client->primary, false);
+	} else if (strcmp(command, "TARGETS CLIPBOARD") == 0) {
+		request_selection(client, client->clipboard, true);
+	} else if (strcmp(command, "TARGETS PRIMARY") == 0) {
+		request_selection(client, client->primary, true);
+	} else if (strcmp(command, "STATUS") == 0) {
+		const char *clipboard = owner_status(client, client->clipboard);
+		const char *primary = owner_status(client, client->primary);
+		printf("STATUS clipboard=%s primary=%s\n", clipboard, primary);
+	} else if (strcmp(command, "SERVED") == 0) {
+		printf("SERVED clipboard=%u primary=%u\n",
+			client->clipboard_targets_served, client->primary_targets_served);
+	} else if (strcmp(command, "EXIT") == 0) {
+		printf("EXITING\n");
+		client->running = false;
+	} else {
+		printf("ERROR command\n");
+	}
+	fflush(stdout);
+}
+
+static bool initialize(struct client *client) {
+	int screen_number = 0;
+	client->connection = xcb_connect(NULL, &screen_number);
+	if (xcb_connection_has_error(client->connection)) return false;
+	const xcb_setup_t *setup = xcb_get_setup(client->connection);
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(setup);
+	for (int i = 0; i < screen_number; ++i) xcb_screen_next(&screens);
+	client->screen = screens.data;
+	if (client->screen == NULL) return false;
+	client->clipboard = atom(client, "CLIPBOARD");
+	client->primary = XCB_ATOM_PRIMARY;
+	client->targets = atom(client, "TARGETS");
+	client->utf8 = atom(client, "UTF8_STRING");
+	client->text = atom(client, "TEXT");
+	client->result_property = atom(client, "_WTWM_SELECTION_RESULT");
+	if (client->clipboard == XCB_ATOM_NONE || client->targets == XCB_ATOM_NONE ||
+			client->utf8 == XCB_ATOM_NONE || client->text == XCB_ATOM_NONE ||
+			client->result_property == XCB_ATOM_NONE) return false;
+	client->window = xcb_generate_id(client->connection);
+	uint32_t values[] = {
+		UINT32_C(0x806020),
+		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE,
+	};
+	xcb_create_window(client->connection, XCB_COPY_FROM_PARENT, client->window,
+		client->screen->root, 360, 80, 180, 100, 0,
+		XCB_WINDOW_CLASS_INPUT_OUTPUT, client->screen->root_visual,
+		XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK, values);
+	const char title[] = "wtwm-selection-x11";
+	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, client->window,
+		XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, sizeof(title) - 1, title);
+	const char wm_class[] = "wtwm-selection\0WtwmSelection\0";
+	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, client->window,
+		XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8, sizeof(wm_class) - 1, wm_class);
+	xcb_map_window(client->connection, client->window);
+	xcb_flush(client->connection);
+	return true;
+}
+
+static void repaint(struct client *client) {
+	client->repaint++;
+	uint32_t color = (client->repaint & 1) != 0 ?
+		UINT32_C(0x806020) : UINT32_C(0x806040);
+	xcb_change_window_attributes(client->connection, client->window,
+		XCB_CW_BACK_PIXEL, &color);
+	xcb_clear_area(client->connection, false, client->window, 0, 0, 180, 100);
+	xcb_flush(client->connection);
+}
+
+int main(void) {
+	struct client client = {.running = true};
+	if (!initialize(&client)) {
+		fprintf(stderr, "failed to initialize selection X11 client\n");
+		if (client.connection != NULL) xcb_disconnect(client.connection);
+		return EXIT_FAILURE;
+	}
+	printf("READY %" PRIu32 "\n", client.window);
+	fflush(stdout);
+	while (client.running && !xcb_connection_has_error(client.connection)) {
+		struct pollfd descriptors[2] = {
+			{.fd = xcb_get_file_descriptor(client.connection), .events = POLLIN},
+			{.fd = STDIN_FILENO, .events = POLLIN},
+		};
+		int result;
+		do result = poll(descriptors, 2, 20); while (result < 0 && errno == EINTR);
+		if (result < 0) break;
+		xcb_generic_event_t *event;
+		while ((event = xcb_poll_for_event(client.connection)) != NULL) {
+			handle_x_event(&client, event);
+			free(event);
+		}
+		if ((descriptors[1].revents & POLLIN) != 0) {
+			char command[128];
+			if (fgets(command, sizeof(command), stdin) == NULL) break;
+			handle_command(&client, command);
+		}
+		repaint(&client);
+	}
+	xcb_destroy_window(client.connection, client.window);
+	xcb_flush(client.connection);
+	xcb_disconnect(client.connection);
+	return EXIT_SUCCESS;
+}

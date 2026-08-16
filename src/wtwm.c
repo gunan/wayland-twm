@@ -58,6 +58,8 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_pointer.h>
+#include <wlr/types/wlr_primary_selection.h>
+#include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/types/wlr_seat.h>
 #include <wlr/types/wlr_subcompositor.h>
@@ -232,6 +234,7 @@ struct server {
 	struct wl_listener new_input;
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
+	struct wl_listener request_primary_selection;
 	struct wl_list keyboards;
 	struct wlr_xwayland *xwayland;
 	struct wl_listener xwayland_ready;
@@ -1287,6 +1290,13 @@ static void request_selection(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, request_selection);
 	struct wlr_seat_request_set_selection_event *event = data;
 	wlr_seat_set_selection(server->seat, event->source, event->serial);
+}
+
+static void request_primary_selection(struct wl_listener *listener, void *data) {
+	struct server *server =
+		wl_container_of(listener, server, request_primary_selection);
+	struct wlr_seat_request_set_primary_selection_event *event = data;
+	wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
 }
 
 static bool render_output(struct output *output) {
@@ -2870,6 +2880,7 @@ int main(int argc, char **argv) {
 	}
 	wlr_subcompositor_create(server.display);
 	wlr_data_device_manager_create(server.display);
+	wlr_primary_selection_v1_device_manager_create(server.display);
 	server.output_layout = wlr_output_layout_create(server.display);
 	wl_list_init(&server.outputs);
 	server.new_output.notify = new_output;
@@ -2911,6 +2922,9 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.seat->events.request_set_cursor, &server.request_cursor);
 	server.request_selection.notify = request_selection;
 	wl_signal_add(&server.seat->events.request_set_selection, &server.request_selection);
+	server.request_primary_selection.notify = request_primary_selection;
+	wl_signal_add(&server.seat->events.request_set_primary_selection,
+		&server.request_primary_selection);
 #ifdef WTWM_TEST_CONTROL
 	static const struct wlr_keyboard_impl test_keyboard_impl = {
 		.name = "wtwm-test-keyboard",

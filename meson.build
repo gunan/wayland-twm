@@ -258,6 +258,7 @@ if wlroots.found()
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
+  primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
   xdg_shell_header = custom_target(
     'xdg-shell-protocol-header',
     input: xdg_shell_xml,
@@ -298,6 +299,18 @@ if wlroots.found()
     output: 'xdg-shell-client-protocol.c',
     command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
   )
+  primary_selection_client_header = custom_target(
+    'primary-selection-client-protocol-header',
+    input: primary_selection_xml,
+    output: 'primary-selection-unstable-v1-client-protocol.h',
+    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+  )
+  primary_selection_client_code = custom_target(
+    'primary-selection-client-protocol-code',
+    input: primary_selection_xml,
+    output: 'primary-selection-unstable-v1-client-protocol.c',
+    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+  )
   wtwm_wayland_test_client = executable(
     'wtwm-wayland-test-client',
     [
@@ -328,6 +341,18 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_selection_wayland_client = executable(
+    'wtwm-selection-wayland-client',
+    [
+      'tests/integration/selection_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+      primary_selection_client_header,
+      primary_selection_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
   wtwm_xwayland_probe = executable(
     'wtwm-xwayland-probe',
     'tests/integration/xwayland_probe.c',
@@ -343,6 +368,12 @@ if wlroots.found()
   wtwm_xwayland_rules_client = executable(
     'wtwm-xwayland-rules-client',
     'tests/integration/xwayland_rules_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_selection_x11_client = executable(
+    'wtwm-selection-x11-client',
+    'tests/integration/selection_x11_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -376,6 +407,17 @@ if wlroots.found()
       '--client', wtwm_xwayland_rules_client,
     ],
     timeout: 60,
+  )
+  test(
+    'Wayland and Xwayland selection bridge integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_selection_bridge.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_selection_wayland_client,
+      '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 90,
   )
   test(
     'xdg-shell lifecycle integration',
