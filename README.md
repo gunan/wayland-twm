@@ -298,7 +298,7 @@ Testing:
   constraints.
 - [x] Compare Xwayland client results with the same clients under reference `twm`.
 - [x] Mix native Wayland and Xwayland clients in the same session.
-- [ ] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
+- [x] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
   windows.
 
 Exit criteria:
