@@ -51,3 +51,16 @@ protocol reports zero keys. It also raises, lowers, and restores clients across
 the unified managed stack, then unmap/remaps one native and one X11 client while
 the other protocol remains live. Selection bridging and popup/override-redirect
 ordering remain separate focused scenarios.
+
+The `adversarial client lifecycle integration` test keeps a native survivor
+connection mapped while separate native and X11 connections fail. Purpose-built
+clients exit through `SIGABRT`, become deliberately non-dispatching, and ignore
+graceful close requests. Bounded control `PING`, state, and frame barriers plus
+survivor keyboard acknowledgements prove that neither dead nor hung clients
+stall the compositor. The runner then kills hung clients and requires exact
+focus, scene, and Xwayland lifecycle cleanup. A close-capable client for each
+protocol receives and ignores `f.delete` while remaining mapped. Native
+`f.destroy` is necessarily another xdg-shell close request and is ignored too;
+X11 `f.destroy` terminates only the selected X client connection. Finally, each
+protocol completes 32 numbered unmap/remap cycles, with protocol roundtrips and
+exact no-duplicate scene/lifecycle assertions at every transition.

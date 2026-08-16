@@ -298,6 +298,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'adversarial client lifecycle contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_client_stress.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
@@ -459,6 +469,22 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_stress_wayland_client = executable(
+    'wtwm-stress-wayland-client',
+    [
+      'tests/integration/stress_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_stress_x11_client = executable(
+    'wtwm-stress-x11-client',
+    'tests/integration/stress_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   canonical_xterm = find_program('xterm', required: true)
   canonical_xclock = find_program('xclock', required: true)
   canonical_xload = find_program('xload', required: true)
@@ -532,6 +558,18 @@ if wlroots.found()
       '--x11-client', wtwm_mixed_x11_client,
     ],
     timeout: 90,
+  )
+  test(
+    'adversarial client lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_client_stress.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
   )
   test(
     'xdg-shell lifecycle integration',

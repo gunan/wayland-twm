@@ -32,6 +32,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
+| Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -167,6 +168,17 @@ when the client advertises that protocol and never falls back to killing a
 non-cooperating client. `f.destroy` uses X client termination. Native Wayland
 clients retain their protocol close-request behavior because xdg-shell has no
 separate client-kill operation.
+
+The adversarial lifecycle test makes that boundary observable. A close-capable
+native client receives and ignores `f.delete`, remains mapped, then receives a
+second close event because native `f.destroy` can only send the same xdg-shell
+request; external process supervision is required to force that client away.
+A close-capable X11 client likewise ignores `f.delete` and stays mapped, but
+X11 `f.destroy` disconnects only its owning X client while the compositor and a
+native survivor remain responsive. A hung client is never inferred from a
+timeout alone: the fixture acknowledges its transition into the hung state
+first, and control plus survivor input succeed before the runner kills it and
+verifies cleanup.
 
 ## Complete configuration model
 
