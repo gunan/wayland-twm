@@ -35,6 +35,8 @@ def validate_text(wtwm: str, geometry: str, meson: str) -> list[str]:
         "wlr_scene_node_set_enabled(&toplevel->frame->node, toplevel_has_frame(toplevel));",
         "geometry.content_x, geometry.content_y);",
         "constraints.flags |= WTWM_SIZE_HINT_ASPECT;",
+        "size_flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE",
+        "size_flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY",
         "toplevel->xdg->current.min_width",
         '"\\\"outer_width\\\":%d,\\\"outer_height\\\":%d,"',
     )

@@ -2701,6 +2701,13 @@ static void position_xwayland_transient(struct toplevel *toplevel) {
 	struct toplevel *parent = parent_surface != NULL ? parent_surface->data : NULL;
 	if (parent == NULL || parent == toplevel || !parent->mapped || parent->tree == NULL ||
 			parent_surface->override_redirect) return;
+	/* twm initially stacks a transient immediately above its parent.  Keep the
+	 * compositor's top-to-bottom model in the same order as the X server; later
+	 * explicit raise/lower operations still affect one window at a time. */
+	if (toplevel->mapped && toplevel->link.next != &parent->link) {
+		wl_list_remove(&toplevel->link);
+		wl_list_insert(parent->link.prev, &toplevel->link);
+	}
 	wlr_scene_node_place_above(&toplevel->tree->node, &parent->tree->node);
 	wlr_xwayland_surface_restack(toplevel->xwayland,
 		parent_surface, XCB_STACK_MODE_ABOVE);
@@ -3102,6 +3109,25 @@ static void xwayland_set_hints(struct wl_listener *listener, void *data) {
 			(toplevel->xwayland->hints->flags & XCB_ICCCM_WM_HINT_X_URGENCY) != 0)
 		wlr_log(WLR_DEBUG, "X11 window 0x%08" PRIx32 " requests attention",
 			toplevel->xwayland->window_id);
+	/* wlroots may deliver the initial pointer crossing before WM_HINTS.  twm
+	 * reads those hints before dispatching the crossing, so finish the direct
+	 * input-focus half when the late property arrives without duplicating
+	 * activation or WM_TAKE_FOCUS. */
+	if (toplevel->mapped && toplevel->server->focus_root &&
+			toplevel->server->pointer_toplevel == toplevel &&
+			toplevel->server->focus == toplevel) {
+		struct wtwm_focus_enter_result result = wtwm_focus_enter(
+			&(struct wtwm_focus_enter_input){
+				.focus_root = true,
+				.surface = WTWM_FOCUS_SURFACE_FRAME,
+				.title_focus = !toplevel->server->config.no_title_focus,
+				.has_title = toplevel->decorated,
+				.global_no_titlebar = toplevel->server->config.no_title,
+				.input_hint = xwayland_input_hint_true(toplevel),
+			});
+		if (result.set_input_focus)
+			focus_toplevel(toplevel, true, false, "frame");
+	}
 }
 
 static void xwayland_set_geometry(struct wl_listener *listener, void *data) {
@@ -3719,6 +3745,7 @@ static void test_write_state(struct test_control *control) {
 			struct wlr_xwayland_surface *xsurface = toplevel->xwayland;
 			xcb_icccm_wm_hints_t *hints = xsurface->hints;
 			xcb_size_hints_t *size = xsurface->size_hints;
+			uint32_t size_flags = size != NULL ? size->flags : 0;
 			test_write(control,
 				",\"xid\":%" PRIu32 ",\"parent\":%" PRIu32
 				",\"client_x\":%d,\"client_y\":%d,\"original_border_width\":%d"
@@ -3751,20 +3778,33 @@ static void test_write_state(struct test_control *control) {
 				toplevel->net_wm_icon_count, toplevel->net_wm_icon_width,
 				toplevel->net_wm_icon_height, toplevel->net_wm_icon_checksum,
 				toplevel->net_wm_icon_truncated ? "true" : "false",
-				size != NULL ? size->flags : 0,
-				size != NULL ? size->min_width : 0,
-				size != NULL ? size->min_height : 0,
-				size != NULL ? size->max_width : 0,
-				size != NULL ? size->max_height : 0,
-				size != NULL ? size->base_width : 0,
-				size != NULL ? size->base_height : 0,
-				size != NULL ? size->width_inc : 0,
-				size != NULL ? size->height_inc : 0,
-				size != NULL ? size->min_aspect_num : 0,
-				size != NULL ? size->min_aspect_den : 0,
-				size != NULL ? size->max_aspect_num : 0,
-				size != NULL ? size->max_aspect_den : 0,
-				size != NULL ? size->win_gravity : 0);
+				size_flags,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) != 0 ?
+					size->min_width : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) != 0 ?
+					size->min_height : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) != 0 ?
+					size->max_width : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) != 0 ?
+					size->max_height : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) != 0 ?
+					size->base_width : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) != 0 ?
+					size->base_height : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) != 0 ?
+					size->width_inc : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) != 0 ?
+					size->height_inc : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) != 0 ?
+					size->min_aspect_num : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) != 0 ?
+					size->min_aspect_den : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) != 0 ?
+					size->max_aspect_num : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) != 0 ?
+					size->max_aspect_den : 0,
+				(size_flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY) != 0 ?
+					size->win_gravity : 0);
 		} else {
 			uint32_t flags = 0;
 			if (toplevel->xdg->current.min_width > 0 ||

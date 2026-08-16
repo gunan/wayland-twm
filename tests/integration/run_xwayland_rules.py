@@ -165,8 +165,12 @@ def exercise_selective(
     )
     auto = window_by_title(state, "Auto Window")
     point_at_content(control, auto)
-    state = wait_state(control, lambda item: item["focus"] == "Auto Window",
-                       "AutoRaise instance hover")
+    state = wait_state(
+        control,
+        lambda item: item["focus"] == "Plain Window"
+        and window_by_title(item, "Auto Window")["stack"] == 0,
+        "focus-neutral AutoRaise instance hover",
+    )
 
     auto_xid = int(auto["xid"])
     command(client, "UNMAP_AUTO", "AUTO_UNMAPPED")
@@ -181,9 +185,8 @@ def exercise_selective(
         "AutoRaise snapshot on a fresh X management cycle",
     )
     plain = window_by_xid(state, plain_xid)
-    click_content(control, plain)
-    state = wait_state(control, lambda item: item["focus"] == "Plain Window",
-                       "focus before non-AutoRaise hover")
+    if state["focus"] != "Plain Window":
+        raise RuntimeError(f"X remanagement changed locked focus: {state!r}")
     point_at_content(control, window_by_xid(state, auto_xid))
     state = control.state()
     if state["focus"] != "Plain Window":
@@ -336,7 +339,9 @@ def run(compositor: Path, client_binary: Path) -> None:
         '"Case-Sensitive" "Collision Window" }\n'
         'MakeTitle { "Collision Window" }\n'
         'AutoRaise { "auto-instance" }\n'
-        'StartIconified { "Start Window" }\n',
+        'StartIconified { "Start Window" }\n'
+        'NoTitleFocus\n'
+        'Button1 = : window : f.focus\n',
         exercise_selective,
     )
     run_case(
