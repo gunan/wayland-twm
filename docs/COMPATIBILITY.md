@@ -17,7 +17,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups follow their parent scene and are constrained to the output bounds |
-| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match `app_id` and title |
+| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id` |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use compositor scene nodes |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
 | Icon windows and icon manager | Parsed | Wayland has no client icon-window primitive; compositor UI is pending |
@@ -43,6 +43,32 @@ output's layout bounds in root-surface coordinates. Parent unmap or destruction
 dismisses every rooted popup before the toplevel state is released. Layer-shell
 exclusive zones are not implemented yet, so the usable area is currently the
 full output-layout box.
+
+The native mapping for every twm name/class window list is explicit:
+
+| twm identity role | X11 value | Native xdg-shell value |
+| --- | --- | --- |
+| window name | `WM_NAME` | xdg title, checked first |
+| `WM_CLASS` resource name (instance) | resource name | xdg `app_id`, checked second |
+| `WM_CLASS` resource class | resource class | the same xdg `app_id`; native clients have no third identity value |
+
+Thus the two X11 resource-selection roles intentionally collapse to the one
+stable native application identity. Each candidate uses exact, case-sensitive
+comparison. There is no wildcard expansion, so a configured `"*"` matches only
+a literal title or `app_id` of `*`. An unset/null field is skipped and cannot
+match even a configured empty string. A present empty title or `app_id` is
+compared normally and therefore matches only a configured empty string; it is
+not a wildcard or fallback value.
+
+Live title and `app_id` changes recompute `NoTitle`/`MakeTitle` decoration in
+that order: the global `NoTitle` state is the starting point, a matching
+`MakeTitle` enables decoration, and a matching `NoTitle` disables it last, so
+`NoTitle` wins a collision. `AutoRaise` is snapshotted on the first map of an
+xdg-toplevel object and is not recomputed by later metadata changes.
+`StartIconified` is likewise considered only on that object's first map. Both
+object-lifetime decisions survive a protocol unmap/remap; in particular, a
+remap is not iconified a second time. Destroying the xdg-toplevel and creating
+a new one begins a fresh native management lifetime and takes fresh snapshots.
 
 wtwm reserves an Xwayland display during compositor startup and starts the X
 server lazily when the first X11 client connects. The allocated `DISPLAY` is
@@ -132,8 +158,8 @@ the original load API is a screen-zero wrapper.
 
 Reference window lists do not provide shell wildcards: matching is an exact,
 case-sensitive comparison against X11 `WM_NAME`, then resource name, then
-resource class, so a configured `"*"` is literal. The native mapping compares
-title and then `app_id` with the same rule. Named key contexts and `f.warpto`
+resource class, so a configured `"*"` is literal. The native mapping above
+compares title and then `app_id` with the same rule. Named key contexts and `f.warpto`
 selectors are a separate case-sensitive prefix mode, likewise with no glob
 interpretation; the native prefix mapping compares title and then `app_id`.
 `NoCaseSensitive` affects icon-manager sorting in reference twm and does not

@@ -318,6 +318,16 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_native_rules_client = executable(
+    'wtwm-native-rules-client',
+    [
+      'tests/integration/native_rules_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
   wtwm_xwayland_probe = executable(
     'wtwm-xwayland-probe',
     'tests/integration/xwayland_probe.c',
@@ -374,6 +384,16 @@ if wlroots.found()
       '-B', files('tests/integration/run_xdg_lifecycle.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_xdg_lifecycle_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'native window-list mapping integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_native_rules.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_native_rules_client,
     ],
     timeout: 60,
   )
