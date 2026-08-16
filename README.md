@@ -277,38 +277,38 @@ comparison with the original `twm`.
 
 Implementation work:
 
-- [ ] Manage native `xdg-shell` toplevels and popups correctly.
-- [ ] Integrate Xwayland lifecycle management and `DISPLAY` export.
-- [ ] Implement an X window-manager bridge for names and classes, transient
+- [x] Manage native `xdg-shell` toplevels and popups correctly.
+- [x] Integrate Xwayland lifecycle management and `DISPLAY` export.
+- [x] Implement an X window-manager bridge for names and classes, transient
   relationships, normal and size hints, delete-window requests, forced client
   termination, icon names and supplied icons, urgency and input hints,
   override-redirect windows, stacking, and configure requests.
-- [ ] Apply `.twmrc` window lists identically to Xwayland clients.
-- [ ] Define a documented mapping from native `app_id` and title to `twm` name/class
+- [x] Apply `.twmrc` window lists identically to Xwayland clients.
+- [x] Define a documented mapping from native `app_id` and title to `twm` name/class
   rules.
-- [ ] Implement clipboard and selection interoperation where legacy actions require
+- [x] Implement clipboard and selection interoperation where legacy actions require
   it.
-- [ ] Ensure popups, menus, and unmanaged X11 windows stack correctly.
+- [x] Ensure popups, menus, and unmanaged X11 windows stack correctly.
 
 Testing:
 
-- [ ] Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
+- [x] Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
   test clients.
-- [ ] Exercise changing titles, classes, hints, transients, icons, and resize
+- [x] Exercise changing titles, classes, hints, transients, icons, and resize
   constraints.
-- [ ] Compare Xwayland client results with the same clients under reference `twm`.
-- [ ] Mix native Wayland and Xwayland clients in the same session.
-- [ ] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
+- [x] Compare Xwayland client results with the same clients under reference `twm`.
+- [x] Mix native Wayland and Xwayland clients in the same session.
+- [x] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
   windows.
 
 Exit criteria:
 
-- [ ] Xwayland applications receive the same visible management behavior as under
+- [x] Xwayland applications receive the same visible management behavior as under
   `twm`.
-- [ ] Native and Xwayland applications can coexist without incorrect focus or
+- [x] Native and Xwayland applications can coexist without incorrect focus or
   stacking.
-- [ ] `f.delete` requests a graceful close.
-- [ ] `f.destroy` forcibly disconnects or terminates the selected client with
+- [x] `f.delete` requests a graceful close.
+- [x] `f.destroy` forcibly disconnects or terminates the selected client with
   appropriate safeguards.
 
 ### Milestone 4: Match core window-management behavior

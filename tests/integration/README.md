@@ -23,3 +23,44 @@ python3 tests/integration/run_compositor.py \
 
 Pass `--nested` to use the parent `WAYLAND_DISPLAY`; the harness exits with the
 standard skip status when there is no usable parent Wayland socket.
+
+The `canonical X11 applications under wtwm` test is Linux-only because it runs
+inside a real wtwm/Xwayland session. Meson requires the Debian-packaged `xterm`,
+`xclock`, `xload`, `emacs`, and `dialog` executables at configure time. The
+runner waits for their exact X11 identities and mapped lifecycle state, proves
+the terminal dialog process is live, and observes the existing purpose-built
+ICCCM normal, transient, hint, and override-redirect fixtures. A second state
+snapshot after compositor frames verifies that none exited during observation;
+bounded teardown then checks that all client surfaces and the compositor exit.
+
+The dedicated `x11-differential` CI job builds frozen `twm` 1.0.13.1 and wtwm,
+then launches one shared command list containing those five real applications
+and the purpose-built XCB ICCCM client under both window managers. An Xlib
+observer normalizes client properties without window IDs. Managed reference
+clients must have a reparent frame, while the matching wtwm test-control entry
+must have a scene decoration; the normalized results must otherwise match
+exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
+native/cross-protocol semantics assigned to later tests and milestones.
+
+The `mixed native and Xwayland client integration` test maps two native xdg
+toplevels and two managed X11 toplevels together. It checks their exact
+identities and simultaneous lifecycle associations, drives
+native→X11→native and X11→native→X11 focus paths, and requires the actual
+protocol recipient to acknowledge keyboard press/release while the other
+protocol reports zero keys. It also raises, lowers, and restores clients across
+the unified managed stack, then unmap/remaps one native and one X11 client while
+the other protocol remains live. Selection bridging and popup/override-redirect
+ordering remain separate focused scenarios.
+
+The `adversarial client lifecycle integration` test keeps a native survivor
+connection mapped while separate native and X11 connections fail. Purpose-built
+clients exit through `SIGABRT`, become deliberately non-dispatching, and ignore
+graceful close requests. Bounded control `PING`, state, and frame barriers plus
+survivor keyboard acknowledgements prove that neither dead nor hung clients
+stall the compositor. The runner then kills hung clients and requires exact
+focus, scene, and Xwayland lifecycle cleanup. A close-capable client for each
+protocol receives and ignores `f.delete` while remaining mapped. Native
+`f.destroy` is necessarily another xdg-shell close request and is ignored too;
+X11 `f.destroy` terminates only the selected X client connection. Finally, each
+protocol completes 32 numbered unmap/remap cycles, with protocol roundtrips and
+exact no-duplicate scene/lifecycle assertions at every transition.

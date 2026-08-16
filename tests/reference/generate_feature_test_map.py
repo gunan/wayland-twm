@@ -210,7 +210,9 @@ def action_parse_check(source_root: Path, entry: dict[str, object]) -> dict[str,
 
 
 RUNTIME_CONTRACT_FRAGMENTS = {
-    "runtime_dispatch.auto-raise-rule-dispatch": ["server->config.auto_raise ||"],
+    "runtime_dispatch.auto-raise-rule-dispatch": [
+        "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
+    ],
     "runtime_dispatch.button-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
     "runtime_dispatch.configuration-load-at-startup": ["wtwm_config_load(&server.config,"],
     "runtime_dispatch.configured-frame-and-title-rendering": ["toplevel->title_height = server->config.title_padding"],
@@ -225,14 +227,14 @@ RUNTIME_CONTRACT_FRAGMENTS = {
     "runtime_dispatch.start-iconified-rule-dispatch": ["server->config.start_iconified_windows"],
     "runtime_dispatch.title-button-action-dispatch": ["execute_action(server, hit.toplevel, configured, 0)"],
     "runtime_dispatch.title-decoration-rule-dispatch": [
-        "set_decorated(toplevel, (!toplevel->server->config.no_title &&"
+        "set_decorated(toplevel, should_decorate(toplevel));"
     ],
 }
 
 DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.autoraise": [
-        "server->config.auto_raise ||",
-        "&server->config.auto_raise_windows,",
+        "toplevel->auto_raise = toplevel->server->config.auto_raise ||",
+        "&toplevel->server->config.auto_raise_windows,",
     ],
     "directive.bordercolor": ["color_value(server->config.border_color, border);"],
     "directive.borderwidth": ["int border = toplevel->server->config.border_width;"],
@@ -255,7 +257,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.menutitlebackground": ["server->config.menu_title_background, row_color);"],
     "directive.menutitleforeground": ["server->config.menu_title_foreground : server->config.menu_foreground);"],
     "directive.notitle": [
-        "!toplevel->server->config.no_title &&",
+        "bool decorated = !toplevel->server->config.no_title;",
         "&toplevel->server->config.no_title_windows,",
     ],
     "directive.righttitlebutton": [

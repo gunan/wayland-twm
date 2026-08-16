@@ -74,6 +74,16 @@ test_control_protocol_test = executable(
 )
 test('test control protocol', test_control_protocol_test)
 test(
+  'test control synthetic seat contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_test_control_seat.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'build platform contract',
   find_program('python3'),
   args: [
@@ -248,15 +258,67 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'canonical X11 runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_canonical_clients.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'reference twm and wtwm X11 differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_x11_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Xwayland metadata mutation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_xwayland_metadata_mutation.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'mixed native and Xwayland session contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_mixed_clients.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'adversarial client lifecycle contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_client_stress.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
   pangocairo = dependency('pangocairo')
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
+  xcb = dependency('xcb')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
+  primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
   xdg_shell_header = custom_target(
     'xdg-shell-protocol-header',
     input: xdg_shell_xml,
@@ -266,7 +328,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
+    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -279,6 +341,7 @@ if wlroots.found()
       dependency('fontconfig'),
       wayland_server,
       xkbcommon,
+      xcb,
     ],
     c_args: ['-DWTWM_TEST_CONTROL'],
     install: false,
@@ -296,6 +359,18 @@ if wlroots.found()
     output: 'xdg-shell-client-protocol.c',
     command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
   )
+  primary_selection_client_header = custom_target(
+    'primary-selection-client-protocol-header',
+    input: primary_selection_xml,
+    output: 'primary-selection-unstable-v1-client-protocol.h',
+    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+  )
+  primary_selection_client_code = custom_target(
+    'primary-selection-client-protocol-code',
+    input: primary_selection_xml,
+    output: 'primary-selection-unstable-v1-client-protocol.c',
+    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+  )
   wtwm_wayland_test_client = executable(
     'wtwm-wayland-test-client',
     [
@@ -306,7 +381,227 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_xdg_lifecycle_client = executable(
+    'wtwm-xdg-lifecycle-client',
+    [
+      'tests/integration/xdg_lifecycle_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_native_rules_client = executable(
+    'wtwm-native-rules-client',
+    [
+      'tests/integration/native_rules_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_selection_wayland_client = executable(
+    'wtwm-selection-wayland-client',
+    [
+      'tests/integration/selection_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+      primary_selection_client_header,
+      primary_selection_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_overlay_wayland_client = executable(
+    'wtwm-overlay-wayland-client',
+    [
+      'tests/integration/overlay_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_xwayland_probe = executable(
+    'wtwm-xwayland-probe',
+    'tests/integration/xwayland_probe.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_xwayland_bridge_client = executable(
+    'wtwm-xwayland-bridge-client',
+    'tests/integration/xwayland_bridge_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_xwayland_rules_client = executable(
+    'wtwm-xwayland-rules-client',
+    'tests/integration/xwayland_rules_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_selection_x11_client = executable(
+    'wtwm-selection-x11-client',
+    'tests/integration/selection_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_overlay_x11_client = executable(
+    'wtwm-overlay-x11-client',
+    'tests/integration/overlay_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_mixed_wayland_client = executable(
+    'wtwm-mixed-wayland-client',
+    [
+      'tests/integration/mixed_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_mixed_x11_client = executable(
+    'wtwm-mixed-x11-client',
+    'tests/integration/mixed_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_stress_wayland_client = executable(
+    'wtwm-stress-wayland-client',
+    [
+      'tests/integration/stress_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_stress_x11_client = executable(
+    'wtwm-stress-x11-client',
+    'tests/integration/stress_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  canonical_xterm = find_program('xterm', required: true)
+  canonical_xclock = find_program('xclock', required: true)
+  canonical_xload = find_program('xload', required: true)
+  canonical_emacs = find_program('emacs', required: true)
+  canonical_dialog = find_program('dialog', required: true)
   integration_runner = find_program('python3')
+  test(
+    'canonical X11 applications under wtwm',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_canonical_x11_apps.py'),
+      '--compositor', wtwm_test_compositor,
+      '--icccm-client', wtwm_xwayland_bridge_client,
+      '--xterm', canonical_xterm,
+      '--xclock', canonical_xclock,
+      '--xload', canonical_xload,
+      '--emacs', canonical_emacs,
+      '--dialog', canonical_dialog,
+    ],
+    timeout: 90,
+    is_parallel: false,
+  )
+  test(
+    'Xwayland lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--probe', wtwm_xwayland_probe,
+    ],
+    timeout: 60,
+  )
+  test(
+    'Xwayland window-manager bridge integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_bridge.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_bridge_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'Xwayland window-list rules integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_rules.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_rules_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'Wayland and Xwayland selection bridge integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_selection_bridge.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_selection_wayland_client,
+      '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 90,
+  )
+  test(
+    'mixed native and Xwayland client integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_mixed_clients.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_mixed_wayland_client,
+      '--x11-client', wtwm_mixed_x11_client,
+    ],
+    timeout: 90,
+  )
+  test(
+    'adversarial client lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_client_stress.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'xdg-shell lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xdg_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xdg_lifecycle_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'popup and unmanaged overlay stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_overlay_stacking.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_overlay_wayland_client,
+      '--x11-client', wtwm_overlay_x11_client,
+    ],
+    timeout: 90,
+  )
+  test(
+    'native window-list mapping integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_native_rules.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_native_rules_client,
+    ],
+    timeout: 60,
+  )
   test(
     'headless compositor integration',
     integration_runner,

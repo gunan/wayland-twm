@@ -134,3 +134,52 @@ jobs:
           name: reference-capture
           path: /tmp/reference-capture
           if-no-files-found: error
+
+  x11-differential:
+    name: Reference twm / wtwm X11 differential
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install frozen reference and compositor dependencies
+        run: |
+          apt-get update
+          {
+            cat scripts/ci/debian-trixie-build-packages.txt
+            cat reference/environment/debian-trixie-x11-packages.txt
+          } | sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' | sort -u |
+            xargs apt-get install -y --no-install-recommends
+      - name: Validate X11 differential contract
+        run: python3 -B tests/integration/validate_x11_differential.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build frozen twm 1.0.13.1
+        run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build
+      - name: Build wtwm and shared X11 clients
+        run: |
+          meson setup build-differential -Dcompositor=enabled -Dwerror=true --buildtype=debug
+          meson compile -C build-differential
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/x11_differential_probe.c \
+            -o /tmp/x11-differential-probe $(pkg-config --libs x11)
+      - name: Compare identical canonical clients live
+        run: |
+          python3 -B tests/integration/run_x11_differential.py \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --icccm-client "$GITHUB_WORKSPACE/build-differential/wtwm-xwayland-bridge-client" \
+            --probe /tmp/x11-differential-probe \
+            --scenario "$GITHUB_WORKSPACE/tests/integration/x11_differential.twmrc" \
+            --output /tmp/x11-differential.json \
+            --xterm /usr/bin/xterm --xclock /usr/bin/xclock \
+            --xload /usr/bin/xload --emacs /usr/bin/emacs \
+            --dialog /usr/bin/dialog
+      - name: Upload normalized X11 differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: x11-differential
+          path: |
+            /tmp/x11-differential.json
+            /tmp/x11-differential-evidence
+          if-no-files-found: error
