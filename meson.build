@@ -74,6 +74,16 @@ test_control_protocol_test = executable(
 )
 test('test control protocol', test_control_protocol_test)
 test(
+  'test control synthetic seat contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_test_control_seat.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'build platform contract',
   find_program('python3'),
   args: [
