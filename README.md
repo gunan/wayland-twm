@@ -297,7 +297,7 @@ Testing:
 - [x] Exercise changing titles, classes, hints, transients, icons, and resize
   constraints.
 - [x] Compare Xwayland client results with the same clients under reference `twm`.
-- [x] Mix native Wayland and Xwayland clients in the same session.
+- [ ] Mix native Wayland and Xwayland clients in the same session.
 - [ ] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
   windows.
 
