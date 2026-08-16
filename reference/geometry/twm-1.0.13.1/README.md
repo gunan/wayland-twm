@@ -15,14 +15,13 @@ display numbers, process IDs, timestamps, and temporary paths are omitted.
 Each case must reach three consecutive identical observations, and the full
 matrix is run twice on disjoint Xvfb displays and compared byte for byte.
 
-There is intentionally no checked-in geometry result yet. This contract was
-added from a host that cannot run the pinned Debian Trixie X11 environment, so
-claiming a golden baseline would be unverifiable. The `reference-twm` CI job
-runs the live oracle and uploads `geometry-matrix.json`. That normalized
-artifact is suitable as the reference half of the later `wtwm` geometry
-differential. A baseline may be committed only after a successful CI artifact
-is reviewed and its run provenance is recorded; until then the corresponding
-Roadmap checkbox must remain unchecked.
+`baseline.json` is the reviewed, normalized result from GitHub Actions workflow
+run `31966479997` at commit `d04249381a987f2ca65516cf163029909179096a`.
+`matrix.json` records the workflow artifact ID, archive digest, captured matrix
+hash, and baseline-file hash. Every `reference-twm` run validates the new live
+capture and compares its geometry payload byte-for-byte with this committed
+baseline; only the self-referential source-matrix hash is excluded from that
+comparison.
 
 The portable Meson test validates configuration and observer hashes, required
 case coverage, normalization invariants, and deliberate tamper cases. The live

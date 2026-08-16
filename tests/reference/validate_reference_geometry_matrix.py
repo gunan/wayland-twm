@@ -42,6 +42,13 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def is_hex_digest(value: object, length: int, prefix: str = "") -> bool:
+    if not isinstance(value, str) or not value.startswith(prefix):
+        return False
+    digest = value[len(prefix):]
+    return len(digest) == length and all(character in "0123456789abcdef" for character in digest)
+
+
 def load_json(path: Path) -> object:
     def reject_duplicates(pairs: list[tuple[str, object]]) -> dict[str, object]:
         result: dict[str, object] = {}
@@ -157,12 +164,47 @@ def validate_matrix(matrix: object, source_root: Path) -> list[str]:
             errors.append("geometry matrix must compare two clean live runs")
         if capture.get("stable_observations_per_case") != 3:
             errors.append("each geometry case must converge for three observations")
-        if capture.get("committed_baseline") is not False:
-            errors.append("unbootstrapped geometry results must not claim a committed baseline")
+        if capture.get("committed_baseline") is not True:
+            errors.append("reviewed geometry results must declare their committed baseline")
         if capture.get("live_artifact") != "geometry-matrix.json":
             errors.append("geometry matrix live artifact name has drifted")
         if capture.get("volatile_fields_omitted") != sorted(VOLATILE_KEYS):
             errors.append("geometry matrix volatile-field policy is incomplete")
+        baseline = capture.get("baseline")
+        expected_baseline_keys = {
+            "artifact_digest", "artifact_id", "captured_matrix_sha256",
+            "head_sha", "path", "sha256", "workflow_run_id",
+        }
+        if not isinstance(baseline, dict) or set(baseline) != expected_baseline_keys:
+            errors.append("geometry matrix baseline provenance is incomplete")
+        else:
+            if baseline.get("path") != (
+                "reference/geometry/twm-1.0.13.1/baseline.json"
+            ):
+                errors.append("geometry matrix baseline path has drifted")
+            if not is_hex_digest(baseline.get("sha256"), 64):
+                errors.append("geometry matrix baseline hash is invalid")
+            if not is_hex_digest(baseline.get("artifact_digest"), 64, "sha256:"):
+                errors.append("geometry matrix artifact digest is invalid")
+            if not is_hex_digest(baseline.get("captured_matrix_sha256"), 64):
+                errors.append("captured matrix hash is invalid")
+            if not is_hex_digest(baseline.get("head_sha"), 40):
+                errors.append("geometry matrix baseline commit is invalid")
+            for key in ("artifact_id", "workflow_run_id"):
+                if not isinstance(baseline.get(key), int) or baseline[key] <= 0:
+                    errors.append(f"geometry matrix baseline {key} is invalid")
+            try:
+                baseline_path = source_root / str(baseline["path"])
+                baseline_bytes = baseline_path.read_bytes()
+                baseline_capture = load_json(baseline_path)
+            except (OSError, UnicodeError, ValueError) as error:
+                errors.append(f"cannot read committed geometry baseline: {error}")
+            else:
+                if sha256(baseline_bytes) != baseline.get("sha256"):
+                    errors.append("committed geometry baseline hash has drifted")
+                errors += validate_capture(
+                    baseline_capture, matrix, str(baseline["captured_matrix_sha256"])
+                )
 
     raw_configs = matrix.get("configurations")
     configs: dict[str, dict[str, Any]] = {}
@@ -501,6 +543,18 @@ def validate_capture(capture: object, matrix: dict[str, Any], matrix_hash: str) 
     return errors
 
 
+def validate_baseline_match(live: object, baseline: object) -> list[str]:
+    if not isinstance(live, dict) or not isinstance(baseline, dict):
+        return ["live and committed geometry captures must be objects"]
+    normalized_live = copy.deepcopy(live)
+    normalized_baseline = copy.deepcopy(baseline)
+    normalized_live.pop("source_matrix", None)
+    normalized_baseline.pop("source_matrix", None)
+    if normalized_live != normalized_baseline:
+        return ["live reference geometry differs from the committed baseline"]
+    return []
+
+
 def make_geometry(outer_x: int, outer_y: int, width: int, height: int,
                   border: int) -> dict[str, object]:
     return {
@@ -588,6 +642,10 @@ def self_test_tamper(matrix: dict[str, Any], source_root: Path,
     weakened_runs["capture"]["clean_runs"] = 1
     if not validate_matrix(weakened_runs, source_root):
         failures.append("repeatability tamper was not detected")
+    removed_baseline = copy.deepcopy(matrix)
+    removed_baseline["capture"]["committed_baseline"] = False
+    if not validate_matrix(removed_baseline, source_root):
+        failures.append("committed-baseline tamper was not detected")
     changed_config_hash = copy.deepcopy(matrix)
     changed_config_hash["configurations"][0]["sha256"] = "0" * 64
     if not validate_matrix(changed_config_hash, source_root):
@@ -614,6 +672,12 @@ def self_test_tamper(matrix: dict[str, Any], source_root: Path,
     wrong_matrix["source_matrix"]["sha256"] = "0" * 64
     if not validate_capture(wrong_matrix, matrix, matrix_hash):
         failures.append("source-matrix tamper was not detected")
+    if validate_baseline_match(capture, copy.deepcopy(capture)):
+        failures.append("identical baseline comparison was rejected")
+    drifted_baseline = copy.deepcopy(capture)
+    drifted_baseline["cases"][0]["observation"]["extents"]["left"] += 1
+    if not validate_baseline_match(capture, drifted_baseline):
+        failures.append("live/baseline geometry drift was not detected")
     try:
         workflow = (source_root / ".github/workflows/build.yml").read_text(encoding="utf-8")
         meson = (source_root / "meson.build").read_text(encoding="utf-8")
@@ -661,6 +725,16 @@ def main() -> int:
             errors.append(f"cannot read live geometry capture: {error}")
         else:
             errors += validate_capture(capture, matrix, matrix_hash)
+            baseline_contract = matrix.get("capture", {}).get("baseline")
+            if isinstance(baseline_contract, dict) and isinstance(
+                baseline_contract.get("path"), str
+            ):
+                try:
+                    baseline = load_json(args.source_root / baseline_contract["path"])
+                except (OSError, UnicodeError, ValueError) as error:
+                    errors.append(f"cannot compare committed geometry baseline: {error}")
+                else:
+                    errors += validate_baseline_match(capture, baseline)
     if args.self_test_tamper:
         errors += self_test_tamper(matrix, args.source_root, matrix_hash)
     if errors:

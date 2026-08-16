@@ -18,8 +18,17 @@
     "width": 640
   },
   "capture": {
+    "baseline": {
+      "artifact_digest": "sha256:b1f83cab27cc67ec73c1225050b7d8b65026fa8f4a4e04e527005ee4e87eb550",
+      "artifact_id": 9268627063,
+      "captured_matrix_sha256": "aea22f237971be13c167647c8124d6854e4f3ef2a6d1a52e0991fa9228a95d1d",
+      "head_sha": "d04249381a987f2ca65516cf163029909179096a",
+      "path": "reference/geometry/twm-1.0.13.1/baseline.json",
+      "sha256": "cebc050c5e0ae37eedf33aaf8b2acc84211ddabfc1b2d87c1f1a9a6d58810810",
+      "workflow_run_id": 31966479997
+    },
     "clean_runs": 2,
-    "committed_baseline": false,
+    "committed_baseline": true,
     "live_artifact": "geometry-matrix.json",
     "stable_observations_per_case": 3,
     "volatile_fields_omitted": [
