@@ -208,7 +208,8 @@ struct server {
 	struct wlr_compositor *compositor;
 	struct wlr_scene *scene;
 	struct wlr_scene_tree *view_tree;
-	struct wlr_scene_tree *override_redirect_tree;
+	struct wlr_scene_tree *overlay_tree;
+	struct wlr_scene_tree *menu_tree;
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
@@ -489,6 +490,8 @@ static bool should_start_iconified(const struct toplevel *toplevel,
 		&toplevel->server->config.start_iconified_windows, toplevel);
 }
 
+static void sync_toplevel_popups(struct toplevel *toplevel);
+
 static void update_title_text(struct toplevel *toplevel) {
 	if (toplevel->title_text == NULL) return;
 	float foreground[4];
@@ -505,6 +508,7 @@ static void update_title_text(struct toplevel *toplevel) {
 static void update_decoration(struct toplevel *toplevel) {
 	if (!toplevel->decorated) {
 		wlr_scene_node_set_position(&toplevel->content->node, 0, 0);
+		sync_toplevel_popups(toplevel);
 		return;
 	}
 	int border = toplevel->server->config.border_width;
@@ -534,6 +538,7 @@ static void update_decoration(struct toplevel *toplevel) {
 		border + (toplevel->title_height - toplevel->title_text_height) / 2);
 	wlr_scene_node_set_position(&toplevel->content->node,
 		border, border + toplevel->title_height);
+	sync_toplevel_popups(toplevel);
 }
 
 static void set_decorated(struct toplevel *toplevel, bool enabled) {
@@ -627,6 +632,7 @@ static void configure_xwayland_toplevel(struct toplevel *toplevel,
 static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		sync_toplevel_popups(toplevel);
 		return;
 	}
 	configure_xwayland_toplevel(toplevel,
@@ -817,7 +823,7 @@ static void show_menu(struct server *server, const char *name,
 	color_value(server->config.menu_background, background);
 	color_value(server->config.menu_foreground, highlight);
 	highlight[3] = 0.30f;
-	struct wlr_scene_tree *tree = wlr_scene_tree_create(&server->scene->tree);
+	struct wlr_scene_tree *tree = wlr_scene_tree_create(server->menu_tree);
 	wlr_scene_rect_create(tree, menu_width, menu_height, border);
 	struct wlr_scene_rect *body = wlr_scene_rect_create(tree,
 		menu_width - 2 * border_width, menu_height - 2 * border_width, background);
@@ -1579,7 +1585,7 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 
 static bool create_xwayland_scene(struct toplevel *toplevel) {
 	struct wlr_scene_tree *parent = toplevel->xwayland->override_redirect ?
-		toplevel->server->override_redirect_tree : toplevel->server->view_tree;
+		toplevel->server->overlay_tree : toplevel->server->view_tree;
 	toplevel->tree = wlr_scene_tree_create(parent);
 	if (toplevel->tree == NULL) return false;
 	wlr_scene_node_set_enabled(&toplevel->tree->node, false);
@@ -2099,14 +2105,13 @@ static struct popup *popup_from_xdg(struct server *server,
 }
 
 static bool popup_parent_info(struct server *server, struct wlr_surface *surface,
-	struct wlr_scene_tree **tree, struct toplevel **root, unsigned *depth) {
+	struct toplevel **root, unsigned *depth) {
 	struct wlr_xdg_surface *parent = wlr_xdg_surface_try_from_wlr_surface(surface);
 	if (parent == NULL) return false;
 	if (parent->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && parent->toplevel != NULL) {
 		struct toplevel *toplevel = toplevel_from_xdg(parent->toplevel);
 		if (toplevel == NULL || !toplevel->mapped ||
 			parent->data != toplevel->content) return false;
-		*tree = toplevel->content;
 		*root = toplevel;
 		*depth = 1;
 		return true;
@@ -2116,12 +2121,40 @@ static bool popup_parent_info(struct server *server, struct wlr_surface *surface
 		if (popup == NULL || !popup->mapped || popup->root == NULL ||
 			!popup->root->mapped || popup->tree == NULL || parent->data != popup->tree)
 			return false;
-		*tree = popup->tree;
 		*root = popup->root;
 		*depth = popup->depth + 1;
 		return true;
 	}
 	return false;
+}
+
+static bool sync_popup_position(struct popup *popup) {
+	struct toplevel *root = popup->root;
+	if (popup->tree == NULL || root == NULL || root->xdg == NULL ||
+			root->content == NULL) return false;
+	int content_x = 0;
+	int content_y = 0;
+	if (!wlr_scene_node_coords(&root->content->node, &content_x, &content_y))
+		return false;
+	struct wlr_box root_geometry;
+	wlr_xdg_surface_get_geometry(root->xdg->base, &root_geometry);
+	int popup_x = 0;
+	int popup_y = 0;
+	wlr_xdg_popup_get_toplevel_coords(popup->xdg,
+		popup->xdg->current.geometry.x, popup->xdg->current.geometry.y,
+		&popup_x, &popup_y);
+	wlr_scene_node_set_position(&popup->tree->node,
+		content_x - root_geometry.x + popup_x,
+		content_y - root_geometry.y + popup_y);
+	return true;
+}
+
+static void sync_toplevel_popups(struct toplevel *toplevel) {
+	if (toplevel == NULL || toplevel->xdg == NULL) return;
+	struct popup *popup;
+	wl_list_for_each(popup, &toplevel->server->popups, link) {
+		if (popup->root == toplevel) sync_popup_position(popup);
+	}
 }
 
 static bool surface_belongs_to_popup(struct wlr_surface *surface,
@@ -2172,6 +2205,8 @@ static void popup_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct popup *popup = wl_container_of(listener, popup, map);
 	popup->mapped = true;
+	sync_popup_position(popup);
+	wlr_scene_node_raise_to_top(&popup->tree->node);
 }
 
 static void popup_unmap(struct wl_listener *listener, void *data) {
@@ -2187,6 +2222,7 @@ static void popup_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct popup *popup = wl_container_of(listener, popup, commit);
 	if (popup->xdg->base->initial_commit) configure_popup(popup);
+	sync_popup_position(popup);
 }
 
 static void popup_reposition(struct wl_listener *listener, void *data) {
@@ -2234,8 +2270,7 @@ static void new_popup(struct wl_listener *listener, void *data) {
 	popup->xdg = xdg;
 	wl_list_init(&popup->link);
 	wl_list_init(&popup->scene_destroy.link);
-	struct wlr_scene_tree *parent_tree = NULL;
-	if (!popup_parent_info(server, xdg->parent, &parent_tree,
+	if (!popup_parent_info(server, xdg->parent,
 			&popup->root, &popup->depth)) {
 		wlr_log(WLR_ERROR, "%s",
 			"dismissing xdg popup with an unmanaged parent");
@@ -2243,13 +2278,15 @@ static void new_popup(struct wl_listener *listener, void *data) {
 		wlr_xdg_popup_destroy(xdg);
 		return;
 	}
-	popup->tree = wlr_scene_xdg_surface_create(parent_tree, xdg->base);
+	popup->tree = wlr_scene_xdg_surface_create(server->overlay_tree, xdg->base);
 	if (popup->tree == NULL) {
 		free(popup);
 		wlr_xdg_popup_destroy(xdg);
 		return;
 	}
+	popup->tree->node.data = popup->root;
 	xdg->base->data = popup->tree;
+	sync_popup_position(popup);
 	popup->scene_destroy.notify = popup_scene_destroy;
 	wl_signal_add(&popup->tree->node.events.destroy, &popup->scene_destroy);
 	wl_list_insert(&server->popups, &popup->link);
@@ -2888,7 +2925,8 @@ int main(int argc, char **argv) {
 	server.scene = wlr_scene_create();
 	server.scene_layout = wlr_scene_attach_output_layout(server.scene, server.output_layout);
 	server.view_tree = wlr_scene_tree_create(&server.scene->tree);
-	server.override_redirect_tree = wlr_scene_tree_create(&server.scene->tree);
+	server.overlay_tree = wlr_scene_tree_create(&server.scene->tree);
+	server.menu_tree = wlr_scene_tree_create(&server.scene->tree);
 	wl_list_init(&server.toplevels);
 	wl_list_init(&server.xwayland_views);
 	wl_list_init(&server.popups);

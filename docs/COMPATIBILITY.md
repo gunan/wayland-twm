@@ -16,9 +16,9 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `Function` and `f.function` | Effective | Recursive action sequence, depth limited to eight |
 | Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
-| Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups follow their parent scene and are constrained to the output bounds |
+| Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id` |
-| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use compositor scene nodes |
+| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
 | Icon windows and icon manager | Parsed | Wayland has no client icon-window primitive; compositor UI is pending |
 | Zoom/maximize variants | Parsed | Output-aware geometry and saved-state restore are pending |
@@ -38,12 +38,14 @@ silently reinterpret configuration as a different action.
 Native xdg-shell toplevels are absent from the scene until their first map and
 can unmap and remap without retaining focus, interactive grabs, or target-owned
 menus. Title and `app_id` changes immediately update compositor metadata and
-window-list matching. Popup trees are attached to their validated xdg parent,
-including nested popups; placement is unconstrained against the containing
-output's layout bounds in root-surface coordinates. Parent unmap or destruction
-dismisses every rooted popup before the toplevel state is released. Layer-shell
-exclusive zones are not implemented yet, so the usable area is currently the
-full output-layout box.
+window-list matching. Popup trees retain their validated xdg parent and root,
+including nested popups, while their rendered nodes are projected into the
+shared unmanaged overlay. Parent-relative placement is recomputed after popup
+commits and toplevel moves, and placement is unconstrained against the
+containing output's layout bounds in root-surface coordinates. Parent unmap or
+destruction dismisses every rooted popup before the toplevel state is released.
+Layer-shell exclusive zones are not implemented yet, so the usable area is
+currently the full output-layout box.
 
 The native mapping for every twm name/class window list is explicit:
 
@@ -85,11 +87,32 @@ Xwayland windows have independent create, Wayland-surface association, map,
 unmap, dissociation, remap, and destruction handling. Managed windows share the
 native decoration, focus, move, resize, iconify, raise/lower, menu-target, and
 action model. Override-redirect windows remain undecorated and outside the
-managed focus/action list, but stay visible in a dedicated scene layer above
-managed clients. Transient relationships are mirrored in both the X and scene
-stacks, and configure requests preserve X11 client coordinates while enforcing
-advertised minimum, maximum, base-size, and resize-increment hints. Aspect and
-gravity values are retained for later placement/geometry parity work.
+managed focus/action list. They share an overlay stack above managed clients
+with native xdg popups, so each popup or override-redirect map/remap raises that
+surface above older overlay siblings. Transient relationships are mirrored in
+both the X and scene stacks, and configure requests preserve X11 client
+coordinates while enforcing advertised minimum, maximum, base-size, and
+resize-increment hints. Aspect and gravity values are retained for later
+placement/geometry parity work.
+
+This overlay ordering follows the visible X11 result: override-redirect windows
+bypass twm's `MapRequest` management path and participate in the root sibling
+stack, while reference twm maps its own menus raised. wtwm keeps managed native
+and X11 windows in the base stack, places native popups and override-redirect
+X11 windows in one dynamic map-ordered overlay, and reserves a final
+compositor-menu layer above both. Hiding a menu destroys that top-layer subtree;
+unmapping an overlay removes it from hit-testing and rendering, and remapping it
+raises it again. A mixed Wayland/XCB headless integration verifies these
+transitions from captured pixels, including popup anchoring across parent moves
+and popup teardown/recreation across parent unmap/remap.
+
+Override-redirect configure/restack requests remain an explicit cross-protocol
+boundary. Such requests bypass X11 window-manager redirection, and the
+resulting `ConfigureNotify` describes only X siblings. A native popup has no
+XID, so that event cannot reveal whether an X11 raise/lower should cross it.
+wtwm therefore leaves X-internal configuration unchanged but changes shared
+overlay order only on map/remap; it does not invent an unconditional
+cross-protocol raise/lower translation.
 
 The bridge live-updates `WM_NAME`, both `WM_CLASS` strings,
 `WM_TRANSIENT_FOR`, `WM_NORMAL_HINTS`, `WM_HINTS`, `WM_PROTOCOLS`,

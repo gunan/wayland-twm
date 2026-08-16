@@ -363,6 +363,16 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_overlay_wayland_client = executable(
+    'wtwm-overlay-wayland-client',
+    [
+      'tests/integration/overlay_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
   wtwm_xwayland_probe = executable(
     'wtwm-xwayland-probe',
     'tests/integration/xwayland_probe.c',
@@ -384,6 +394,12 @@ if wlroots.found()
   wtwm_selection_x11_client = executable(
     'wtwm-selection-x11-client',
     'tests/integration/selection_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_overlay_x11_client = executable(
+    'wtwm-overlay-x11-client',
+    'tests/integration/overlay_x11_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -438,6 +454,17 @@ if wlroots.found()
       '--client', wtwm_xdg_lifecycle_client,
     ],
     timeout: 60,
+  )
+  test(
+    'popup and unmanaged overlay stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_overlay_stacking.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_overlay_wayland_client,
+      '--x11-client', wtwm_overlay_x11_client,
+    ],
+    timeout: 90,
   )
   test(
     'native window-list mapping integration',
