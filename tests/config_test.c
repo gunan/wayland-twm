@@ -598,6 +598,40 @@ static void rejects_invalid_binding(void) {
 	wtwm_config_finish(&config);
 }
 
+static void classifies_runtime_visual_directives_effective(void) {
+	static const char source[] =
+		"Cursors { Frame \"left_ptr\" }\n"
+		"Pixmaps { TitleHighlight \"highlight.xbm\" }\n"
+		"Icons { \"xterm\" \"xterm.xbm\" }\n"
+		"IconBorderWidth 2\n"
+		"InterpolateMenuColors\n"
+		"NoDefaults\n"
+		"NoHighlight\n"
+		"NoTitleHighlight\n"
+		"SqueezeTitle\n"
+		"DontSqueezeTitle { \"fixed\" }\n"
+		"IconDirectory \"/tmp/icons\"\n"
+		"UnknownIcon \"unknown.xbm\"\n";
+	static const char *const names[] = {
+		"Cursors", "Pixmaps", "Icons", "IconBorderWidth",
+		"InterpolateMenuColors", "NoDefaults", "NoHighlight",
+		"NoTitleHighlight", "SqueezeTitle", "DontSqueezeTitle",
+		"IconDirectory", "UnknownIcon",
+	};
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "visual-compatibility", source, error,
+		sizeof(error)));
+	assert(config.directive_count == sizeof(names) / sizeof(names[0]));
+	assert(config.warning_count == 0);
+	for (size_t i = 0; i < config.directive_count; ++i) {
+		assert(strcmp(config.directives[i].name, names[i]) == 0);
+		assert(config.directives[i].compatibility == WTWM_COMPAT_EFFECTIVE);
+	}
+	wtwm_config_finish(&config);
+}
+
 static void accepts_legacy_syntax(void) {
 	static const char source[] =
 		"SqueezeTitle { \"xterm\" Center 0 0 }\n"
@@ -611,7 +645,7 @@ static void accepts_legacy_syntax(void) {
 	assert(wtwm_config_parse(&config, "legacy", source, error, sizeof(error)));
 	assert(config.binding_count == 2 && config.squeeze_entry_count == 1);
 	assert(config.menus[0].items[0].action.type == WTWM_ACTION_EXEC);
-	assert(config.warning_count == 3);
+	assert(config.warning_count == 1);
 	wtwm_config_finish(&config);
 }
 
@@ -647,6 +681,7 @@ int main(void) {
 	parses_placement_options();
 	parse_rules_and_title_buttons();
 	rejects_invalid_binding();
+	classifies_runtime_visual_directives_effective();
 	accepts_legacy_syntax();
 	applies_global_and_exception_rules();
 	puts("config tests passed");

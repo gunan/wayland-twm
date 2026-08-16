@@ -305,7 +305,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:451",
+              "location": "src/config.c:453",
               "contains": "strcmp(spelling, \"!\")"
             },
             {
