@@ -1908,7 +1908,7 @@ int main(int argc, char **argv) {
 	server.scene_layout = wlr_scene_attach_output_layout(server.scene, server.output_layout);
 	wl_list_init(&server.toplevels);
 	wl_list_init(&server.popups);
-	server.xdg_shell = wlr_xdg_shell_create(server.display, 3);
+	server.xdg_shell = wlr_xdg_shell_create(server.display, 6);
 	server.new_toplevel.notify = new_toplevel;
 	wl_signal_add(&server.xdg_shell->events.new_toplevel, &server.new_toplevel);
 	server.new_popup.notify = new_popup;
