@@ -22,6 +22,8 @@ RUNNER_PATH = Path("tests/integration/run_m4_geometry_differential.py")
 REFERENCE_CLIENT_PATH = Path("tests/reference/geometry_matrix_client.c")
 WTWM_CLIENT_PATH = Path("tests/integration/xwayland_geometry_matrix_client.c")
 GENERATOR_PATH = Path("tests/reference/geometry_cross_product.py")
+FONT_SOURCE_PATH = Path("src/font.c")
+FONT_TEST_PATH = Path("tests/font_test.c")
 WORKFLOW_PATH = Path(".github/workflows/build.yml")
 MESON_PATH = Path("meson.build")
 SOURCE_PATHS = [
@@ -29,6 +31,8 @@ SOURCE_PATHS = [
     RUNNER_PATH,
     REFERENCE_CLIENT_PATH,
     WTWM_CLIENT_PATH,
+    FONT_SOURCE_PATH,
+    FONT_TEST_PATH,
 ]
 
 
@@ -73,6 +77,13 @@ def validate_manifest(manifest: object, source_root: Path) -> list[str]:
     ]
     if manifest.get("hint_profiles") != expected_profiles:
         errors.append("semantic geometry hint profiles have drifted")
+    if manifest.get("frame_profile") != {
+        "border_width": 2,
+        "frame_padding": 2,
+        "title_padding": 8,
+        "title_font": "fixed",
+    }:
+        errors.append("canonical frame/font profile has drifted")
 
     try:
         cases = generate_cases(manifest)
@@ -197,6 +208,8 @@ def validate_wiring(runner: str, reference_client: str, wtwm_client: str,
         "Milestone 4 geometry cross-product contract",
         "tests/reference/validate_geometry_cross_product.py",
         "--self-test-tamper",
+        "test('X core bitmap font metrics', font_test)",
+        "wlroots, font_dep",
     ):
         if marker not in meson:
             errors.append(f"Meson geometry cross-product test lacks {marker!r}")

@@ -54,6 +54,14 @@
     {
       "path": "tests/integration/xwayland_geometry_matrix_client.c",
       "sha256": "a3bb6a77a60628a137da695b60626a2789dc6cd87ca7c093466f66ceef617a6a"
+    },
+    {
+      "path": "src/font.c",
+      "sha256": "790c4254879c6e662a522e8b248aaa8b2edf3cc37fa455cdacae66993c30e997"
+    },
+    {
+      "path": "tests/font_test.c",
+      "sha256": "45615dd51faba42df03345c5fa353e7f4a9991f391a6e92f033a0199ee41ad7d"
     }
   ]
 }

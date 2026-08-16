@@ -14,6 +14,23 @@ config_args = [
   '-DWTWM_SYSTEM_CONFIG="' + get_option('prefix') / get_option('datadir') / 'wtwm/system.twmrc' + '"',
 ]
 
+font_lib = static_library(
+  'wtwm-font-lib',
+  'src/font.c',
+  include_directories: inc,
+)
+font_dep = declare_dependency(
+  link_with: font_lib,
+  include_directories: inc,
+)
+
+font_test = executable(
+  'font-test',
+  'tests/font_test.c',
+  dependencies: font_dep,
+)
+test('X core bitmap font metrics', font_test)
+
 placement_lib = static_library(
   'wtwm-placement-lib',
   'src/placement.c',
@@ -526,14 +543,14 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep, geometry_dep, interaction_dep, placement_dep, wlroots,
+      config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep,
       focus_stack_dep,
       pangocairo,
       dependency('fontconfig'),
