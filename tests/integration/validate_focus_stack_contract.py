@@ -71,7 +71,8 @@ def validate(root: Path) -> None:
         "circulate_toplevels(server, false);",
         "wl_list_insert(parent->link.prev, &toplevel->link);",
         'binding_context_name(context)',
-        'toplevel->icon_width = 96;',
+        "configured_icon_bitmap(toplevel)",
+        "toplevel->icon_width = inner_width + 2 * border_width;",
         '\\"icon_views\\"',
     ), "compositor focus/stack wiring")
     activation_start = compositor.find("static bool sync_xwayland_input_focus(")
