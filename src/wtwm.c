@@ -169,7 +169,10 @@ struct toplevel {
 	size_t title_button_count;
 	struct wlr_scene_buffer *title_text;
 	struct wlr_scene_tree *icon_tree;
+	struct wlr_scene_rect *icon_border;
 	struct wlr_scene_rect *icon_background;
+	struct wlr_scene_buffer *icon_bitmap;
+	struct wlr_scene_buffer *icon_text;
 	int icon_x;
 	int icon_y;
 	int icon_width;
@@ -273,6 +276,8 @@ struct output {
 	struct wl_list link;
 	struct server *server;
 	struct wlr_output *wlr;
+	struct wlr_scene_rect *background;
+	struct wl_listener background_destroy;
 	struct wl_listener frame;
 	struct wl_listener request_state;
 	struct wl_listener destroy;
@@ -386,6 +391,8 @@ struct server {
 	struct menu_view menu;
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_manager;
+	struct wlr_buffer *configured_cursor_buffer;
+	char cursor_role[16];
 	struct wl_listener cursor_motion;
 	struct wl_listener cursor_motion_absolute;
 	struct wl_listener cursor_button;
@@ -949,6 +956,77 @@ static bool load_visual_xbm(const struct server *server, const char *name,
 	return false;
 }
 
+static bool cursor_role_matches(const char *configured, const char *role) {
+	if (strcasecmp(configured, role) == 0) return true;
+	return (strcasecmp(role, "Frame") == 0 && strcasecmp(configured, "F") == 0) ||
+		(strcasecmp(role, "Title") == 0 && strcasecmp(configured, "T") == 0) ||
+		(strcasecmp(role, "Icon") == 0 && strcasecmp(configured, "I") == 0);
+}
+
+static const char *default_cursor_name(const char *role) {
+	if (strcasecmp(role, "Move") == 0 || strcasecmp(role, "Resize") == 0)
+		return "fleur";
+	if (strcasecmp(role, "Menu") == 0) return "sb_left_arrow";
+	if (strcasecmp(role, "Button") == 0) return "hand2";
+	if (strcasecmp(role, "Wait") == 0) return "watch";
+	if (strcasecmp(role, "Select") == 0) return "dot";
+	if (strcasecmp(role, "Destroy") == 0) return "pirate";
+	return "top_left_arrow";
+}
+
+static const struct wtwm_cursor *configured_cursor(const struct server *server,
+		const char *role) {
+	for (size_t i = server->config.cursor_count; i > 0; --i)
+		if (cursor_role_matches(server->config.cursors[i - 1].role, role))
+			return &server->config.cursors[i - 1];
+	return NULL;
+}
+
+static void set_cursor_role(struct server *server, const char *role) {
+	if (strcmp(server->cursor_role, role) == 0) return;
+	const struct wtwm_cursor *cursor = configured_cursor(server, role);
+	if (cursor != NULL && cursor->mask[0] != '\0') {
+		struct wtwm_xbm source;
+		struct wtwm_xbm mask;
+		wtwm_xbm_init(&source);
+		wtwm_xbm_init(&mask);
+		if (load_visual_xbm(server, cursor->source, &source) &&
+				load_visual_xbm(server, cursor->mask, &mask)) {
+			float foreground[4], background[4];
+			configured_color(server, "PointerForeground", "black", NULL,
+				foreground);
+			configured_color(server, "PointerBackground", "white", NULL,
+				background);
+			struct wlr_buffer *buffer = wtwm_render_xbm_cursor(&source, &mask,
+				foreground, background);
+			if (buffer != NULL) {
+				int hotspot_x = source.x_hot >= 0 ? source.x_hot : 0;
+				int hotspot_y = source.y_hot >= 0 ? source.y_hot : 0;
+				wlr_cursor_set_buffer(server->cursor, buffer, hotspot_x, hotspot_y,
+					1.0f);
+				if (server->configured_cursor_buffer != NULL)
+					wlr_buffer_drop(server->configured_cursor_buffer);
+				server->configured_cursor_buffer = buffer;
+				(void)snprintf(server->cursor_role, sizeof(server->cursor_role),
+					"%s", role);
+				wtwm_xbm_finish(&mask);
+				wtwm_xbm_finish(&source);
+				return;
+			}
+		}
+		wtwm_xbm_finish(&mask);
+		wtwm_xbm_finish(&source);
+	}
+	const char *name = cursor != NULL && cursor->mask[0] == '\0' ?
+		cursor->source : default_cursor_name(role);
+	wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, name);
+	if (server->configured_cursor_buffer != NULL) {
+		wlr_buffer_drop(server->configured_cursor_buffer);
+		server->configured_cursor_buffer = NULL;
+	}
+	(void)snprintf(server->cursor_role, sizeof(server->cursor_role), "%s", role);
+}
+
 static bool create_title_buttons(struct toplevel *toplevel) {
 	struct server *server = toplevel->server;
 	size_t defaults = server->config.no_defaults ? 0 : 2;
@@ -1204,30 +1282,109 @@ static void set_decorated(struct toplevel *toplevel, bool enabled) {
 	update_decoration(toplevel);
 }
 
+static bool icon_selector_matches(const struct wtwm_client_identity *identity,
+		const char *selector, unsigned int pass) {
+	const char *value = NULL;
+	if (identity->name != NULL || identity->resource_name != NULL ||
+			identity->resource_class != NULL) {
+		if (pass == 0) value = identity->name;
+		else if (pass == 1) value = identity->resource_name;
+		else if (pass == 2) value = identity->resource_class;
+	} else {
+		if (pass == 0) value = identity->title;
+		else if (pass == 1) value = identity->app_id;
+	}
+	return value != NULL && strcmp(value, selector) == 0;
+}
+
+static const char *configured_icon_bitmap(const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	for (unsigned int pass = 0; pass < 3; ++pass)
+		for (size_t i = 0; i < toplevel->server->config.icon_count; ++i)
+			if (icon_selector_matches(&identity,
+					toplevel->server->config.icons[i].window_name, pass))
+				return toplevel->server->config.icons[i].bitmap;
+	return toplevel->server->config.unknown_icon[0] != '\0' ?
+		toplevel->server->config.unknown_icon : NULL;
+}
+
 static bool create_icon_scene(struct toplevel *toplevel) {
 	if (toplevel->icon_tree != NULL) return true;
-	float background[4], foreground[4];
+	float border[4], background[4], foreground[4];
+	configured_color(toplevel->server, "IconBorderColor", "black", toplevel,
+		border);
 	configured_color(toplevel->server, "IconBackground", "white", toplevel,
 		background);
 	configured_color(toplevel->server, "IconForeground", "black", toplevel,
 		foreground);
-	toplevel->icon_width = 96;
-	toplevel->icon_height = 24;
+	const char *label = toplevel->icon_name != NULL &&
+		toplevel->icon_name[0] != '\0' ? toplevel->icon_name :
+		toplevel_title(toplevel);
+	int text_width = 0;
+	int text_height = 0;
+	struct wlr_buffer *text = wtwm_render_text(label,
+		toplevel->server->config.icon_font, foreground, &text_width, &text_height);
+	struct wtwm_xbm bitmap;
+	wtwm_xbm_init(&bitmap);
+	const char *bitmap_name = configured_icon_bitmap(toplevel);
+	bool has_bitmap = bitmap_name != NULL &&
+		load_visual_xbm(toplevel->server, bitmap_name, &bitmap);
+	int bitmap_width = has_bitmap ? (int)bitmap.width : 0;
+	int bitmap_height = has_bitmap ? (int)bitmap.height : 0;
+	int inner_width = text_width + 6;
+	if (inner_width < bitmap_width) inner_width = bitmap_width;
+	if (inner_width < 1) inner_width = 1;
+	int font_height = 1;
+	int font_ascent = 1;
+	(void)wtwm_measure_font_metrics(toplevel->server->config.icon_font,
+		&font_height, &font_ascent);
+	if (font_height < 1) font_height = text_height > 0 ? text_height : 1;
+	int inner_height = bitmap_height + font_height + 4;
+	int border_width = toplevel->server->config.icon_border_width;
+	if (border_width < 0) border_width = 0;
+	toplevel->icon_width = inner_width + 2 * border_width;
+	toplevel->icon_height = inner_height + 2 * border_width;
 	toplevel->icon_tree = wlr_scene_tree_create(toplevel->server->view_tree);
-	if (toplevel->icon_tree == NULL) return false;
-	toplevel->icon_tree->node.data = toplevel;
-	toplevel->icon_background = wlr_scene_rect_create(toplevel->icon_tree,
-		toplevel->icon_width, toplevel->icon_height, background);
-	if (toplevel->icon_background == NULL) {
-		wlr_scene_node_destroy(&toplevel->icon_tree->node);
-		toplevel->icon_tree = NULL;
+	if (toplevel->icon_tree == NULL) {
+		if (text != NULL) wlr_buffer_drop(text);
+		wtwm_xbm_finish(&bitmap);
 		return false;
 	}
-	/* A narrow foreground strip makes the minimal hit target visible without
-	 * implementing Milestone 7 icon image/text layout. */
-	struct wlr_scene_rect *mark = wlr_scene_rect_create(toplevel->icon_tree,
-		toplevel->icon_width - 4, 2, foreground);
-	if (mark != NULL) wlr_scene_node_set_position(&mark->node, 2, 2);
+	toplevel->icon_tree->node.data = toplevel;
+	toplevel->icon_border = wlr_scene_rect_create(toplevel->icon_tree,
+		toplevel->icon_width, toplevel->icon_height, border);
+	toplevel->icon_background = wlr_scene_rect_create(toplevel->icon_tree,
+		inner_width, inner_height, background);
+	if (toplevel->icon_border == NULL || toplevel->icon_background == NULL) {
+		wlr_scene_node_destroy(&toplevel->icon_tree->node);
+		toplevel->icon_tree = NULL;
+		if (text != NULL) wlr_buffer_drop(text);
+		wtwm_xbm_finish(&bitmap);
+		return false;
+	}
+	wlr_scene_node_set_position(&toplevel->icon_background->node, border_width,
+		border_width);
+	if (has_bitmap) {
+		struct wlr_buffer *image = wtwm_render_pattern(bitmap_width, bitmap_height,
+			bitmap.data, bitmap.width, bitmap.height, foreground, background);
+		if (image != NULL) {
+			toplevel->icon_bitmap = wlr_scene_buffer_create(toplevel->icon_tree,
+				image);
+			if (toplevel->icon_bitmap != NULL)
+				wlr_scene_node_set_position(&toplevel->icon_bitmap->node,
+					border_width + (inner_width - bitmap_width) / 2, border_width);
+			wlr_buffer_drop(image);
+		}
+	}
+	if (text != NULL) {
+		toplevel->icon_text = wlr_scene_buffer_create(toplevel->icon_tree, text);
+		if (toplevel->icon_text != NULL)
+			wlr_scene_node_set_position(&toplevel->icon_text->node,
+				border_width + (inner_width - text_width) / 2,
+				border_width + bitmap_height + font_height - font_ascent);
+		wlr_buffer_drop(text);
+	}
+	wtwm_xbm_finish(&bitmap);
 	wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
 	return true;
 }
@@ -1236,7 +1393,10 @@ static void destroy_icon_scene(struct toplevel *toplevel) {
 	if (toplevel->icon_tree != NULL)
 		wlr_scene_node_destroy(&toplevel->icon_tree->node);
 	toplevel->icon_tree = NULL;
+	toplevel->icon_border = NULL;
 	toplevel->icon_background = NULL;
+	toplevel->icon_bitmap = NULL;
+	toplevel->icon_text = NULL;
 }
 
 static struct wlr_scene_node *toplevel_visible_node(struct toplevel *toplevel) {
@@ -1749,6 +1909,7 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	toplevel_geometry(toplevel, &geometry);
 	server->grabbed = toplevel;
 	server->cursor_mode = mode;
+	set_cursor_role(server, mode == CURSOR_MOVE ? "Move" : "Resize");
 	server->last_interaction_moved = false;
 	server->interaction = (struct interaction_session){
 		.original = {
@@ -1824,7 +1985,7 @@ static void begin_menu_position(struct toplevel *toplevel, bool force_move,
 	double center_x = server->interaction.original.x + geometry.frame_width / 2.0;
 	double center_y = server->interaction.original.y + geometry.frame_height / 2.0;
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
-	wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, "fleur");
+	set_cursor_role(server, "Move");
 	server->interaction.intent = INTERACTION_MENU_POSITION;
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
@@ -2650,7 +2811,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	}
 	if (server->menu.tree != NULL) {
 		update_menu_selection(server);
-		wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, "left_ptr");
+		set_cursor_role(server, "Menu");
 		wlr_seat_pointer_clear_focus(server->seat);
 		return;
 	}
@@ -2660,8 +2821,10 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
 		wlr_seat_pointer_notify_motion(server->seat, time_msec, hit.sx, hit.sy);
 	} else {
-		wlr_cursor_set_xcursor(server->cursor, server->cursor_manager,
-			hit.context == WTWM_CONTEXT_TITLE ? "fleur" : "left_ptr");
+		const char *role = hit.on_title_button ? "Button" :
+			(hit.context == WTWM_CONTEXT_TITLE ? "Title" :
+			(hit.context == WTWM_CONTEXT_ICON ? "Icon" : "Frame"));
+		set_cursor_role(server, role);
 		wlr_seat_pointer_clear_focus(server->seat);
 	}
 }
@@ -2701,7 +2864,7 @@ static void begin_initial_resize(struct server *server) {
 	double center_x = server->interaction.preview.x + geometry.outer_width / 2.0;
 	double center_y = server->interaction.preview.y + geometry.outer_height / 2.0;
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
-	wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, "se-resize");
+	set_cursor_role(server, "Resize");
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
 	show_interaction_outline(server);
@@ -2949,8 +3112,10 @@ static void new_input(struct wl_listener *listener, void *data) {
 static void request_cursor(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, request_cursor);
 	struct wlr_seat_pointer_request_set_cursor_event *event = data;
-	if (server->seat->pointer_state.focused_client == event->seat_client)
+	if (server->seat->pointer_state.focused_client == event->seat_client) {
+		server->cursor_role[0] = '\0';
 		wlr_cursor_set_surface(server->cursor, event->surface, event->hotspot_x, event->hotspot_y);
+	}
 }
 
 static void request_selection(struct wl_listener *listener, void *data) {
@@ -2990,6 +3155,15 @@ static void output_request_state(struct wl_listener *listener, void *data) {
 	wlr_output_commit_state(output->wlr, event->state);
 }
 
+static void output_background_destroy(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct output *output = wl_container_of(listener, output,
+		background_destroy);
+	output->background = NULL;
+	wl_list_remove(&output->background_destroy.link);
+	wl_list_init(&output->background_destroy.link);
+}
+
 static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct output *output = wl_container_of(listener, output, destroy);
@@ -2997,6 +3171,8 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&output->request_state.link);
 	wl_list_remove(&output->destroy.link);
 	wl_list_remove(&output->link);
+	if (output->background != NULL)
+		wlr_scene_node_destroy(&output->background->node);
 	free(output);
 }
 
@@ -3026,6 +3202,19 @@ static void new_output(struct wl_listener *listener, void *data) {
 		wlr_output_layout_add_auto(server->output_layout, wlr_output);
 	struct wlr_scene_output *scene_output = wlr_scene_output_create(server->scene, wlr_output);
 	wlr_scene_output_layout_add_output(server->scene_layout, layout_output, scene_output);
+	struct wlr_box box = {0};
+	wlr_output_layout_get_box(server->output_layout, wlr_output, &box);
+	float background[4];
+	configured_color(server, "DefaultBackground", "white", NULL, background);
+	output->background = wlr_scene_rect_create(&server->scene->tree,
+		box.width, box.height, background);
+	if (output->background != NULL) {
+		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
+		wlr_scene_node_lower_to_bottom(&output->background->node);
+		output->background_destroy.notify = output_background_destroy;
+		wl_signal_add(&output->background->node.events.destroy,
+			&output->background_destroy);
+	}
 }
 
 static void update_toplevel_metadata(struct toplevel *toplevel,
@@ -3524,8 +3713,7 @@ static void start_next_initial_placement(struct server *server) {
 		.started = true,
 		.intent = INTERACTION_INITIAL_POSITION,
 	};
-	wlr_cursor_set_xcursor(server->cursor, server->cursor_manager,
-		"top_left_corner");
+	set_cursor_role(server, "Move");
 	candidate->frame_x = x;
 	candidate->frame_y = y;
 	test_trace_toplevel_event_at(candidate, "begin", "placement",
@@ -5214,6 +5402,7 @@ int main(int argc, char **argv) {
 	server.cursor = wlr_cursor_create();
 	wlr_cursor_attach_output_layout(server.cursor, server.output_layout);
 	server.cursor_manager = wlr_xcursor_manager_create(NULL, 24);
+	set_cursor_role(&server, "Frame");
 	server.cursor_motion.notify = cursor_motion;
 	wl_signal_add(&server.cursor->events.motion, &server.cursor_motion);
 	server.cursor_motion_absolute.notify = cursor_motion_absolute;
@@ -5274,6 +5463,8 @@ int main(int argc, char **argv) {
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);
+	if (server.configured_cursor_buffer != NULL)
+		wlr_buffer_drop(server.configured_cursor_buffer);
 	wlr_allocator_destroy(server.allocator);
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
@@ -5293,6 +5484,8 @@ fail_runtime:
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);
+	if (server.configured_cursor_buffer != NULL)
+		wlr_buffer_drop(server.configured_cursor_buffer);
 	wlr_allocator_destroy(server.allocator);
 fail_renderer:
 	wlr_renderer_destroy(server.renderer);
