@@ -284,7 +284,7 @@ Implementation work:
   termination, icon names and supplied icons, urgency and input hints,
   override-redirect windows, stacking, and configure requests.
 - [x] Apply `.twmrc` window lists identically to Xwayland clients.
-- [ ] Define a documented mapping from native `app_id` and title to `twm` name/class
+- [x] Define a documented mapping from native `app_id` and title to `twm` name/class
   rules.
 - [ ] Implement clipboard and selection interoperation where legacy actions require
   it.
