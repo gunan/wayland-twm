@@ -390,6 +390,16 @@ test(
   ],
 )
 test(
+  'Milestone 4 trace differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m4_trace_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'canonical X11 application manifest',
   find_program('python3'),
   args: [

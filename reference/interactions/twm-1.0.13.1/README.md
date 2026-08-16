@@ -64,8 +64,19 @@ python3 -B tests/reference/validate_reference_interaction_contract.py \
 
 ## Remaining live evidence
 
-The contract intentionally does not fabricate event traces.  A Linux/Xvfb
-capture should still validate observable pointer warps, outline pixels,
-synthetic focus events, X server `Opposite`/circulation results, and repeated
-random-placement traces before Milestone 4 differential exit criteria are
-checked.
+`trace-differential.json` now defines the first live identical-input trace.
+It reuses the committed alpha/bravo geometry as its initial oracle, then sends
+the same deterministic pointer, button, and key program to Xvfb/twm and to
+headless wtwm/Xwayland.  The live runner compares client and outer-frame geometry,
+focus, logical mapped/iconified/title state, and bottom-to-top stack
+after every input event.  The only omitted observations are volatile process,
+display, time, XID, and compositor-frame identities plus decoration and
+temporary outline pixels.
+
+CI writes the complete normalized traces, convergence samples, session logs,
+and pass/fail comparison to the `m4-trace-differential` artifact.  The portable
+validator checks the event program, normalization boundary, frozen-oracle
+hashes, runner/observer/driver sources, and CI wiring with negative tamper
+tests.  Additional live evidence is still needed for exact decoration pixels,
+pointer warps, `Opposite`/circulation, and repeated random placement before all
+Milestone 4 differential exit criteria can be checked.

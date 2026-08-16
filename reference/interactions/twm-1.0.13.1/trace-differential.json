@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5"
+  },
+  "screen": {
+    "width": 260,
+    "height": 180,
+    "depth": 24
+  },
+  "configuration": "tests/integration/m4_trace_differential.twmrc",
+  "configuration_sha256": "c0630cbe9ebcbcb236a4f09e331da1ca841c347e0e3e7617dbc80b64c3a6987b",
+  "initial_oracle": {
+    "alpha": "reference/captures/twm-1.0.13.1/baseline/phase-alpha.json",
+    "alpha_sha256": "f70a39cb321ccffcdef0a43b1ecd8ba1e95085bbf4dd37784545476f70313cda",
+    "bravo": "reference/captures/twm-1.0.13.1/baseline/phase-bravo.json",
+    "bravo_sha256": "3a24158eec8ad7e2b1bfde918172520609c9fe2e736984dd8de1d76e620191d3"
+  },
+  "normalization": {
+    "reference_frame": "outer coordinates are the reparent frame's root-relative inner origin minus its border width",
+    "wtwm_frame": "outer coordinates are the compositor scene frame origin",
+    "focus": "client identity is reduced to alpha or bravo; root, PointerRoot, and no focused client normalize to root",
+    "stack": "visible managed roles only, ordered bottom to top",
+    "volatile_fields_omitted": [
+      "display_number",
+      "event_time",
+      "frame_sequence",
+      "pid",
+      "xid"
+    ],
+    "excluded_observations": [
+      "decoration pixels",
+      "temporary rubber-band outline pixels"
+    ]
+  },
+  "events": [
+    {"id": "pointer-root", "kind": "pointer", "x": 250, "y": 170},
+    {"id": "pointer-alpha-client", "kind": "pointer", "x": 60, "y": 80},
+    {"id": "focus-alpha-press", "kind": "button", "button": 3, "state": "press"},
+    {"id": "focus-alpha-release", "kind": "button", "button": 3, "state": "release"},
+    {"id": "raise-alpha-press", "kind": "button", "button": 2, "state": "press"},
+    {"id": "raise-alpha-release", "kind": "button", "button": 2, "state": "release"},
+    {"id": "lower-alpha-press", "kind": "key", "key": "F2", "state": "press"},
+    {"id": "lower-alpha-release", "kind": "key", "key": "F2", "state": "release"},
+    {"id": "pointer-alpha-title", "kind": "pointer", "x": 60, "y": 40},
+    {"id": "move-alpha-press", "kind": "button", "button": 1, "state": "press"},
+    {"id": "move-alpha-motion", "kind": "pointer", "x": 80, "y": 50},
+    {"id": "move-alpha-release", "kind": "button", "button": 1, "state": "release"},
+    {"id": "pointer-bravo-client", "kind": "pointer", "x": 180, "y": 100},
+    {"id": "focus-bravo-press", "kind": "button", "button": 3, "state": "press"},
+    {"id": "focus-bravo-release", "kind": "button", "button": 3, "state": "release"},
+    {"id": "raise-bravo-press", "kind": "key", "key": "F1", "state": "press"},
+    {"id": "raise-bravo-release", "kind": "key", "key": "F1", "state": "release"},
+    {"id": "lower-bravo-press", "kind": "key", "key": "F2", "state": "press"},
+    {"id": "lower-bravo-release", "kind": "key", "key": "F2", "state": "release"},
+    {"id": "iconify-bravo-press", "kind": "key", "key": "F3", "state": "press"},
+    {"id": "iconify-bravo-release", "kind": "key", "key": "F3", "state": "release"}
+  ]
+}

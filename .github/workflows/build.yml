@@ -159,6 +159,7 @@ jobs:
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat reference/environment/debian-trixie-x11-packages.txt
+            printf '%s\n' libxtst-dev
           } | sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' | sort -u |
             xargs apt-get install -y --no-install-recommends
       - name: Validate X11 differential contract
@@ -172,6 +173,15 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/x11_differential_probe.c \
             -o /tmp/x11-differential-probe $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m4_trace_client.c \
+            -o /tmp/m4-trace-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m4_trace_probe.c \
+            -o /tmp/m4-trace-probe $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11 xtst) tests/integration/m4_trace_input.c \
+            -o /tmp/m4-trace-input $(pkg-config --libs x11 xtst)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -184,6 +194,18 @@ jobs:
             --xterm /usr/bin/xterm --xclock /usr/bin/xclock \
             --xload /usr/bin/xload --emacs /usr/bin/emacs \
             --dialog /usr/bin/dialog
+      - name: Compare identical Milestone 4 event traces live
+        run: |
+          python3 -B tests/integration/run_m4_trace_differential.py \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client /tmp/m4-trace-client \
+            --probe /tmp/m4-trace-probe \
+            --input-driver /tmp/m4-trace-input \
+            --config "$GITHUB_WORKSPACE/tests/integration/m4_trace_differential.twmrc" \
+            --contract "$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json" \
+            --oracle "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline/phase-alpha.json" \
+            --output /tmp/m4-trace-differential.json
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -192,4 +214,13 @@ jobs:
           path: |
             /tmp/x11-differential.json
             /tmp/x11-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 4 event trace differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-trace-differential
+          path: |
+            /tmp/m4-trace-differential.json
+            /tmp/m4-trace-differential-evidence
           if-no-files-found: error
