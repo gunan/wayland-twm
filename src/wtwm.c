@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
@@ -520,12 +521,34 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	server->grab_y = server->cursor->y - edge_y;
 }
 
-static void spawn_shell(const char *command) {
-	if (command == NULL || command[0] == '\0') return;
-	if (fork() == 0) {
-		execl("/bin/sh", "/bin/sh", "-c", command, (void *)NULL);
-		_exit(127);
+static bool spawn_shell(const char *command) {
+	if (command == NULL || command[0] == '\0') return true;
+	pid_t intermediate = fork();
+	if (intermediate < 0) {
+		wlr_log_errno(WLR_ERROR, "failed to fork shell launcher");
+		return false;
 	}
+	if (intermediate == 0) {
+		pid_t child = fork();
+		if (child < 0) _exit(EXIT_FAILURE);
+		if (child == 0) {
+			execl("/bin/sh", "/bin/sh", "-c", command, (void *)NULL);
+			_exit(127);
+		}
+		_exit(EXIT_SUCCESS);
+	}
+
+	int status;
+	while (waitpid(intermediate, &status, 0) < 0) {
+		if (errno == EINTR) continue;
+		wlr_log_errno(WLR_ERROR, "failed to reap shell launcher");
+		return false;
+	}
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
+		wlr_log(WLR_ERROR, "%s", "failed to launch shell command");
+		return false;
+	}
+	return true;
 }
 
 static void hide_menu(struct server *server) {
@@ -1925,7 +1948,10 @@ int main(int argc, char **argv) {
 	}
 #endif
 	wlr_log_init(log_level, NULL);
-	signal(SIGCHLD, SIG_IGN);
+	if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
+		wlr_log_errno(WLR_ERROR, "failed to restore SIGCHLD handling");
+		return 1;
+	}
 #ifdef WTWM_TEST_CONTROL
 	signal(SIGPIPE, SIG_IGN);
 #endif

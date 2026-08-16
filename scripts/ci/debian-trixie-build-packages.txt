@@ -10,4 +10,5 @@ ninja-build
 pkgconf
 python3
 wayland-protocols
+xkb-data
 xwayland
