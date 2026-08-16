@@ -8,10 +8,12 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
 #include "wtwm/interaction.h"
 #include "wtwm/placement.h"
+#include "wtwm/visual.h"
 #include "text.h"
 #ifdef WTWM_TEST_CONTROL
 #include "test_control.h"
@@ -159,12 +161,12 @@ struct toplevel {
 	struct wlr_scene_tree *tree;
 	struct wlr_scene_tree *content;
 	struct wlr_scene_rect *frame;
+	struct wlr_scene_buffer *frame_pattern;
+	struct wlr_scene_tree *title_tree;
 	struct wlr_scene_rect *title;
-	struct wlr_scene_rect *focus_mark;
-	struct wlr_scene_rect *left_button;
-	struct wlr_scene_rect *left_dot;
-	struct wlr_scene_rect *right_button;
-	struct wlr_scene_rect *right_inner;
+	struct wlr_scene_buffer *focus_mark;
+	struct title_button_view *title_buttons;
+	size_t title_button_count;
 	struct wlr_scene_buffer *title_text;
 	struct wlr_scene_tree *icon_tree;
 	struct wlr_scene_rect *icon_background;
@@ -173,6 +175,8 @@ struct toplevel {
 	int icon_width;
 	int icon_height;
 	int title_text_height;
+	int title_text_width;
+	int title_font_ascent;
 	int width;
 	int height;
 	int border_width;
@@ -229,6 +233,15 @@ struct toplevel {
 	struct wl_listener set_hints;
 	struct wl_listener set_override_redirect;
 	struct wl_listener set_geometry;
+};
+
+struct title_button_view {
+	struct wlr_scene_rect *border;
+	struct wlr_scene_rect *background;
+	struct wlr_scene_buffer *bitmap_node;
+	struct wtwm_action action;
+	char bitmap[WTWM_NAME_MAX];
+	bool right_side;
 };
 
 struct popup {
@@ -325,6 +338,7 @@ struct action_continuation {
 
 struct server {
 	struct wtwm_config config;
+	enum wtwm_color_mode color_mode;
 	struct wl_display *display;
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
@@ -407,6 +421,8 @@ static void set_xwayland_input_focus(struct server *server,
 static void finish_initial_placement(struct server *server);
 static void cancel_initial_placement(struct toplevel *toplevel);
 static void start_next_initial_placement(struct server *server);
+static void update_title_text(struct toplevel *toplevel);
+static void update_decoration(struct toplevel *toplevel);
 static struct server *xwayland_event_server;
 
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
@@ -424,6 +440,7 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 	(void)data;
 	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
 	if (connection != NULL) {
+		wtwm_text_set_x11_connection(connection);
 		server->atom_wm_protocols = xwayland_atom(connection, "WM_PROTOCOLS");
 		server->atom_wm_take_focus = xwayland_atom(connection, "WM_TAKE_FOCUS");
 		server->atom_wm_delete_window = xwayland_atom(connection, "WM_DELETE_WINDOW");
@@ -432,12 +449,18 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
 		set_xwayland_input_focus(server, NULL);
+		struct toplevel *toplevel;
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			update_title_text(toplevel);
+			update_decoration(toplevel);
+		}
 	}
 	wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
 }
 
 static void xwayland_finish(struct server *server) {
 	if (server->xwayland != NULL) {
+		wtwm_text_set_x11_connection(NULL);
 		wl_list_remove(&server->xwayland_ready.link);
 		wl_list_remove(&server->xwayland_new_surface.link);
 		wlr_xwayland_destroy(server->xwayland);
@@ -505,8 +528,8 @@ struct hit_result {
 	double sx;
 	double sy;
 	uint32_t context;
-	bool left_button;
-	bool right_button;
+	bool on_title_button;
+	size_t title_button_index;
 };
 
 static struct toplevel *toplevel_from_scene_tree(struct wlr_scene_tree *tree) {
@@ -550,54 +573,63 @@ static bool surface_belongs_to_toplevel(struct wlr_surface *surface,
 	return toplevel_for_surface(surface) == toplevel;
 }
 
-static void color_value(const char *name, float color[4]) {
-	color[0] = color[1] = color[2] = 0.2f;
-	color[3] = 1.0f;
-	if (name == NULL) return;
-	if (name[0] == '#' && strlen(name) == 7) {
-		unsigned value = 0;
-		if (sscanf(name + 1, "%x", &value) == 1) {
-			color[0] = (float)((value >> 16) & 255) / 255.0f;
-			color[1] = (float)((value >> 8) & 255) / 255.0f;
-			color[2] = (float)(value & 255) / 255.0f;
-		}
-		return;
-	}
-	if (strncasecmp(name, "gray", 4) == 0 || strncasecmp(name, "grey", 4) == 0) {
-		char *end = NULL;
-		long percent = strtol(name + 4, &end, 10);
-		if (*end == '\0' && percent >= 0 && percent <= 100) {
-			color[0] = color[1] = color[2] = (float)percent / 100.0f;
-		}
-		return;
-	}
-	if (strncasecmp(name, "rgb:", 4) == 0) {
-		unsigned r = 0, g = 0, b = 0;
-		char rs[5] = {0}, gs[5] = {0}, bs[5] = {0};
-		if (sscanf(name + 4, "%4[^/]/%4[^/]/%4s", rs, gs, bs) == 3 &&
-			sscanf(rs, "%x", &r) == 1 && sscanf(gs, "%x", &g) == 1 &&
-			sscanf(bs, "%x", &b) == 1) {
-			unsigned rm = (1u << (4u * (unsigned)strlen(rs))) - 1u;
-			unsigned gm = (1u << (4u * (unsigned)strlen(gs))) - 1u;
-			unsigned bm = (1u << (4u * (unsigned)strlen(bs))) - 1u;
-			color[0] = (float)r / (float)rm;
-			color[1] = (float)g / (float)gm;
-			color[2] = (float)b / (float)bm;
-		}
-		return;
-	}
-	struct named_color { const char *name; float r, g, b; };
-	static const struct named_color named[] = {
-		{"black", 0, 0, 0}, {"white", 1, 1, 1}, {"slategrey", .44f, .50f, .56f},
-		{"slategray", .44f, .50f, .56f}, {"red", 1, 0, 0}, {"green", 0, .5f, 0},
-		{"blue", 0, 0, 1}, {"navy", 0, 0, .5f}, {"yellow", 1, 1, 0},
+static struct wtwm_client_identity toplevel_identity(
+		const struct toplevel *toplevel) {
+	if (toplevel == NULL) return (struct wtwm_client_identity){0};
+	if (toplevel->xwayland != NULL)
+		return (struct wtwm_client_identity){
+			.name = toplevel->xwayland->title,
+			.resource_name = toplevel->xwayland->instance,
+			.resource_class = toplevel->xwayland->class,
+		};
+	return (struct wtwm_client_identity){
+		.title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL,
+		.app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id : NULL,
 	};
-	for (size_t i = 0; i < sizeof(named) / sizeof(named[0]); ++i) {
-		if (strcasecmp(name, named[i].name) == 0) {
-			color[0] = named[i].r; color[1] = named[i].g; color[2] = named[i].b;
-			return;
-		}
+}
+
+static bool xwayland_color(struct server *server, const char *name,
+		struct wtwm_color *color) {
+	if (server->xwayland == NULL || name == NULL || strlen(name) > UINT16_MAX)
+		return false;
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return false;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(connection));
+	if (screens.rem == 0) return false;
+	xcb_lookup_color_reply_t *reply = xcb_lookup_color_reply(connection,
+		xcb_lookup_color(connection, screens.data->default_colormap,
+			(uint16_t)strlen(name), name), NULL);
+	if (reply == NULL) return false;
+	*color = (struct wtwm_color){reply->exact_red, reply->exact_green,
+		reply->exact_blue};
+	free(reply);
+	return true;
+}
+
+static void color_value(struct server *server, const char *name,
+		float color[static 4]) {
+	struct wtwm_color parsed = {0, 0, 0};
+	if (!wtwm_color_parse_literal(name, &parsed) &&
+		!xwayland_color(server, name, &parsed)) {
+		wlr_log(WLR_ERROR, "unable to resolve X11 color '%s'",
+			name != NULL ? name : "");
 	}
+	if (server->color_mode == WTWM_COLOR_MODE_GRAYSCALE)
+		parsed = wtwm_color_grayscale(parsed);
+	else if (server->color_mode == WTWM_COLOR_MODE_MONOCHROME)
+		parsed = wtwm_color_monochrome(parsed);
+	wtwm_color_to_float(&parsed, color);
+}
+
+static void configured_color(struct server *server, const char *setting,
+		const char *fallback, const struct toplevel *toplevel,
+		float color[static 4]) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	const char *value = wtwm_config_color_value(&server->config, setting,
+		server->color_mode, toplevel != NULL ? &identity : NULL);
+	color_value(server, value != NULL ? value : fallback, color);
 }
 
 static bool toplevel_matches(const struct wtwm_string_list *patterns,
@@ -847,16 +879,136 @@ static void xwayland_gravity_offsets(const struct toplevel *toplevel,
 	}
 }
 
+static struct wtwm_visual_config visual_config(const struct toplevel *toplevel) {
+	struct wtwm_visual_config visual = wtwm_visual_config_defaults();
+	visual.border_width = toplevel != NULL ? toplevel->border_width : 0;
+	const struct wtwm_config *config = toplevel != NULL ?
+		&toplevel->server->config : NULL;
+	if (config != NULL) {
+		visual.frame_padding = config->frame_padding;
+		visual.title_padding = config->title_padding;
+		visual.button_indent = config->button_indent;
+		visual.title_button_border_width = config->title_button_border_width;
+		visual.menu_border_width = config->menu_border_width;
+		visual.menu_shadows = !config->no_menu_shadows;
+	}
+	return visual;
+}
+
+static bool load_visual_xbm(const struct server *server, const char *name,
+		struct wtwm_xbm *bitmap) {
+	if (name == NULL || name[0] == '\0' || name[0] == ':') return false;
+	char expanded[4096];
+	const char *candidate = name;
+	if (name[0] == '~' && name[1] == '/') {
+		const char *home = getenv("HOME");
+		if (home != NULL && snprintf(expanded, sizeof(expanded), "%s/%s", home,
+			name + 2) > 0) candidate = expanded;
+	}
+	char error[512];
+	if (wtwm_xbm_load(bitmap, candidate, error, sizeof(error))) return true;
+	if (name[0] != '/' && server->config.icon_directory[0] != '\0') {
+		char directory[2048];
+		const char *base = server->config.icon_directory;
+		if (base[0] == '~' && base[1] == '/') {
+			const char *home = getenv("HOME");
+			if (home != NULL && snprintf(directory, sizeof(directory), "%s/%s",
+				home, base + 2) > 0) base = directory;
+		}
+		if (snprintf(expanded, sizeof(expanded), "%s/%s", base, name) > 0 &&
+			wtwm_xbm_load(bitmap, expanded, error, sizeof(error))) return true;
+	}
+	wlr_log(WLR_ERROR, "unable to load XBM '%s': %s", name, error);
+	return false;
+}
+
+static bool create_title_buttons(struct toplevel *toplevel) {
+	struct server *server = toplevel->server;
+	size_t defaults = server->config.no_defaults ? 0 : 2;
+	toplevel->title_button_count = server->config.title_button_count + defaults;
+	if (toplevel->title_button_count == 0) return true;
+	toplevel->title_buttons = calloc(toplevel->title_button_count,
+		sizeof(*toplevel->title_buttons));
+	if (toplevel->title_buttons == NULL) return false;
+	float border[4], background[4];
+	configured_color(server, "TitleForeground", "black", toplevel, border);
+	configured_color(server, "TitleBackground", "white", toplevel, background);
+	size_t output = 0;
+	if (!server->config.no_defaults) {
+		toplevel->title_buttons[output].right_side = false;
+		(void)snprintf(toplevel->title_buttons[output].bitmap, WTWM_NAME_MAX,
+			":iconify");
+		toplevel->title_buttons[output].action.type = WTWM_ACTION_ICONIFY;
+		++output;
+	}
+	for (size_t side = 0; side < 2; ++side)
+		for (size_t i = 0; i < server->config.title_button_count; ++i) {
+			const struct wtwm_title_button *configured =
+				&server->config.title_buttons[i];
+			if (configured->right_side != (side != 0)) continue;
+			struct title_button_view *button = &toplevel->title_buttons[output++];
+			button->right_side = configured->right_side;
+			button->action = configured->action;
+			(void)snprintf(button->bitmap, sizeof(button->bitmap), "%s",
+				configured->bitmap);
+		}
+	if (!server->config.no_defaults) {
+		struct title_button_view *button = &toplevel->title_buttons[output++];
+		button->right_side = true;
+		(void)snprintf(button->bitmap, sizeof(button->bitmap), ":resize");
+		button->action.type = WTWM_ACTION_RESIZE;
+	}
+	for (size_t i = 0; i < output; ++i) {
+		struct title_button_view *button = &toplevel->title_buttons[i];
+		button->border = wlr_scene_rect_create(toplevel->title_tree, 1, 1, border);
+		button->background = wlr_scene_rect_create(toplevel->title_tree, 1, 1,
+			background);
+		button->bitmap_node = wlr_scene_buffer_create(toplevel->title_tree, NULL);
+		if (button->border == NULL || button->background == NULL ||
+				button->bitmap_node == NULL) return false;
+	}
+	return output == toplevel->title_button_count;
+}
+
+static bool create_title_scene(struct toplevel *toplevel) {
+	float title[4];
+	configured_color(toplevel->server, "TitleBackground", "white", toplevel,
+		title);
+	toplevel->title_tree = wlr_scene_tree_create(toplevel->tree);
+	if (toplevel->title_tree == NULL) return false;
+	toplevel->title = wlr_scene_rect_create(toplevel->title_tree, 1, 1, title);
+	toplevel->focus_mark = wlr_scene_buffer_create(toplevel->title_tree, NULL);
+	toplevel->title_text = wlr_scene_buffer_create(toplevel->title_tree, NULL);
+	return toplevel->title != NULL && toplevel->focus_mark != NULL &&
+		toplevel->title_text != NULL && create_title_buttons(toplevel);
+}
+
+static const char *title_highlight_bitmap(const struct server *server) {
+	for (size_t i = server->config.pixmap_count; i > 0; --i)
+		if (strcasecmp(server->config.pixmaps[i - 1].name,
+				"TitleHighlight") == 0)
+			return server->config.pixmaps[i - 1].value;
+	return NULL;
+}
+
 static void update_title_text(struct toplevel *toplevel) {
 	if (toplevel->title_text == NULL) return;
-	toplevel->title_bar_height = configured_title_bar_height(toplevel->server);
+	int font_height = 1;
+	int font_ascent = 1;
+	(void)wtwm_measure_font_metrics(toplevel->server->config.title_font,
+		&font_height, &font_ascent);
+	toplevel->title_bar_height = wtwm_title_bar_height(font_height,
+		toplevel->server->config.frame_padding);
 	float foreground[4];
-	color_value(toplevel->server->config.title_foreground, foreground);
+	configured_color(toplevel->server, "TitleForeground", "black", toplevel,
+		foreground);
 	int width = 0, height = 0;
 	struct wlr_buffer *buffer = wtwm_render_text(toplevel_title(toplevel),
 		toplevel->server->config.title_font, foreground, &width, &height);
 	if (buffer == NULL) return;
+	toplevel->title_text_width = width;
 	toplevel->title_text_height = height;
+	toplevel->title_font_ascent = font_ascent;
 	wlr_scene_buffer_set_buffer(toplevel->title_text, buffer);
 	wlr_buffer_drop(buffer);
 }
@@ -866,38 +1018,151 @@ static void update_decoration(struct toplevel *toplevel) {
 	toplevel_geometry(toplevel, &geometry);
 	toplevel->title_height = geometry.title_extent;
 	int border = geometry.border_width;
-	int button = geometry.title_bar_height -
-		2 * (toplevel->server->config.frame_padding +
-			toplevel->server->config.button_indent);
-	if (button < 1) button = 1;
-	int title_padding = toplevel->server->config.title_padding;
-	if (title_padding < 1) title_padding = 1;
+	float border_color[4], title_color[4], foreground[4];
+	configured_color(toplevel->server, "BorderColor", "black", toplevel,
+		border_color);
+	configured_color(toplevel->server, "TitleBackground", "white", toplevel,
+		title_color);
+	configured_color(toplevel->server, "TitleForeground", "black", toplevel,
+		foreground);
+	wlr_scene_rect_set_color(toplevel->frame, border_color);
+	float tile_foreground[4], tile_background[4];
+	configured_color(toplevel->server, "BorderTileForeground", "black", toplevel,
+		tile_foreground);
+	configured_color(toplevel->server, "BorderTileBackground", "white", toplevel,
+		tile_background);
+	wlr_scene_rect_set_color(toplevel->title, title_color);
+	unsigned int left_count = 0;
+	unsigned int right_count = 0;
+	for (size_t i = 0; i < toplevel->title_button_count; ++i) {
+		if (toplevel->title_buttons[i].right_side) ++right_count;
+		else ++left_count;
+	}
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	bool has_title_highlight = !wtwm_config_window_list_matches(
+		&toplevel->server->config, "NoTitleHighlight", &identity);
+	struct wtwm_visual_config visual = visual_config(toplevel);
+	int font_height = toplevel->title_text_height > 0 ?
+		toplevel->title_text_height : wtwm_measure_font_height(
+			toplevel->server->config.title_font);
+	int font_ascent = toplevel->title_font_ascent > 0 ?
+		toplevel->title_font_ascent : font_height;
+	struct wtwm_title_layout layout;
+	wtwm_title_layout_compute(&visual, geometry.client_width, font_height,
+		font_ascent, toplevel->title_text_width, left_count, right_count,
+		has_title_highlight, &layout);
+	int title_width = geometry.client_width;
+	int title_x = border;
+	struct wtwm_squeeze_rule squeeze;
+	if (wtwm_config_squeeze_rule(&toplevel->server->config, &identity,
+			&squeeze)) {
+		title_width = layout.squeezed_title_width;
+		enum wtwm_title_justification justification =
+			squeeze.justification == WTWM_SQUEEZE_CENTER ?
+				WTWM_TITLE_JUSTIFY_CENTER :
+			(squeeze.justification == WTWM_SQUEEZE_RIGHT ?
+				WTWM_TITLE_JUSTIFY_RIGHT : WTWM_TITLE_JUSTIFY_LEFT);
+		int reference_x = wtwm_title_squeeze_x(geometry.client_width,
+			title_width, border, justification, squeeze.numerator,
+			squeeze.denominator);
+		title_x = 2 * border + reference_x;
+		wtwm_title_layout_compute(&visual, title_width, font_height,
+			font_ascent, toplevel->title_text_width, left_count, right_count,
+			has_title_highlight, &layout);
+	}
 	wlr_scene_rect_set_size(toplevel->frame,
 		geometry.outer_width, geometry.outer_height);
+	static const unsigned char border_bits[] = {0x02, 0x01};
+	struct wlr_buffer *frame_pattern = wtwm_render_pattern(
+		geometry.outer_width, geometry.outer_height, border_bits, 2, 2,
+		tile_foreground, tile_background);
+	if (frame_pattern != NULL) {
+		wlr_scene_buffer_set_buffer(toplevel->frame_pattern, frame_pattern);
+		wlr_buffer_drop(frame_pattern);
+	}
+	bool border_highlight = !wtwm_config_window_list_matches(
+		&toplevel->server->config, "NoHighlight", &identity);
+	wlr_scene_node_set_enabled(&toplevel->frame_pattern->node,
+		border_highlight && toplevel->server->focus != toplevel &&
+		toplevel_has_frame(toplevel));
 	wlr_scene_rect_set_size(toplevel->title,
-		geometry.client_width, geometry.title_bar_height > 0 ?
-			geometry.title_bar_height : 1);
-	wlr_scene_rect_set_size(toplevel->focus_mark,
-		geometry.client_width > 2 * (button + title_padding) ?
-			geometry.client_width - 2 * (button + title_padding) : 1, 2);
-	wlr_scene_rect_set_size(toplevel->left_button, button, button);
-	wlr_scene_rect_set_size(toplevel->right_button, button, button);
-	wlr_scene_rect_set_size(toplevel->right_inner, button > 8 ? button - 8 : 1,
-		button > 8 ? button - 8 : 1);
-	wlr_scene_node_set_position(&toplevel->title->node, border, border);
+		layout.title.width, layout.title.height > 0 ? layout.title.height : 1);
+	wlr_scene_node_set_position(&toplevel->title_tree->node, title_x, border);
+	static const unsigned char gray_bits[] = {0x02, 0x01};
+	const unsigned char *highlight_bits = gray_bits;
+	unsigned int highlight_width = 2;
+	unsigned int highlight_height = 2;
+	struct wtwm_xbm highlight_bitmap;
+	wtwm_xbm_init(&highlight_bitmap);
+	const char *highlight_name = title_highlight_bitmap(toplevel->server);
+	if (highlight_name != NULL && load_visual_xbm(toplevel->server,
+			highlight_name, &highlight_bitmap)) {
+		highlight_bits = highlight_bitmap.data;
+		highlight_width = highlight_bitmap.width;
+		highlight_height = highlight_bitmap.height;
+	}
+	struct wlr_buffer *highlight = wtwm_render_pattern(
+		layout.focus_highlight.width, layout.focus_highlight.height,
+		highlight_bits, highlight_width, highlight_height, foreground, title_color);
+	if (highlight != NULL) {
+		wlr_scene_buffer_set_buffer(toplevel->focus_mark, highlight);
+		wlr_buffer_drop(highlight);
+	}
+	wtwm_xbm_finish(&highlight_bitmap);
 	wlr_scene_node_set_position(&toplevel->focus_mark->node,
-		border + button + title_padding,
-		border + geometry.title_bar_height - 4);
-	wlr_scene_node_set_position(&toplevel->left_button->node, border + 2, border + 2);
-	wlr_scene_node_set_position(&toplevel->left_dot->node,
-		border + button / 2, border + button / 2);
-	wlr_scene_node_set_position(&toplevel->right_button->node,
-		border + geometry.client_width - button - 2, border + 2);
-	wlr_scene_node_set_position(&toplevel->right_inner->node,
-		border + geometry.client_width - button + 2, border + 6);
+		layout.focus_highlight.x, layout.focus_highlight.y);
+	wlr_scene_node_set_enabled(&toplevel->focus_mark->node,
+		toplevel->server->focus == toplevel && toplevel->decorated &&
+		layout.focus_highlight_visible);
+	unsigned int left_index = 0;
+	unsigned int right_index = 0;
+	for (size_t i = 0; i < toplevel->title_button_count; ++i) {
+		struct title_button_view *button = &toplevel->title_buttons[i];
+		struct wtwm_visual_box box;
+		unsigned int index = button->right_side ? right_index++ : left_index++;
+		bool valid = wtwm_title_button_box(&layout, button->right_side, index,
+			&box);
+		wlr_scene_node_set_enabled(&button->border->node,
+			valid && toplevel->decorated);
+		wlr_scene_node_set_enabled(&button->background->node,
+			valid && toplevel->decorated);
+		wlr_scene_node_set_enabled(&button->bitmap_node->node,
+			valid && toplevel->decorated);
+		if (!valid) continue;
+		wlr_scene_rect_set_color(button->border, foreground);
+		wlr_scene_rect_set_color(button->background, title_color);
+		wlr_scene_rect_set_size(button->border, box.width, box.height);
+		wlr_scene_rect_set_size(button->background, layout.button_inner_size,
+			layout.button_inner_size);
+		wlr_scene_node_set_position(&button->border->node, box.x, box.y);
+		wlr_scene_node_set_position(&button->background->node,
+			box.x + layout.button_border_width,
+			box.y + layout.button_border_width);
+		wlr_scene_node_set_position(&button->bitmap_node->node,
+			box.x + layout.button_border_width,
+			box.y + layout.button_border_width);
+		struct wlr_buffer *button_bitmap = NULL;
+		if (button->bitmap[0] == ':')
+			button_bitmap = wtwm_render_builtin_title(button->bitmap,
+				layout.button_inner_size, foreground);
+		else {
+			struct wtwm_xbm bitmap;
+			wtwm_xbm_init(&bitmap);
+			if (load_visual_xbm(toplevel->server, button->bitmap, &bitmap))
+				button_bitmap = wtwm_render_xbm_title(&bitmap,
+					layout.button_inner_size, foreground);
+			wtwm_xbm_finish(&bitmap);
+			if (button_bitmap == NULL)
+				button_bitmap = wtwm_render_builtin_title(":question",
+					layout.button_inner_size, foreground);
+		}
+		if (button_bitmap != NULL) {
+			wlr_scene_buffer_set_buffer(button->bitmap_node, button_bitmap);
+			wlr_buffer_drop(button_bitmap);
+		}
+	}
 	wlr_scene_node_set_position(&toplevel->title_text->node,
-		border + button + title_padding + 1,
-		border + (geometry.title_bar_height - toplevel->title_text_height) / 2);
+		layout.text.x, layout.text.y);
 	wlr_scene_node_set_position(&toplevel->content->node,
 		geometry.content_x, geometry.content_y);
 	sync_toplevel_popups(toplevel);
@@ -907,21 +1172,18 @@ static void set_decorated(struct toplevel *toplevel, bool enabled) {
 	toplevel->decorated = enabled;
 	if (toplevel->title == NULL) return;
 	wlr_scene_node_set_enabled(&toplevel->frame->node, toplevel_has_frame(toplevel));
-	wlr_scene_node_set_enabled(&toplevel->title->node, enabled);
+	wlr_scene_node_set_enabled(&toplevel->title_tree->node, enabled);
 	wlr_scene_node_set_enabled(&toplevel->focus_mark->node, false);
-	wlr_scene_node_set_enabled(&toplevel->left_button->node, enabled);
-	wlr_scene_node_set_enabled(&toplevel->left_dot->node, enabled);
-	wlr_scene_node_set_enabled(&toplevel->right_button->node, enabled);
-	wlr_scene_node_set_enabled(&toplevel->right_inner->node, enabled);
-	wlr_scene_node_set_enabled(&toplevel->title_text->node, enabled);
 	update_decoration(toplevel);
 }
 
 static bool create_icon_scene(struct toplevel *toplevel) {
 	if (toplevel->icon_tree != NULL) return true;
 	float background[4], foreground[4];
-	color_value(toplevel->server->config.icon_background, background);
-	color_value(toplevel->server->config.icon_foreground, foreground);
+	configured_color(toplevel->server, "IconBackground", "white", toplevel,
+		background);
+	configured_color(toplevel->server, "IconForeground", "black", toplevel,
+		foreground);
 	toplevel->icon_width = 96;
 	toplevel->icon_height = 24;
 	toplevel->icon_tree = wlr_scene_tree_create(toplevel->server->view_tree);
@@ -992,9 +1254,7 @@ static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
 static void set_focused_marker(struct server *server, struct toplevel *focused) {
 	struct toplevel *item;
 	wl_list_for_each(item, &server->toplevels, link) {
-		if (item->focus_mark != NULL)
-			wlr_scene_node_set_enabled(&item->focus_mark->node,
-				item == focused && item->decorated);
+		if (item->focus_mark != NULL) update_decoration(item);
 	}
 }
 
@@ -1653,11 +1913,12 @@ static void show_menu(struct server *server, const char *name,
 	int row_height = 18;
 	for (size_t i = 0; i < menu->item_count; ++i) {
 		float color[4];
-		const char *color_name = menu->items[i].foreground[0] ?
-			menu->items[i].foreground :
-			(menu->items[i].action.type == WTWM_ACTION_TITLE ?
-				server->config.menu_title_foreground : server->config.menu_foreground);
-		color_value(color_name, color);
+		if (menu->items[i].foreground[0] &&
+				server->color_mode == WTWM_COLOR_MODE_COLOR)
+			color_value(server, menu->items[i].foreground, color);
+		else if (menu->items[i].action.type == WTWM_ACTION_TITLE)
+			configured_color(server, "MenuTitleForeground", "black", NULL, color);
+		else configured_color(server, "MenuForeground", "black", NULL, color);
 		buffers[i] = wtwm_render_text(menu->items[i].label,
 			server->config.menu_font, color, &widths[i], &heights[i]);
 		if (widths[i] > content_width) content_width = widths[i];
@@ -1668,9 +1929,9 @@ static void show_menu(struct server *server, const char *name,
 	int menu_width = content_width + 16 + 2 * border_width;
 	int menu_height = (int)menu->item_count * row_height + 2 * border_width;
 	float border[4], background[4], highlight[4];
-	color_value(server->config.menu_border_color, border);
-	color_value(server->config.menu_background, background);
-	color_value(server->config.menu_foreground, highlight);
+	configured_color(server, "MenuBorderColor", "black", NULL, border);
+	configured_color(server, "MenuBackground", "white", NULL, background);
+	configured_color(server, "MenuForeground", "black", NULL, highlight);
 	highlight[3] = 0.30f;
 	struct wlr_scene_tree *tree = wlr_scene_tree_create(server->menu_tree);
 	wlr_scene_rect_create(tree, menu_width, menu_height, border);
@@ -1679,10 +1940,14 @@ static void show_menu(struct server *server, const char *name,
 	wlr_scene_node_set_position(&body->node, border_width, border_width);
 	for (size_t i = 0; i < menu->item_count; ++i) {
 		if (menu->items[i].action.type == WTWM_ACTION_TITLE ||
-			menu->items[i].background[0]) {
+			(menu->items[i].background[0] &&
+				server->color_mode == WTWM_COLOR_MODE_COLOR)) {
 			float row_color[4];
-			color_value(menu->items[i].background[0] ? menu->items[i].background :
-				server->config.menu_title_background, row_color);
+			if (menu->items[i].background[0] &&
+					server->color_mode == WTWM_COLOR_MODE_COLOR)
+				color_value(server, menu->items[i].background, row_color);
+			else configured_color(server, "MenuTitleBackground", "white", NULL,
+				row_color);
 			struct wlr_scene_rect *row = wlr_scene_rect_create(tree,
 				menu_width - 2 * border_width, row_height, row_color);
 			wlr_scene_node_set_position(&row->node, border_width,
@@ -1998,14 +2263,21 @@ static struct hit_result desktop_at(struct server *server, double lx, double ly)
 			hit.context = WTWM_CONTEXT_WINDOW;
 		}
 	}
-	if (hit.toplevel->title && (leaf == &hit.toplevel->title->node ||
+	if (hit.toplevel->title && (tree == hit.toplevel->title_tree ||
+		leaf == &hit.toplevel->title->node ||
 		leaf == &hit.toplevel->focus_mark->node ||
-		leaf == &hit.toplevel->title_text->node ||
-		leaf == &hit.toplevel->left_button->node || leaf == &hit.toplevel->left_dot->node ||
-		leaf == &hit.toplevel->right_button->node || leaf == &hit.toplevel->right_inner->node)) {
+		leaf == &hit.toplevel->title_text->node)) {
 		hit.context = WTWM_CONTEXT_TITLE;
-		hit.left_button = leaf == &hit.toplevel->left_button->node || leaf == &hit.toplevel->left_dot->node;
-		hit.right_button = leaf == &hit.toplevel->right_button->node || leaf == &hit.toplevel->right_inner->node;
+		for (size_t i = 0; i < hit.toplevel->title_button_count; ++i) {
+			struct title_button_view *button = &hit.toplevel->title_buttons[i];
+			if (leaf == &button->border->node ||
+					leaf == &button->background->node ||
+					leaf == &button->bitmap_node->node) {
+				hit.on_title_button = true;
+				hit.title_button_index = i;
+				break;
+			}
+		}
 	}
 	if (hit.toplevel->xwayland != NULL &&
 			hit.toplevel->xwayland->override_redirect) hit.toplevel = NULL;
@@ -2372,23 +2644,14 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		return;
 	}
 	bool handled = false;
-	if ((hit.left_button || hit.right_button) && event->button == BTN_LEFT) {
-		const struct wtwm_action *configured = NULL;
-		for (size_t i = 0; i < server->config.title_button_count; ++i) {
-			if (server->config.title_buttons[i].right_side == hit.right_button) {
-				configured = &server->config.title_buttons[i].action;
-				break;
-			}
-		}
-		if (configured != NULL) execute_action(server, hit.toplevel, configured,
-			WTWM_CONTEXT_TITLE);
-		else if (hit.left_button) {
-			struct wtwm_action action = {.type = WTWM_ACTION_ICONIFY};
-			execute_action(server, hit.toplevel, &action, WTWM_CONTEXT_TITLE);
-		} else {
+	if (hit.on_title_button && event->button == BTN_LEFT &&
+			hit.title_button_index < hit.toplevel->title_button_count) {
+		const struct wtwm_action *action =
+			&hit.toplevel->title_buttons[hit.title_button_index].action;
+		if (action->type == WTWM_ACTION_RESIZE) {
 			begin_interactive(hit.toplevel, CURSOR_RESIZE, 0, false, true,
 				event->time_msec);
-		}
+		} else execute_action(server, hit.toplevel, action, WTWM_CONTEXT_TITLE);
 		handled = true;
 	}
 	if (!handled) handled = dispatch_binding(server, WTWM_BINDING_BUTTON,
@@ -2779,6 +3042,7 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 		toplevel->xdg->base->data = NULL;
 	wlr_scene_node_destroy(&toplevel->tree->node);
 	destroy_icon_scene(toplevel);
+	free(toplevel->title_buttons);
 	free(toplevel);
 }
 
@@ -2860,18 +3124,18 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, false);
 	toplevel->tree->node.data = toplevel;
-	float border[4], title[4], foreground[4];
-	color_value(server->config.border_color, border);
-	color_value(server->config.title_background, title);
-	color_value(server->config.title_foreground, foreground);
+	float border[4];
+	configured_color(server, "BorderColor", "black", toplevel, border);
 	toplevel->frame = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->title = wlr_scene_rect_create(toplevel->tree, 1, 1, title);
-	toplevel->focus_mark = wlr_scene_rect_create(toplevel->tree, 1, 2, foreground);
-	toplevel->left_button = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->left_dot = wlr_scene_rect_create(toplevel->tree, 3, 3, foreground);
-	toplevel->right_button = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->right_inner = wlr_scene_rect_create(toplevel->tree, 1, 1, title);
-	toplevel->title_text = wlr_scene_buffer_create(toplevel->tree, NULL);
+	toplevel->frame_pattern = wlr_scene_buffer_create(toplevel->tree, NULL);
+	if (toplevel->frame == NULL || toplevel->frame_pattern == NULL ||
+			!create_title_scene(toplevel)) {
+		wlr_scene_node_destroy(&toplevel->tree->node);
+		free(toplevel->title_buttons);
+		free(toplevel);
+		wlr_xdg_toplevel_send_close(xdg);
+		return;
+	}
 	toplevel->content = wlr_scene_xdg_surface_create(toplevel->tree, xdg->base);
 	xdg->base->data = toplevel->content;
 	update_toplevel_metadata(toplevel, true);
@@ -2906,18 +3170,19 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 	if (toplevel->tree == NULL) return false;
 	wlr_scene_node_set_enabled(&toplevel->tree->node, false);
 	toplevel->tree->node.data = toplevel;
-	float border[4], title[4], foreground[4];
-	color_value(toplevel->server->config.border_color, border);
-	color_value(toplevel->server->config.title_background, title);
-	color_value(toplevel->server->config.title_foreground, foreground);
+	float border[4];
+	configured_color(toplevel->server, "BorderColor", "black", toplevel, border);
 	toplevel->frame = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->title = wlr_scene_rect_create(toplevel->tree, 1, 1, title);
-	toplevel->focus_mark = wlr_scene_rect_create(toplevel->tree, 1, 2, foreground);
-	toplevel->left_button = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->left_dot = wlr_scene_rect_create(toplevel->tree, 3, 3, foreground);
-	toplevel->right_button = wlr_scene_rect_create(toplevel->tree, 1, 1, border);
-	toplevel->right_inner = wlr_scene_rect_create(toplevel->tree, 1, 1, title);
-	toplevel->title_text = wlr_scene_buffer_create(toplevel->tree, NULL);
+	toplevel->frame_pattern = wlr_scene_buffer_create(toplevel->tree, NULL);
+	if (toplevel->frame == NULL || toplevel->frame_pattern == NULL ||
+			!create_title_scene(toplevel)) {
+		wlr_scene_node_destroy(&toplevel->tree->node);
+		toplevel->tree = NULL;
+		free(toplevel->title_buttons);
+		toplevel->title_buttons = NULL;
+		toplevel->title_button_count = 0;
+		return false;
+	}
 	toplevel->content = wlr_scene_subsurface_tree_create(
 		toplevel->tree, toplevel->xwayland->surface);
 	if (toplevel->content == NULL) {
@@ -2932,15 +3197,16 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 static void destroy_xwayland_scene(struct toplevel *toplevel) {
 	if (toplevel->tree != NULL) wlr_scene_node_destroy(&toplevel->tree->node);
 	destroy_icon_scene(toplevel);
+	free(toplevel->title_buttons);
+	toplevel->title_buttons = NULL;
+	toplevel->title_button_count = 0;
 	toplevel->tree = NULL;
 	toplevel->content = NULL;
 	toplevel->frame = NULL;
+	toplevel->frame_pattern = NULL;
+	toplevel->title_tree = NULL;
 	toplevel->title = NULL;
 	toplevel->focus_mark = NULL;
-	toplevel->left_button = NULL;
-	toplevel->left_dot = NULL;
-	toplevel->right_button = NULL;
-	toplevel->right_inner = NULL;
 	toplevel->title_text = NULL;
 }
 
@@ -4605,7 +4871,8 @@ static void test_control_finish(struct server *server) {
 #endif
 
 static void usage(FILE *stream, const char *program) {
-	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]", program);
+	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]"
+		" [--visual-mode color|grayscale|monochrome]", program);
 #ifdef WTWM_TEST_CONTROL
 	fprintf(stream, " [--test-control path] [--test-socket name]"
 		" [--test-backend auto|headless|wayland]");
@@ -4616,16 +4883,23 @@ static void usage(FILE *stream, const char *program) {
 int main(int argc, char **argv) {
 	const char *config_path = NULL;
 	const char *startup = NULL;
+	const char *visual_mode = "color";
+	enum {
+		OPTION_VISUAL_MODE = 256,
+		OPTION_TEST_CONTROL,
+		OPTION_TEST_SOCKET,
+		OPTION_TEST_BACKEND,
+	};
 #ifdef WTWM_TEST_CONTROL
 	const char *test_control_path = NULL;
 	const char *test_socket = NULL;
 	const char *test_backend = "auto";
-	enum { OPTION_TEST_CONTROL = 256, OPTION_TEST_SOCKET, OPTION_TEST_BACKEND };
 	static const struct option options[] = {
 		{"debug", no_argument, NULL, 'd'},
 		{"config", required_argument, NULL, 'f'},
 		{"help", no_argument, NULL, 'h'},
 		{"startup", required_argument, NULL, 's'},
+		{"visual-mode", required_argument, NULL, OPTION_VISUAL_MODE},
 		{"test-control", required_argument, NULL, OPTION_TEST_CONTROL},
 		{"test-socket", required_argument, NULL, OPTION_TEST_SOCKET},
 		{"test-backend", required_argument, NULL, OPTION_TEST_BACKEND},
@@ -4637,6 +4911,7 @@ int main(int argc, char **argv) {
 		{"config", required_argument, NULL, 'f'},
 		{"help", no_argument, NULL, 'h'},
 		{"startup", required_argument, NULL, 's'},
+		{"visual-mode", required_argument, NULL, OPTION_VISUAL_MODE},
 		{NULL, 0, NULL, 0},
 	};
 #endif
@@ -4648,6 +4923,7 @@ int main(int argc, char **argv) {
 		case 'f': config_path = optarg; break;
 		case 's': startup = optarg; break;
 		case 'h': usage(stdout, argv[0]); return 0;
+		case OPTION_VISUAL_MODE: visual_mode = optarg; break;
 #ifdef WTWM_TEST_CONTROL
 		case OPTION_TEST_CONTROL: test_control_path = optarg; break;
 		case OPTION_TEST_SOCKET: test_socket = optarg; break;
@@ -4655,6 +4931,12 @@ int main(int argc, char **argv) {
 #endif
 		default: usage(stderr, argv[0]); return 2;
 		}
+	}
+	if (strcmp(visual_mode, "color") != 0 &&
+			strcmp(visual_mode, "grayscale") != 0 &&
+			strcmp(visual_mode, "monochrome") != 0) {
+		fprintf(stderr, "wtwm: invalid visual mode: %s\n", visual_mode);
+		return 2;
 	}
 #ifdef WTWM_TEST_CONTROL
 	if (strcmp(test_backend, "auto") != 0 && strcmp(test_backend, "headless") != 0 &&
@@ -4672,6 +4954,10 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	struct server server = {0};
+	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
+		WTWM_COLOR_MODE_MONOCHROME :
+		(strcmp(visual_mode, "grayscale") == 0 ? WTWM_COLOR_MODE_GRAYSCALE :
+			WTWM_COLOR_MODE_COLOR);
 	server.focus_root = true;
 	server.pointer_context = WTWM_CONTEXT_ROOT;
 	wtwm_random_placement_init(&server.random_placement);
