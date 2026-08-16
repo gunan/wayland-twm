@@ -112,7 +112,9 @@ def canonical_commands(programs: dict[str, Path]) -> tuple[tuple[str, tuple[str,
             (
                 str(programs["emacs"]), "--quick", "--no-splash", "--name",
                 "wtwm-real-emacs", "--title", "WTWM Real Emacs", "--geometry",
-                "70x18+20+300",
+                "70x18+20+300", "--eval",
+                "(progn (setq frame-inhibit-implied-resize t) "
+                "(menu-bar-mode -1) (tool-bar-mode -1) (scroll-bar-mode -1))",
             ),
         ),
         (

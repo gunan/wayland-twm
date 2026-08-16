@@ -123,6 +123,8 @@ def validate_text(
         'Role("xclock", "WTWM Real XClock", "wtwm-real-xclock", "XClock")',
         'Role("xload", "WTWM Real XLoad", "wtwm-real-xload", "XLoad")',
         'Role("emacs", "WTWM Real Emacs", "wtwm-real-emacs", "Emacs-gtk")',
+        "(setq frame-inhibit-implied-resize t)",
+        "(menu-bar-mode -1) (tool-bar-mode -1) (scroll-bar-mode -1)",
         '"terminal-dialog"',
         '"icccm-normal"',
         '"icccm-transient"',
