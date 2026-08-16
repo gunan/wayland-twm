@@ -211,6 +211,7 @@ jobs:
             --oracle "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline/phase-alpha.json" \
             --output /tmp/m4-trace-differential.json
       - name: Compare the complete Milestone 4 geometry cross-product live
+        if: always()
         run: |
           python3 -B tests/integration/run_m4_geometry_differential.py \
             --source-root "$GITHUB_WORKSPACE" \
