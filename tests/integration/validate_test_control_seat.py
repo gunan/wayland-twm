@@ -47,12 +47,29 @@ def validate_bridge_handshake(
             raise ValueError(f"Wayland source request lacks a roundtrip: {request}")
     for fragment in (
         "static bool wait_for_input_focus",
+        "static bool proxy_owners_ready",
+        "static bool wait_for_bridge_ready",
         "xcb_get_input_focus(client->connection)",
         'strcmp(command, "WAIT BRIDGE")',
         'strcmp(command, "WAIT FOCUS")',
     ):
         if fragment not in x11_client:
             raise ValueError(f"X11 bridge handshake lacks {fragment}")
+    bridge_start = x11_client.find("static bool wait_for_bridge_ready")
+    bridge_end = x11_client.find("static void request_selection", bridge_start)
+    bridge = x11_client[bridge_start:bridge_end]
+    for fragment in (
+        "for (;;)",
+        "xcb_connection_has_error(client->connection)",
+        "input_focus_is_window(client) && proxy_owners_ready(client)",
+        "poll(&descriptor",
+    ):
+        if fragment not in bridge:
+            raise ValueError(f"bridge readiness loop lacks {fragment}")
+    command_start = x11_client.find('strcmp(command, "WAIT BRIDGE")')
+    command_end = x11_client.find('strcmp(command, "SERVED")', command_start)
+    if "wait_for_bridge_ready(client)" not in x11_client[command_start:command_end]:
+        raise ValueError("WAIT BRIDGE does not require the full readiness predicate")
     first_x_focus = runner.find('focus_window(control, "wtwm-selection-x11")')
     first_bridge = runner.find('x11, "WAIT BRIDGE"', first_x_focus)
     first_targets = runner.find('x11, "TARGETS CLIPBOARD"', first_bridge)
@@ -102,6 +119,17 @@ def main() -> None:
             pass
         else:
             raise ValueError("selection bridge contract accepted ungated TARGETS")
+        tampered_x11 = x11_client.replace(
+            "input_focus_is_window(client) && proxy_owners_ready(client)",
+            "input_focus_is_window(client)",
+            1,
+        )
+        try:
+            validate_bridge_handshake(wayland_client, tampered_x11, runner)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("bridge contract accepted a focus-only readiness gate")
         print("synthetic seat and bridge-handshake tampers rejected")
     print("test control synthetic seat contract valid")
 
