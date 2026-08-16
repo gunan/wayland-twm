@@ -286,7 +286,8 @@ struct decoration {
 
 struct menu_view {
 	struct wlr_scene_tree *tree;
-	struct wlr_scene_rect *highlight;
+	struct menu_row_view *rows;
+	size_t row_count;
 	const struct wtwm_menu *definition;
 	struct toplevel *target;
 	int x;
@@ -294,6 +295,25 @@ struct menu_view {
 	int width;
 	int row_height;
 	int selected;
+};
+
+struct menu_row_view {
+	struct wlr_scene_rect *normal_background;
+	struct wlr_scene_rect *highlight_background;
+	struct wlr_scene_buffer *normal_text;
+	struct wlr_scene_buffer *highlight_text;
+	struct wlr_scene_buffer *pull_normal;
+	struct wlr_scene_buffer *pull_highlight;
+	struct wlr_scene_rect *separator_top;
+	struct wlr_scene_rect *separator_bottom;
+};
+
+struct menu_row_palette {
+	struct wtwm_color foreground;
+	struct wtwm_color background;
+	struct wtwm_color highlight_foreground;
+	struct wtwm_color highlight_background;
+	bool user_colors;
 };
 
 struct interaction_session {
@@ -608,8 +628,7 @@ static bool xwayland_color(struct server *server, const char *name,
 	return true;
 }
 
-static void color_value(struct server *server, const char *name,
-		float color[static 4]) {
+static struct wtwm_color color_result(struct server *server, const char *name) {
 	struct wtwm_color parsed = {0, 0, 0};
 	if (!wtwm_color_parse_literal(name, &parsed) &&
 		!xwayland_color(server, name, &parsed)) {
@@ -620,16 +639,24 @@ static void color_value(struct server *server, const char *name,
 		parsed = wtwm_color_grayscale(parsed);
 	else if (server->color_mode == WTWM_COLOR_MODE_MONOCHROME)
 		parsed = wtwm_color_monochrome(parsed);
-	wtwm_color_to_float(&parsed, color);
+	return parsed;
+}
+
+static struct wtwm_color configured_color_result(struct server *server,
+		const char *setting, const char *fallback,
+		const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	const char *value = wtwm_config_color_value(&server->config, setting,
+		server->color_mode, toplevel != NULL ? &identity : NULL);
+	return color_result(server, value != NULL ? value : fallback);
 }
 
 static void configured_color(struct server *server, const char *setting,
 		const char *fallback, const struct toplevel *toplevel,
 		float color[static 4]) {
-	struct wtwm_client_identity identity = toplevel_identity(toplevel);
-	const char *value = wtwm_config_color_value(&server->config, setting,
-		server->color_mode, toplevel != NULL ? &identity : NULL);
-	color_value(server, value != NULL ? value : fallback, color);
+	struct wtwm_color parsed = configured_color_result(server, setting, fallback,
+		toplevel);
+	wtwm_color_to_float(&parsed, color);
 }
 
 static bool toplevel_matches(const struct wtwm_string_list *patterns,
@@ -1252,6 +1279,7 @@ static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
 }
 
 static void set_focused_marker(struct server *server, struct toplevel *focused) {
+	(void)focused;
 	struct toplevel *item;
 	wl_list_for_each(item, &server->toplevels, link) {
 		if (item->focus_mark != NULL) update_decoration(item);
@@ -1885,8 +1913,66 @@ static bool spawn_shell(const char *command) {
 
 static void hide_menu(struct server *server) {
 	if (server->menu.tree != NULL) wlr_scene_node_destroy(&server->menu.tree->node);
+	free(server->menu.rows);
 	memset(&server->menu, 0, sizeof(server->menu));
 	server->menu.selected = -1;
+}
+
+static void menu_palettes(struct server *server, const struct wtwm_menu *menu,
+		struct menu_row_palette *palettes) {
+	struct wtwm_color normal_foreground = configured_color_result(server,
+		"MenuForeground", "black", NULL);
+	struct wtwm_color normal_background = configured_color_result(server,
+		"MenuBackground", "white", NULL);
+	struct wtwm_color title_foreground = configured_color_result(server,
+		"MenuTitleForeground", "black", NULL);
+	struct wtwm_color title_background = configured_color_result(server,
+		"MenuTitleBackground", "white", NULL);
+	bool root_highlight = server->color_mode == WTWM_COLOR_MODE_COLOR &&
+		menu->foreground[0] != '\0';
+	struct wtwm_color root_highlight_foreground = root_highlight ?
+		color_result(server, menu->foreground) : (struct wtwm_color){0, 0, 0};
+	struct wtwm_color root_highlight_background = root_highlight ?
+		color_result(server, menu->background) : (struct wtwm_color){0, 0, 0};
+	for (size_t i = 0; i < menu->item_count; ++i) {
+		bool title = menu->items[i].action.type == WTWM_ACTION_TITLE;
+		bool user = server->color_mode == WTWM_COLOR_MODE_COLOR &&
+			menu->items[i].foreground[0] != '\0';
+		palettes[i].foreground = user ?
+			color_result(server, menu->items[i].foreground) :
+			(title ? title_foreground : normal_foreground);
+		palettes[i].background = user ?
+			color_result(server, menu->items[i].background) :
+			(title ? title_background : normal_background);
+		palettes[i].highlight_foreground = root_highlight ?
+			root_highlight_foreground : palettes[i].background;
+		palettes[i].highlight_background = root_highlight ?
+			root_highlight_background : palettes[i].foreground;
+		palettes[i].user_colors = user;
+	}
+	if (server->color_mode != WTWM_COLOR_MODE_COLOR ||
+			!server->config.interpolate_menu_colors) return;
+	for (size_t start = 0; start < menu->item_count;) {
+		while (start < menu->item_count && !palettes[start].user_colors) ++start;
+		if (start == menu->item_count) break;
+		size_t end = start + 1;
+		while (end < menu->item_count && !palettes[end].user_colors) ++end;
+		if (end == menu->item_count) break;
+		unsigned steps = (unsigned)(end - start);
+		for (size_t i = start + 1; i < end; ++i) {
+			unsigned index = (unsigned)(i - start);
+			palettes[i].foreground = wtwm_color_interpolate(
+				palettes[start].foreground, palettes[end].foreground,
+				index, steps);
+			palettes[i].background = wtwm_color_interpolate(
+				palettes[start].background, palettes[end].background,
+				index, steps);
+			palettes[i].highlight_background = palettes[i].foreground;
+			palettes[i].highlight_foreground = palettes[i].background;
+			palettes[i].user_colors = true;
+		}
+		start = end;
+	}
 }
 
 static void show_menu(struct server *server, const char *name,
@@ -1903,77 +1989,166 @@ static void show_menu(struct server *server, const char *name,
 		return;
 	}
 	hide_menu(server);
-	struct wlr_buffer **buffers = calloc(menu->item_count, sizeof(*buffers));
 	int *widths = calloc(menu->item_count, sizeof(*widths));
 	int *heights = calloc(menu->item_count, sizeof(*heights));
-	if (buffers == NULL || widths == NULL || heights == NULL) {
-		free(buffers); free(widths); free(heights); return;
+	struct menu_row_palette *palettes = calloc(menu->item_count,
+		sizeof(*palettes));
+	if (widths == NULL || heights == NULL || palettes == NULL) {
+		free(widths); free(heights); free(palettes); return;
 	}
+	menu_palettes(server, menu, palettes);
 	int content_width = 1;
-	int row_height = 18;
+	bool has_pull_entry = false;
 	for (size_t i = 0; i < menu->item_count; ++i) {
 		float color[4];
-		if (menu->items[i].foreground[0] &&
-				server->color_mode == WTWM_COLOR_MODE_COLOR)
-			color_value(server, menu->items[i].foreground, color);
-		else if (menu->items[i].action.type == WTWM_ACTION_TITLE)
-			configured_color(server, "MenuTitleForeground", "black", NULL, color);
-		else configured_color(server, "MenuForeground", "black", NULL, color);
-		buffers[i] = wtwm_render_text(menu->items[i].label,
+		wtwm_color_to_float(&palettes[i].foreground, color);
+		struct wlr_buffer *measure = wtwm_render_text(menu->items[i].label,
 			server->config.menu_font, color, &widths[i], &heights[i]);
+		if (measure != NULL) wlr_buffer_drop(measure);
 		if (widths[i] > content_width) content_width = widths[i];
-		if (heights[i] + 6 > row_height) row_height = heights[i] + 6;
+		if (menu->items[i].action.type == WTWM_ACTION_MENU)
+			has_pull_entry = true;
 	}
-	int border_width = server->config.menu_border_width;
-	if (border_width < 1) border_width = 1;
-	int menu_width = content_width + 16 + 2 * border_width;
-	int menu_height = (int)menu->item_count * row_height + 2 * border_width;
-	float border[4], background[4], highlight[4];
+	int font_height = 1;
+	int font_ascent = 1;
+	(void)wtwm_measure_font_metrics(server->config.menu_font, &font_height,
+		&font_ascent);
+	struct wtwm_visual_config visual = wtwm_visual_config_defaults();
+	visual.menu_border_width = server->config.menu_border_width;
+	visual.menu_shadows = !server->config.no_menu_shadows;
+	struct wtwm_menu_layout layout;
+	wtwm_menu_layout_compute(&visual, font_height, font_ascent, content_width,
+		(unsigned int)menu->item_count, has_pull_entry, &layout);
+	float border[4], shadow[4];
 	configured_color(server, "MenuBorderColor", "black", NULL, border);
-	configured_color(server, "MenuBackground", "white", NULL, background);
-	configured_color(server, "MenuForeground", "black", NULL, highlight);
-	highlight[3] = 0.30f;
+	configured_color(server, "MenuShadowColor", "black", NULL, shadow);
 	struct wlr_scene_tree *tree = wlr_scene_tree_create(server->menu_tree);
-	wlr_scene_rect_create(tree, menu_width, menu_height, border);
-	struct wlr_scene_rect *body = wlr_scene_rect_create(tree,
-		menu_width - 2 * border_width, menu_height - 2 * border_width, background);
-	wlr_scene_node_set_position(&body->node, border_width, border_width);
+	if (tree == NULL) {
+		free(widths); free(heights); free(palettes); return;
+	}
+	if (layout.shadow_visible) {
+		struct wlr_scene_rect *shadow_rect = wlr_scene_rect_create(tree,
+			layout.shadow.width, layout.shadow.height, shadow);
+		if (shadow_rect != NULL) wlr_scene_node_set_position(&shadow_rect->node,
+			layout.shadow.x, layout.shadow.y);
+	}
+	wlr_scene_rect_create(tree, layout.outer.width, layout.outer.height, border);
+	struct menu_row_view *rows = calloc(menu->item_count, sizeof(*rows));
+	if (rows == NULL) {
+		wlr_scene_node_destroy(&tree->node);
+		free(widths); free(heights); free(palettes); return;
+	}
 	for (size_t i = 0; i < menu->item_count; ++i) {
-		if (menu->items[i].action.type == WTWM_ACTION_TITLE ||
-			(menu->items[i].background[0] &&
-				server->color_mode == WTWM_COLOR_MODE_COLOR)) {
-			float row_color[4];
-			if (menu->items[i].background[0] &&
-					server->color_mode == WTWM_COLOR_MODE_COLOR)
-				color_value(server, menu->items[i].background, row_color);
-			else configured_color(server, "MenuTitleBackground", "white", NULL,
-				row_color);
-			struct wlr_scene_rect *row = wlr_scene_rect_create(tree,
-				menu_width - 2 * border_width, row_height, row_color);
-			wlr_scene_node_set_position(&row->node, border_width,
-				border_width + (int)i * row_height);
+		struct wtwm_visual_box row_box;
+		(void)wtwm_menu_row_box(&layout, (unsigned int)i, &row_box);
+		float normal_background[4], highlight_background[4];
+		float normal_foreground[4], highlight_foreground[4];
+		wtwm_color_to_float(&palettes[i].background, normal_background);
+		wtwm_color_to_float(&palettes[i].highlight_background,
+			highlight_background);
+		wtwm_color_to_float(&palettes[i].foreground, normal_foreground);
+		wtwm_color_to_float(&palettes[i].highlight_foreground,
+			highlight_foreground);
+		rows[i].normal_background = wlr_scene_rect_create(tree, row_box.width,
+			row_box.height, normal_background);
+		rows[i].highlight_background = wlr_scene_rect_create(tree, row_box.width,
+			row_box.height, highlight_background);
+		if (rows[i].normal_background != NULL)
+			wlr_scene_node_set_position(&rows[i].normal_background->node,
+				row_box.x, row_box.y);
+		if (rows[i].highlight_background != NULL) {
+			wlr_scene_node_set_position(&rows[i].highlight_background->node,
+				row_box.x, row_box.y);
+			wlr_scene_node_set_enabled(&rows[i].highlight_background->node, false);
+		}
+		struct wlr_buffer *normal = wtwm_render_text(menu->items[i].label,
+			server->config.menu_font, normal_foreground, &widths[i], &heights[i]);
+		int highlight_width = 0;
+		int highlight_height = 0;
+		struct wlr_buffer *highlight = wtwm_render_text(menu->items[i].label,
+			server->config.menu_font, highlight_foreground, &highlight_width,
+			&highlight_height);
+		int text_x = 0;
+		int baseline = 0;
+		(void)wtwm_menu_text_origin(&layout, (unsigned int)i, widths[i],
+			menu->items[i].action.type == WTWM_ACTION_TITLE, &text_x, &baseline);
+		if (normal != NULL) {
+			rows[i].normal_text = wlr_scene_buffer_create(tree, normal);
+			if (rows[i].normal_text != NULL)
+				wlr_scene_node_set_position(&rows[i].normal_text->node, text_x,
+					baseline - font_ascent);
+			wlr_buffer_drop(normal);
+		}
+		if (highlight != NULL) {
+			rows[i].highlight_text = wlr_scene_buffer_create(tree, highlight);
+			if (rows[i].highlight_text != NULL) {
+				wlr_scene_node_set_position(&rows[i].highlight_text->node, text_x,
+					baseline - font_ascent);
+				wlr_scene_node_set_enabled(&rows[i].highlight_text->node, false);
+			}
+			wlr_buffer_drop(highlight);
+		}
+		if (menu->items[i].action.type == WTWM_ACTION_TITLE) {
+			rows[i].separator_bottom = wlr_scene_rect_create(tree,
+				row_box.width, 1, normal_foreground);
+			if (rows[i].separator_bottom != NULL)
+				wlr_scene_node_set_position(&rows[i].separator_bottom->node,
+					row_box.x, row_box.y + row_box.height - 1);
+			if (i != 0) {
+				rows[i].separator_top = wlr_scene_rect_create(tree,
+					row_box.width, 1, normal_foreground);
+				if (rows[i].separator_top != NULL)
+					wlr_scene_node_set_position(&rows[i].separator_top->node,
+						row_box.x, row_box.y);
+			}
+		}
+		if (menu->items[i].action.type == WTWM_ACTION_MENU) {
+			int pull_size = font_height > 0 ? font_height : 1;
+			struct wlr_buffer *pull = wtwm_render_builtin_title(":menu",
+				pull_size, normal_foreground);
+			struct wlr_buffer *pull_hi = wtwm_render_builtin_title(":menu",
+				pull_size, highlight_foreground);
+			int pull_x = layout.content.x + layout.content.width - pull_size - 5;
+			int pull_y = row_box.y + (row_box.height - pull_size) / 2;
+			if (pull != NULL) {
+				rows[i].pull_normal = wlr_scene_buffer_create(tree, pull);
+				if (rows[i].pull_normal != NULL)
+					wlr_scene_node_set_position(&rows[i].pull_normal->node,
+						pull_x, pull_y);
+				wlr_buffer_drop(pull);
+			}
+			if (pull_hi != NULL) {
+				rows[i].pull_highlight = wlr_scene_buffer_create(tree, pull_hi);
+				if (rows[i].pull_highlight != NULL) {
+					wlr_scene_node_set_position(&rows[i].pull_highlight->node,
+						pull_x, pull_y);
+					wlr_scene_node_set_enabled(&rows[i].pull_highlight->node, false);
+				}
+				wlr_buffer_drop(pull_hi);
+			}
 		}
 	}
-	struct wlr_scene_rect *selection = wlr_scene_rect_create(tree,
-		menu_width - 2 * border_width, row_height, highlight);
-	wlr_scene_node_set_enabled(&selection->node, false);
-	for (size_t i = 0; i < menu->item_count; ++i) {
-		if (buffers[i] == NULL) continue;
-		struct wlr_scene_buffer *text = wlr_scene_buffer_create(tree, buffers[i]);
-		wlr_scene_node_set_position(&text->node, border_width + 8,
-			border_width + (int)i * row_height + (row_height - heights[i]) / 2);
-		wlr_buffer_drop(buffers[i]);
-	}
-	free(buffers); free(widths); free(heights);
+	free(widths); free(heights); free(palettes);
+	struct wlr_box output = {0};
+	wlr_output_layout_get_box(server->output_layout, NULL, &output);
+	int menu_x = (int)server->cursor->x;
+	int menu_y = (int)server->cursor->y;
+	if (menu_x + layout.outer.width > output.x + output.width)
+		menu_x = output.x + output.width - layout.outer.width;
+	if (menu_y + layout.outer.height > output.y + output.height)
+		menu_y = output.y + output.height - layout.outer.height;
+	if (menu_x < output.x) menu_x = output.x;
+	if (menu_y < output.y) menu_y = output.y;
 	server->menu = (struct menu_view){
 		.tree = tree,
-		.highlight = selection,
+		.rows = rows,
+		.row_count = menu->item_count,
 		.definition = menu,
 		.target = target,
-		.x = (int)server->cursor->x,
-		.y = (int)server->cursor->y,
-		.width = menu_width,
-		.row_height = row_height,
+		.x = menu_x,
+		.y = menu_y,
+		.width = layout.outer.width,
+		.row_height = layout.row_height,
 		.selected = -1,
 	};
 	wlr_scene_node_set_position(&tree->node, server->menu.x, server->menu.y);
@@ -1982,7 +2157,7 @@ static void show_menu(struct server *server, const char *name,
 static int menu_item_at(struct server *server) {
 	if (server->menu.tree == NULL) return -1;
 	int border = server->config.menu_border_width;
-	if (border < 1) border = 1;
+	if (border < 0) border = 0;
 	int x = (int)server->cursor->x - server->menu.x;
 	int y = (int)server->cursor->y - server->menu.y - border;
 	if (x < border || x >= server->menu.width - border || y < 0) return -1;
@@ -1992,14 +2167,25 @@ static int menu_item_at(struct server *server) {
 
 static void update_menu_selection(struct server *server) {
 	int selected = menu_item_at(server);
-	server->menu.selected = selected;
-	wlr_scene_node_set_enabled(&server->menu.highlight->node, selected >= 0);
-	if (selected >= 0) {
-		int border = server->config.menu_border_width;
-		if (border < 1) border = 1;
-		wlr_scene_node_set_position(&server->menu.highlight->node, border,
-			border + selected * server->menu.row_height);
+	if (selected >= 0 && server->menu.definition->items[selected].action.type ==
+			WTWM_ACTION_TITLE) selected = -1;
+	for (size_t i = 0; i < server->menu.row_count; ++i) {
+		bool active = selected >= 0 && (size_t)selected == i;
+		struct menu_row_view *row = &server->menu.rows[i];
+		if (row->normal_background != NULL)
+			wlr_scene_node_set_enabled(&row->normal_background->node, !active);
+		if (row->highlight_background != NULL)
+			wlr_scene_node_set_enabled(&row->highlight_background->node, active);
+		if (row->normal_text != NULL)
+			wlr_scene_node_set_enabled(&row->normal_text->node, !active);
+		if (row->highlight_text != NULL)
+			wlr_scene_node_set_enabled(&row->highlight_text->node, active);
+		if (row->pull_normal != NULL)
+			wlr_scene_node_set_enabled(&row->pull_normal->node, !active);
+		if (row->pull_highlight != NULL)
+			wlr_scene_node_set_enabled(&row->pull_highlight->node, active);
 	}
+	server->menu.selected = selected;
 }
 
 static bool xwayland_supports_delete(struct toplevel *toplevel) {
