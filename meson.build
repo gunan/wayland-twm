@@ -306,7 +306,27 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_xdg_lifecycle_client = executable(
+    'wtwm-xdg-lifecycle-client',
+    [
+      'tests/integration/xdg_lifecycle_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
   integration_runner = find_program('python3')
+  test(
+    'xdg-shell lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xdg_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xdg_lifecycle_client,
+    ],
+    timeout: 60,
+  )
   test(
     'headless compositor integration',
     integration_runner,

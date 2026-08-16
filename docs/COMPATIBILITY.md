@@ -16,6 +16,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `Function` and `f.function` | Effective | Recursive action sequence, depth limited to eight |
 | Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
+| Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups follow their parent scene and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | Bare forms and lists match Wayland `app_id` and title |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use compositor scene nodes |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
@@ -30,6 +31,16 @@ Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
 user result when possible, document the translation when it is not, and never
 silently reinterpret configuration as a different action.
+
+Native xdg-shell toplevels are absent from the scene until their first map and
+can unmap and remap without retaining focus, interactive grabs, or target-owned
+menus. Title and `app_id` changes immediately update compositor metadata and
+window-list matching. Popup trees are attached to their validated xdg parent,
+including nested popups; placement is unconstrained against the containing
+output's layout bounds in root-surface coordinates. Parent unmap or destruction
+dismisses every rooted popup before the toplevel state is released. Layer-shell
+exclusive zones are not implemented yet, so the usable area is currently the
+full output-layout box.
 
 ## Complete configuration model
 
