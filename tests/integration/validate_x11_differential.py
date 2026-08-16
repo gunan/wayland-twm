@@ -88,6 +88,7 @@ def validate_text(
         "def normalized_common(item: dict[str, object], managed: bool)",
         "if not item[\"root_parent\"]:",
         "wait_dialog_process(dialog_app.process.pid, dialog)",
+        'fields[0] != "Z"',
         'icccm.stdin.write("EXIT\\n")',
         '"result": "equivalent"',
         '"result": "failed"',

@@ -88,6 +88,7 @@ def validate_text(packages_text: str, meson: str, runner: str) -> list[str]:
         "if parent.poll() is not None:",
         "os.kill(dialog_pid, signal.SIGTERM)",
         "os.kill(dialog_pid, signal.SIGKILL)",
+        'fields[0] != "Z"',
         "wait_pid_gone(dialog_pid, 2)",
         "wait_pid_gone(dialog_pid, 3)",
     ):
