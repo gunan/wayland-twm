@@ -82,6 +82,9 @@ focus, logical mapped/iconified/title state, and bottom-to-top stack
 after every input event.  The only omitted observations are volatile process,
 display, time, XID, and compositor-frame identities plus decoration and
 temporary outline pixels.
+The shared profile enables `OpaqueMove`: pinned `menus.c` otherwise grabs the
+X server for an outlined move even with `NoGrabServer`, making an independent
+post-input geometry observer impossible until button release.
 
 CI writes the complete normalized traces, convergence samples, session logs,
 and pass/fail comparison to the `m4-trace-differential` artifact.  The portable

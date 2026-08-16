@@ -189,7 +189,7 @@ def validate_sources(
         if marker not in input_driver:
             errors.append(f"trace differential input driver lacks {marker!r}")
     for marker in (
-        'UsePPosition "on"', 'BorderWidth 3', 'TitleFont "fixed"',
+        'UsePPosition "on"', 'BorderWidth 3', 'TitleFont "fixed"', 'OpaqueMove',
         'Button1 = : title : f.move',
         'Button2 = : window|title|frame : f.raise',
         'Button3 = : window|title|frame : f.focus',

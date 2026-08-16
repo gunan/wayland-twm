@@ -12,7 +12,7 @@
     "depth": 24
   },
   "configuration": "tests/integration/m4_trace_differential.twmrc",
-  "configuration_sha256": "c0630cbe9ebcbcb236a4f09e331da1ca841c347e0e3e7617dbc80b64c3a6987b",
+  "configuration_sha256": "4f604f71873c1de6d2c62d97bbbf426988994a84ea1f10d5c2a23630be632f07",
   "initial_oracle": {
     "alpha": "reference/captures/twm-1.0.13.1/baseline/phase-alpha.json",
     "alpha_sha256": "f70a39cb321ccffcdef0a43b1ecd8ba1e95085bbf4dd37784545476f70313cda",

@@ -5,6 +5,7 @@ NoHighlight
 NoTitleHighlight
 NoTitleFocus
 NoMenuShadows
+OpaqueMove
 NoRaiseOnMove
 NoRaiseOnResize
 UsePPosition "on"
