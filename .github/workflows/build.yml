@@ -112,6 +112,8 @@ jobs:
         run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build
       - name: Capture repeatable reference behavior
         run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"
+      - name: Capture repeatable reference geometry matrix
+        run: sh tests/reference/capture_reference_geometry_matrix.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-geometry-matrix
       - name: Verify canonical X11 applications
         run: sh tests/reference/verify_canonical_x11_apps.sh "$GITHUB_WORKSPACE" /tmp/reference-build
       - name: Build portable configuration checker
@@ -133,6 +135,13 @@ jobs:
         with:
           name: reference-capture
           path: /tmp/reference-capture
+          if-no-files-found: error
+      - name: Upload reference geometry matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-geometry-matrix
+          path: /tmp/reference-geometry-matrix
           if-no-files-found: error
 
   x11-differential:

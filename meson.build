@@ -249,6 +249,16 @@ test(
   ],
 )
 test(
+  'reference geometry matrix contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_geometry_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'canonical X11 application manifest',
   find_program('python3'),
   args: [
