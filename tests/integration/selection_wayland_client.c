@@ -735,8 +735,9 @@ static bool initialize(struct client *client) {
 	if (client->buffer == NULL || client->surface == NULL) return false;
 	client->xdg_surface = xdg_wm_base_get_xdg_surface(client->wm_base,
 		client->surface);
+	if (client->xdg_surface == NULL) return false;
 	client->toplevel = xdg_surface_get_toplevel(client->xdg_surface);
-	if (client->xdg_surface == NULL || client->toplevel == NULL) return false;
+	if (client->toplevel == NULL) return false;
 	xdg_surface_add_listener(client->xdg_surface, &xdg_surface_listener, client);
 	xdg_toplevel_add_listener(client->toplevel, &toplevel_listener, client);
 	xdg_toplevel_set_title(client->toplevel, "wtwm-selection-wayland");

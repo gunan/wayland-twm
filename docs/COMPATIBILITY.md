@@ -122,11 +122,14 @@ and X selection properties rather than a compositor-side text cache.
 
 The bridge follows Wayland's keyboard-focus and input-serial rules. A native
 client needs a valid seat serial to claim either selection, and offers are sent
-to the keyboard-focused native client. An X11 requestor needs a focused
-Xwayland surface to read a Wayland-owned selection. Replacing a source cancels
-the prior source, and disconnecting either a native or X11 owner clears the
-corresponding proxy ownership instead of leaving stale `CLIPBOARD` or `PRIMARY`
-contents.
+to the keyboard-focused native client. During X-to-Wayland import, wlroots
+admits an X-owned selection to the shared seat only while an Xwayland surface
+is focused during `TARGETS` negotiation. An X11 requestor likewise needs a
+focused Xwayland surface to read a Wayland-owned selection. Replacing a source
+cancels the prior source, and disconnecting either a native or X11 owner clears
+the corresponding proxy ownership instead of leaving stale `CLIPBOARD` or
+`PRIMARY` contents.
+
 Clipboard-manager persistence after the owning client exits is not provided.
 Native PRIMARY support requires clients to implement the standard unstable-v1
 primary-selection protocol. Legacy X cut buffers and the twm cut-buffer actions
