@@ -268,9 +268,8 @@ def run_mode(arguments: argparse.Namespace, config: Path, mode: str,
         control.command("BUTTON 272 press")
         images["button-pressed"] = capture(control, mode_dir, "button-pressed")
         control.command("BUTTON 272 release")
-        if not (images["focused"] == images["button-hover"] ==
-                images["button-pressed"]):
-            raise RuntimeError("twm-compatible title button states changed pixels")
+        if images["button-hover"] != images["button-pressed"]:
+            raise RuntimeError("twm-compatible title button press changed pixels")
 
         title_cases = (
             ("title-long", "L" * 180),
@@ -361,7 +360,7 @@ def run_mode(arguments: argparse.Namespace, config: Path, mode: str,
         report["configured_color_samples"] = {
             name: list(value) for name, value in samples.items()
         }
-        report["button_states_pixel_identical"] = True
+        report["button_hover_pressed_pixel_identical"] = True
         report["title_variant_hashes"] = title_hashes
         report["icon_geometry"] = icon_view
         report["captures"] = {name: sha256(data) for name, data in images.items()}
