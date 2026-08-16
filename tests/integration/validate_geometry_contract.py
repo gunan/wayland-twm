@@ -30,7 +30,7 @@ def validate_text(wtwm: str, geometry: str, meson: str) -> list[str]:
     required_wtwm = (
         '#include "wtwm/geometry.h"',
         "wtwm_frame_geometry(toplevel->width, toplevel->height,",
-        "wtwm_initial_window_position(toplevel->xwayland->x,",
+        "wtwm_initial_window_position(requested_x, requested_y,",
         "wtwm_configure_request_position(toplevel->tree->node.x,",
         "wlr_scene_node_set_enabled(&toplevel->frame->node, toplevel_has_frame(toplevel));",
         "geometry.content_x, geometry.content_y);",
@@ -73,7 +73,7 @@ def validate_text(wtwm: str, geometry: str, meson: str) -> list[str]:
     required_meson = (
         "'src/geometry.c'",
         "test('twm geometry and size constraints', geometry_test)",
-        "config_dep, geometry_dep, interaction_dep, wlroots",
+        "config_dep, geometry_dep, interaction_dep, placement_dep, wlroots",
         "files('tests/integration/validate_geometry_contract.py')",
     )
     for marker in required_meson:

@@ -20,11 +20,24 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
 wlroots dependency. `src/geometry.c` likewise keeps twm's frame math and
 `ConstrainSize` ordering portable. `src/interaction.c` owns the reference move
 threshold, constrained-axis, outer-bound clamp, auto-relative resize-origin,
-anchored constraint, delta-stop, and outline/opaque terminal decisions. The
-portable tests therefore exercise exact state transitions without a graphics
-stack. `wtwm-config` and those tests build on any ordinary Unix host.
-`src/wtwm.c` is the Linux compositor adapter and targets the wlroots 0.18
-public API.
+anchored constraint, delta-stop, and outline/opaque terminal decisions.
+`src/placement.c` owns position-hint policy, maximum-size parsing/defaults,
+random-placement state, and outer-frame clamping. The portable tests therefore
+exercise these exact decisions without a graphics stack. `wtwm-config` and
+those tests build on any ordinary Unix host. `src/wtwm.c` is the Linux
+compositor adapter and targets the wlroots 0.18 public API.
+
+Initial Xwayland placement reads `USPosition`/`PPosition` from
+`WM_NORMAL_HINTS`, applies `UsePPosition` exactly, and always preserves a
+transient's requested position. Windows that still require placement use the
+reference random sequence when `RandomPlacement` is enabled. Without it, wtwm
+uses an explicit Wayland translation of twm's blocking rubber-band prompt: an
+instant 24-pixel cascade anchored at the current pointer supplies requested
+client origins, with `DontMoveOff` applied to each resulting outer frame. This
+map-time adapter does not take an input grab or wait for a confirm click. Native xdg-shell has no
+position-hint fields, so every first map follows the same random-or-pointer
+policy; remaps retain the managed frame position. Both protocols receive the
+initial `MaxWindowSize` clip, including twm's screen-derived default.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide

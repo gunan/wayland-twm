@@ -2,6 +2,8 @@
 #ifndef WTWM_CONFIG_H
 #define WTWM_CONFIG_H
 
+#include <wtwm/placement.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -251,6 +253,10 @@ struct wtwm_config {
 	char unknown_icon[WTWM_NAME_MAX];
 	char max_window_size[WTWM_NAME_MAX];
 	char use_p_position[WTWM_NAME_MAX];
+	int max_window_width;
+	int max_window_height;
+	bool max_window_size_set;
+	enum wtwm_use_p_position use_p_position_mode;
 	char icon_manager_geometry[WTWM_NAME_MAX];
 	char border_color[WTWM_NAME_MAX];
 	char border_tile_background[WTWM_NAME_MAX];

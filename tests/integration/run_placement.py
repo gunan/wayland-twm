@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Exercise twm placement policy through Xwayland and native test state."""
+
+from __future__ import annotations
+
+import argparse
+import os
+from pathlib import Path
+import select
+import shlex
+import subprocess
+import tempfile
+import time
+
+from run_compositor import Control
+
+
+def wait_path(path: Path) -> str:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if path.exists() and path.read_text(encoding="utf-8").strip():
+            return path.read_text(encoding="utf-8").strip()
+        time.sleep(0.01)
+    raise RuntimeError(f"timed out waiting for {path}")
+
+
+def wait_line(process: subprocess.Popen[str], expected: str) -> None:
+    assert process.stdout is not None
+    readable, _, _ = select.select([process.stdout], [], [], 10)
+    if not readable or process.stdout.readline().rstrip("\n") != expected:
+        raise RuntimeError(f"client did not report {expected}")
+
+
+def window(state: dict[str, object], title: str) -> dict[str, object]:
+    for item in state["windows"]:
+        if item["title"] == title:
+            return item
+    raise KeyError(title)
+
+
+def wait_windows(control: Control, titles: set[str]) -> dict[str, object]:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        state = control.state()
+        if titles <= {item["title"] for item in state["windows"]}:
+            return state
+        time.sleep(0.01)
+    raise RuntimeError(f"timed out waiting for {sorted(titles)}: {control.state()!r}")
+
+
+def run_case(compositor: Path, client_binary: Path, scenario: str,
+             config_text: str, output: tuple[int, int], cursor: tuple[int, int],
+             expected: dict[str, tuple[int, int, int, int, str]],
+             remap: bool = False) -> None:
+    with tempfile.TemporaryDirectory(prefix=f"wtwm-placement-{scenario}-") as directory:
+        temporary = Path(directory)
+        runtime = temporary / "runtime"
+        runtime.mkdir(mode=0o700)
+        control_path = temporary / "control.sock"
+        display_marker = temporary / "display"
+        config = temporary / "placement.twmrc"
+        config.write_text(config_text, encoding="utf-8")
+        startup = f'printf "%s\\n" "$DISPLAY" > {shlex.quote(str(display_marker))}'
+        environment = os.environ.copy()
+        environment.update({"XDG_RUNTIME_DIR": str(runtime), "WLR_RENDERER": "pixman"})
+        process = subprocess.Popen(
+            [str(compositor), "-f", str(config), "-s", startup,
+             "--test-control", str(control_path),
+             "--test-socket", f"wtwm-placement-{os.getpid()}-{scenario}",
+             "--test-backend", "headless"],
+            env=environment, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        control: Control | None = None
+        client: subprocess.Popen[str] | None = None
+        try:
+            control = Control(control_path, process)
+            control.command(f"OUTPUT {output[0]} {output[1]}")
+            control.command(f"SET CURSOR {cursor[0]} {cursor[1]}")
+            control.command("SET PLACEMENT_SEED 0")
+            display = wait_path(display_marker)
+            client_environment = environment.copy()
+            client_environment["DISPLAY"] = display
+            client = subprocess.Popen(
+                [str(client_binary), scenario], env=client_environment,
+                text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, bufsize=1,
+            )
+            wait_line(client, "READY")
+            state = wait_windows(control, set(expected))
+            for title, values in expected.items():
+                item = window(state, title)
+                actual = (int(item["x"]), int(item["y"]), int(item["width"]),
+                          int(item["height"]), str(item["placement"]))
+                if actual != values:
+                    raise RuntimeError(
+                        f"{scenario} placement mismatch for {title}: "
+                        f"expected={values!r} actual={actual!r} state={state!r}"
+                    )
+            trace = control.trace()
+            trace_placements = {
+                event["window"]["title"]: event["state"]["placement"]
+                for event in trace["events"] if event["event"] == "map"
+            }
+            for title, values in expected.items():
+                if trace_placements.get(title) != values[4]:
+                    raise RuntimeError(f"TRACE omitted placement decision: {trace!r}")
+            if remap:
+                before = window(state, "placement-remap")
+                assert client.stdin is not None
+                client.stdin.write("REMAP\n")
+                client.stdin.flush()
+                wait_line(client, "REMAPPED")
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline:
+                    state = control.state()
+                    try:
+                        after = window(state, "placement-remap")
+                    except KeyError:
+                        pass
+                    else:
+                        if after["placement"] == "remapped":
+                            break
+                    time.sleep(0.01)
+                else:
+                    raise RuntimeError(f"remap state never stabilized: {state!r}")
+                if (after["x"], after["y"]) != (before["x"], before["y"]):
+                    raise RuntimeError(f"remap moved the frame: before={before!r} after={after!r}")
+        finally:
+            if client is not None and client.poll() is None:
+                client.terminate()
+                try:
+                    client.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    client.kill()
+            if control is not None:
+                control.close()
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+            if process.returncode not in (0, -15):
+                stderr = process.stderr.read() if process.stderr else ""
+                raise RuntimeError(f"compositor failed ({process.returncode}): {stderr}")
+
+
+def run(compositor: Path, client: Path) -> None:
+    run_case(compositor, client, "us", 'UsePPosition "off"\n', (640, 480),
+             (17, 19), {"placement-us": (11, 13, 100, 80, "requested")})
+    run_case(compositor, client, "nohint", 'UsePPosition "off"\n', (640, 480),
+             (17, 19), {"placement-nohint": (17, 19, 100, 80, "pointer")})
+    run_case(compositor, client, "p", 'UsePPosition "on"\n', (640, 480),
+             (17, 19), {
+                 "placement-p-zero": (0, 0, 100, 80, "requested"),
+                 "placement-p-nonzero": (40, 50, 100, 80, "requested"),
+             })
+    run_case(compositor, client, "p", 'UsePPosition "off"\n', (640, 480),
+             (17, 19), {
+                 "placement-p-zero": (17, 19, 100, 80, "pointer"),
+                 "placement-p-nonzero": (41, 43, 100, 80, "pointer"),
+             })
+    run_case(compositor, client, "p", 'UsePPosition "non-zero"\n', (640, 480),
+             (17, 19), {
+                 "placement-p-zero": (17, 19, 100, 80, "pointer"),
+                 "placement-p-nonzero": (40, 50, 100, 80, "requested"),
+             })
+    run_case(compositor, client, "transient", 'UsePPosition "off"\n',
+             (640, 480), (17, 19), {
+                 "placement-owner": (10, 12, 100, 80, "requested"),
+                 "placement-transient": (77, 88, 90, 60, "requested"),
+             })
+    run_case(compositor, client, "random", "RandomPlacement\n", (640, 480),
+             (17, 19), {
+                 "placement-random-1": (50, 50, 100, 80, "random"),
+                 "placement-random-2": (80, 80, 100, 80, "random"),
+                 "placement-random-3": (110, 110, 100, 80, "random"),
+             })
+    run_case(compositor, client, "edge", "RandomPlacement\n", (120, 100),
+             (17, 19), {
+                 "placement-random-1": (20, 20, 100, 80, "random"),
+                 "placement-random-2": (20, 20, 100, 80, "random"),
+                 "placement-random-oversized": (0, 0, 200, 180, "random"),
+             })
+    run_case(compositor, client, "max", 'MaxWindowSize "800x600"\n',
+             (1000, 800), (17, 19), {
+                 "placement-max": (10, 12, 800, 600, "requested"),
+             })
+    run_case(compositor, client, "defaultmax", "", (640, 480), (17, 19), {
+        "placement-default-max": (10, 12, 32127, 32287, "requested"),
+    })
+    run_case(compositor, client, "remap", "", (640, 480), (17, 19), {
+        "placement-remap": (66, 77, 100, 80, "requested"),
+    }, remap=True)
+    run_case(compositor, client, "nohint", "DontMoveOff\nNoTitle\n", (120, 100),
+             (110, 95), {"placement-nohint": (16, 16, 100, 80, "pointer")})
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compositor", type=Path, required=True)
+    parser.add_argument("--client", type=Path, required=True)
+    args = parser.parse_args()
+    run(args.compositor.resolve(), args.client.resolve())
+    print("placement integration passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

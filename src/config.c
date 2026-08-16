@@ -386,6 +386,7 @@ static enum wtwm_compatibility directive_compatibility(const char *name) {
 		"RightTitleButton", "StartIconified", "TitleBackground",
 		"TitleButtonBorderWidth", "TitleFont", "TitleForeground", "TitlePadding",
 		"AutoRaise", "AutoRelativeResize", "ConstrainedMoveTime", "DontMoveOff",
+		"MaxWindowSize", "UsePPosition",
 	};
 	static const char *const translated[] = {
 		"ClientBorderWidth", "DecorateTransients", "IconFont", "IconManagerFont",
@@ -773,10 +774,9 @@ struct string_option { const char *name; size_t offset; };
 #define STRING_OPT(name, field) {name, offsetof(struct wtwm_config, field)}
 static const struct string_option string_options[] = {
 	STRING_OPT("IconDirectory", icon_directory), STRING_OPT("IconFont", icon_font),
-	STRING_OPT("IconManagerFont", icon_manager_font), STRING_OPT("MaxWindowSize", max_window_size),
+	STRING_OPT("IconManagerFont", icon_manager_font),
 	STRING_OPT("MenuFont", menu_font), STRING_OPT("ResizeFont", resize_font),
 	STRING_OPT("TitleFont", title_font), STRING_OPT("UnknownIcon", unknown_icon),
-	STRING_OPT("UsePPosition", use_p_position),
 };
 #undef STRING_OPT
 
@@ -1083,6 +1083,33 @@ static bool parse_statement_body(struct parser *parser, const char *keyword,
 			return take_number(parser, &parser->config->zoom_count);
 		return true;
 	}
+	if (equal_ci(keyword, "UsePPosition")) {
+		if (parser->token.type != TOK_STRING)
+			return fail(parser, "expected a quoted string");
+		if (!set_record_value(parser, parser->token.text)) return false;
+		enum wtwm_use_p_position mode;
+		if (wtwm_parse_use_p_position(parser->token.text, &mode)) {
+			parser->config->use_p_position_mode = mode;
+		} else {
+			/* Reference twm warns, keeps PPOS_OFF, and continues parsing. */
+			++parser->config->warning_count;
+		}
+		return take_string(parser, parser->config->use_p_position,
+			sizeof(parser->config->use_p_position));
+	}
+	if (equal_ci(keyword, "MaxWindowSize")) {
+		if (parser->token.type != TOK_STRING)
+			return fail(parser, "expected a quoted string");
+		int width = 0, height = 0;
+		if (!wtwm_parse_max_window_size(parser->token.text, &width, &height))
+			return fail(parser, "MaxWindowSize must contain positive width and height");
+		if (!set_record_value(parser, parser->token.text)) return false;
+		parser->config->max_window_width = width;
+		parser->config->max_window_height = height;
+		parser->config->max_window_size_set = true;
+		return take_string(parser, parser->config->max_window_size,
+			sizeof(parser->config->max_window_size));
+	}
 	bool optional = false, no_title_bare = false;
 	if (is_window_list_directive(keyword, &optional, &no_title_bare))
 		return parse_window_list(parser, keyword, optional, no_title_bare);
@@ -1147,6 +1174,8 @@ void wtwm_config_init(struct wtwm_config *config) {
 	config->menu_border_width = 2;
 	config->icon_border_width = 2;
 	config->case_sensitive = true;
+	config->use_p_position_mode = WTWM_USE_P_POSITION_OFF;
+	copy_text(config->use_p_position, sizeof(config->use_p_position), "off");
 	copy_text(config->title_font, sizeof(config->title_font), "Sans Bold 10");
 	copy_text(config->menu_font, sizeof(config->menu_font), "Sans Bold 10");
 	copy_text(config->resize_font, sizeof(config->resize_font), "Sans Bold 10");

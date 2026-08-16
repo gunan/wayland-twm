@@ -13,15 +13,45 @@ inc = include_directories('include')
 config_args = [
   '-DWTWM_SYSTEM_CONFIG="' + get_option('prefix') / get_option('datadir') / 'wtwm/system.twmrc' + '"',
 ]
+
+placement_lib = static_library(
+  'wtwm-placement-lib',
+  'src/placement.c',
+  include_directories: inc,
+)
+placement_dep = declare_dependency(
+  link_with: placement_lib,
+  include_directories: inc,
+)
+
+placement_test = executable(
+  'placement-test',
+  'tests/placement_test.c',
+  dependencies: placement_dep,
+)
+test('twm placement policy', placement_test)
+test(
+  'placement runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_placement_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 config_lib = static_library(
   'wtwm-config-lib',
   'src/config.c',
   include_directories: inc,
   c_args: config_args,
+  dependencies: placement_dep,
 )
 config_dep = declare_dependency(
   link_with: config_lib,
   include_directories: inc,
+  dependencies: placement_dep,
 )
 
 geometry_lib = static_library(
@@ -422,14 +452,14 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep, geometry_dep, interaction_dep,
+      config_dep, geometry_dep, interaction_dep, placement_dep,
       wlroots,
       pangocairo,
       dependency('fontconfig'),
@@ -538,6 +568,12 @@ if wlroots.found()
   wtwm_interaction_x11_client = executable(
     'wtwm-interaction-x11-client',
     'tests/integration/interaction_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_xwayland_placement_client = executable(
+    'wtwm-xwayland-placement-client',
+    'tests/integration/xwayland_placement_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -654,6 +690,17 @@ if wlroots.found()
       '--client', wtwm_interaction_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'initial placement integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_placement.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_placement_client,
+    ],
+    timeout: 180,
     is_parallel: false,
   )
   test(

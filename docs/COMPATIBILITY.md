@@ -28,6 +28,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
+| Initial placement and `MaxWindowSize` | Behaviorally equivalent for non-interactive policy | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, and remap stability follow reference twm. Native clients have no position hints and use the same random path. The blocking non-random rubber-band prompt is translated to an immediate pointer-anchored cascade; no confirm-click outline is shown. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
 | Canonical X11 reference differential | Behaviorally equivalent for the compared client model | One Debian Trixie CI job runs the same Debian client commands and the same configuration under frozen `twm` 1.0.13.1 and wtwm/Xwayland. It compares exact title, instance/class, map and management state, transient and override-redirect roles, delete/input/urgency hints, icon name and supplied icon dimensions/content checksum, and normal-hint values. Reference management is proven by a distinct reparent frame; wtwm management is proven by its compositor scene decoration. Exact frame geometry, pixel rendering, and native/cross-protocol behavior are explicit later-milestone boundaries. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
@@ -106,9 +107,12 @@ reference order: clamp, snap down to the base/increment lattice, then adjust
 aspect without a final reclamp. Native xdg-shell has no base-size, increment,
 or aspect protocol fields, so only its advertised minimum and maximum sizes
 can be honored. Initial map and managed `ConfigureRequest` coordinates use the
-reference gravity and border translations; interactive placement policy and a
-reviewed numeric differential against the live geometry artifact remain later
-work.
+reference gravity and border translations. Initial maximum clipping and
+position-hint/random/transient selection run before that conversion. The
+remaining placement difference is the explicitly translated non-random prompt:
+wtwm uses an immediate 24-pixel cascade anchored at the current pointer instead
+of grabbing the server, drawing an XOR outline, and waiting for a confirming
+mouse button.
 
 Interactive move and resize use the source-derived `twm` state machine.
 `MoveDelta` is a strict per-axis threshold (equality starts, zero starts on the

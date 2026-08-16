@@ -223,6 +223,7 @@ def run(compositor: Path, client_binary: Path) -> None:
             control = Control(control_path, process)
             control.command("SET FONT DejaVu Sans 10")
             control.command("OUTPUT 640 480")
+            control.command("SET CURSOR 44 55")
             display = wait_path(display_marker)
             client_environment = environment.copy()
             client_environment["DISPLAY"] = display

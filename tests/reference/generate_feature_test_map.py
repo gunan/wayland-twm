@@ -99,7 +99,10 @@ INT_DIRECTIVES = {
     "BorderWidth", "ButtonIndent", "ConstrainedMoveTime", "FramePadding",
     "MenuBorderWidth", "MoveDelta", "TitleButtonBorderWidth", "TitlePadding",
 }
-STRING_DIRECTIVES = {"IconFont", "IconManagerFont", "MenuFont", "ResizeFont", "TitleFont"}
+STRING_DIRECTIVES = {
+    "IconFont", "IconManagerFont", "MaxWindowSize", "MenuFont", "ResizeFont",
+    "TitleFont", "UsePPosition",
+}
 COLOR_ENTRIES = {
     "BorderColor", "MenuBackground", "MenuBorderColor", "MenuForeground",
     "MenuTitleBackground", "MenuTitleForeground", "TitleBackground", "TitleForeground",

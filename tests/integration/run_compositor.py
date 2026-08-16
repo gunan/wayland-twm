@@ -176,7 +176,7 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             if state["focus"] != title:
                 raise RuntimeError(f"mapped client is not focused: {state!r}")
             window = next(window for window in state["windows"] if window["title"] == title)
-            if (window["x"], window["y"]) != (32, 32):
+            if (window["x"], window["y"]) != (8, 8):
                 raise RuntimeError(f"placement is not deterministic: {window!r}")
             for key in ("stack", "iconified", "width", "height"):
                 if key not in window:

@@ -12,7 +12,8 @@ press|release`, `KEY code press|release`, `STATE`, `TRACE`, `TRACE CLEAR`,
 containing focus, client geometry, exact frame/title/border extents,
 advertised size constraints,
 top-to-bottom stacking order, iconified clients, menu state, cursor position,
-and deterministic-control values. `CAPTURE` writes the first output as a binary
+the per-window placement decision, next random-placement coordinate, and
+deterministic-control values. `CAPTURE` writes the first output as a binary
 PPM. The host-native `geometry runtime wiring contract` additionally guards
 that only compositor-driven resize paths call the portable constraint model;
 ordinary X11 configure requests and hint-property changes remain unsnapped as
@@ -53,6 +54,14 @@ frame borders, initial coordinates, and unchanged `WM_NORMAL_HINTS`. The
 reference matrix deliberately has no committed numeric observation baseline,
 so this structural runner records `reference_numeric_baseline: false` and does
 not claim a live differential pass.
+
+The `initial placement integration` test maps tailored X11 windows through all
+three `UsePPosition` modes, `USPosition`, missing hints, transients, random
+sequences and edge resets (including an oversized client), explicit and
+screen-derived maximum sizes, `DontMoveOff`, and unmap/remap. It checks both
+`STATE` and `TRACE` placement classifications. The ordinary native headless
+test separately fixes the pointer before map and verifies the first origin in
+the documented pointer-anchored cascade used where xdg-shell has no hints.
 
 Run the headless stability check explicitly with:
 
