@@ -184,8 +184,8 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if state["focus"] != "focus-a":
                 raise RuntimeError(f"raise changed focus: {state!r}")
 
-            b_exposed = (int(b["x"]) + int(b["outer_width"]) - 12,
-                         int(b["y"]) + int(b["outer_height"]) - 12)
+            b_exposed = (int(b["x"]) + int(b["outer_width"]) // 2,
+                         int(b["y"]) + int(b["outer_height"]) - 1)
             click(control, b_exposed, 273)
             assert_stack(control.state(), "focus-b", "focus-a")
             click(control, b_exposed, 273)

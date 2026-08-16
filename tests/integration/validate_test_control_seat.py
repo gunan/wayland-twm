@@ -50,6 +50,8 @@ def validate_bridge_handshake(
         "static bool proxy_owners_ready",
         "static bool wait_for_bridge_ready",
         "xcb_get_input_focus(client->connection)",
+        'xcb_atom_t wm_hints = atom(client, "WM_HINTS");',
+        "uint32_t hints[9] = {1, 1};",
         'strcmp(command, "WAIT BRIDGE")',
         'strcmp(command, "WAIT FOCUS")',
     ):
@@ -60,8 +62,6 @@ def validate_bridge_handshake(
         'int(item["stack"]) < int(target["stack"])',
         'int(other["outer_width"])',
         'int(other["outer_height"])',
-        'Button1 = : window : f.focus',
-        'state["focus"] == title and state["focus_root"] is False',
     ):
         if fragment not in runner:
             raise ValueError(f"selection focus targeting lacks {fragment}")

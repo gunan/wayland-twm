@@ -366,6 +366,10 @@ static bool initialize(struct client *client) {
 	const char wm_class[] = "wtwm-selection\0WtwmSelection\0";
 	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, client->window,
 		XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8, sizeof(wm_class) - 1, wm_class);
+	xcb_atom_t wm_hints = atom(client, "WM_HINTS");
+	uint32_t hints[9] = {1, 1};
+	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE, client->window,
+		wm_hints, wm_hints, 32, 9, hints);
 	xcb_map_window(client->connection, client->window);
 	xcb_flush(client->connection);
 	return true;

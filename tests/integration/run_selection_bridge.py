@@ -105,8 +105,6 @@ def focus_window(control: Control, title: str) -> dict[str, object]:
         lambda item: any(entry["title"] == title for entry in item["windows"]),
         f"{title} map",
     )
-    if state["focus"] == title and state["focus_root"] is False:
-        return state
     x, y = visible_content_point(state, title)
     control.command(f"POINTER {x} {y}")
     control.command("BUTTON 272 press")
@@ -204,10 +202,7 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
         control_path = temporary / "control.sock"
         display_path = temporary / "xwayland-display"
         config_path = temporary / "selection.twmrc"
-        config_path.write_text(
-            "RandomPlacement\nButton1 = : window : f.focus\n",
-            encoding="utf-8",
-        )
+        config_path.write_text("RandomPlacement\n", encoding="utf-8")
         socket_name = f"wtwm-selection-{os.getpid()}"
         startup = (
             "printf '%s\\n' \"$DISPLAY\" > " + shlex.quote(str(display_path))

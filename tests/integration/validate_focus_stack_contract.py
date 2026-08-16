@@ -80,6 +80,7 @@ def validate(root: Path) -> None:
         '{"window", "title", "frame", "icon"}',
         'event["context"] == "menu"',
         'event["state"]["focused"] is False',
+        'int(b["y"]) + int(b["outer_height"]) - 1',
         'status.split()[3] != "a"',
         'status.split()[3] != "root"',
         'state["active"] != "focus-b"',
