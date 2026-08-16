@@ -135,6 +135,31 @@ def validate_text(
         "XGetClassHint",
         "XGetTransientForHint",
         "XGetWMNormalHints",
+        "bool has_size = (flags & (USSize | PSize)) != 0;",
+        "bool has_min_size = (flags & PMinSize) != 0;",
+        "bool has_max_size = (flags & PMaxSize) != 0;",
+        "bool has_resize_inc = (flags & PResizeInc) != 0;",
+        "bool has_aspect = (flags & PAspect) != 0;",
+        "bool has_base_size = (flags & PBaseSize) != 0;",
+        "bool has_win_gravity = (flags & PWinGravity) != 0;",
+        "int width = has_size ? hints.width : 0;",
+        "int height = has_size ? hints.height : 0;",
+        "int min_width = has_min_size ? hints.min_width : 0;",
+        "int min_height = has_min_size ? hints.min_height : 0;",
+        "int max_width = has_max_size ? hints.max_width : 0;",
+        "int max_height = has_max_size ? hints.max_height : 0;",
+        "int width_inc = has_resize_inc ? hints.width_inc : 0;",
+        "int height_inc = has_resize_inc ? hints.height_inc : 0;",
+        "int min_aspect_x = has_aspect ? hints.min_aspect.x : 0;",
+        "int min_aspect_y = has_aspect ? hints.min_aspect.y : 0;",
+        "int max_aspect_x = has_aspect ? hints.max_aspect.x : 0;",
+        "int max_aspect_y = has_aspect ? hints.max_aspect.y : 0;",
+        "int base_width = has_base_size ? hints.base_width : 0;",
+        "int base_height = has_base_size ? hints.base_height : 0;",
+        "int win_gravity = has_win_gravity ? hints.win_gravity : 0;",
+        "Exact position is outside this differential even when its flag is set.",
+        "int x = 0;",
+        "int y = 0;",
         "XGetWMHints",
         "XGetWMProtocols",
         "XGetIconName",
@@ -146,6 +171,8 @@ def validate_text(
             errors.append(f"X11 observer lacks {marker!r}")
     if "usleep(" in probe or "sleep(" in probe or "nanosleep(" in probe:
         errors.append("X11 observer embeds a timing-based success condition")
+    if "hints.x" in probe or "hints.y" in probe:
+        errors.append("X11 observer compares position values excluded from the differential")
 
     for marker in (
         "same Debian client commands and the same configuration",
@@ -249,6 +276,26 @@ def self_test_tamper(source_root: Path) -> list[str]:
             runner,
             probe.replace('XInternAtom(display, "_NET_WM_ICON", False)',
                           'XInternAtom(display, "_REMOVED_ICON", False)', 1),
+            compatibility,
+            config,
+        ),
+        (
+            "position-normalization",
+            workflow,
+            runner,
+            probe.replace("int x = 0;", "int x = hints.x;", 1),
+            compatibility,
+            config,
+        ),
+        (
+            "min-size-flag-gate",
+            workflow,
+            runner,
+            probe.replace(
+                "int min_width = has_min_size ? hints.min_width : 0;",
+                "int min_width = hints.min_width;",
+                1,
+            ),
             compatibility,
             config,
         ),

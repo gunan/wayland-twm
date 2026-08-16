@@ -197,6 +197,32 @@ static void print_normal_hints(Display *display, Window window) {
 	XSizeHints hints = {0};
 	long supplied = 0;
 	bool present = XGetWMNormalHints(display, window, &hints, &supplied) != 0;
+	long flags = present ? hints.flags : 0L;
+	bool has_size = (flags & (USSize | PSize)) != 0;
+	bool has_min_size = (flags & PMinSize) != 0;
+	bool has_max_size = (flags & PMaxSize) != 0;
+	bool has_resize_inc = (flags & PResizeInc) != 0;
+	bool has_aspect = (flags & PAspect) != 0;
+	bool has_base_size = (flags & PBaseSize) != 0;
+	bool has_win_gravity = (flags & PWinGravity) != 0;
+	int width = has_size ? hints.width : 0;
+	int height = has_size ? hints.height : 0;
+	int min_width = has_min_size ? hints.min_width : 0;
+	int min_height = has_min_size ? hints.min_height : 0;
+	int max_width = has_max_size ? hints.max_width : 0;
+	int max_height = has_max_size ? hints.max_height : 0;
+	int width_inc = has_resize_inc ? hints.width_inc : 0;
+	int height_inc = has_resize_inc ? hints.height_inc : 0;
+	int min_aspect_x = has_aspect ? hints.min_aspect.x : 0;
+	int min_aspect_y = has_aspect ? hints.min_aspect.y : 0;
+	int max_aspect_x = has_aspect ? hints.max_aspect.x : 0;
+	int max_aspect_y = has_aspect ? hints.max_aspect.y : 0;
+	int base_width = has_base_size ? hints.base_width : 0;
+	int base_height = has_base_size ? hints.base_height : 0;
+	int win_gravity = has_win_gravity ? hints.win_gravity : 0;
+	/* Exact position is outside this differential even when its flag is set. */
+	int x = 0;
+	int y = 0;
 	printf("{\"base_height\":%d,\"base_width\":%d,\"flags\":%ld,"
 		"\"height\":%d,\"height_inc\":%d,\"max_aspect_x\":%d,"
 		"\"max_aspect_y\":%d,\"max_height\":%d,\"max_width\":%d,"
@@ -204,11 +230,10 @@ static void print_normal_hints(Display *display, Window window) {
 		"\"min_width\":%d,\"present\":%s,\"supplied\":%ld,"
 		"\"width\":%d,\"width_inc\":%d,\"win_gravity\":%d,"
 		"\"x\":%d,\"y\":%d}",
-		hints.base_height, hints.base_width, present ? hints.flags : 0L,
-		hints.height, hints.height_inc, hints.max_aspect.x, hints.max_aspect.y,
-		hints.max_height, hints.max_width, hints.min_aspect.x, hints.min_aspect.y,
-		hints.min_height, hints.min_width, present ? "true" : "false", supplied,
-		hints.width, hints.width_inc, hints.win_gravity, hints.x, hints.y);
+		base_height, base_width, flags, height, height_inc, max_aspect_x,
+		max_aspect_y, max_height, max_width, min_aspect_x, min_aspect_y,
+		min_height, min_width, present ? "true" : "false", supplied,
+		width, width_inc, win_gravity, x, y);
 }
 
 static void print_wm_hints(Display *display, Window window) {
