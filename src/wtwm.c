@@ -522,13 +522,12 @@ static bool toplevel_matches(const struct wtwm_string_list *patterns,
 static bool should_decorate(const struct toplevel *toplevel) {
 	if (toplevel->xwayland != NULL && toplevel->xwayland->override_redirect)
 		return false;
-	bool decorated = !toplevel->server->config.no_title;
-	if (toplevel_matches(&toplevel->server->config.make_title_windows, toplevel))
-		decorated = true;
-	/* Reference twm applies NoTitle after MakeTitle, so NoTitle wins a collision. */
-	if (toplevel_matches(&toplevel->server->config.no_title_windows, toplevel))
-		decorated = false;
-	return decorated;
+	bool transient = toplevel->xwayland != NULL &&
+		toplevel->xwayland->parent != NULL;
+	return wtwm_window_has_title(toplevel->server->config.no_title,
+		toplevel_matches(&toplevel->server->config.make_title_windows, toplevel),
+		toplevel_matches(&toplevel->server->config.no_title_windows, toplevel),
+		transient, toplevel->server->config.decorate_transients);
 }
 
 static bool initialize_toplevel_rules(struct toplevel *toplevel) {
@@ -2106,6 +2105,7 @@ static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
 
 static void xwayland_deferred_sync(void *data) {
 	struct toplevel *toplevel = data;
+	bool parent_cleared = false;
 	toplevel->xwayland_sync_idle = NULL;
 	xcb_connection_t *connection =
 		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
@@ -2145,9 +2145,11 @@ static void xwayland_deferred_sync(void *data) {
 			wl_list_remove(&toplevel->xwayland->parent_link);
 			wl_list_init(&toplevel->xwayland->parent_link);
 			toplevel->xwayland->parent = NULL;
+			parent_cleared = true;
 		}
 		free(reply);
 	}
+	if (parent_cleared) update_toplevel_metadata(toplevel, false);
 }
 
 static void schedule_xwayland_sync(struct toplevel *toplevel) {
@@ -2281,6 +2283,7 @@ static void xwayland_set_class(struct wl_listener *listener, void *data) {
 static void xwayland_set_parent(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_parent);
+	update_toplevel_metadata(toplevel, false);
 	position_xwayland_transient(toplevel);
 }
 
@@ -2310,6 +2313,11 @@ static void xwayland_set_geometry(struct wl_listener *listener, void *data) {
 			y -= toplevel_content_y(toplevel);
 		}
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		if (toplevel->mapped && !toplevel->xwayland->override_redirect) {
+			toplevel->frame_x = x;
+			toplevel->frame_y = y;
+			toplevel->frame_positioned = true;
+		}
 		update_decoration(toplevel);
 	}
 	if (toplevel->tree != NULL && (toplevel->tree->node.x != previous_x ||
@@ -2882,13 +2890,13 @@ static void test_write_state(struct test_control *control) {
 			xcb_size_hints_t *size = xsurface->size_hints;
 			test_write(control,
 				",\"xid\":%" PRIu32 ",\"parent\":%" PRIu32
-				",\"client_x\":%d,\"client_y\":%d"
+				",\"client_x\":%d,\"client_y\":%d,\"original_border_width\":%d"
 				",\"supports_delete\":%s,\"urgent\":%s,\"input\":%s,"
 				"\"icon_pixmap\":%" PRIu32 ",\"icon_mask\":%" PRIu32
 				",\"icon_window\":%" PRIu32 ",\"icon_name\":",
 				xsurface->window_id,
 				xsurface->parent != NULL ? xsurface->parent->window_id : XCB_WINDOW_NONE,
-				xsurface->x, xsurface->y,
+				xsurface->x, xsurface->y, toplevel->original_client_border,
 				xwayland_supports_delete(toplevel) ? "true" : "false",
 				hints != NULL &&
 					(hints->flags & XCB_ICCCM_WM_HINT_X_URGENCY) != 0 ? "true" : "false",

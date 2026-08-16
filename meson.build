@@ -50,6 +50,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'wtwm Xwayland geometry matrix contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_wtwm_geometry_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 config_tool = executable(
   'wtwm-config',
@@ -492,6 +502,12 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_xwayland_geometry_matrix_client = executable(
+    'wtwm-xwayland-geometry-matrix-client',
+    'tests/integration/xwayland_geometry_matrix_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   wtwm_xwayland_rules_client = executable(
     'wtwm-xwayland-rules-client',
     'tests/integration/xwayland_rules_client.c',
@@ -583,6 +599,18 @@ if wlroots.found()
       '--client', wtwm_xwayland_bridge_client,
     ],
     timeout: 60,
+  )
+  test(
+    'wtwm Xwayland geometry matrix integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_geometry_matrix.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_geometry_matrix_client,
+      '--source-root', meson.project_source_root(),
+    ],
+    timeout: 240,
+    is_parallel: false,
   )
   test(
     'Xwayland window-list rules integration',

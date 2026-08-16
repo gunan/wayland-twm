@@ -259,7 +259,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.menutitlebackground": ["server->config.menu_title_background, row_color);"],
     "directive.menutitleforeground": ["server->config.menu_title_foreground : server->config.menu_foreground);"],
     "directive.notitle": [
-        "bool decorated = !toplevel->server->config.no_title;",
+        "return wtwm_window_has_title(toplevel->server->config.no_title,",
         "&toplevel->server->config.no_title_windows,",
     ],
     "directive.righttitlebutton": [

@@ -26,6 +26,16 @@ int wtwm_title_bar_height(int font_height, int frame_padding) {
 	return saturate_int(height);
 }
 
+bool wtwm_window_has_title(bool global_no_title, bool make_title_match,
+		bool no_title_match, bool transient, bool decorate_transients) {
+	bool has_title = !global_no_title;
+	if (make_title_match) has_title = true;
+	if (no_title_match) has_title = false;
+	/* AddWindow applies transient suppression after both window lists. */
+	if (transient && !decorate_transients) has_title = false;
+	return has_title;
+}
+
 void wtwm_frame_geometry(int client_width, int client_height, int border_width,
 		int title_bar_height, bool has_title,
 		struct wtwm_frame_geometry *geometry) {

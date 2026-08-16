@@ -56,6 +56,10 @@ struct wtwm_window_position {
  */
 int wtwm_title_bar_height(int font_height, int frame_padding);
 
+/* Apply AddWindow's title rule order, including final transient suppression. */
+bool wtwm_window_has_title(bool global_no_title, bool make_title_match,
+	bool no_title_match, bool transient, bool decorate_transients);
+
 /*
  * Compute twm's frame and client extents. frame_width/frame_height exclude the
  * frame's outer border, while outer_width/outer_height include it. title_extent

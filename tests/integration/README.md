@@ -35,6 +35,17 @@ the entries, sequence, and `dropped` count; live windows keep their unique IDs.
 The next event therefore starts at sequence 1. A plain `TRACE` never clears or
 otherwise changes the captured evidence.
 
+The `wtwm Xwayland geometry matrix integration` test consumes every case in
+the frozen reference geometry matrix and runs two clean headless
+wtwm/Xwayland sessions per case. Because rootless Xwayland does not expose a
+reparent frame to the X client, the runner normalizes compositor scene state
+into client-inner, frame-inner, frame-outer, title-outer, and four-edge extent
+records. It checks title/transient precedence, `ClientBorderWidth`, titleless
+frame borders, initial coordinates, and unchanged `WM_NORMAL_HINTS`. The
+reference matrix deliberately has no committed numeric observation baseline,
+so this structural runner records `reference_numeric_baseline: false` and does
+not claim a live differential pass.
+
 Run the headless stability check explicitly with:
 
 ```sh

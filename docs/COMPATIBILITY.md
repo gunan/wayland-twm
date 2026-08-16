@@ -9,7 +9,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | --- | --- | --- |
 | `~/.twmrc.0`, `~/.twmrc`, `-f` search | Effective | Same precedence, followed by packaged defaults |
 | `Color` / `Monochrome` blocks | Effective in part | Frame and title colors accept `#RRGGBB`, `rgb:r/g/b`, gray percentages, and common names |
-| Frame, border, and title extents | Effective for the core extent model | Managed windows retain a frame border with or without a title; title height is the font line height plus twice `FramePadding`, rounded up to odd, and the title extent includes its lower border. Exact X11 gravity/client-border coordinate translation and full title-item layout remain pending |
+| Frame, border, and title extents | Effective for the structural Xwayland matrix | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame, title height is the font line height plus twice `FramePadding` rounded up to odd, and the title extent includes its lower border. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations. Exact numeric comparison to the live reference artifact and full title-item layout remain pending |
 | Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
 | `ButtonN` and quoted key bindings | Effective | libinput buttons and xkbcommon key symbols |
 | `root`, `window`, `title`, `frame`, `all` contexts | Effective | Scene hit-test contexts |
@@ -18,7 +18,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
-| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id` |
+| `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
 | Icon windows and icon manager | Parsed | Wayland has no client icon-window primitive; compositor UI is pending |
@@ -95,14 +95,20 @@ action model. Override-redirect windows remain undecorated and outside the
 managed focus/action list. They share an overlay stack above managed clients
 with native xdg popups, so each popup or override-redirect map/remap raises that
 surface above older overlay siblings. Transient relationships are mirrored in
-both the X and scene stacks. As in reference `twm`, ordinary X11 client
+both the X and scene stacks. A transient has no title by default, and
+`DecorateTransients` restores the ordinary global/`MakeTitle`/`NoTitle`
+decision; transient suppression otherwise runs last and therefore also wins
+over a matching `MakeTitle`. As in reference `twm`, ordinary X11 client
 configure requests are not snapped to `WM_NORMAL_HINTS`, and changing the
 hints alone does not resize a mapped client. Compositor-driven resizing applies
 minimum, maximum, base-size, resize-increment, and aspect constraints in
 reference order: clamp, snap down to the base/increment lattice, then adjust
 aspect without a final reclamp. Native xdg-shell has no base-size, increment,
 or aspect protocol fields, so only its advertised minimum and maximum sizes
-can be honored. Exact X11 gravity translation remains later placement work.
+can be honored. Initial map and managed `ConfigureRequest` coordinates use the
+reference gravity and border translations; interactive placement policy and a
+reviewed numeric differential against the live geometry artifact remain later
+work.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling

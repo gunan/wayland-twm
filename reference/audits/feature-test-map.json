@@ -92,7 +92,7 @@
               "contains": "ACT(\"f.deiconify\","
             },
             {
-              "location": "src/wtwm.c:1271",
+              "location": "src/wtwm.c:1270",
               "contains": "WTWM_ACTION_DEICONIFY"
             }
           ]
@@ -136,7 +136,7 @@
               "contains": "{\"f.delete\","
             },
             {
-              "location": "src/wtwm.c:1284",
+              "location": "src/wtwm.c:1283",
               "contains": "WTWM_ACTION_DELETE"
             }
           ]
@@ -201,7 +201,7 @@
               "contains": "{\"f.destroy\","
             },
             {
-              "location": "src/wtwm.c:1287",
+              "location": "src/wtwm.c:1286",
               "contains": "WTWM_ACTION_DESTROY"
             }
           ]
@@ -245,7 +245,7 @@
               "contains": "ACT_ARG(\"f.exec\","
             },
             {
-              "location": "src/wtwm.c:1290",
+              "location": "src/wtwm.c:1289",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -289,7 +289,7 @@
               "contains": "strcmp(spelling, \"!\")"
             },
             {
-              "location": "src/wtwm.c:1290",
+              "location": "src/wtwm.c:1289",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -333,7 +333,7 @@
               "contains": "ACT(\"f.focus\","
             },
             {
-              "location": "src/wtwm.c:1279",
+              "location": "src/wtwm.c:1278",
               "contains": "WTWM_ACTION_FOCUS"
             }
           ]
@@ -377,7 +377,7 @@
               "contains": "ACT(\"f.forcemove\","
             },
             {
-              "location": "src/wtwm.c:1248",
+              "location": "src/wtwm.c:1247",
               "contains": "WTWM_ACTION_FORCEMOVE"
             }
           ]
@@ -442,7 +442,7 @@
               "contains": "ACT_ARG(\"f.function\","
             },
             {
-              "location": "src/wtwm.c:1294",
+              "location": "src/wtwm.c:1293",
               "contains": "WTWM_ACTION_FUNCTION"
             }
           ]
@@ -570,7 +570,7 @@
               "contains": "ACT(\"f.iconify\","
             },
             {
-              "location": "src/wtwm.c:1263",
+              "location": "src/wtwm.c:1262",
               "contains": "WTWM_ACTION_ICONIFY"
             }
           ]
@@ -635,7 +635,7 @@
               "contains": "ACT(\"f.lower\","
             },
             {
-              "location": "src/wtwm.c:1255",
+              "location": "src/wtwm.c:1254",
               "contains": "WTWM_ACTION_LOWER"
             }
           ]
@@ -679,7 +679,7 @@
               "contains": "ACT_ARG(\"f.menu\","
             },
             {
-              "location": "src/wtwm.c:1292",
+              "location": "src/wtwm.c:1291",
               "contains": "WTWM_ACTION_MENU"
             }
           ]
@@ -723,7 +723,7 @@
               "contains": "ACT(\"f.move\","
             },
             {
-              "location": "src/wtwm.c:1248",
+              "location": "src/wtwm.c:1247",
               "contains": "WTWM_ACTION_MOVE"
             }
           ]
@@ -788,7 +788,7 @@
               "contains": "ACT(\"f.quit\","
             },
             {
-              "location": "src/wtwm.c:1305",
+              "location": "src/wtwm.c:1304",
               "contains": "WTWM_ACTION_QUIT"
             }
           ]
@@ -832,7 +832,7 @@
               "contains": "ACT(\"f.raise\","
             },
             {
-              "location": "src/wtwm.c:1252",
+              "location": "src/wtwm.c:1251",
               "contains": "WTWM_ACTION_RAISE"
             }
           ]
@@ -876,7 +876,7 @@
               "contains": "ACT(\"f.raiselower\","
             },
             {
-              "location": "src/wtwm.c:1257",
+              "location": "src/wtwm.c:1256",
               "contains": "WTWM_ACTION_RAISELOWER"
             }
           ]
@@ -941,7 +941,7 @@
               "contains": "ACT(\"f.resize\","
             },
             {
-              "location": "src/wtwm.c:1250",
+              "location": "src/wtwm.c:1249",
               "contains": "WTWM_ACTION_RESIZE"
             }
           ]
@@ -1090,7 +1090,7 @@
               "contains": "ACT(\"f.unfocus\","
             },
             {
-              "location": "src/wtwm.c:1282",
+              "location": "src/wtwm.c:1281",
               "contains": "WTWM_ACTION_UNFOCUS"
             }
           ]
@@ -1134,7 +1134,7 @@
               "contains": "ACT(\"f.warpnext\","
             },
             {
-              "location": "src/wtwm.c:1304",
+              "location": "src/wtwm.c:1303",
               "contains": "WTWM_ACTION_WARPNEXT"
             }
           ]
@@ -1657,11 +1657,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:537",
+              "location": "src/wtwm.c:536",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             },
             {
-              "location": "src/wtwm.c:538",
+              "location": "src/wtwm.c:537",
               "contains": "&toplevel->server->config.auto_raise_windows,"
             }
           ]
@@ -1722,7 +1722,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1861",
+              "location": "src/wtwm.c:1860",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -1762,7 +1762,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:552",
+              "location": "src/wtwm.c:551",
               "contains": "return server->config.border_width;"
             }
           ]
@@ -1823,7 +1823,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1488",
+              "location": "src/wtwm.c:1487",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -1884,7 +1884,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1861",
+              "location": "src/wtwm.c:1860",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -2071,11 +2071,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1297",
+              "location": "src/wtwm.c:1296",
               "contains": "server->config.functions[i].action_count"
             },
             {
-              "location": "src/wtwm.c:1299",
+              "location": "src/wtwm.c:1298",
               "contains": "&server->config.functions[i].actions[j], depth + 1"
             }
           ]
@@ -2304,7 +2304,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1473",
+              "location": "src/wtwm.c:1472",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -2344,7 +2344,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:526",
+              "location": "src/wtwm.c:528",
               "contains": "&toplevel->server->config.make_title_windows,"
             }
           ]
@@ -2384,7 +2384,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1091",
+              "location": "src/wtwm.c:1090",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -2424,7 +2424,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1127",
+              "location": "src/wtwm.c:1126",
               "contains": "color_value(server->config.menu_background, background);"
             }
           ]
@@ -2464,7 +2464,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1126",
+              "location": "src/wtwm.c:1125",
               "contains": "color_value(server->config.menu_border_color, border);"
             }
           ]
@@ -2504,7 +2504,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1121",
+              "location": "src/wtwm.c:1120",
               "contains": "int border_width = server->config.menu_border_width;"
             }
           ]
@@ -2544,7 +2544,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1117",
+              "location": "src/wtwm.c:1116",
               "contains": "server->config.menu_font, color, &widths[i], &heights[i]);"
             }
           ]
@@ -2584,7 +2584,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1128",
+              "location": "src/wtwm.c:1127",
               "contains": "color_value(server->config.menu_foreground, highlight);"
             }
           ]
@@ -2624,7 +2624,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1140",
+              "location": "src/wtwm.c:1139",
               "contains": "server->config.menu_title_background, row_color);"
             }
           ]
@@ -2664,7 +2664,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1114",
+              "location": "src/wtwm.c:1113",
               "contains": "server->config.menu_title_foreground : server->config.menu_foreground);"
             }
           ]
@@ -2893,8 +2893,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:525",
-              "contains": "bool decorated = !toplevel->server->config.no_title;"
+              "location": "src/wtwm.c:527",
+              "contains": "return wtwm_window_has_title(toplevel->server->config.no_title,"
             },
             {
               "location": "src/wtwm.c:529",
@@ -3021,7 +3021,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1534",
+              "location": "src/wtwm.c:1533",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3103,7 +3103,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1473",
+              "location": "src/wtwm.c:1472",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -3206,7 +3206,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:546",
+              "location": "src/wtwm.c:545",
               "contains": "&toplevel->server->config.start_iconified_windows,"
             }
           ]
@@ -3246,7 +3246,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1862",
+              "location": "src/wtwm.c:1861",
               "contains": "color_value(server->config.title_background, title);"
             }
           ]
@@ -3307,7 +3307,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:752",
+              "location": "src/wtwm.c:751",
               "contains": "toplevel->server->config.title_font, foreground, &width, &height);"
             }
           ]
@@ -3347,7 +3347,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1863",
+              "location": "src/wtwm.c:1862",
               "contains": "color_value(server->config.title_foreground, foreground);"
             }
           ]
@@ -3387,7 +3387,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:768",
+              "location": "src/wtwm.c:767",
               "contains": "int title_padding = toplevel->server->config.title_padding;"
             }
           ]
@@ -3490,7 +3490,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:537",
+              "location": "src/wtwm.c:536",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             }
           ]
@@ -3516,7 +3516,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1488",
+              "location": "src/wtwm.c:1487",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -3542,7 +3542,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3390",
+              "location": "src/wtwm.c:3398",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]
@@ -3568,7 +3568,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:555",
+              "location": "src/wtwm.c:554",
               "contains": "static int configured_title_bar_height("
             }
           ]
@@ -3594,7 +3594,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1247",
+              "location": "src/wtwm.c:1246",
               "contains": "switch (action->type)"
             }
           ]
@@ -3620,11 +3620,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1297",
+              "location": "src/wtwm.c:1296",
               "contains": "server->config.functions[i].action_count"
             },
             {
-              "location": "src/wtwm.c:1299",
+              "location": "src/wtwm.c:1298",
               "contains": "&server->config.functions[i].actions[j], depth + 1"
             }
           ]
@@ -3650,7 +3650,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1534",
+              "location": "src/wtwm.c:1533",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3676,7 +3676,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1091",
+              "location": "src/wtwm.c:1090",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -3702,7 +3702,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1456",
+              "location": "src/wtwm.c:1455",
               "contains": "execute_action(server, target, &action, 0)"
             }
           ]
@@ -3728,7 +3728,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:546",
+              "location": "src/wtwm.c:545",
               "contains": "server->config.start_iconified_windows"
             }
           ]
@@ -3754,7 +3754,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1478",
+              "location": "src/wtwm.c:1477",
               "contains": "execute_action(server, hit.toplevel, configured, 0)"
             }
           ]
@@ -3780,7 +3780,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1818",
+              "location": "src/wtwm.c:1817",
               "contains": "set_decorated(toplevel, should_decorate(toplevel));"
             }
           ]

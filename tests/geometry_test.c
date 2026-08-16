@@ -56,6 +56,21 @@ static void test_title_and_frame_geometry(void) {
 	assert(geometry.content_y == 3);
 }
 
+static void test_title_rule_order(void) {
+	assert(wtwm_window_has_title(false, false, false, false, false));
+	assert(!wtwm_window_has_title(true, false, false, false, false));
+	assert(wtwm_window_has_title(true, true, false, false, false));
+	assert(!wtwm_window_has_title(false, true, true, false, false));
+	assert(!wtwm_window_has_title(true, true, true, false, false));
+
+	/* Reference transient suppression is last, even after MakeTitle. */
+	assert(!wtwm_window_has_title(false, false, false, true, false));
+	assert(!wtwm_window_has_title(true, true, false, true, false));
+	assert(wtwm_window_has_title(false, false, false, true, true));
+	assert(wtwm_window_has_title(true, true, false, true, true));
+	assert(!wtwm_window_has_title(false, true, true, true, true));
+}
+
 static void test_reference_window_coordinates(void) {
 	struct wtwm_frame_geometry geometry;
 	wtwm_frame_geometry(100, 65, 3, 17, true, &geometry);
@@ -89,6 +104,24 @@ static void test_reference_window_coordinates(void) {
 		&geometry, 1, &position);
 	assert(position.frame_y == 75);
 	assert(position.client_y == 100);
+}
+
+static void test_initial_gravity_matrix(void) {
+	struct wtwm_frame_geometry geometry;
+	wtwm_frame_geometry(137, 91, 2, 17, true, &geometry);
+	const int expected_x[] = {160, 162, 164};
+	const int expected_y[] = {120, 103, 105};
+	for (int gravity_y = -1; gravity_y <= 1; ++gravity_y) {
+		for (int gravity_x = -1; gravity_x <= 1; ++gravity_x) {
+			struct wtwm_window_position position;
+			wtwm_initial_window_position(160, 120, 4, &geometry, false,
+				gravity_x, gravity_y, &position);
+			assert(position.frame_x == expected_x[gravity_x + 1]);
+			assert(position.frame_y == expected_y[gravity_y + 1]);
+			assert(position.client_x == position.frame_x + 2);
+			assert(position.client_y == position.frame_y + 21);
+		}
+	}
 }
 
 static void test_min_max_base_and_increments(void) {
@@ -212,7 +245,9 @@ static void test_absolute_limits_and_empty_hints(void) {
 
 int main(void) {
 	test_title_and_frame_geometry();
+	test_title_rule_order();
 	test_reference_window_coordinates();
+	test_initial_gravity_matrix();
 	test_min_max_base_and_increments();
 	test_aspect_order_and_rounding();
 	test_absolute_limits_and_empty_hints();
