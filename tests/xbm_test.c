@@ -2,10 +2,24 @@
 #include "wtwm/xbm.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#define FIXTURE(name) "tests/fixtures/xbm/" name ".xbm"
+static const char *fixture(const char *name) {
+	static char paths[32][1024];
+	static size_t next_path;
+	assert(next_path < sizeof(paths) / sizeof(paths[0]));
+	char *path = paths[next_path++];
+	const char *source_root = getenv("WTWM_SOURCE_ROOT");
+	if (source_root == NULL || source_root[0] == '\0') source_root = ".";
+	int written = snprintf(path, sizeof(paths[0]), "%s/tests/fixtures/xbm/%s.xbm",
+		source_root, name);
+	assert(written >= 0 && (size_t)written < sizeof(paths[0]));
+	return path;
+}
+
+#define FIXTURE(name) fixture(name)
 
 static void assert_failure(struct wtwm_xbm *xbm, const char *fixture,
 		const char *message) {
@@ -58,7 +72,7 @@ static void loads_both_classic_storage_forms(void) {
 }
 
 static void rejects_malformed_and_bounded_inputs_atomically(void) {
-	static const struct {
+	const struct {
 		const char *fixture;
 		const char *message;
 	} cases[] = {
@@ -87,7 +101,7 @@ static void rejects_malformed_and_bounded_inputs_atomically(void) {
 		assert(xbm.name == original_name);
 		assert(xbm.width == 8 && xbm.height == 2);
 	}
-	assert_failure(&xbm, "tests/fixtures/xbm/does-not-exist.xbm", "unable to open");
+	assert_failure(&xbm, FIXTURE("does-not-exist"), "unable to open");
 	assert(xbm.data == original_data);
 	wtwm_xbm_finish(&xbm);
 }

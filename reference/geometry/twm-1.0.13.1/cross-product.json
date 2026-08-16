@@ -57,11 +57,11 @@
     },
     {
       "path": "src/font.c",
-      "sha256": "790c4254879c6e662a522e8b248aaa8b2edf3cc37fa455cdacae66993c30e997"
+      "sha256": "22d8b800bbbe5d436e32d98c3be77bf48fa4f9e089f91ee4a771cb55132ef25a"
     },
     {
       "path": "tests/font_test.c",
-      "sha256": "45615dd51faba42df03345c5fa353e7f4a9991f391a6e92f033a0199ee41ad7d"
+      "sha256": "0c04b8fa02fab88bd6e906e6062621c60abf82ded38b87e3d81aa7dea0517c7f"
     }
   ]
 }
