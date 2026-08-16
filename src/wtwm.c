@@ -1360,7 +1360,8 @@ static void new_popup(struct wl_listener *listener, void *data) {
 	struct wlr_scene_tree *parent_tree = NULL;
 	if (!popup_parent_info(server, xdg->parent, &parent_tree,
 			&popup->root, &popup->depth)) {
-		wlr_log(WLR_ERROR, "dismissing xdg popup with an unmanaged parent");
+		wlr_log(WLR_ERROR, "%s",
+			"dismissing xdg popup with an unmanaged parent");
 		free(popup);
 		wlr_xdg_popup_destroy(xdg);
 		return;
