@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <unistd.h>
 #include <wayland-client.h>
 
@@ -766,11 +767,38 @@ static void receive_primary(struct client *client) {
 	else printf("ERROR PRIMARY transfer\n");
 }
 
+static bool wait_for_serial(struct client *client) {
+	struct timespec deadline;
+	if (clock_gettime(CLOCK_MONOTONIC, &deadline) < 0) return false;
+	deadline.tv_sec += 10;
+	while (client->serial == 0) {
+		if (wl_display_dispatch_pending(client->display) < 0) return false;
+		if (client->serial != 0) break;
+		if (wl_display_flush(client->display) < 0 && errno != EAGAIN) return false;
+		struct timespec now;
+		if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) return false;
+		int64_t remaining = (int64_t)(deadline.tv_sec - now.tv_sec) * 1000 +
+			(deadline.tv_nsec - now.tv_nsec) / 1000000;
+		if (remaining <= 0) return false;
+		struct pollfd descriptor = {
+			.fd = wl_display_get_fd(client->display),
+			.events = POLLIN,
+		};
+		int result;
+		do result = poll(&descriptor, 1, (int)remaining);
+		while (result < 0 && errno == EINTR);
+		if (result <= 0 || (descriptor.revents & (POLLERR | POLLHUP)) != 0)
+			return false;
+		if (wl_display_dispatch(client->display) < 0) return false;
+	}
+	return true;
+}
+
 static void handle_command(struct client *client, char *command) {
 	command[strcspn(command, "\r\n")] = '\0';
-	if (strcmp(command, "SERIAL") == 0) {
-		(void)wl_display_roundtrip(client->display);
-		printf("SERIAL %" PRIu32 "\n", client->serial);
+	if (strcmp(command, "WAIT SERIAL") == 0) {
+		if (wait_for_serial(client)) printf("SERIAL %" PRIu32 "\n", client->serial);
+		else printf("ERROR SERIAL timeout\n");
 	} else if (strcmp(command, "SET CLIPBOARD ONE") == 0) {
 		set_clipboard(client, "native-clipboard-one");
 	} else if (strcmp(command, "SET CLIPBOARD TWO") == 0) {

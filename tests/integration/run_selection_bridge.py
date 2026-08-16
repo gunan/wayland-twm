@@ -233,7 +233,7 @@ def run(compositor_binary: Path, wayland_binary: Path, x11_binary: Path) -> None
                 raise RuntimeError(f"Xwayland selection client was not bridged: {x_state!r}")
 
             focus_window(control, "wtwm-selection-wayland")
-            serial_line = command(native, "SERIAL")
+            serial_line = command(native, "WAIT SERIAL")
             if not serial_line.startswith("SERIAL ") or serial_line == "SERIAL 0":
                 raise RuntimeError(f"native source lacks an input serial: {serial_line}")
             expect_command(

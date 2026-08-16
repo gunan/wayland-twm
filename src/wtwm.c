@@ -2933,6 +2933,10 @@ int main(int argc, char **argv) {
 		"wtwm-test-keyboard");
 	server.test_control.keyboard_initialized = true;
 	new_keyboard(&server, &server.test_control.keyboard.base);
+	/* Test control injects both key and pointer events without backend input
+	 * devices, so advertise the matching seat resources to test clients. */
+	wlr_seat_set_capabilities(server.seat,
+		WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER);
 	const char *socket = test_socket;
 	if (socket != NULL && wl_display_add_socket(server.display, socket) < 0) socket = NULL;
 	else if (socket == NULL) socket = wl_display_add_socket_auto(server.display);
