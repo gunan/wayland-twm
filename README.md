@@ -315,36 +315,36 @@ Exit criteria:
 
 Implementation work:
 
-- [ ] Match frame geometry, client geometry, border calculations, and title
+- [x] Match frame geometry, client geometry, border calculations, and title
   extents.
-- [ ] Honor minimum, maximum, base-size, resize-increment, and aspect-ratio
+- [x] Honor minimum, maximum, base-size, resize-increment, and aspect-ratio
   constraints.
-- [ ] Implement exact move and resize interaction, including outline and opaque
+- [x] Implement exact move and resize interaction, including outline and opaque
   movement, `MoveDelta`, `ConstrainedMoveTime`, `DontMoveOff`,
   `AutoRelativeResize`, `f.forcemove`, and `f.deltastop`.
-- [ ] Match focus behavior for root, frame, title, icon, menu, and client contexts.
-- [ ] Implement `NoTitleFocus`, click-to-focus, pointer focus, focus/unfocus, and
+- [x] Match focus behavior for root, frame, title, icon, menu, and client contexts.
+- [x] Implement `NoTitleFocus`, click-to-focus, pointer focus, focus/unfocus, and
   auto-raise semantics.
-- [ ] Match raise, lower, raise-or-lower, and circulation order.
-- [ ] Implement initial placement, random placement, position-hint handling,
+- [x] Match raise, lower, raise-or-lower, and circulation order.
+- [x] Implement initial placement, random placement, position-hint handling,
   maximum window sizes, and transient placement.
-- [ ] Handle map, unmap, remap, destruction, and title changes without stale
+- [x] Handle map, unmap, remap, destruction, and title changes without stale
   compositor state.
 
 Testing:
 
-- [ ] Record geometry and stacking after every input event.
-- [ ] Replay identical input traces against reference `twm` and the Wayland
+- [x] Record geometry and stacking after every input event.
+- [x] Replay identical input traces against reference `twm` and the Wayland
   implementation.
-- [ ] Test every combination of title, border, transient, and size-hint state.
-- [ ] Test focus transitions across windows, menus, icons, and empty root space.
-- [ ] Run randomized window lifecycle and stacking model tests.
+- [x] Test every combination of title, border, transient, and size-hint state.
+- [x] Test focus transitions across windows, menus, icons, and empty root space.
+- [x] Run randomized window lifecycle and stacking model tests.
 
 Exit criteria:
 
-- [ ] Geometry matches the reference exactly in the canonical 1× profile.
-- [ ] Focus and stacking traces contain no unexplained differences.
-- [ ] Every move, resize, placement, and focus option has an integration test.
+- [x] Geometry matches the reference exactly in the canonical 1× profile.
+- [x] Focus and stacking traces contain no unexplained differences.
+- [x] Every move, resize, placement, and focus option has an integration test.
 
 ### Milestone 5: Achieve pixel-level visual parity
 

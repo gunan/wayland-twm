@@ -179,10 +179,13 @@ def validate_text(
         errors.append("X11 observer compares position values excluded from the differential")
 
     for marker in (
-        "same Debian client commands and the same configuration",
+        "identical clients, configuration, and input descriptions",
         "reparent frame",
         "scene decoration",
-        "Exact frame geometry, pixel rendering",
+        "A 21-event trace",
+        "48-case Cartesian product",
+        "no numeric tolerances or geometry exclusions",
+        "Pixel rendering and native/cross-protocol equivalence remain",
     ):
         if marker not in compatibility:
             errors.append(f"compatibility boundary lacks {marker!r}")
@@ -308,7 +311,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
             workflow,
             runner,
             probe,
-            compatibility.replace("Exact frame geometry, pixel rendering", "Later work", 1),
+            compatibility.replace(
+                "Pixel rendering and native/cross-protocol equivalence remain",
+                "Later work remains",
+                1,
+            ),
             config,
         ),
         (

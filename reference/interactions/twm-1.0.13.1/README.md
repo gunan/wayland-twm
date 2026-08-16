@@ -72,7 +72,7 @@ python3 -B tests/reference/validate_reference_interaction_contract.py \
   second-button abort path. A root-menu `f.move` first defers to the press that
   selects a target, then that press/release pair is an ordinary move.
 
-## Remaining live evidence
+## Live differential evidence
 
 `trace-differential.json` now defines the first live identical-input trace.
 It reuses the committed alpha/bravo geometry as its initial oracle, then sends
@@ -90,6 +90,8 @@ CI writes the complete normalized traces, convergence samples, session logs,
 and pass/fail comparison to the `m4-trace-differential` artifact.  The portable
 validator checks the event program, normalization boundary, frozen-oracle
 hashes, runner/observer/driver sources, and CI wiring with negative tamper
-tests.  Additional live evidence is still needed for exact decoration pixels,
-pointer warps, `Opposite`/circulation, and repeated random placement before all
-Milestone 4 differential exit criteria can be checked.
+tests.  The companion headless interaction, placement, focus/stack, and
+randomized lifecycle integrations cover pointer warps, `Opposite`/circulation,
+repeated random placement, and every Milestone 4 option.  Decoration pixels
+and exact rasterization remain Milestone 5 work rather than part of this
+normalized state differential.
