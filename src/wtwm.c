@@ -3071,6 +3071,22 @@ static void cancel_initial_placement(struct toplevel *toplevel) {
 	start_next_initial_placement(server);
 }
 
+static void insert_xwayland_stack(struct toplevel *toplevel) {
+	/* Xwayland may associate/map sibling wl_surfaces in a different order than
+	 * their X windows were created.  The XWM surface list retains the initial
+	 * top-to-bottom order, the reverse of QueryTree's bottom-to-top result. */
+	struct toplevel *higher = NULL, *item;
+	wl_list_for_each(item, &toplevel->server->xwayland_views, xwayland_link) {
+		if (item == toplevel) break;
+		if (item->mapped && !item->xwayland->override_redirect) higher = item;
+	}
+	if (higher == NULL)
+		wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
+	else
+		wl_list_insert(&higher->link, &toplevel->link);
+	sync_toplevel_scene_stack(toplevel);
+}
+
 static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->mapped || toplevel->tree == NULL) return;
 	bool initial_rules = initialize_toplevel_rules(toplevel);
@@ -3084,7 +3100,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
 		test_trace_toplevel_event(toplevel, "raise", "frame");
 	} else {
-		wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
+		insert_xwayland_stack(toplevel);
 		struct wtwm_placement_area area;
 		server_placement_area(toplevel->server, &area);
 		int width = toplevel->width, height = toplevel->height;
