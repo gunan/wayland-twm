@@ -48,6 +48,27 @@ color_test = executable(
 )
 test('X11 color conversion', color_test)
 
+xbm_lib = static_library(
+  'wtwm-xbm-lib',
+  'src/xbm.c',
+  include_directories: inc,
+)
+xbm_dep = declare_dependency(
+  link_with: xbm_lib,
+  include_directories: inc,
+)
+
+xbm_test = executable(
+  'xbm-test',
+  'tests/xbm_test.c',
+  dependencies: xbm_dep,
+)
+test(
+  'XBM loader',
+  xbm_test,
+  env: ['WTWM_SOURCE_ROOT=' + meson.project_source_root()],
+)
+
 placement_lib = static_library(
   'wtwm-placement-lib',
   'src/placement.c',
@@ -577,7 +598,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -585,6 +606,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep,
+      color_dep, visual_dep, xbm_dep,
       focus_stack_dep,
       pangocairo,
       dependency('fontconfig'),

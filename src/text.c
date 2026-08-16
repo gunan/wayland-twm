@@ -21,6 +21,18 @@ static struct text_buffer *from_buffer(struct wlr_buffer *buffer) {
 	return (struct text_buffer *)buffer;
 }
 
+static PangoFontDescription *font_description(const char *font) {
+	size_t length = wtwm_pango_font_description(font, NULL, 0);
+	if (length == SIZE_MAX) return NULL;
+	char *text = malloc(length + 1);
+	if (text == NULL) return NULL;
+	(void)wtwm_pango_font_description(font, text, length + 1);
+	PangoFontDescription *description =
+		pango_font_description_from_string(text);
+	free(text);
+	return description;
+}
+
 static void text_destroy(struct wlr_buffer *buffer) {
 	struct text_buffer *text = from_buffer(buffer);
 	free(text->pixels);
@@ -53,8 +65,13 @@ int wtwm_measure_font_height(const char *font) {
 	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
 	cairo_t *cairo = cairo_create(surface);
 	PangoLayout *layout = pango_cairo_create_layout(cairo);
-	PangoFontDescription *description =
-		pango_font_description_from_string(wtwm_pango_font_description(font));
+	PangoFontDescription *description = font_description(font);
+	if (description == NULL) {
+		g_object_unref(layout);
+		cairo_destroy(cairo);
+		cairo_surface_destroy(surface);
+		return 1;
+	}
 	pango_layout_set_font_description(layout, description);
 	/* Logical line height is independent of the title's particular glyphs. */
 	pango_layout_set_text(layout, "Mg", -1);
@@ -74,9 +91,14 @@ struct wlr_buffer *wtwm_render_text(const char *value, const char *font,
 	cairo_surface_t *measure_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
 	cairo_t *measure = cairo_create(measure_surface);
 	PangoLayout *layout = pango_cairo_create_layout(measure);
-	PangoFontDescription *font_description =
-		pango_font_description_from_string(wtwm_pango_font_description(font));
-	pango_layout_set_font_description(layout, font_description);
+	PangoFontDescription *description = font_description(font);
+	if (description == NULL) {
+		g_object_unref(layout);
+		cairo_destroy(measure);
+		cairo_surface_destroy(measure_surface);
+		return NULL;
+	}
+	pango_layout_set_font_description(layout, description);
 	pango_layout_set_text(layout, text, -1);
 	int text_width = 0, text_height = 0;
 	pango_layout_get_pixel_size(layout, &text_width, &text_height);
@@ -88,13 +110,13 @@ struct wlr_buffer *wtwm_render_text(const char *value, const char *font,
 
 	struct text_buffer *buffer = calloc(1, sizeof(*buffer));
 	if (buffer == NULL) {
-		pango_font_description_free(font_description);
+		pango_font_description_free(description);
 		return NULL;
 	}
 	buffer->stride = (size_t)cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, text_width);
 	buffer->pixels = calloc((size_t)text_height, buffer->stride);
 	if (buffer->pixels == NULL) {
-		pango_font_description_free(font_description);
+		pango_font_description_free(description);
 		free(buffer);
 		return NULL;
 	}
@@ -109,11 +131,11 @@ struct wlr_buffer *wtwm_render_text(const char *value, const char *font,
 	cairo_set_operator(cairo, CAIRO_OPERATOR_OVER);
 	cairo_set_source_rgba(cairo, color[0], color[1], color[2], color[3]);
 	layout = pango_cairo_create_layout(cairo);
-	pango_layout_set_font_description(layout, font_description);
+	pango_layout_set_font_description(layout, description);
 	pango_layout_set_text(layout, text, -1);
 	pango_cairo_show_layout(cairo, layout);
 	g_object_unref(layout);
-	pango_font_description_free(font_description);
+	pango_font_description_free(description);
 	cairo_destroy(cairo);
 	cairo_surface_flush(surface);
 	cairo_surface_destroy(surface);
