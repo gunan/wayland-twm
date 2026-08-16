@@ -31,6 +31,23 @@ font_test = executable(
 )
 test('X core bitmap font metrics', font_test)
 
+color_lib = static_library(
+  'wtwm-color-lib',
+  'src/color.c',
+  include_directories: inc,
+)
+color_dep = declare_dependency(
+  link_with: color_lib,
+  include_directories: inc,
+)
+
+color_test = executable(
+  'color-test',
+  'tests/color_test.c',
+  dependencies: color_dep,
+)
+test('X11 color conversion', color_test)
+
 placement_lib = static_library(
   'wtwm-placement-lib',
   'src/placement.c',
