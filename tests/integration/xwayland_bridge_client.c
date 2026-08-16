@@ -22,6 +22,14 @@ struct atoms {
 	xcb_atom_t net_wm_icon;
 };
 
+enum { POST_MAP_REPAINT_TICKS = 20 };
+
+struct repaint_target {
+	xcb_window_t window;
+	unsigned int remaining_ticks;
+	bool desired_mapped;
+};
+
 struct client {
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
@@ -32,8 +40,12 @@ struct client {
 	xcb_window_t icon_window;
 	xcb_pixmap_t icon_pixmap;
 	xcb_pixmap_t icon_mask;
+	struct repaint_target parent_repaint;
+	struct repaint_target transient_repaint;
+	struct repaint_target override_redirect_repaint;
 	xcb_connection_t *stubborn_connection;
 	xcb_window_t stubborn;
+	struct repaint_target stubborn_repaint;
 	bool stubborn_reported;
 };
 
@@ -150,10 +162,18 @@ static xcb_window_t create_window(xcb_connection_t *connection, xcb_screen_t *sc
 }
 
 static void map_and_damage_window(xcb_connection_t *connection,
-		xcb_window_t window) {
+		xcb_window_t window, struct repaint_target *target) {
+	target->window = window;
+	target->remaining_ticks = POST_MAP_REPAINT_TICKS;
+	target->desired_mapped = true;
 	xcb_map_window(connection, window);
 	/* Painting the background creates redirected pixmap damage for Xwayland. */
 	xcb_clear_area(connection, false, window, 0, 0, 0, 0);
+}
+
+static void stop_repainting(struct repaint_target *target) {
+	target->desired_mapped = false;
+	target->remaining_ticks = 0;
 }
 
 static bool initialize(struct client *client) {
@@ -215,9 +235,12 @@ static bool initialize(struct client *client) {
 		300, 20, 100, 50, true);
 	set_string(client->connection, client->override_redirect, XCB_ATOM_WM_NAME,
 		"xwm-override-redirect");
-	map_and_damage_window(client->connection, client->parent);
-	map_and_damage_window(client->connection, client->transient);
-	map_and_damage_window(client->connection, client->override_redirect);
+	map_and_damage_window(client->connection, client->parent,
+		&client->parent_repaint);
+	map_and_damage_window(client->connection, client->transient,
+		&client->transient_repaint);
+	map_and_damage_window(client->connection, client->override_redirect,
+		&client->override_redirect_repaint);
 	xcb_flush(client->connection);
 	return true;
 }
@@ -249,7 +272,8 @@ static void create_stubborn(struct client *client) {
 		"xwm-stubborn");
 	set_class(client->stubborn_connection, client->stubborn,
 		"xwm-stubborn-instance", "XwmStubbornClass");
-	map_and_damage_window(client->stubborn_connection, client->stubborn);
+	map_and_damage_window(client->stubborn_connection, client->stubborn,
+		&client->stubborn_repaint);
 	xcb_flush(client->stubborn_connection);
 	puts("STUBBORN_MAPPED");
 }
@@ -289,19 +313,23 @@ static bool handle_command(struct client *client, const char *command) {
 		xcb_flush(client->connection);
 		puts("RESTACK_REQUESTED");
 	} else if (strcmp(command, "UNMAP_OR") == 0) {
+		stop_repainting(&client->override_redirect_repaint);
 		xcb_unmap_window(client->connection, client->override_redirect);
 		xcb_flush(client->connection);
 		puts("OR_UNMAPPED");
 	} else if (strcmp(command, "REMAP_OR") == 0) {
-		map_and_damage_window(client->connection, client->override_redirect);
+		map_and_damage_window(client->connection, client->override_redirect,
+			&client->override_redirect_repaint);
 		xcb_flush(client->connection);
 		puts("OR_REMAPPED");
 	} else if (strcmp(command, "UNMAP_PARENT") == 0) {
+		stop_repainting(&client->parent_repaint);
 		xcb_unmap_window(client->connection, client->parent);
 		xcb_flush(client->connection);
 		puts("PARENT_UNMAPPED");
 	} else if (strcmp(command, "REMAP_PARENT") == 0) {
-		map_and_damage_window(client->connection, client->parent);
+		map_and_damage_window(client->connection, client->parent,
+			&client->parent_repaint);
 		xcb_flush(client->connection);
 		puts("PARENT_REMAPPED");
 	} else if (strcmp(command, "CREATE_STUBBORN") == 0) create_stubborn(client);
@@ -310,23 +338,72 @@ static bool handle_command(struct client *client, const char *command) {
 	return true;
 }
 
-static void repaint_after_map(xcb_connection_t *connection,
+static bool wants_repaint(struct client *client, xcb_connection_t *connection,
+		xcb_window_t window) {
+	if (connection == client->connection) {
+		return (client->parent_repaint.window == window &&
+				client->parent_repaint.desired_mapped) ||
+			(client->transient_repaint.window == window &&
+				client->transient_repaint.desired_mapped) ||
+			(client->override_redirect_repaint.window == window &&
+				client->override_redirect_repaint.desired_mapped);
+	}
+	return connection == client->stubborn_connection &&
+		client->stubborn_repaint.window == window &&
+		client->stubborn_repaint.desired_mapped;
+}
+
+static void repaint_after_map(struct client *client, xcb_connection_t *connection,
 		xcb_generic_event_t *event) {
 	if ((event->response_type & ~UINT8_C(0x80)) != XCB_MAP_NOTIFY) return;
 	xcb_map_notify_event_t *map = (xcb_map_notify_event_t *)event;
+	if (!wants_repaint(client, connection, map->window)) return;
 	xcb_clear_area(connection, false, map->window, 0, 0, 0, 0);
 	xcb_flush(connection);
+}
+
+static void stop_repainting_window(struct client *client, xcb_window_t window) {
+	struct repaint_target *targets[] = {
+		&client->parent_repaint,
+		&client->transient_repaint,
+		&client->override_redirect_repaint,
+	};
+	for (size_t i = 0; i < sizeof(targets) / sizeof(targets[0]); ++i) {
+		if (targets[i]->window == window) stop_repainting(targets[i]);
+	}
+}
+
+static bool repaint_pending_target(xcb_connection_t *connection,
+		struct repaint_target *target) {
+	if (!target->desired_mapped || target->remaining_ticks == 0) return false;
+	xcb_clear_area(connection, false, target->window, 0, 0, 0, 0);
+	--target->remaining_ticks;
+	return true;
+}
+
+static void repaint_pending_windows(struct client *client) {
+	bool sent = repaint_pending_target(client->connection, &client->parent_repaint);
+	sent |= repaint_pending_target(client->connection, &client->transient_repaint);
+	sent |= repaint_pending_target(client->connection,
+		&client->override_redirect_repaint);
+	if (sent) xcb_flush(client->connection);
+
+	if (client->stubborn_connection != NULL && repaint_pending_target(
+			client->stubborn_connection, &client->stubborn_repaint)) {
+		xcb_flush(client->stubborn_connection);
+	}
 }
 
 static void handle_events(struct client *client) {
 	xcb_generic_event_t *event;
 	while ((event = xcb_poll_for_event(client->connection)) != NULL) {
-		repaint_after_map(client->connection, event);
+		repaint_after_map(client, client->connection, event);
 		if ((event->response_type & ~UINT8_C(0x80)) == XCB_CLIENT_MESSAGE) {
 			xcb_client_message_event_t *message = (xcb_client_message_event_t *)event;
 			if (message->type == client->atoms.wm_protocols &&
 					message->data.data32[0] == client->atoms.wm_delete_window) {
 				printf("DELETE_RECEIVED %" PRIu32 "\n", message->window);
+				stop_repainting_window(client, message->window);
 				xcb_destroy_window(client->connection, message->window);
 				xcb_flush(client->connection);
 			}
@@ -359,15 +436,17 @@ int main(void) {
 		if (client.stubborn_connection != NULL) {
 			xcb_generic_event_t *event;
 			while ((event = xcb_poll_for_event(client.stubborn_connection)) != NULL) {
-				repaint_after_map(client.stubborn_connection, event);
+				repaint_after_map(&client, client.stubborn_connection, event);
 				free(event);
 			}
 		}
 		if (client.stubborn_connection != NULL && !client.stubborn_reported &&
 				xcb_connection_has_error(client.stubborn_connection) != 0) {
+			stop_repainting(&client.stubborn_repaint);
 			client.stubborn_reported = true;
 			puts("STUBBORN_KILLED");
 		}
+		repaint_pending_windows(&client);
 	}
 	if (client.stubborn_connection != NULL) xcb_disconnect(client.stubborn_connection);
 	xcb_disconnect(client.connection);
