@@ -15,7 +15,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `root`, `window`, `title`, `frame`, `all` contexts | Effective | Scene hit-test contexts |
 | Shift, Control, Lock, Meta modifiers | Partial | Shift, Control, Lock, Meta/Mod1, and Meta4 have native mappings; other parsed Meta numbers lack audited runtime evidence |
 | `Function` and `f.function` | Effective | Recursive action sequence, depth limited to eight |
-| Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
+| Move, force-move, resize, raise, lower | Effective for move/resize interaction | Non-opaque moves and all resizes use compositor-owned outlines with release commit; `OpaqueMove` updates the live window, while second-button abort restores the original geometry |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
@@ -109,6 +109,27 @@ can be honored. Initial map and managed `ConfigureRequest` coordinates use the
 reference gravity and border translations; interactive placement policy and a
 reviewed numeric differential against the live geometry artifact remain later
 work.
+
+Interactive move and resize use the source-derived `twm` state machine.
+`MoveDelta` is a strict per-axis threshold (equality starts, zero starts on the
+first motion); a rapid second move enters `ConstrainedMoveTime` only when the
+unsigned elapsed timestamp is strictly smaller than the configured value.
+Leaving both outer-rectangle thirds at once selects vertical motion, matching
+the reference's ordered tests. `DontMoveOff` clamps the outer frame in
+near-edge/far-edge order, including the reference far-edge result for a frame
+larger than the output, while `f.forcemove` bypasses that clamp.
+`AutoRelativeResize` selects left/right and top/bottom edges from thirds after
+the title offset and is disabled for title-bar invocation. Size constraints
+preserve the opposite edge during left/top resizing. Non-opaque moves and every
+resize keep client geometry unchanged while an overlay outline is displayed;
+release commits it, and a second button press cancels it. `OpaqueMove` changes
+the live window during motion and restores the saved origin on cancel.
+`f.deltastop` resumes its function only after the asynchronous interaction has
+ended and stops the remainder exactly when the pointer crossed `MoveDelta`.
+`NoRaiseOnMove` and `NoRaiseOnResize` suppress their respective interaction
+raises without changing focus policy. These paths are covered by a Linux
+headless Xwayland runner plus a portable model/tamper contract for hosts without
+wlroots.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling

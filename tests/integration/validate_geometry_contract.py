@@ -43,7 +43,7 @@ def validate_text(wtwm: str, geometry: str, meson: str) -> list[str]:
             errors.append(f"compositor geometry adapter lacks {marker!r}")
 
     configure = function_body(wtwm, "static void xwayland_request_configure(")
-    interactive = function_body(wtwm, "static void set_toplevel_size(")
+    interactive = function_body(wtwm, "static void set_toplevel_box(")
     hint_sync = function_body(wtwm, "static void xwayland_deferred_sync(")
     if not configure:
         errors.append("Xwayland ConfigureRequest adapter is missing")
@@ -73,7 +73,7 @@ def validate_text(wtwm: str, geometry: str, meson: str) -> list[str]:
     required_meson = (
         "'src/geometry.c'",
         "test('twm geometry and size constraints', geometry_test)",
-        "config_dep, geometry_dep, wlroots",
+        "config_dep, geometry_dep, interaction_dep, wlroots",
         "files('tests/integration/validate_geometry_contract.py')",
     )
     for marker in required_meson:

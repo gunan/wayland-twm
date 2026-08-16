@@ -35,6 +35,14 @@ the entries, sequence, and `dropped` count; live windows keep their unique IDs.
 The next event therefore starts at sequence 1. A plain `TRACE` never clears or
 otherwise changes the captured evidence.
 
+`run_move_resize.py` drives managed X11 fixtures with synthetic pointer and
+button input. It distinguishes outline from opaque motion timing, commit from
+second-button abort, below/equal `MoveDelta`, rapid constrained moves,
+`DontMoveOff` from `f.forcemove`, auto-relative resize corners, increment/aspect
+snapping with left/top anchoring, raise suppression, and asynchronous
+`f.deltastop`. `STATE.interaction` exposes only deterministic session state and
+preview geometry; TRACE records `outline`, `commit`, and `abort` transitions.
+
 The `wtwm Xwayland geometry matrix integration` test consumes every case in
 the frozen reference geometry matrix and runs two clean headless
 wtwm/Xwayland sessions per case. Because rootless Xwayland does not expose a

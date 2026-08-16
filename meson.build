@@ -34,6 +34,23 @@ geometry_dep = declare_dependency(
   include_directories: inc,
 )
 
+interaction_lib = static_library(
+  'wtwm-interaction-lib',
+  'src/interaction.c',
+  include_directories: inc,
+)
+interaction_dep = declare_dependency(
+  link_with: interaction_lib,
+  include_directories: inc,
+)
+
+interaction_test = executable(
+  'interaction-test',
+  'tests/interaction_test.c',
+  dependencies: interaction_dep,
+)
+test('twm move and resize interaction model', interaction_test)
+
 geometry_test = executable(
   'geometry-test',
   'tests/geometry_test.c',
@@ -116,6 +133,16 @@ test(
   args: [
     '-B',
     files('tests/integration/validate_event_trace.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'move and resize runtime wiring contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_move_resize_contract.py'),
     '--source-root', meson.project_source_root(),
     '--self-test-tamper',
   ],
@@ -395,14 +422,14 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
+    dependencies: [config_dep, geometry_dep, interaction_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep, geometry_dep,
+      config_dep, geometry_dep, interaction_dep,
       wlroots,
       pangocairo,
       dependency('fontconfig'),
@@ -508,6 +535,12 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_interaction_x11_client = executable(
+    'wtwm-interaction-x11-client',
+    'tests/integration/interaction_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   wtwm_xwayland_rules_client = executable(
     'wtwm-xwayland-rules-client',
     'tests/integration/xwayland_rules_client.c',
@@ -610,6 +643,17 @@ if wlroots.found()
       '--source-root', meson.project_source_root(),
     ],
     timeout: 240,
+    is_parallel: false,
+  )
+  test(
+    'move and resize interaction integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_move_resize.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_interaction_x11_client,
+    ],
+    timeout: 120,
     is_parallel: false,
   )
   test(

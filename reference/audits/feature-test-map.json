@@ -14,6 +14,12 @@
   },
   "test_catalog": [
     {
+      "test_id": "test.current-feature.move-resize-runtime",
+      "path": "tests/integration/run_move_resize.py",
+      "meson_test": "move and resize interaction integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.source-contract",
       "path": "tests/reference/validate_feature_test_map.py",
       "meson_test": "current feature coverage",
@@ -92,7 +98,7 @@
               "contains": "ACT(\"f.deiconify\","
             },
             {
-              "location": "src/wtwm.c:1270",
+              "location": "src/wtwm.c:1549",
               "contains": "WTWM_ACTION_DEICONIFY"
             }
           ]
@@ -136,7 +142,7 @@
               "contains": "{\"f.delete\","
             },
             {
-              "location": "src/wtwm.c:1283",
+              "location": "src/wtwm.c:1562",
               "contains": "WTWM_ACTION_DELETE"
             }
           ]
@@ -162,6 +168,20 @@
       "category": "action",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "action.f-deltastop",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises action.f-deltastop through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -201,7 +221,7 @@
               "contains": "{\"f.destroy\","
             },
             {
-              "location": "src/wtwm.c:1286",
+              "location": "src/wtwm.c:1565",
               "contains": "WTWM_ACTION_DESTROY"
             }
           ]
@@ -245,7 +265,7 @@
               "contains": "ACT_ARG(\"f.exec\","
             },
             {
-              "location": "src/wtwm.c:1289",
+              "location": "src/wtwm.c:1568",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -289,7 +309,7 @@
               "contains": "strcmp(spelling, \"!\")"
             },
             {
-              "location": "src/wtwm.c:1289",
+              "location": "src/wtwm.c:1568",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -333,7 +353,7 @@
               "contains": "ACT(\"f.focus\","
             },
             {
-              "location": "src/wtwm.c:1278",
+              "location": "src/wtwm.c:1557",
               "contains": "WTWM_ACTION_FOCUS"
             }
           ]
@@ -360,6 +380,20 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "action.f-forcemove",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises action.f-forcemove through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -377,7 +411,7 @@
               "contains": "ACT(\"f.forcemove\","
             },
             {
-              "location": "src/wtwm.c:1247",
+              "location": "src/wtwm.c:1523",
               "contains": "WTWM_ACTION_FORCEMOVE"
             }
           ]
@@ -442,7 +476,7 @@
               "contains": "ACT_ARG(\"f.function\","
             },
             {
-              "location": "src/wtwm.c:1293",
+              "location": "src/wtwm.c:1572",
               "contains": "WTWM_ACTION_FUNCTION"
             }
           ]
@@ -570,7 +604,7 @@
               "contains": "ACT(\"f.iconify\","
             },
             {
-              "location": "src/wtwm.c:1262",
+              "location": "src/wtwm.c:1541",
               "contains": "WTWM_ACTION_ICONIFY"
             }
           ]
@@ -635,7 +669,7 @@
               "contains": "ACT(\"f.lower\","
             },
             {
-              "location": "src/wtwm.c:1254",
+              "location": "src/wtwm.c:1533",
               "contains": "WTWM_ACTION_LOWER"
             }
           ]
@@ -679,7 +713,7 @@
               "contains": "ACT_ARG(\"f.menu\","
             },
             {
-              "location": "src/wtwm.c:1291",
+              "location": "src/wtwm.c:1570",
               "contains": "WTWM_ACTION_MENU"
             }
           ]
@@ -706,6 +740,20 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "action.f-move",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises action.f-move through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -723,7 +771,7 @@
               "contains": "ACT(\"f.move\","
             },
             {
-              "location": "src/wtwm.c:1247",
+              "location": "src/wtwm.c:1523",
               "contains": "WTWM_ACTION_MOVE"
             }
           ]
@@ -788,7 +836,7 @@
               "contains": "ACT(\"f.quit\","
             },
             {
-              "location": "src/wtwm.c:1304",
+              "location": "src/wtwm.c:1576",
               "contains": "WTWM_ACTION_QUIT"
             }
           ]
@@ -832,7 +880,7 @@
               "contains": "ACT(\"f.raise\","
             },
             {
-              "location": "src/wtwm.c:1251",
+              "location": "src/wtwm.c:1530",
               "contains": "WTWM_ACTION_RAISE"
             }
           ]
@@ -876,7 +924,7 @@
               "contains": "ACT(\"f.raiselower\","
             },
             {
-              "location": "src/wtwm.c:1256",
+              "location": "src/wtwm.c:1535",
               "contains": "WTWM_ACTION_RAISELOWER"
             }
           ]
@@ -924,6 +972,20 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "action.f-resize",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises action.f-resize through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -941,7 +1003,7 @@
               "contains": "ACT(\"f.resize\","
             },
             {
-              "location": "src/wtwm.c:1249",
+              "location": "src/wtwm.c:1527",
               "contains": "WTWM_ACTION_RESIZE"
             }
           ]
@@ -1090,7 +1152,7 @@
               "contains": "ACT(\"f.unfocus\","
             },
             {
-              "location": "src/wtwm.c:1281",
+              "location": "src/wtwm.c:1560",
               "contains": "WTWM_ACTION_UNFOCUS"
             }
           ]
@@ -1134,7 +1196,7 @@
               "contains": "ACT(\"f.warpnext\","
             },
             {
-              "location": "src/wtwm.c:1303",
+              "location": "src/wtwm.c:1575",
               "contains": "WTWM_ACTION_WARPNEXT"
             }
           ]
@@ -1657,11 +1719,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:536",
+              "location": "src/wtwm.c:577",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             },
             {
-              "location": "src/wtwm.c:537",
+              "location": "src/wtwm.c:578",
               "contains": "&toplevel->server->config.auto_raise_windows,"
             }
           ]
@@ -1687,6 +1749,20 @@
       "category": "directive",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.autorelativeresize",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.autorelativeresize through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -1722,7 +1798,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1860",
+              "location": "src/wtwm.c:2222",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -1762,7 +1838,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:551",
+              "location": "src/wtwm.c:592",
               "contains": "return server->config.border_width;"
             }
           ]
@@ -1823,7 +1899,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1487",
+              "location": "src/wtwm.c:1842",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -1884,7 +1960,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1860",
+              "location": "src/wtwm.c:2222",
               "contains": "color_value(server->config.border_color, border);"
             }
           ]
@@ -1910,6 +1986,20 @@
       "category": "directive",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.constrainedmovetime",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.constrainedmovetime through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -1995,6 +2085,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.dontmoveoff",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.dontmoveoff through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -2071,12 +2175,12 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1296",
-              "contains": "server->config.functions[i].action_count"
+              "location": "src/wtwm.c:1467",
+              "contains": "static bool push_action_frame("
             },
             {
-              "location": "src/wtwm.c:1298",
-              "contains": "&server->config.functions[i].actions[j], depth + 1"
+              "location": "src/wtwm.c:1480",
+              "contains": "struct action_frame *frame ="
             }
           ]
         },
@@ -2304,7 +2408,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1472",
+              "location": "src/wtwm.c:1826",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -2344,7 +2448,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:528",
+              "location": "src/wtwm.c:569",
               "contains": "&toplevel->server->config.make_title_windows,"
             }
           ]
@@ -2384,7 +2488,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1090",
+              "location": "src/wtwm.c:1302",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -2424,7 +2528,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1126",
+              "location": "src/wtwm.c:1338",
               "contains": "color_value(server->config.menu_background, background);"
             }
           ]
@@ -2464,7 +2568,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1125",
+              "location": "src/wtwm.c:1337",
               "contains": "color_value(server->config.menu_border_color, border);"
             }
           ]
@@ -2504,7 +2608,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1120",
+              "location": "src/wtwm.c:1332",
               "contains": "int border_width = server->config.menu_border_width;"
             }
           ]
@@ -2544,7 +2648,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1116",
+              "location": "src/wtwm.c:1328",
               "contains": "server->config.menu_font, color, &widths[i], &heights[i]);"
             }
           ]
@@ -2584,7 +2688,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1127",
+              "location": "src/wtwm.c:1339",
               "contains": "color_value(server->config.menu_foreground, highlight);"
             }
           ]
@@ -2624,7 +2728,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1139",
+              "location": "src/wtwm.c:1351",
               "contains": "server->config.menu_title_background, row_color);"
             }
           ]
@@ -2664,7 +2768,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1113",
+              "location": "src/wtwm.c:1325",
               "contains": "server->config.menu_title_foreground : server->config.menu_foreground);"
             }
           ]
@@ -2711,6 +2815,20 @@
       "category": "directive",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.movedelta",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.movedelta through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -2817,6 +2935,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.noraiseonmove",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.noraiseonmove through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -2837,6 +2969,20 @@
       "category": "directive",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.noraiseonresize",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.noraiseonresize through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -2893,11 +3039,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:527",
+              "location": "src/wtwm.c:568",
               "contains": "return wtwm_window_has_title(toplevel->server->config.no_title,"
             },
             {
-              "location": "src/wtwm.c:529",
+              "location": "src/wtwm.c:570",
               "contains": "&toplevel->server->config.no_title_windows,"
             }
           ]
@@ -2966,6 +3112,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.move-resize-runtime",
+          "path": "tests/integration/run_move_resize.py",
+          "meson_test": "move and resize interaction integration",
+          "case": "directive.opaquemove",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "The Linux headless compositor runner exercises directive.opaquemove through synthetic pointer/button input and TRACE/STATE assertions.",
+            "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -3021,7 +3181,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1533",
+              "location": "src/wtwm.c:1891",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3103,7 +3263,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1472",
+              "location": "src/wtwm.c:1826",
               "contains": "server->config.title_buttons[i].right_side == hit.right_button"
             }
           ]
@@ -3206,7 +3366,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:545",
+              "location": "src/wtwm.c:586",
               "contains": "&toplevel->server->config.start_iconified_windows,"
             }
           ]
@@ -3246,7 +3406,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1861",
+              "location": "src/wtwm.c:2223",
               "contains": "color_value(server->config.title_background, title);"
             }
           ]
@@ -3307,7 +3467,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:751",
+              "location": "src/wtwm.c:792",
               "contains": "toplevel->server->config.title_font, foreground, &width, &height);"
             }
           ]
@@ -3347,7 +3507,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1862",
+              "location": "src/wtwm.c:2224",
               "contains": "color_value(server->config.title_foreground, foreground);"
             }
           ]
@@ -3387,7 +3547,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:767",
+              "location": "src/wtwm.c:808",
               "contains": "int title_padding = toplevel->server->config.title_padding;"
             }
           ]
@@ -3490,7 +3650,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:536",
+              "location": "src/wtwm.c:577",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             }
           ]
@@ -3516,7 +3676,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1487",
+              "location": "src/wtwm.c:1842",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -3542,7 +3702,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3398",
+              "location": "src/wtwm.c:3785",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]
@@ -3568,7 +3728,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:554",
+              "location": "src/wtwm.c:595",
               "contains": "static int configured_title_bar_height("
             }
           ]
@@ -3594,7 +3754,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1246",
+              "location": "src/wtwm.c:1522",
               "contains": "switch (action->type)"
             }
           ]
@@ -3620,12 +3780,12 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1296",
-              "contains": "server->config.functions[i].action_count"
+              "location": "src/wtwm.c:1467",
+              "contains": "static bool push_action_frame("
             },
             {
-              "location": "src/wtwm.c:1298",
-              "contains": "&server->config.functions[i].actions[j], depth + 1"
+              "location": "src/wtwm.c:1480",
+              "contains": "struct action_frame *frame ="
             }
           ]
         }
@@ -3650,7 +3810,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1533",
+              "location": "src/wtwm.c:1891",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3676,7 +3836,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1090",
+              "location": "src/wtwm.c:1302",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -3702,8 +3862,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1455",
-              "contains": "execute_action(server, target, &action, 0)"
+              "location": "src/wtwm.c:1810",
+              "contains": "if (activate) execute_action(server, target, &action,"
             }
           ]
         }
@@ -3728,7 +3888,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:545",
+              "location": "src/wtwm.c:586",
               "contains": "server->config.start_iconified_windows"
             }
           ]
@@ -3754,8 +3914,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1477",
-              "contains": "execute_action(server, hit.toplevel, configured, 0)"
+              "location": "src/wtwm.c:1831",
+              "contains": "if (configured != NULL) execute_action(server, hit.toplevel, configured,"
             }
           ]
         }
@@ -3780,7 +3940,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1817",
+              "location": "src/wtwm.c:2179",
               "contains": "set_decorated(toplevel, should_decorate(toplevel));"
             }
           ]
