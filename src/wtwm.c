@@ -2356,6 +2356,19 @@ static void test_write_state(struct test_control *control) {
 		}
 		test_write(control, "}");
 	}
+	test_write(control, "],\"xwayland_lifecycle\":[");
+	first = true;
+	wl_list_for_each(toplevel, &server->xwayland_views, xwayland_link) {
+		if (!first) test_write(control, ",");
+		first = false;
+		test_write(control,
+			"{\"xid\":%" PRIu32 ",\"associated\":%s,\"mapped\":%s,"
+			"\"override_redirect\":%s}",
+			toplevel->xwayland->window_id,
+			toplevel->associated ? "true" : "false",
+			toplevel->mapped ? "true" : "false",
+			toplevel->xwayland->override_redirect ? "true" : "false");
+	}
 	test_write(control, "],\"icons\":[");
 	first = true;
 	wl_list_for_each(toplevel, &server->toplevels, link) {

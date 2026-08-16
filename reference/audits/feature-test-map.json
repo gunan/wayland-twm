@@ -3542,7 +3542,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:2770",
+              "location": "src/wtwm.c:2783",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]

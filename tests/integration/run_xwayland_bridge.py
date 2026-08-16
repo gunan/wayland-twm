@@ -64,6 +64,18 @@ def window(state: dict[str, object], title: str) -> dict[str, object]:
     return matches[0]
 
 
+def lifecycle_matches(
+    state: dict[str, object], xid: int, *, associated: bool, mapped: bool,
+    override_redirect: bool,
+) -> bool:
+    return any(
+        entry["xid"] == xid and entry["associated"] == associated and
+        entry["mapped"] == mapped and
+        entry["override_redirect"] == override_redirect
+        for entry in state["xwayland_lifecycle"]
+    )
+
+
 def click_title(control: Control, item: dict[str, object], button: int) -> None:
     x = int(item["x"]) + int(item["width"]) // 2
     y = int(item["y"]) + 8
@@ -159,9 +171,19 @@ def run(compositor: Path, client_binary: Path) -> None:
             parent = window(state, "xwm-parent-initial")
             transient = window(state, "xwm-transient")
             assert_initial_metadata(parent, transient)
+            parent_xid = int(parent["xid"])
             override = state["override_redirect"][0]
+            override_xid = int(override["xid"])
             if override["title"] != "xwm-override-redirect" or not override["mapped"]:
                 raise RuntimeError(f"override-redirect window is not visible: {state!r}")
+            if not lifecycle_matches(
+                state, parent_xid, associated=True, mapped=True,
+                override_redirect=False,
+            ) or not lifecycle_matches(
+                state, override_xid, associated=True, mapped=True,
+                override_redirect=True,
+            ):
+                raise RuntimeError(f"initial Xwayland lifecycle is stale: {state!r}")
 
             command(client, "UPDATE", "UPDATED")
             state = wait_state(
@@ -230,9 +252,24 @@ def run(compositor: Path, client_binary: Path) -> None:
             command(client, "UNMAP_OR", "OR_UNMAPPED")
             wait_state(control, lambda item: not item["override_redirect"],
                        "override-redirect unmap cleanup")
+            wait_state(
+                control,
+                lambda item: lifecycle_matches(
+                    item, override_xid, associated=False, mapped=False,
+                    override_redirect=True,
+                ),
+                "override-redirect dissociation",
+            )
             command(client, "REMAP_OR", "OR_REMAPPED")
-            wait_state(control, lambda item: len(item["override_redirect"]) == 1,
-                       "override-redirect remap")
+            wait_state(
+                control,
+                lambda item: len(item["override_redirect"]) == 1 and
+                lifecycle_matches(
+                    item, override_xid, associated=True, mapped=True,
+                    override_redirect=True,
+                ),
+                "override-redirect remap",
+            )
 
             command(client, "UNMAP_PARENT", "PARENT_UNMAPPED")
             state = wait_state(
@@ -243,11 +280,23 @@ def run(compositor: Path, client_binary: Path) -> None:
             )
             if state["interactive"] or state["menu"] is not None:
                 raise RuntimeError(f"unmapped X11 target retained UI state: {state!r}")
+            wait_state(
+                control,
+                lambda item: lifecycle_matches(
+                    item, parent_xid, associated=False, mapped=False,
+                    override_redirect=False,
+                ),
+                "managed X11 dissociation",
+            )
             command(client, "REMAP_PARENT", "PARENT_REMAPPED")
             state = wait_state(
                 control,
                 lambda item: any(entry["title"] == "xwm-parent-updated"
-                                 for entry in item["windows"]),
+                                 for entry in item["windows"]) and
+                lifecycle_matches(
+                    item, parent_xid, associated=True, mapped=True,
+                    override_redirect=False,
+                ),
                 "managed X11 remap",
             )
             parent = window(state, "xwm-parent-updated")
