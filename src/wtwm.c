@@ -379,12 +379,6 @@ static const char *toplevel_title(const struct toplevel *toplevel) {
 	return title != NULL ? title : "";
 }
 
-static const char *toplevel_app_id(const struct toplevel *toplevel) {
-	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
-	return app_id != NULL ? app_id : "";
-}
-
 static struct toplevel *toplevel_for_surface(struct wlr_surface *surface) {
 	if (surface == NULL) return NULL;
 	surface = wlr_surface_get_root_surface(surface);
@@ -2234,6 +2228,12 @@ static void new_decoration(struct wl_listener *listener, void *data) {
 }
 
 #ifdef WTWM_TEST_CONTROL
+static const char *toplevel_app_id(const struct toplevel *toplevel) {
+	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
+		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+	return app_id != NULL ? app_id : "";
+}
+
 static void test_write(struct test_control *control, const char *format, ...) {
 	if (control->client_fd < 0) return;
 	va_list args;
