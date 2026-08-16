@@ -743,11 +743,13 @@ static bool initialize(struct client *client) {
 	xdg_toplevel_set_title(client->toplevel, "wtwm-selection-wayland");
 	xdg_toplevel_set_app_id(client->toplevel, "org.wtwm.Selection");
 	wl_surface_commit(client->surface);
-	while ((!client->mapped || client->serial == 0) &&
-			dispatch_with_timeout(client, 10000)) {
+	/* Mapping is the client-ready handshake. The runner assigns focus after
+	 * READY and separately requires a nonzero input serial before either
+	 * selection source can be claimed. */
+	while (!client->mapped && dispatch_with_timeout(client, 10000)) {
 	}
 	wl_registry_destroy(registry);
-	return client->mapped && client->serial != 0;
+	return client->mapped;
 }
 
 static void finish(struct client *client) {
