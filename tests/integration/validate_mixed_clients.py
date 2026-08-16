@@ -100,6 +100,16 @@ def validate_text(
     for marker in wayland_markers:
         if marker not in wayland_client:
             errors.append(f"mixed Wayland input/lifecycle client lacks {marker!r}")
+    main_start = wayland_client.find("int main(void)")
+    main_body = wayland_client[main_start:] if main_start >= 0 else ""
+    barrier = "wl_display_roundtrip(client.display)"
+    first_barrier = main_body.find(barrier)
+    second_barrier = main_body.find(barrier, first_barrier + len(barrier))
+    required_globals = main_body.find("client.compositor == NULL")
+    if main_body.count(barrier) != 2:
+        errors.append("mixed Wayland startup must use exactly two registry/seat barriers")
+    elif not (0 <= first_barrier < second_barrier < required_globals):
+        errors.append("mixed Wayland keyboard validation precedes the second seat barrier")
 
     x11_markers = (
         '"wtwm-mixed-x11-a"',
@@ -201,6 +211,27 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
             runner,
             wayland.replace("static void keyboard_key(void *data",
                             "static void removed_key(void *data", 1),
+            x11, meson, compatibility, integration_readme,
+        ),
+        (
+            "seat-barrier",
+            runner,
+            wayland.replace(
+                "if (wl_display_roundtrip(client.display) < 0 || client.compositor == NULL ||",
+                "if (client.compositor == NULL ||",
+                1,
+            ),
+            x11, meson, compatibility, integration_readme,
+        ),
+        (
+            "seat-barrier-order",
+            runner,
+            wayland.replace(
+                "if (wl_display_roundtrip(client.display) < 0 || client.compositor == NULL ||",
+                "if (client.compositor == NULL ||\n"
+                "\t\t\twl_display_roundtrip(client.display) < 0 ||",
+                1,
+            ),
             x11, meson, compatibility, integration_readme,
         ),
         (
