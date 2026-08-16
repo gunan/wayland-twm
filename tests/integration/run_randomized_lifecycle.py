@@ -130,11 +130,15 @@ def assert_runtime_invariants(
     for event in events:
         identifier = int(event["window"]["id"])
         title = str(event["window"]["title"])
-        if identifier <= 0 or not title:
+        if identifier <= 0:
             raise RuntimeError(f"event lost stable client identity: {event!r}")
-        previous_id = ids_by_title.setdefault(title, identifier)
-        if previous_id != identifier:
-            raise RuntimeError(f"event identity is stale or reused: {event!r}")
+        # Native clients can emit a creation/title event before both xdg
+        # metadata strings arrive.  The monotonic ID is the stable identity;
+        # once a non-empty title exists it must remain bound to that same ID.
+        if title:
+            previous_id = ids_by_title.setdefault(title, identifier)
+            if previous_id != identifier:
+                raise RuntimeError(f"event identity is stale or reused: {event!r}")
     return state
 
 

@@ -71,6 +71,18 @@ def wait_for_no_window(control: Control, title: str) -> None:
     raise RuntimeError(f"timed out waiting for destroyed client {title!r}")
 
 
+def wait_for_trace_event(
+    control: Control, title: str, event: str
+) -> list[dict[str, object]]:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        trace = validate_trace(control.trace(), title)
+        if any(entry["event"] == event for entry in trace):
+            return trace
+        time.sleep(0.01)
+    raise RuntimeError(f"timed out waiting for traced {event!r} for {title!r}")
+
+
 def validate_trace(trace: dict[str, object], title: str) -> list[dict[str, object]]:
     if trace["version"] != 1 or trace["dropped"] != 0:
         raise RuntimeError(f"invalid or incomplete event trace: {trace!r}")
@@ -215,7 +227,7 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             client.wait(timeout=5)
             client = None
             wait_for_no_window(control, title)
-            final_trace = validate_trace(control.trace(), title)
+            final_trace = wait_for_trace_event(control, title, "destroy")
             final_kinds = [event["event"] for event in final_trace]
             if "unmap" not in final_kinds or "destroy" not in final_kinds:
                 raise RuntimeError(f"client teardown was not traced: {final_trace!r}")
