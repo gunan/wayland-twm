@@ -51,6 +51,7 @@ struct client {
 	struct wl_compositor *compositor;
 	struct wl_shm *shm;
 	struct wl_seat *seat;
+	struct wl_pointer *pointer;
 	struct wl_keyboard *keyboard;
 	struct wl_data_device_manager *data_manager;
 	struct wl_data_device *data_device;
@@ -313,6 +314,92 @@ static const struct zwp_primary_selection_source_v1_listener primary_source_list
 	.cancelled = primary_source_cancelled,
 };
 
+static void pointer_enter(void *data, struct wl_pointer *pointer,
+	uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y) {
+	(void)data;
+	(void)pointer;
+	(void)serial;
+	(void)surface;
+	(void)x;
+	(void)y;
+}
+
+static void pointer_leave(void *data, struct wl_pointer *pointer,
+	uint32_t serial, struct wl_surface *surface) {
+	(void)data;
+	(void)pointer;
+	(void)serial;
+	(void)surface;
+}
+
+static void pointer_motion(void *data, struct wl_pointer *pointer,
+	uint32_t time, wl_fixed_t x, wl_fixed_t y) {
+	(void)data;
+	(void)pointer;
+	(void)time;
+	(void)x;
+	(void)y;
+}
+
+static void pointer_button(void *data, struct wl_pointer *pointer,
+	uint32_t serial, uint32_t time, uint32_t button, uint32_t state) {
+	(void)pointer;
+	(void)time;
+	(void)button;
+	(void)state;
+	struct client *client = data;
+	client->serial = serial;
+}
+
+static void pointer_axis(void *data, struct wl_pointer *pointer,
+	uint32_t time, uint32_t axis, wl_fixed_t value) {
+	(void)data;
+	(void)pointer;
+	(void)time;
+	(void)axis;
+	(void)value;
+}
+
+static void pointer_frame(void *data, struct wl_pointer *pointer) {
+	(void)data;
+	(void)pointer;
+}
+
+static void pointer_axis_source(void *data, struct wl_pointer *pointer,
+	uint32_t source) {
+	(void)data;
+	(void)pointer;
+	(void)source;
+}
+
+static void pointer_axis_stop(void *data, struct wl_pointer *pointer,
+	uint32_t time, uint32_t axis) {
+	(void)data;
+	(void)pointer;
+	(void)time;
+	(void)axis;
+}
+
+static void pointer_axis_discrete(void *data, struct wl_pointer *pointer,
+	uint32_t axis, int32_t discrete) {
+	(void)data;
+	(void)pointer;
+	(void)axis;
+	(void)discrete;
+}
+
+static const struct wl_pointer_listener pointer_listener = {
+	.enter = pointer_enter,
+	.leave = pointer_leave,
+	.motion = pointer_motion,
+	.button = pointer_button,
+	.axis = pointer_axis,
+	.frame = pointer_frame,
+	.axis_source = pointer_axis_source,
+	.axis_stop = pointer_axis_stop,
+	.axis_discrete = pointer_axis_discrete,
+};
+
 static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
 	uint32_t format, int32_t fd, uint32_t size) {
 	(void)data;
@@ -381,6 +468,11 @@ static const struct wl_keyboard_listener keyboard_listener = {
 static void seat_capabilities(void *data, struct wl_seat *seat,
 	uint32_t capabilities) {
 	struct client *client = data;
+	if ((capabilities & WL_SEAT_CAPABILITY_POINTER) != 0 &&
+			client->pointer == NULL) {
+		client->pointer = wl_seat_get_pointer(seat);
+		wl_pointer_add_listener(client->pointer, &pointer_listener, client);
+	}
 	if ((capabilities & WL_SEAT_CAPABILITY_KEYBOARD) != 0 &&
 			client->keyboard == NULL) {
 		client->keyboard = wl_seat_get_keyboard(seat);
@@ -774,6 +866,7 @@ static void finish(struct client *client) {
 	if (client->data_device != NULL) wl_data_device_release(client->data_device);
 	if (client->primary_device != NULL)
 		zwp_primary_selection_device_v1_destroy(client->primary_device);
+	if (client->pointer != NULL) wl_pointer_release(client->pointer);
 	if (client->keyboard != NULL) wl_keyboard_release(client->keyboard);
 	if (client->primary_manager != NULL)
 		zwp_primary_selection_device_manager_v1_destroy(client->primary_manager);
