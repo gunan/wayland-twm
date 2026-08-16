@@ -346,7 +346,8 @@ def main() -> None:
          "Button3 = : title : f.raise\n", delta_stop_scenario),
     ]
     for index, (config, scenario) in enumerate(sessions):
-        run_session(arguments.compositor, arguments.client, config, scenario, index)
+        run_session(arguments.compositor.resolve(), arguments.client.resolve(),
+                    config, scenario, index)
     print("move/resize interaction integration passed")
 
 

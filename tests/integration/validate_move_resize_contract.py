@@ -56,6 +56,7 @@ SOURCE_FRAGMENTS = (
 )
 
 RUNNER_FRAGMENTS = (
+    "arguments.compositor.resolve()",
     "MoveDelta below-threshold motion started",
     "MoveDelta equality did not start",
     "outline preview geometry is wrong",
