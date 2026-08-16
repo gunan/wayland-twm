@@ -218,7 +218,6 @@ def x11_target_unmapped(state: dict[str, object], xid: int) -> bool:
         and not lifecycle[0]["mapped"]
         and not lifecycle[0]["has_buffer"]
         and not lifecycle[0]["override_redirect"]
-        and state["focus"] == SURVIVOR_TITLE
     )
 
 
@@ -367,9 +366,15 @@ def run(
                 f"one live {protocol} target {title}",
             )
             assert_mapped_target(state, title, protocol, xid)
+            click_content(control, state, title)
+            state = wait_state(
+                control,
+                lambda item: item["focus"] == title,
+                f"explicit pointer focus for {protocol} target {title}",
+            )
             if state["focus"] != title:
                 raise RuntimeError(
-                    f"new {protocol} target did not own focus: {state!r}"
+                    f"explicitly entered {protocol} target did not own focus: {state!r}"
                 )
             control.command("WAIT 1")
             return state
@@ -378,9 +383,14 @@ def run(
             state = wait_state(
                 control,
                 lambda item: exact_titles(item, {SURVIVOR_TITLE})
-                and item["focus"] == SURVIVOR_TITLE
                 and not item["xwayland_lifecycle"],
                 description,
+            )
+            click_content(control, state, SURVIVOR_TITLE)
+            state = wait_state(
+                control,
+                lambda item: item["focus"] == SURVIVOR_TITLE,
+                description + " survivor refocus",
             )
             assert_survivor_only(state)
             control.command("WAIT 1")

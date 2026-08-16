@@ -66,7 +66,8 @@ struct named_action {
 static const struct named_action actions[] = {
 	ACT_PARSED("f.autoraise"), ACT_PARSED("f.backiconmgr"),
 	ACT("f.beep", WTWM_ACTION_BEEP), ACT("f.bottomzoom", WTWM_ACTION_BOTTOMZOOM),
-	ACT_PARSED("f.circledown"), ACT_PARSED("f.circleup"),
+	ACT("f.circledown", WTWM_ACTION_CIRCLEDOWN),
+	ACT("f.circleup", WTWM_ACTION_CIRCLEUP),
 	ACT_PARSED_ARG("f.colormap"), ACT_PARSED_ARG("f.cut"),
 	ACT_PARSED("f.cutfile"), ACT("f.deiconify", WTWM_ACTION_DEICONIFY),
 	{"f.delete", WTWM_ACTION_DELETE, false, WTWM_COMPAT_WAYLAND_TRANSLATED},

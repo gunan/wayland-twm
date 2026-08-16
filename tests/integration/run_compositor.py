@@ -174,7 +174,7 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             )
             state = wait_for_window(control, title)
             if state["focus"] != title:
-                raise RuntimeError(f"mapped client is not focused: {state!r}")
+                raise RuntimeError(f"client mapped under the pointer is not focused: {state!r}")
             window = next(window for window in state["windows"] if window["title"] == title)
             if (window["x"], window["y"]) != (8, 8):
                 raise RuntimeError(f"placement is not deterministic: {window!r}")
@@ -193,7 +193,7 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             trace = validate_trace(control.trace(), title)
             kinds = {event["event"] for event in trace}
             required = {
-                "title", "configure", "map", "raise", "focus",
+                "title", "configure", "map", "focus",
                 "pointer", "button", "key",
             }
             if not required.issubset(kinds):

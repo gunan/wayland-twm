@@ -19,6 +19,15 @@ that only compositor-driven resize paths call the portable constraint model;
 ordinary X11 configure requests and hint-property changes remain unsnapped as
 they are under reference `twm`.
 
+The focus/stack runner uses two overlapping X11 windows, including an input-false
+`WM_TAKE_FOCUS` transient and an `AutoRaise` rule. It distinguishes logical
+activation from actual keyboard focus and PointerRoot/sloppy focus from the
+click-locked `f.focus` mode. Frame, title, client, and the minimal
+compositor-owned icon hit target are recorded as binding contexts; a live menu
+is verified to have no binding context and to preserve locked focus. The same
+trace proves focus-neutral raise/lower, overlap-dependent `f.raiselower`, both
+circulation directions, and single-window rather than transient-group restacks.
+
 `TRACE` returns a versioned, pull-only JSON event ledger. Each entry has a
 monotonic sequence, a creation-order window ID, protocol identity strings,
 semantic context, current mapped/focused/stack state, and normalized client and

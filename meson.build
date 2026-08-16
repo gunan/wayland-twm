@@ -98,6 +98,33 @@ lifecycle_model_test = executable(
 )
 test('randomized lifecycle and stacking model', lifecycle_model_test)
 
+focus_stack_lib = static_library(
+  'wtwm-focus-stack-lib',
+  'src/focus_stack.c',
+  include_directories: inc,
+)
+focus_stack_dep = declare_dependency(
+  link_with: focus_stack_lib,
+  include_directories: inc,
+)
+
+focus_stack_test = executable(
+  'focus-stack-test',
+  'tests/focus_stack_test.c',
+  dependencies: focus_stack_dep,
+)
+test('twm focus contexts and stacking model', focus_stack_test)
+test(
+  'focus contexts and stacking runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_focus_stack_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 geometry_test = executable(
   'geometry-test',
   'tests/geometry_test.c',
@@ -489,15 +516,15 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep, geometry_dep, interaction_dep, placement_dep,
-      wlroots,
+      config_dep, geometry_dep, interaction_dep, placement_dep, wlroots,
+      focus_stack_dep,
       pangocairo,
       dependency('fontconfig'),
       wayland_server,
@@ -611,6 +638,12 @@ if wlroots.found()
   wtwm_xwayland_placement_client = executable(
     'wtwm-xwayland-placement-client',
     'tests/integration/xwayland_placement_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_focus_stack_x11_client = executable(
+    'wtwm-focus-stack-x11-client',
+    'tests/integration/focus_stack_x11_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -738,6 +771,17 @@ if wlroots.found()
       '--client', wtwm_xwayland_placement_client,
     ],
     timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'focus contexts and stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_focus_stack.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
     is_parallel: false,
   )
   test(

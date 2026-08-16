@@ -8,6 +8,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
 #include "wtwm/interaction.h"
 #include "wtwm/placement.h"
@@ -116,6 +117,7 @@ struct test_trace_event {
 	bool mapped;
 	bool iconified;
 	bool focused;
+	bool active;
 };
 
 struct test_control {
@@ -156,6 +158,12 @@ struct toplevel {
 	struct wlr_scene_rect *right_button;
 	struct wlr_scene_rect *right_inner;
 	struct wlr_scene_buffer *title_text;
+	struct wlr_scene_tree *icon_tree;
+	struct wlr_scene_rect *icon_background;
+	int icon_x;
+	int icon_y;
+	int icon_width;
+	int icon_height;
 	int title_text_height;
 	int width;
 	int height;
@@ -340,6 +348,7 @@ struct server {
 	struct wl_listener xwayland_ready;
 	struct wl_listener xwayland_new_surface;
 	xcb_atom_t atom_wm_protocols;
+	xcb_atom_t atom_wm_take_focus;
 	xcb_atom_t atom_wm_delete_window;
 	xcb_atom_t atom_wm_normal_hints;
 	xcb_atom_t atom_wm_transient_for;
@@ -356,6 +365,10 @@ struct server {
 	uint32_t last_move_time_ms;
 	bool last_interaction_moved;
 	uint64_t frame_sequence;
+	struct toplevel *focus;
+	struct toplevel *pointer_toplevel;
+	uint32_t pointer_context;
+	bool focus_root;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -364,6 +377,11 @@ struct server {
 static void new_xwayland_surface(struct wl_listener *listener, void *data);
 static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event);
 static void resume_action_continuation(struct server *server);
+static void process_cursor_motion(struct server *server, uint32_t time_msec);
+static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
+static void clear_keyboard_focus(struct server *server);
+static void set_xwayland_input_focus(struct server *server,
+	struct toplevel *toplevel, uint32_t time);
 static struct server *xwayland_event_server;
 
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
@@ -382,11 +400,13 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
 	if (connection != NULL) {
 		server->atom_wm_protocols = xwayland_atom(connection, "WM_PROTOCOLS");
+		server->atom_wm_take_focus = xwayland_atom(connection, "WM_TAKE_FOCUS");
 		server->atom_wm_delete_window = xwayland_atom(connection, "WM_DELETE_WINDOW");
 		server->atom_wm_normal_hints = xwayland_atom(connection, "WM_NORMAL_HINTS");
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
+		set_xwayland_input_focus(server, NULL, XCB_CURRENT_TIME);
 	}
 	wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
 }
@@ -699,6 +719,7 @@ static struct test_trace_event *test_trace_append(struct toplevel *toplevel,
 	trace->iconified = toplevel->iconified;
 	trace->focused = surface_belongs_to_toplevel(
 		toplevel->server->seat->keyboard_state.focused_surface, toplevel);
+	trace->active = toplevel->server->focus == toplevel;
 	return trace;
 }
 
@@ -858,6 +879,78 @@ static void set_decorated(struct toplevel *toplevel, bool enabled) {
 	update_decoration(toplevel);
 }
 
+static bool create_icon_scene(struct toplevel *toplevel) {
+	if (toplevel->icon_tree != NULL) return true;
+	float background[4], foreground[4];
+	color_value(toplevel->server->config.icon_background, background);
+	color_value(toplevel->server->config.icon_foreground, foreground);
+	toplevel->icon_width = 96;
+	toplevel->icon_height = 24;
+	toplevel->icon_tree = wlr_scene_tree_create(toplevel->server->view_tree);
+	if (toplevel->icon_tree == NULL) return false;
+	toplevel->icon_tree->node.data = toplevel;
+	toplevel->icon_background = wlr_scene_rect_create(toplevel->icon_tree,
+		toplevel->icon_width, toplevel->icon_height, background);
+	if (toplevel->icon_background == NULL) {
+		wlr_scene_node_destroy(&toplevel->icon_tree->node);
+		toplevel->icon_tree = NULL;
+		return false;
+	}
+	/* A narrow foreground strip makes the minimal hit target visible without
+	 * implementing Milestone 7 icon image/text layout. */
+	struct wlr_scene_rect *mark = wlr_scene_rect_create(toplevel->icon_tree,
+		toplevel->icon_width - 4, 2, foreground);
+	if (mark != NULL) wlr_scene_node_set_position(&mark->node, 2, 2);
+	wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
+	return true;
+}
+
+static void destroy_icon_scene(struct toplevel *toplevel) {
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_destroy(&toplevel->icon_tree->node);
+	toplevel->icon_tree = NULL;
+	toplevel->icon_background = NULL;
+}
+
+static struct wlr_scene_node *toplevel_visible_node(struct toplevel *toplevel) {
+	return toplevel->iconified && toplevel->icon_tree != NULL ?
+		&toplevel->icon_tree->node : &toplevel->tree->node;
+}
+
+static void sync_toplevel_scene_stack(struct toplevel *toplevel) {
+	struct wlr_scene_node *node = toplevel_visible_node(toplevel);
+	if (toplevel->link.prev == &toplevel->server->toplevels) {
+		wlr_scene_node_raise_to_top(node);
+		return;
+	}
+	struct toplevel *above = wl_container_of(toplevel->link.prev, above, link);
+	wlr_scene_node_place_below(node, toplevel_visible_node(above));
+}
+
+static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->iconified == iconified)
+		return;
+	if (iconified && !create_icon_scene(toplevel)) return;
+	if (iconified && toplevel->server->focus == toplevel) {
+		toplevel->server->focus_root = true;
+		clear_keyboard_focus(toplevel->server);
+	}
+	toplevel->iconified = iconified;
+	if (iconified) {
+		toplevel->icon_x = toplevel->tree->node.x;
+		toplevel->icon_y = toplevel->tree->node.y;
+		wlr_scene_node_set_position(&toplevel->icon_tree->node,
+			toplevel->icon_x, toplevel->icon_y);
+	}
+	wlr_scene_node_set_enabled(&toplevel->tree->node, !iconified);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, iconified);
+	sync_toplevel_scene_stack(toplevel);
+	suspend_toplevel(toplevel, iconified);
+	test_trace_toplevel_event(toplevel,
+		iconified ? "iconify" : "deiconify", "icon");
+}
+
 static void set_focused_marker(struct server *server, struct toplevel *focused) {
 	struct toplevel *item;
 	wl_list_for_each(item, &server->toplevels, link) {
@@ -997,11 +1090,54 @@ static void set_toplevel_box(struct toplevel *toplevel,
 		x, y, width, height);
 }
 
-static void activate_toplevel(struct toplevel *toplevel, bool activated) {
-	if (toplevel->xdg != NULL)
-		wlr_xdg_toplevel_set_activated(toplevel->xdg, activated);
-	else
-		wlr_xwayland_surface_activate(toplevel->xwayland, activated);
+static bool xwayland_supports_protocol(const struct toplevel *toplevel,
+		xcb_atom_t protocol) {
+	if (toplevel->xwayland == NULL || protocol == XCB_ATOM_NONE) return false;
+	for (size_t i = 0; i < toplevel->xwayland->protocols_len; ++i)
+		if (toplevel->xwayland->protocols[i] == protocol) return true;
+	return false;
+}
+
+static bool xwayland_input_hint_true(const struct toplevel *toplevel) {
+	return toplevel->xwayland != NULL && toplevel->xwayland->hints != NULL &&
+		toplevel->xwayland->hints->input;
+}
+
+static bool xwayland_accepts_input(const struct toplevel *toplevel) {
+	return toplevel->xwayland != NULL &&
+		(toplevel->xwayland->hints == NULL ||
+		toplevel->xwayland->hints->input);
+}
+
+static void send_xwayland_take_focus(struct toplevel *toplevel, uint32_t time) {
+	struct server *server = toplevel->server;
+	if (!xwayland_supports_protocol(toplevel, server->atom_wm_take_focus)) return;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return;
+	xcb_client_message_event_t event = {
+		.response_type = XCB_CLIENT_MESSAGE,
+		.format = 32,
+		.sequence = 0,
+		.window = toplevel->xwayland->window_id,
+		.type = server->atom_wm_protocols,
+	};
+	event.data.data32[0] = server->atom_wm_take_focus;
+	event.data.data32[1] = time;
+	xcb_send_event(connection, false, event.window, XCB_EVENT_MASK_NO_EVENT,
+		(const char *)&event);
+	xcb_flush(connection);
+	test_trace_toplevel_event(toplevel, "take_focus", "client");
+}
+
+static void set_xwayland_input_focus(struct server *server,
+		struct toplevel *toplevel, uint32_t time) {
+	if (server->xwayland == NULL) return;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return;
+	xcb_window_t focus = toplevel != NULL ? toplevel->xwayland->window_id :
+		XCB_INPUT_FOCUS_POINTER_ROOT;
+	xcb_set_input_focus(connection, XCB_INPUT_FOCUS_POINTER_ROOT, focus, time);
+	xcb_flush(connection);
 }
 
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended) {
@@ -1011,73 +1147,173 @@ static void suspend_toplevel(struct toplevel *toplevel, bool suspended) {
 		wlr_xwayland_surface_set_minimized(toplevel->xwayland, suspended);
 }
 
-static void focus_toplevel(struct toplevel *toplevel) {
+static void focus_toplevel(struct toplevel *toplevel, bool set_input_focus,
+		bool send_take_focus, const char *context) {
 	if (toplevel == NULL || toplevel->iconified || !toplevel->mapped) return;
 	struct server *server = toplevel->server;
 	struct wlr_surface *surface = toplevel_surface(toplevel);
 	if (surface == NULL || (toplevel->xwayland != NULL &&
 			toplevel->xwayland->override_redirect)) return;
-	struct wlr_surface *previous = server->seat->keyboard_state.focused_surface;
-	struct toplevel *old = toplevel_for_surface(previous);
-	bool changed = previous != surface;
-	if (previous != surface) {
-		if (old != NULL) activate_toplevel(old, false);
-	}
-	wlr_scene_node_raise_to_top(&toplevel->tree->node);
-	wl_list_remove(&toplevel->link);
-	wl_list_insert(&server->toplevels, &toplevel->link);
-	if (toplevel->xwayland != NULL)
-		wlr_xwayland_surface_restack(toplevel->xwayland, NULL, XCB_STACK_MODE_ABOVE);
-	test_trace_toplevel_event(toplevel, "raise", "frame");
-	activate_toplevel(toplevel, true);
-	set_focused_marker(server, toplevel);
-	struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
-	if (keyboard != NULL) {
-		wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
-			keyboard->num_keycodes, &keyboard->modifiers);
-	}
-	if (changed && old != NULL)
+	struct toplevel *old = server->focus;
+	bool changed = old != toplevel;
+	if (changed && old != NULL) {
+		if (old->xdg != NULL) wlr_xdg_toplevel_set_activated(old->xdg, false);
 		test_trace_toplevel_event(old, "unfocus", "client");
-	if (changed) test_trace_toplevel_event(toplevel, "focus", "client");
+	}
+	server->focus = toplevel;
+	if (toplevel->xdg != NULL) wlr_xdg_toplevel_set_activated(toplevel->xdg, true);
+	set_focused_marker(server, toplevel);
+	if (set_input_focus) {
+		if (toplevel->xwayland != NULL)
+			set_xwayland_input_focus(server, toplevel,
+				server->current_input_time_ms);
+		else set_xwayland_input_focus(server, NULL,
+			server->current_input_time_ms);
+		struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
+		if (keyboard != NULL) {
+			wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
+				keyboard->num_keycodes, &keyboard->modifiers);
+		}
+	}
+	if (send_take_focus)
+		send_xwayland_take_focus(toplevel, server->current_input_time_ms);
+	if (changed) {
+		if (strcmp(context, "client") == 0)
+			test_trace_toplevel_event(toplevel, "focus", "client");
+		else test_trace_toplevel_event(toplevel, "focus", context);
+	}
+}
+
+static void clear_focus(struct server *server, bool clear_input_focus) {
+	struct toplevel *old = server->focus;
+	if (old != NULL) {
+		if (old->xdg != NULL) wlr_xdg_toplevel_set_activated(old->xdg, false);
+	}
+	server->focus = NULL;
+	if (clear_input_focus) {
+		set_xwayland_input_focus(server, NULL, server->current_input_time_ms);
+		wlr_seat_keyboard_clear_focus(server->seat);
+	}
+	set_focused_marker(server, NULL);
+	if (old != NULL) test_trace_toplevel_event(old, "unfocus", "client");
 }
 
 static void clear_keyboard_focus(struct server *server) {
-	struct toplevel *old = toplevel_for_surface(
-		server->seat->keyboard_state.focused_surface);
-	wlr_seat_keyboard_clear_focus(server->seat);
-	set_focused_marker(server, NULL);
-	if (old != NULL) test_trace_toplevel_event(old, "unfocus", "client");
+	clear_focus(server, true);
 }
 
 static void focus_next(struct server *server) {
 	struct toplevel *item;
 	wl_list_for_each(item, &server->toplevels, link) {
 		if (item->mapped && !item->iconified) {
-			focus_toplevel(item);
+			server->focus_root = false;
+			focus_toplevel(item, item->xwayland == NULL ||
+				xwayland_accepts_input(item),
+				false, "client");
 			return;
 		}
 	}
+	server->focus_root = true;
 	clear_keyboard_focus(server);
 }
 
 static void lower_toplevel(struct toplevel *toplevel) {
 	if (toplevel == NULL || !toplevel->mapped) return;
-	wlr_scene_node_lower_to_bottom(&toplevel->tree->node);
-	if (toplevel->xwayland != NULL)
+	struct wlr_scene_node *node = toplevel_visible_node(toplevel);
+	wlr_scene_node_lower_to_bottom(node);
+	if (toplevel->xwayland != NULL && !toplevel->iconified)
 		wlr_xwayland_surface_restack(toplevel->xwayland, NULL, XCB_STACK_MODE_BELOW);
 	wl_list_remove(&toplevel->link);
 	wl_list_insert(toplevel->server->toplevels.prev, &toplevel->link);
-	test_trace_toplevel_event(toplevel, "lower", "frame");
+	if (toplevel->iconified)
+		test_trace_toplevel_event(toplevel, "lower", "icon");
+	else test_trace_toplevel_event(toplevel, "lower", "frame");
 }
 
 static void raise_toplevel(struct toplevel *toplevel) {
 	if (toplevel == NULL || !toplevel->mapped) return;
-	wlr_scene_node_raise_to_top(&toplevel->tree->node);
+	struct wlr_scene_node *node = toplevel_visible_node(toplevel);
+	wlr_scene_node_raise_to_top(node);
 	wl_list_remove(&toplevel->link);
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
-	if (toplevel->xwayland != NULL)
+	if (toplevel->xwayland != NULL && !toplevel->iconified)
 		wlr_xwayland_surface_restack(toplevel->xwayland, NULL, XCB_STACK_MODE_ABOVE);
-	test_trace_toplevel_event(toplevel, "raise", "frame");
+	if (toplevel->iconified)
+		test_trace_toplevel_event(toplevel, "raise", "icon");
+	else test_trace_toplevel_event(toplevel, "raise", "frame");
+}
+
+static struct wtwm_stack_box toplevel_stack_box(const struct toplevel *toplevel) {
+	if (toplevel->iconified) return (struct wtwm_stack_box){
+		.x = toplevel->icon_x,
+		.y = toplevel->icon_y,
+		.width = toplevel->icon_width,
+		.height = toplevel->icon_height,
+		.visible = toplevel->mapped && toplevel->icon_tree != NULL,
+	};
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	return (struct wtwm_stack_box){
+		.x = toplevel->tree->node.x,
+		.y = toplevel->tree->node.y,
+		.width = geometry.outer_width,
+		.height = geometry.outer_height,
+		.visible = toplevel->mapped,
+	};
+}
+
+static struct toplevel **stack_snapshot(struct server *server,
+		struct wtwm_stack_box **boxes, size_t *count) {
+	*boxes = NULL;
+	*count = 0;
+	struct toplevel *item;
+	wl_list_for_each(item, &server->toplevels, link) ++*count;
+	if (*count == 0) return NULL;
+	struct toplevel **items = calloc(*count, sizeof(*items));
+	*boxes = calloc(*count, sizeof(**boxes));
+	if (items == NULL || *boxes == NULL) {
+		free(items);
+		free(*boxes);
+		*boxes = NULL;
+		*count = 0;
+		return NULL;
+	}
+	size_t index = 0;
+	wl_list_for_each(item, &server->toplevels, link) {
+		items[index] = item;
+		(*boxes)[index++] = toplevel_stack_box(item);
+	}
+	return items;
+}
+
+static void raise_lower_toplevel(struct toplevel *toplevel) {
+	if (toplevel == NULL || !toplevel->mapped) return;
+	struct wtwm_stack_box *boxes = NULL;
+	size_t count = 0, index = 0;
+	struct toplevel **items = stack_snapshot(toplevel->server, &boxes, &count);
+	if (items == NULL) return;
+	while (index < count && items[index] != toplevel) ++index;
+	enum wtwm_stack_action action = wtwm_raise_lower_action(boxes, count, index,
+		toplevel->server->last_interaction_moved);
+	free(boxes);
+	free(items);
+	if (action == WTWM_STACK_RAISE) raise_toplevel(toplevel);
+	else if (action == WTWM_STACK_LOWER) lower_toplevel(toplevel);
+}
+
+static void circulate_toplevels(struct server *server, bool up) {
+	struct wtwm_stack_box *boxes = NULL;
+	size_t count = 0;
+	struct toplevel **items = stack_snapshot(server, &boxes, &count);
+	if (items == NULL) return;
+	ptrdiff_t candidate = up ? wtwm_circle_up_candidate(boxes, count) :
+		wtwm_circle_down_candidate(boxes, count);
+	free(boxes);
+	if (candidate >= 0) {
+		if (up) raise_toplevel(items[candidate]);
+		else lower_toplevel(items[candidate]);
+	}
+	free(items);
 }
 
 static void clear_interaction_outline(struct server *server) {
@@ -1523,6 +1759,21 @@ static void start_action_function(struct server *server,
 	resume_action_continuation(server);
 }
 
+static void toggle_click_focus(struct server *server, struct toplevel *toplevel) {
+	if (toplevel == NULL) return;
+	enum wtwm_focus_toggle_result result = wtwm_focus_toggle(server->focus_root,
+		server->focus == toplevel, toplevel->iconified);
+	if (result == WTWM_FOCUS_POINTER_ROOT) {
+		server->focus_root = true;
+		clear_keyboard_focus(server);
+	} else if (result == WTWM_FOCUS_CLICK_LOCKED) {
+		server->focus_root = false;
+		bool input = toplevel->xwayland == NULL ||
+			xwayland_accepts_input(toplevel);
+		focus_toplevel(toplevel, input, false, "client");
+	}
+}
+
 static void execute_action(struct server *server, struct toplevel *toplevel,
 		const struct wtwm_action *action, uint32_t context) {
 	switch (action->type) {
@@ -1534,36 +1785,33 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		begin_interactive(toplevel, CURSOR_RESIZE, 0, false,
 			context == WTWM_CONTEXT_TITLE, server->current_input_time_ms); break;
 	case WTWM_ACTION_RAISE:
-		if (toplevel) focus_toplevel(toplevel);
+		raise_toplevel(toplevel);
 		break;
 	case WTWM_ACTION_LOWER:
 		lower_toplevel(toplevel); break;
 	case WTWM_ACTION_RAISELOWER:
-		if (toplevel && toplevel->link.prev == &server->toplevels)
-			lower_toplevel(toplevel);
-		else if (toplevel)
-			focus_toplevel(toplevel);
+		raise_lower_toplevel(toplevel);
+		break;
+	case WTWM_ACTION_CIRCLEUP:
+		circulate_toplevels(server, true);
+		break;
+	case WTWM_ACTION_CIRCLEDOWN:
+		circulate_toplevels(server, false);
 		break;
 	case WTWM_ACTION_ICONIFY:
-		if (toplevel) {
-			toplevel->iconified = true;
-			wlr_scene_node_set_enabled(&toplevel->tree->node, false);
-			suspend_toplevel(toplevel, true);
-			focus_next(server);
-		}
+		set_toplevel_iconified(toplevel, true);
 		break;
 	case WTWM_ACTION_DEICONIFY:
 		if (toplevel) {
-			toplevel->iconified = false;
-			wlr_scene_node_set_enabled(&toplevel->tree->node, true);
-			suspend_toplevel(toplevel, false);
-			focus_toplevel(toplevel);
+			set_toplevel_iconified(toplevel, false);
+			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
 		}
 		break;
 	case WTWM_ACTION_FOCUS:
-		if (toplevel) focus_toplevel(toplevel);
+		toggle_click_focus(server, toplevel);
 		break;
 	case WTWM_ACTION_UNFOCUS:
+		server->focus_root = true;
 		clear_keyboard_focus(server); break;
 	case WTWM_ACTION_DELETE:
 		if (toplevel) delete_toplevel(toplevel);
@@ -1598,6 +1846,18 @@ static uint32_t current_modifiers(struct server *server) {
 	return mods;
 }
 
+static const char *binding_context_name(uint32_t context) {
+	switch (context) {
+	case WTWM_CONTEXT_ROOT: return "root";
+	case WTWM_CONTEXT_WINDOW: return "window";
+	case WTWM_CONTEXT_TITLE: return "title";
+	case WTWM_CONTEXT_ICON: return "icon";
+	case WTWM_CONTEXT_FRAME: return "frame";
+	case WTWM_CONTEXT_ICONMGR: return "iconmgr";
+	default: return "none";
+	}
+}
+
 static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 	unsigned button, const char *key, uint32_t context, struct toplevel *toplevel) {
 	uint32_t modifiers = current_modifiers(server);
@@ -1610,6 +1870,9 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 			(binding->contexts & context) == 0) continue;
 		if (type == WTWM_BINDING_BUTTON && binding->button != button) continue;
 		if (type == WTWM_BINDING_KEY && strcasecmp(binding->key, key) != 0) continue;
+		if (toplevel != NULL)
+			test_trace_toplevel_event(toplevel, "binding",
+				binding_context_name(context));
 		execute_action(server, toplevel, &binding->action, context);
 		return true;
 	}
@@ -1627,6 +1890,12 @@ static struct hit_result desktop_at(struct server *server, double lx, double ly)
 	hit.toplevel = toplevel_from_scene_tree(tree);
 	if (hit.toplevel == NULL) return hit;
 	hit.context = WTWM_CONTEXT_FRAME;
+	if (hit.toplevel->icon_tree != NULL &&
+			(tree == hit.toplevel->icon_tree ||
+			leaf == &hit.toplevel->icon_background->node)) {
+		hit.context = WTWM_CONTEXT_ICON;
+		return hit;
+	}
 	if (leaf->type == WLR_SCENE_NODE_BUFFER) {
 		struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(
 			wlr_scene_buffer_from_node(leaf));
@@ -1651,7 +1920,56 @@ static struct hit_result desktop_at(struct server *server, double lx, double ly)
 	return hit;
 }
 
+static bool toplevel_supports_take_focus(const struct toplevel *toplevel) {
+	return xwayland_supports_protocol(toplevel,
+		toplevel->server->atom_wm_take_focus);
+}
+
+static void update_pointer_toplevel(struct server *server,
+		const struct hit_result *hit) {
+	struct toplevel *entered = hit->toplevel;
+	if (entered == server->pointer_toplevel) {
+		server->pointer_context = hit->context;
+		return;
+	}
+	struct toplevel *left = server->pointer_toplevel;
+	server->pointer_toplevel = entered;
+	server->pointer_context = hit->context;
+	if (server->focus_root && left != NULL && server->focus == left) {
+		struct wtwm_focus_leave_result result = wtwm_focus_leave(
+			&(struct wtwm_focus_leave_input){
+				.focus_root = true,
+				.surface = WTWM_FOCUS_SURFACE_FRAME,
+				.title_focus = !server->config.no_title_focus,
+				.take_focus = toplevel_supports_take_focus(left),
+			});
+		if (result.deactivate)
+			clear_focus(server, result.set_pointer_root);
+	}
+	if (entered == NULL) return;
+	if (server->focus_root && !entered->iconified) {
+		struct wtwm_focus_enter_input input = {
+			.focus_root = true,
+			/* A root-to-client/title transition crosses the enclosing frame
+			 * first in twm's X event hierarchy. */
+			.surface = WTWM_FOCUS_SURFACE_FRAME,
+			.title_focus = !server->config.no_title_focus,
+			.has_title = entered->decorated,
+			.global_no_titlebar = server->config.no_title,
+			.input_hint = entered->xwayland == NULL ||
+				xwayland_input_hint_true(entered),
+			.take_focus = toplevel_supports_take_focus(entered),
+		};
+		struct wtwm_focus_enter_result result = wtwm_focus_enter(&input);
+		if (result.activate)
+			focus_toplevel(entered, result.set_input_focus,
+				result.send_take_focus, "frame");
+	}
+	if (entered->auto_raise) raise_toplevel(entered);
+}
+
 static void process_cursor_motion(struct server *server, uint32_t time_msec) {
+	server->current_input_time_ms = time_msec;
 	if (server->cursor_mode == CURSOR_MOVE) {
 		struct interaction_session *interaction = &server->interaction;
 		int dx = (int)(server->cursor->x - interaction->pointer_start_x);
@@ -1761,9 +2079,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		return;
 	}
 	struct hit_result hit = desktop_at(server, server->cursor->x, server->cursor->y);
-	if (hit.toplevel != NULL &&
-		server->seat->keyboard_state.focused_surface != toplevel_surface(hit.toplevel) &&
-		hit.toplevel->auto_raise) focus_toplevel(hit.toplevel);
+	update_pointer_toplevel(server, &hit);
 	if (hit.surface != NULL) {
 		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
 		wlr_seat_pointer_notify_motion(server->seat, time_msec, hit.sx, hit.sy);
@@ -1804,6 +2120,8 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			event->state == WL_POINTER_BUTTON_STATE_PRESSED);
 		return;
 	}
+	if (event->state == WL_POINTER_BUTTON_STATE_PRESSED)
+		server->last_interaction_moved = false;
 	if (server->menu.tree != NULL) {
 		if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
 			int selected = menu_item_at(server);
@@ -1852,7 +2170,6 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			event->time_msec);
 		handled = true;
 	}
-	if (!handled && hit.toplevel != NULL) focus_toplevel(hit.toplevel);
 	if (!handled && hit.surface != NULL)
 		wlr_seat_pointer_notify_button(server->seat, event->time_msec,
 			event->button, event->state);
@@ -2117,12 +2434,11 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
 	if (should_start_iconified(toplevel, initial_rules)) {
-		toplevel->iconified = true;
-		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
-		suspend_toplevel(toplevel, true);
+		set_toplevel_iconified(toplevel, true);
 	} else {
 		suspend_toplevel(toplevel, false);
-		focus_toplevel(toplevel);
+		process_cursor_motion(toplevel->server,
+			toplevel->server->current_input_time_ms);
 	}
 }
 
@@ -2141,6 +2457,7 @@ static void dismiss_toplevel_popups(struct toplevel *toplevel) {
 
 static void unmanage_toplevel(struct toplevel *toplevel) {
 	struct server *server = toplevel->server;
+	bool had_logical_focus = server->focus == toplevel;
 	bool had_keyboard_focus = surface_belongs_to_toplevel(
 		server->seat->keyboard_state.focused_surface, toplevel);
 	bool had_pointer_focus = surface_belongs_to_toplevel(
@@ -2149,6 +2466,10 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	if (server->continuation.toplevel == toplevel)
 		memset(&server->continuation, 0, sizeof(server->continuation));
 	if (server->menu.target == toplevel) hide_menu(server);
+	if (server->pointer_toplevel == toplevel) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = WTWM_CONTEXT_ROOT;
+	}
 	if (had_pointer_focus) wlr_seat_pointer_clear_focus(server->seat);
 	dismiss_toplevel_popups(toplevel);
 	if (!toplevel->mapped) return;
@@ -2156,10 +2477,12 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	wl_list_remove(&toplevel->link);
 	wl_list_init(&toplevel->link);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
 	test_trace_toplevel_event(toplevel, "unmap", "client");
-	if (had_keyboard_focus) {
+	if (had_keyboard_focus || had_logical_focus) {
+		server->focus_root = true;
 		clear_keyboard_focus(server);
-		focus_next(server);
 	}
 }
 
@@ -2206,6 +2529,7 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 	if (toplevel->xdg->base->data == toplevel->content)
 		toplevel->xdg->base->data = NULL;
 	wlr_scene_node_destroy(&toplevel->tree->node);
+	destroy_icon_scene(toplevel);
 	free(toplevel);
 }
 
@@ -2358,6 +2682,7 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 
 static void destroy_xwayland_scene(struct toplevel *toplevel) {
 	if (toplevel->tree != NULL) wlr_scene_node_destroy(&toplevel->tree->node);
+	destroy_icon_scene(toplevel);
 	toplevel->tree = NULL;
 	toplevel->content = NULL;
 	toplevel->frame = NULL;
@@ -2483,12 +2808,11 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	} else {
 		position_xwayland_transient(toplevel);
 		if (should_start_iconified(toplevel, initial_rules)) {
-			toplevel->iconified = true;
-			wlr_scene_node_set_enabled(&toplevel->tree->node, false);
-			suspend_toplevel(toplevel, true);
+			set_toplevel_iconified(toplevel, true);
 		} else {
 			suspend_toplevel(toplevel, false);
-			focus_toplevel(toplevel);
+			process_cursor_motion(toplevel->server,
+				toplevel->server->current_input_time_ms);
 		}
 	}
 }
@@ -2952,6 +3276,16 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	struct server *server = xwayland_event_server;
 	if (server == NULL || server->xwayland == NULL) return 0;
 	uint8_t type = event->response_type & ~UINT8_C(0x80);
+	if (type == XCB_FOCUS_IN) {
+		xcb_focus_in_event_t *focus = (xcb_focus_in_event_t *)event;
+		/* Managed X11 focus follows the twm model above. Consuming FocusIn
+		 * prevents wlroots' EWMH helper from replacing our direct ICCCM
+		 * PointerRoot/client decision with its conflated activation policy. */
+		struct toplevel *toplevel =
+			xwayland_toplevel_for_window(server, focus->event);
+		return toplevel != NULL && toplevel->associated &&
+			!toplevel->xwayland->override_redirect;
+	}
 	if (type == XCB_PROPERTY_NOTIFY) {
 		xcb_property_notify_event_t *property = (xcb_property_notify_event_t *)event;
 		struct toplevel *toplevel =
@@ -3309,7 +3643,8 @@ static void test_write_trace(struct test_control *control) {
 		else test_write(control, "%d", event->stack);
 		test_write(control, ",\"placement\":");
 		test_write_json_string(control, event->placement);
-		test_write(control, "}}");
+		test_write(control, ",\"active\":%s}}",
+			event->active ? "true" : "false");
 	}
 	test_write(control, "]}\n");
 }
@@ -3327,10 +3662,15 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, "OK STATE {\"frame\":%" PRIu64
 		",\"animation_ms\":%u,\"placement_seed\":%u,"
 		"\"random_placement\":{\"next_x\":%d,\"next_y\":%d},"
-		"\"cursor\":{\"x\":%.3f,\"y\":%.3f},\"focus\":",
+		"\"cursor\":{\"x\":%.3f,\"y\":%.3f},\"focus_root\":%s,"
+		"\"active\":",
 		server->frame_sequence, control->animation_ms, server->placement_index,
 		server->random_placement.next_x, server->random_placement.next_y,
-		server->cursor->x, server->cursor->y);
+		server->cursor->x, server->cursor->y,
+		server->focus_root ? "true" : "false");
+	if (server->focus == NULL) test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(server->focus));
+	test_write(control, ",\"focus\":");
 	if (focused_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(focused_toplevel));
 	test_write(control, ",\"windows\":[");
@@ -3361,7 +3701,7 @@ static void test_write_state(struct test_control *control) {
 			"\"outer_width\":%d,\"outer_height\":%d,"
 			"\"content_x\":%d,\"content_y\":%d,"
 			"\"stack\":%u,\"mapped\":%s,\"iconified\":%s,"
-			"\"decorated\":%s,\"auto_raise\":%s,\"placement\":",
+			"\"decorated\":%s,\"auto_raise\":%s,\"active\":%s,\"placement\":",
 			toplevel->tree->node.x, toplevel->tree->node.y,
 			toplevel->width, toplevel->height,
 			geometry.border_width, geometry.title_bar_height, geometry.title_extent,
@@ -3371,7 +3711,8 @@ static void test_write_state(struct test_control *control) {
 			toplevel->mapped ? "true" : "false",
 			toplevel->iconified ? "true" : "false",
 			toplevel->decorated ? "true" : "false",
-			toplevel->auto_raise ? "true" : "false");
+			toplevel->auto_raise ? "true" : "false",
+			server->focus == toplevel ? "true" : "false");
 		test_write_json_string(control,
 			wtwm_placement_kind_name(toplevel->placement_kind));
 		if (toplevel->xwayland != NULL) {
@@ -3465,6 +3806,19 @@ static void test_write_state(struct test_control *control) {
 		if (!first) test_write(control, ",");
 		first = false;
 		test_write_json_string(control, toplevel_title(toplevel));
+	}
+	test_write(control, "],\"icon_views\":[");
+	first = true;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!toplevel->iconified || toplevel->icon_tree == NULL) continue;
+		if (!first) test_write(control, ",");
+		first = false;
+		test_write(control, "{\"title\":");
+		test_write_json_string(control, toplevel_title(toplevel));
+		test_write(control,
+			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+			toplevel->icon_x, toplevel->icon_y,
+			toplevel->icon_width, toplevel->icon_height);
 	}
 	test_write(control, "],\"override_redirect\":[");
 	first = true;
@@ -3905,6 +4259,8 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	struct server server = {0};
+	server.focus_root = true;
+	server.pointer_context = WTWM_CONTEXT_ROOT;
 	wtwm_random_placement_init(&server.random_placement);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.listen_fd = -1;

@@ -73,6 +73,8 @@ def validate_text(
         'survivor.wait_for_key_pair(token)',
         'control.socket.settimeout(10)',
         'control.command("WAIT 1")',
+        'f"explicit pointer focus for {protocol} target {title}"',
+        'description + " survivor refocus"',
         'if state["focus"] != title:',
     )
     for marker in runner_markers:

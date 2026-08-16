@@ -102,7 +102,7 @@ static void parses_every_construct_family(void) {
 		"MakeTitle { \"special\" }\nNoHighlight\nNoStackMode { \"stacked\" }\n"
 		"NoTitle { \"xclock\" }\nNoTitleHighlight\nStartIconified { \"mail\" }\n"
 		"WarpCursor\nWindowRing { \"xterm\" }\n"
-		"Function \"ops\" { f.move f.deltastop f.raise f.colormap \"next\" }\n"
+		"Function \"ops\" { f.move f.deltastop f.raise f.circleup f.circledown f.colormap \"next\" }\n"
 		"Function \"ops\" { f.lower }\n"
 		"Menu \"main\" (\"white\":\"black\") { \"Title\" f.title \"Run\" ! \"xterm &\" }\n"
 		"Menu \"main\" { \"Quit\" f.quit }\n"
@@ -134,7 +134,9 @@ static void parses_every_construct_family(void) {
 	assert(config.squeeze_entry_count == 2);
 	assert(config.window_list_count == 14);
 	assert(config.function_count == 1);
-	assert(config.functions[0].action_count == 5);
+	assert(config.functions[0].action_count == 7);
+	assert(config.functions[0].actions[3].type == WTWM_ACTION_CIRCLEUP);
+	assert(config.functions[0].actions[4].type == WTWM_ACTION_CIRCLEDOWN);
 	assert(config.menu_count == 1);
 	assert(config.menus[0].item_count == 3);
 	assert(config.title_button_count == 2);
