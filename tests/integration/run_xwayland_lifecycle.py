@@ -28,6 +28,34 @@ def wait_marker(path: Path, event: str) -> list[str]:
     raise RuntimeError(f"timed out waiting for {event}: {contents!r}")
 
 
+def wait_display_unavailable(
+    probe: Path, display: str, environment: dict[str, str],
+) -> None:
+    deadline = time.monotonic() + 5
+    last_error = ""
+    while time.monotonic() < deadline:
+        try:
+            unavailable = subprocess.run(
+                [str(probe), "--expect-unavailable", display],
+                env=environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=1,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            last_error = "availability probe timed out"
+        else:
+            if unavailable.returncode == 0:
+                return
+            last_error = unavailable.stderr
+        time.sleep(0.01)
+    raise RuntimeError(
+        f"retired Xwayland display remained available:\n{last_error}"
+    )
+
+
 def run(compositor: Path, probe: Path) -> None:
     inherited_display = "wtwm-invalid-parent-display"
     with tempfile.TemporaryDirectory(prefix="wtwm-xwayland-") as directory:
@@ -78,19 +106,7 @@ def run(compositor: Path, probe: Path) -> None:
                 raise RuntimeError(
                     f"disconnect marker does not match connection: {disconnected!r}"
                 )
-            unavailable = subprocess.run(
-                [str(probe), "--expect-unavailable", allocated_display],
-                env=environment,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5,
-                check=False,
-            )
-            if unavailable.returncode != 0:
-                raise RuntimeError(
-                    f"retired Xwayland display remained available:\n{unavailable.stderr}"
-                )
+            wait_display_unavailable(probe, allocated_display, environment)
             probe_pid = None
         except Exception as error:
             if process.poll() is None:
