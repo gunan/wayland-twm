@@ -294,7 +294,7 @@ Testing:
 
 - [x] Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
   test clients.
-- [ ] Exercise changing titles, classes, hints, transients, icons, and resize
+- [x] Exercise changing titles, classes, hints, transients, icons, and resize
   constraints.
 - [ ] Compare Xwayland client results with the same clients under reference `twm`.
 - [ ] Mix native Wayland and Xwayland clients in the same session.
