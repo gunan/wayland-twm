@@ -525,7 +525,7 @@ static bool spawn_shell(const char *command) {
 	if (command == NULL || command[0] == '\0') return true;
 	pid_t intermediate = fork();
 	if (intermediate < 0) {
-		wlr_log_errno(WLR_ERROR, "failed to fork shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to fork shell launcher");
 		return false;
 	}
 	if (intermediate == 0) {
@@ -541,7 +541,7 @@ static bool spawn_shell(const char *command) {
 	int status;
 	while (waitpid(intermediate, &status, 0) < 0) {
 		if (errno == EINTR) continue;
-		wlr_log_errno(WLR_ERROR, "failed to reap shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to reap shell launcher");
 		return false;
 	}
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
@@ -1949,7 +1949,7 @@ int main(int argc, char **argv) {
 #endif
 	wlr_log_init(log_level, NULL);
 	if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
-		wlr_log_errno(WLR_ERROR, "failed to restore SIGCHLD handling");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to restore SIGCHLD handling");
 		return 1;
 	}
 #ifdef WTWM_TEST_CONTROL
