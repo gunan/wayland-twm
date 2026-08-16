@@ -100,6 +100,7 @@ def run(compositor: Path, client_binary: Path) -> None:
         config = temporary / "native-rules.twmrc"
         config.write_text(
             'BorderWidth 2\n'
+            'RandomPlacement\n'
             'NoTitle { "NativeTitle" "org.wtwm.NativeApp" "NativeCase" '
             '"org.wtwm.NativeCase" "*" "Collision Window" }\n'
             'MakeTitle { "Collision Window" }\n'

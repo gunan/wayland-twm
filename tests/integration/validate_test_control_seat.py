@@ -55,6 +55,14 @@ def validate_bridge_handshake(
     ):
         if fragment not in x11_client:
             raise ValueError(f"X11 bridge handshake lacks {fragment}")
+    for fragment in (
+        "def visible_content_point(",
+        'int(item["stack"]) < int(target["stack"])',
+        'int(other["outer_width"])',
+        'int(other["outer_height"])',
+    ):
+        if fragment not in runner:
+            raise ValueError(f"selection focus targeting lacks {fragment}")
     bridge_start = x11_client.find("static bool wait_for_bridge_ready")
     bridge_end = x11_client.find("static void request_selection", bridge_start)
     bridge = x11_client[bridge_start:bridge_end]

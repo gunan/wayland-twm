@@ -72,15 +72,40 @@ def window(state: dict[str, object], title: str) -> dict[str, object]:
     return matches[0]
 
 
+def visible_content_point(
+    state: dict[str, object], title: str
+) -> tuple[int, int]:
+    target = window(state, title)
+    above = [
+        item for item in state["windows"]
+        if int(item["stack"]) < int(target["stack"])
+    ]
+    left = int(target["x"]) + int(target["content_x"])
+    top = int(target["y"]) + int(target["content_y"])
+    right = left + int(target["width"])
+    bottom = top + int(target["height"])
+    xs = (left + 12, right - 12, (left + right) // 2)
+    ys = (top + 12, bottom - 12, (top + bottom) // 2)
+    for y in ys:
+        for x in xs:
+            if not any(
+                int(other["x"]) <= x
+                < int(other["x"]) + int(other["outer_width"])
+                and int(other["y"]) <= y
+                < int(other["y"]) + int(other["outer_height"])
+                for other in above
+            ):
+                return x, y
+    raise RuntimeError(f"no visible content point for {title!r}: {state!r}")
+
+
 def focus_window(control: Control, title: str) -> dict[str, object]:
     state = wait_state(
         control,
         lambda item: any(entry["title"] == title for entry in item["windows"]),
         f"{title} map",
     )
-    item = window(state, title)
-    x = int(item["x"]) + int(item["width"]) // 2
-    y = int(item["y"]) + min(60, max(12, int(item["height"]) // 2))
+    x, y = visible_content_point(state, title)
     control.command(f"POINTER {x} {y}")
     control.command("BUTTON 272 press")
     control.command("BUTTON 272 release")
