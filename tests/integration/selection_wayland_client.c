@@ -835,13 +835,16 @@ static bool initialize(struct client *client) {
 	xdg_toplevel_set_title(client->toplevel, "wtwm-selection-wayland");
 	xdg_toplevel_set_app_id(client->toplevel, "org.wtwm.Selection");
 	wl_surface_commit(client->surface);
-	/* Mapping is the client-ready handshake. The runner assigns focus after
-	 * READY and separately requires a nonzero input serial before either
-	 * selection source can be claimed. */
+	/* Mapping is the first client-ready handshake. Seat capability callbacks
+	 * can create input proxies while it is dispatched, so synchronize once more
+	 * to make those requests live before the runner focuses and clicks. READY
+	 * remains independent of a serial; the runner checks that separately before
+	 * either selection source can be claimed. */
 	while (!client->mapped && dispatch_with_timeout(client, 10000)) {
 	}
+	bool ready = client->mapped && wl_display_roundtrip(client->display) >= 0;
 	wl_registry_destroy(registry);
-	return client->mapped;
+	return ready;
 }
 
 static void finish(struct client *client) {
