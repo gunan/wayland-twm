@@ -195,6 +195,7 @@ jobs:
             --xload /usr/bin/xload --emacs /usr/bin/emacs \
             --dialog /usr/bin/dialog
       - name: Compare identical Milestone 4 event traces live
+        if: always()
         run: |
           python3 -B tests/integration/run_m4_trace_differential.py \
             --reference-twm /tmp/reference-build/twm \

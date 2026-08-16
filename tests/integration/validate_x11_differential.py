@@ -85,6 +85,7 @@ def validate_text(
         "reference_ready(observed)",
         "wtwm_control_ready(state)",
         'state["xwayland_lifecycle"]',
+        "def normalized_common(item: dict[str, object], managed: bool)",
         "if not item[\"root_parent\"]:",
         "wait_dialog_process(dialog_app.process.pid, dialog)",
         'icccm.stdin.write("EXIT\\n")',
@@ -104,6 +105,8 @@ def validate_text(
             errors.append(f"X11 differential runner lacks {marker!r}")
     if runner.count("canonical_commands(programs)") != 1:
         errors.append("canonical client commands must be constructed exactly once and shared")
+    if 'scene["decorated"]' in runner:
+        errors.append("management differential must not conflate title state with frame management")
     if runner.count("if current == previous:") != 2 or runner.count(
         "if consecutive >= REQUIRED_STABLE_CAPTURES:"
     ) != 2:
