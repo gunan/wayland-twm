@@ -74,6 +74,7 @@ def validate_text(
         "wtwm = run_wtwm(",
         "if reference != wtwm:",
         'version != "twm 1.0.13.1"',
+        '"reference twm sentinel reparent readiness"',
         "reference_ready(observed)",
         "wtwm_control_ready(state)",
         'state["xwayland_lifecycle"]',
@@ -97,6 +98,8 @@ def validate_text(
             errors.append(f"X11 differential runner lacks {marker!r}")
     if runner.count("canonical_commands(programs)") != 1:
         errors.append("canonical client commands must be constructed exactly once and shared")
+    if "WM_S0" in runner:
+        errors.append("runner must prove reference readiness by reparenting, not WM_S0 ownership")
     if runner.count("launch_workload(commands, icccm_client, environment)") != 1 or runner.count(
         "launch_workload(commands, icccm_client, client_environment)"
     ) != 1:

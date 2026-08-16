@@ -495,7 +495,10 @@ def run_reference(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        wait_command([str(probe), "ready"], environment, "reference twm WM_S0 ownership")
+        wait_command(
+            [str(probe), "ready"], environment,
+            "reference twm sentinel reparent readiness",
+        )
         apps, icccm = launch_workload(commands, icccm_client, environment)
         observed = wait_capture(probe, environment, reference_ready,
                                 "reference twm reparented workload")
