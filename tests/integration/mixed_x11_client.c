@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <xcb/xcb.h>
 
@@ -216,6 +217,36 @@ static bool roundtrip(struct client *client, xcb_window_t *focus_window) {
 	return xcb_connection_has_error(client->connection) == 0;
 }
 
+static bool wait_for_focus(struct client *client, struct role *expected,
+		xcb_window_t *observed) {
+	*observed = XCB_WINDOW_NONE;
+	struct timespec deadline;
+	if (clock_gettime(CLOCK_MONOTONIC, &deadline) < 0) return false;
+	deadline.tv_sec += 10;
+	for (;;) {
+		xcb_window_t focus_window = XCB_WINDOW_NONE;
+		if (!roundtrip(client, &focus_window)) return false;
+		*observed = focus_window;
+		if (focus_window == expected->window) return true;
+		struct timespec now;
+		if (clock_gettime(CLOCK_MONOTONIC, &now) < 0) return false;
+		int64_t remaining = (int64_t)(deadline.tv_sec - now.tv_sec) * 1000 +
+			(deadline.tv_nsec - now.tv_nsec) / 1000000;
+		if (remaining <= 0) return false;
+		struct pollfd descriptor = {
+			.fd = xcb_get_file_descriptor(client->connection),
+			.events = POLLIN,
+		};
+		int timeout = remaining < 100 ? (int)remaining : 100;
+		int result;
+		do result = poll(&descriptor, 1, timeout);
+		while (result < 0 && errno == EINTR);
+		if (result < 0 || (descriptor.revents & (POLLERR | POLLHUP)) != 0)
+			return false;
+		if (result > 0) drain_events(client);
+	}
+}
+
 static bool handle_command(struct client *client, char *command) {
 	char name[64];
 	if (sscanf(command, "ARM %63s", name) == 1) {
@@ -224,6 +255,17 @@ static bool handle_command(struct client *client, char *command) {
 		memset(client->key_count, 0, sizeof(client->key_count));
 		client->armed = true;
 		printf("OK ARMED %s\n", client->token);
+		return true;
+	}
+	if (sscanf(command, "WAIT FOCUS %63s", name) == 1) {
+		struct role *role = role_named(client, name);
+		xcb_window_t observed = XCB_WINDOW_NONE;
+		if (role == NULL || !wait_for_focus(client, role, &observed)) {
+			printf("ERROR FOCUS %s expected=%" PRIu32 " observed=%" PRIu32 "\n",
+				name, role != NULL ? role->window : XCB_WINDOW_NONE, observed);
+			return true;
+		}
+		printf("OK FOCUS %s\n", role->name);
 		return true;
 	}
 	if (sscanf(command, "REPORT %63s", name) == 1) {

@@ -58,6 +58,7 @@ def validate_text(
         '("native-a", "x11-a", "native-b", "x11-b")',
         'control.command("KEY 30 press")',
         'control.command("KEY 30 release")',
+        'x11.command(f"WAIT FOCUS {role}", f"OK FOCUS {role}")',
         "target.wait_for_key_pair(token, role)",
         'f"OK REPORT {token} x11-a=0 x11-b=0 focus=none"',
         'f"OK REPORT {token} native-a=0 native-b=0 focus=none "',
@@ -83,6 +84,13 @@ def validate_text(
     for forbidden in ("SystemExit(77)", "continue-on-error", "|| true"):
         if forbidden in runner:
             errors.append(f"mixed-session runner contains forbidden fallback {forbidden!r}")
+    focus_start = runner.find("def focus_and_key(")
+    focus_end = runner.find("\ndef lower_and_restore(", focus_start)
+    focus_body = runner[focus_start:focus_end]
+    focus_gate = focus_body.find('x11.command(f"WAIT FOCUS {role}"')
+    key_injection = focus_body.find('control.command("KEY 30 press")')
+    if not (0 <= focus_gate < key_injection):
+        errors.append("X11 protocol focus gate must precede synthetic key injection")
 
     wayland_markers = (
         '"wtwm-mixed-native-a"',
@@ -133,6 +141,13 @@ def validate_text(
         "poll(descriptors, 2, 100)",
         "repaint_mapped_roles(&client);",
         "stop_repainting(client);",
+        "static bool wait_for_focus",
+        "clock_gettime(CLOCK_MONOTONIC, &deadline)",
+        "deadline.tv_sec += 10;",
+        "focus_window == expected->window",
+        'sscanf(command, "WAIT FOCUS %63s"',
+        'printf("ERROR FOCUS %s expected=%" PRIu32 " observed=%" PRIu32 "\\n",',
+        'printf("OK FOCUS %s\\n", role->name);',
     )
     for marker in x11_markers:
         if marker not in x11_client:
@@ -210,6 +225,27 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
             wayland, x11, meson, compatibility, integration_readme,
         ),
         (
+            "focus-gate",
+            runner.replace(
+                '        x11.command(f"WAIT FOCUS {role}", f"OK FOCUS {role}")\n',
+                "",
+                1,
+            ),
+            wayland, x11, meson, compatibility, integration_readme,
+        ),
+        (
+            "focus-gate-order",
+            runner.replace(
+                '        x11.command(f"WAIT FOCUS {role}", f"OK FOCUS {role}")\n'
+                '    control.command("KEY 30 press")\n',
+                '    control.command("KEY 30 press")\n'
+                '    if role.startswith("x11-"):\n'
+                '        x11.command(f"WAIT FOCUS {role}", f"OK FOCUS {role}")\n',
+                1,
+            ),
+            wayland, x11, meson, compatibility, integration_readme,
+        ),
+        (
             "wrong-protocol-zero",
             runner.replace('f"OK REPORT {token} x11-a=0 x11-b=0 focus=none"',
                            'f"OK REPORT {token} focus=none"', 1),
@@ -260,6 +296,18 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
             runner, wayland,
             x11.replace("XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_KEY_PRESS",
                         "XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_NO_EVENT", 1),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "focus-query",
+            runner, wayland,
+            x11.replace("focus_window == expected->window", "false", 1),
+            meson, compatibility, integration_readme,
+        ),
+        (
+            "focus-bound",
+            runner, wayland,
+            x11.replace("deadline.tv_sec += 10;", "", 1),
             meson, compatibility, integration_readme,
         ),
         (

@@ -251,6 +251,8 @@ def focus_and_key(
         f"{role} cross-protocol focus and raise",
     )
     assert_clients(state, set(EXPECTED))
+    if role.startswith("x11-"):
+        x11.command(f"WAIT FOCUS {role}", f"OK FOCUS {role}")
     control.command("KEY 30 press")
     control.command("KEY 30 release")
     target = wayland if role.startswith("native-") else x11
