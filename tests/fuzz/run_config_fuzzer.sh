@@ -12,6 +12,7 @@ if test "${1:-}" = --validate-only; then
     test "$#" -eq 2 || fail "usage: $0 --validate-only REPOSITORY_ROOT"
     repo_root=$2
     test -f "$repo_root/tests/fuzz/config_fuzzer.c" || fail "fuzzer source is missing"
+    test -f "$repo_root/src/placement.c" || fail "placement parser source is missing"
     test -f "$repo_root/reference/grammar/fixtures/complete-language.twmrc" ||
         fail "complete-language seed is missing"
     grep -Fq 'LLVMFuzzerTestOneInput' "$repo_root/tests/fuzz/config_fuzzer.c" ||
@@ -57,7 +58,8 @@ done
 "$fuzzer_cc" -std=c11 -Wall -Wextra -Wpedantic -Werror -g -O1 \
     -fno-omit-frame-pointer -fsanitize=fuzzer,address,undefined \
     -I"$repo_root/include" \
-    "$repo_root/src/config.c" "$repo_root/tests/fuzz/config_fuzzer.c" \
+    "$repo_root/src/config.c" "$repo_root/src/placement.c" \
+    "$repo_root/tests/fuzz/config_fuzzer.c" \
     -o "$work_dir/config-fuzzer"
 
 asan_options=${WTWM_FUZZ_ASAN_OPTIONS:-detect_leaks=1:abort_on_error=1:halt_on_error=1}
