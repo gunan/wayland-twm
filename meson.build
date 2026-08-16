@@ -254,6 +254,7 @@ if wlroots.found()
   pangocairo = dependency('pangocairo')
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
+  xcb = dependency('xcb')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
@@ -266,7 +267,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon],
+    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -279,6 +280,7 @@ if wlroots.found()
       dependency('fontconfig'),
       wayland_server,
       xkbcommon,
+      xcb,
     ],
     c_args: ['-DWTWM_TEST_CONTROL'],
     install: false,
@@ -319,7 +321,13 @@ if wlroots.found()
   wtwm_xwayland_probe = executable(
     'wtwm-xwayland-probe',
     'tests/integration/xwayland_probe.c',
-    dependencies: dependency('xcb'),
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_xwayland_bridge_client = executable(
+    'wtwm-xwayland-bridge-client',
+    'tests/integration/xwayland_bridge_client.c',
+    dependencies: xcb,
     install: false,
   )
   integration_runner = find_program('python3')
@@ -330,6 +338,16 @@ if wlroots.found()
       '-B', files('tests/integration/run_xwayland_lifecycle.py'),
       '--compositor', wtwm_test_compositor,
       '--probe', wtwm_xwayland_probe,
+    ],
+    timeout: 60,
+  )
+  test(
+    'Xwayland window-manager bridge integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_bridge.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_bridge_client,
     ],
     timeout: 60,
   )

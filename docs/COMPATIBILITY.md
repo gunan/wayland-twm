@@ -26,7 +26,8 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Fonts / XLFD strings | Partial | Pango/Fontconfig names work; XLFD names use the classic fallback font pending full translation |
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
-| Xwayland application management and `WM_CLASS` matching | Not yet | ICCCM/EWMH window management and X11 window-list matching are the next compatibility stage |
+| Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
+| Xwayland `.twmrc` window-list matching | Not yet | The bridge retains `WM_NAME` and both `WM_CLASS` strings, but applying configuration lists is the next compatibility stage |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -51,8 +52,31 @@ wired to the compositor seat, reports every successful readiness event
 including a wlroots-managed restart, and is destroyed before the remaining
 Wayland clients and display. If Xwayland cannot be created or its display
 cannot be exported, wtwm keeps the inherited `DISPLAY` unchanged and continues
-with native Wayland support. This lifecycle integration does not yet manage
-X11 windows or implement ICCCM/EWMH policy.
+with native Wayland support.
+
+Xwayland windows have independent create, Wayland-surface association, map,
+unmap, dissociation, remap, and destruction handling. Managed windows share the
+native decoration, focus, move, resize, iconify, raise/lower, menu-target, and
+action model. Override-redirect windows remain undecorated and outside the
+managed focus/action list, but stay visible in a dedicated scene layer above
+managed clients. Transient relationships are mirrored in both the X and scene
+stacks, and configure requests preserve X11 client coordinates while enforcing
+advertised minimum, maximum, base-size, and resize-increment hints. Aspect and
+gravity values are retained for later placement/geometry parity work.
+
+The bridge live-updates `WM_NAME`, both `WM_CLASS` strings,
+`WM_TRANSIENT_FOR`, `WM_NORMAL_HINTS`, `WM_HINTS`, `WM_PROTOCOLS`,
+`WM_ICON_NAME`, and `_NET_WM_ICON`. Input and urgency state plus client-supplied
+icon pixmap, mask, and window identifiers are retained. `_NET_WM_ICON` parsing
+is bounded to one complete 256x256 image worth of 32-bit words; incomplete or
+larger properties are reported as truncated and never treated as a complete
+icon. Rendering supplied icons in compositor-owned icon UI remains pending.
+
+For X11 clients, `f.delete` follows `twm`: it sends `WM_DELETE_WINDOW` only
+when the client advertises that protocol and never falls back to killing a
+non-cooperating client. `f.destroy` uses X client termination. Native Wayland
+clients retain their protocol close-request behavior because xdg-shell has no
+separate client-kill operation.
 
 ## Complete configuration model
 
