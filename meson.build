@@ -98,6 +98,23 @@ geometry_dep = declare_dependency(
   include_directories: inc,
 )
 
+visual_lib = static_library(
+  'wtwm-visual-lib',
+  'src/visual.c',
+  include_directories: inc,
+)
+visual_dep = declare_dependency(
+  link_with: visual_lib,
+  include_directories: inc,
+)
+
+visual_test = executable(
+  'visual-test',
+  'tests/visual_test.c',
+  dependencies: visual_dep,
+)
+test('twm visual layout', visual_test)
+
 interaction_lib = static_library(
   'wtwm-interaction-lib',
   'src/interaction.c',
