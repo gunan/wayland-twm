@@ -716,6 +716,8 @@ static bool parse_window_list(struct parser *parser, const char *name,
 		if (!optional) return fail(parser, "expected '{' after %s", name);
 		list->bare = true;
 		if (bare_sets_no_title) parser->config->no_title = true;
+		if (equal_ci(name, "DontSqueezeTitle"))
+			parser->config->squeeze_title = false;
 		return true;
 	}
 	if (!next_token(parser)) return false;
@@ -1017,7 +1019,10 @@ static bool take_signed_number(struct parser *parser, int *value) {
 }
 
 static bool parse_squeeze_title(struct parser *parser) {
-	if (parser->token.type != TOK_LBRACE) return true;
+	if (parser->token.type != TOK_LBRACE) {
+		parser->config->squeeze_title = true;
+		return true;
+	}
 	if (!next_token(parser)) return false;
 	while (parser->token.type != TOK_RBRACE) {
 		if (parser->token.type == TOK_EOF) return fail(parser, "unterminated SqueezeTitle block");
@@ -1422,6 +1427,71 @@ bool wtwm_config_match_client(const struct wtwm_string_list *list,
 	return wtwm_config_match_native(list, identity->title, identity->app_id);
 }
 
+bool wtwm_config_window_list_matches(const struct wtwm_config *config,
+		const char *directive, const struct wtwm_client_identity *identity) {
+	if (config == NULL || directive == NULL) return false;
+	for (size_t i = config->window_list_count; i > 0; --i) {
+		const struct wtwm_window_list *list = &config->window_lists[i - 1];
+		if (!equal_ci(list->directive, directive)) continue;
+		if (list->bare || wtwm_config_match_client(&list->names, identity))
+			return true;
+	}
+	return false;
+}
+
+static bool identity_value_matches(const struct wtwm_client_identity *identity,
+		const char *selector, unsigned pass) {
+	if (identity == NULL || selector == NULL) return false;
+	const char *value = NULL;
+	bool x11 = identity->name != NULL || identity->resource_name != NULL ||
+		identity->resource_class != NULL;
+	if (x11) {
+		if (pass == 0) value = identity->name;
+		else if (pass == 1) value = identity->resource_name;
+		else if (pass == 2) value = identity->resource_class;
+	} else {
+		if (pass == 0) value = identity->title;
+		else if (pass == 1) value = identity->app_id;
+	}
+	return value != NULL && strcmp(selector, value) == 0;
+}
+
+static const struct wtwm_squeeze_entry *matching_squeeze_entry(
+		const struct wtwm_config *config,
+		const struct wtwm_client_identity *identity) {
+	for (unsigned pass = 0; pass < 3; ++pass) {
+		for (size_t i = config->squeeze_entry_count; i > 0; --i) {
+			const struct wtwm_squeeze_entry *entry = &config->squeeze_entries[i - 1];
+			if (identity_value_matches(identity, entry->window_name, pass))
+				return entry;
+		}
+	}
+	return NULL;
+}
+
+bool wtwm_config_squeeze_rule(const struct wtwm_config *config,
+		const struct wtwm_client_identity *identity,
+		struct wtwm_squeeze_rule *rule) {
+	if (config == NULL || rule == NULL) return false;
+	for (size_t i = config->window_list_count; i > 0; --i) {
+		const struct wtwm_window_list *list = &config->window_lists[i - 1];
+		if (equal_ci(list->directive, "DontSqueezeTitle") && !list->bare &&
+			wtwm_config_match_client(&list->names, identity)) return false;
+	}
+	const struct wtwm_squeeze_entry *entry =
+		matching_squeeze_entry(config, identity);
+	if (entry == NULL && !config->squeeze_title) return false;
+	*rule = (struct wtwm_squeeze_rule){WTWM_SQUEEZE_LEFT, 0, 0};
+	if (entry == NULL) return true;
+	if (equal_ci(entry->justification, "center"))
+		rule->justification = WTWM_SQUEEZE_CENTER;
+	else if (equal_ci(entry->justification, "right"))
+		rule->justification = WTWM_SQUEEZE_RIGHT;
+	rule->numerator = entry->numerator;
+	rule->denominator = entry->denominator;
+	return true;
+}
+
 const char *wtwm_config_color_value(const struct wtwm_config *config,
 		const char *name, enum wtwm_color_mode mode,
 		const struct wtwm_client_identity *identity) {
@@ -1431,17 +1501,17 @@ const char *wtwm_config_color_value(const struct wtwm_config *config,
 		const struct wtwm_color_setting *setting = &config->colors[i - 1];
 		if (setting->mode != mode || !equal_ci(setting->name, name)) continue;
 		if (base == NULL) base = setting->value;
-		if (identity == NULL) continue;
-		for (size_t j = 0; j < setting->override_count; ++j) {
-			const char *candidate = setting->overrides[j].name;
-			struct wtwm_string_list singleton = {
-				.items = (char **)&candidate,
-				.count = 1,
-			};
-			if (wtwm_config_match_client(&singleton, identity))
-				return setting->overrides[j].value;
-		}
 	}
+	if (identity == NULL) return base;
+	for (unsigned pass = 0; pass < 3; ++pass)
+		for (size_t i = config->color_count; i > 0; --i) {
+			const struct wtwm_color_setting *setting = &config->colors[i - 1];
+			if (setting->mode != mode || !equal_ci(setting->name, name)) continue;
+			for (size_t j = 0; j < setting->override_count; ++j)
+				if (identity_value_matches(identity,
+						setting->overrides[j].name, pass))
+					return setting->overrides[j].value;
+		}
 	return base;
 }
 

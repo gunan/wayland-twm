@@ -194,6 +194,18 @@ struct wtwm_squeeze_entry {
 	int denominator;
 };
 
+enum wtwm_squeeze_justification {
+	WTWM_SQUEEZE_LEFT,
+	WTWM_SQUEEZE_CENTER,
+	WTWM_SQUEEZE_RIGHT,
+};
+
+struct wtwm_squeeze_rule {
+	enum wtwm_squeeze_justification justification;
+	int numerator;
+	int denominator;
+};
+
 struct wtwm_directive {
 	char name[WTWM_NAME_MAX];
 	enum wtwm_compatibility compatibility;
@@ -253,6 +265,7 @@ struct wtwm_config {
 	bool warp_unmapped;
 	bool sort_icon_manager;
 	bool no_defaults;
+	bool squeeze_title;
 	char title_font[WTWM_NAME_MAX];
 	char menu_font[WTWM_NAME_MAX];
 	char resize_font[WTWM_NAME_MAX];
@@ -346,6 +359,12 @@ bool wtwm_config_match_native(const struct wtwm_string_list *list,
 	const char *title, const char *app_id);
 bool wtwm_config_match_client(const struct wtwm_string_list *list,
 	const struct wtwm_client_identity *identity);
+/* Match a generic optional window-list directive, including its bare form. */
+bool wtwm_config_window_list_matches(const struct wtwm_config *config,
+	const char *directive, const struct wtwm_client_identity *identity);
+/* Resolve DontSqueezeTitle, per-window SqueezeTitle, then the bare default. */
+bool wtwm_config_squeeze_rule(const struct wtwm_config *config,
+	const struct wtwm_client_identity *identity, struct wtwm_squeeze_rule *rule);
 /* Resolve the active display-mode color, including twm's window overrides. */
 const char *wtwm_config_color_value(const struct wtwm_config *config,
 	const char *name, enum wtwm_color_mode mode,

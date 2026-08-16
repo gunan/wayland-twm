@@ -191,6 +191,41 @@ static void resolves_display_mode_and_window_colors(void) {
 	wtwm_config_finish(&config);
 }
 
+static void resolves_visual_window_rules(void) {
+	static const char source[] =
+		"SqueezeTitle\n"
+		"SqueezeTitle { \"Class\" right -1 4 \"named\" center 1 2 }\n"
+		"DontSqueezeTitle { \"fixed\" }\n"
+		"NoHighlight { \"plain\" }\n"
+		"Color { BorderColor \"black\" { \"Class\" \"blue\" \"named\" \"red\" } }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "visual-rules", source, error,
+		sizeof(error)));
+	assert(config.squeeze_title);
+	struct wtwm_client_identity identity = {
+		.name = "named",
+		.resource_name = "fixed",
+		.resource_class = "Class",
+	};
+	struct wtwm_squeeze_rule rule;
+	assert(!wtwm_config_squeeze_rule(&config, &identity, &rule));
+	identity.resource_name = "other";
+	assert(wtwm_config_squeeze_rule(&config, &identity, &rule));
+	assert(rule.justification == WTWM_SQUEEZE_CENTER);
+	assert(rule.numerator == 1 && rule.denominator == 2);
+	/* Name matches have reference priority over a later class match. */
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &identity), "red") == 0);
+	identity.name = "plain";
+	identity.resource_class = "other";
+	assert(wtwm_config_window_list_matches(&config, "NoHighlight", &identity));
+	assert(wtwm_config_squeeze_rule(&config, &identity, &rule));
+	assert(rule.justification == WTWM_SQUEEZE_LEFT);
+	wtwm_config_finish(&config);
+}
+
 static void preserves_order_and_replacement_rules(void) {
 	static const char source[] =
 		"BorderWidth 1\nBorderWidth 9\n"
@@ -598,6 +633,7 @@ int main(void) {
 	rejects_reference_lexical_errors();
 	parses_every_construct_family();
 	resolves_display_mode_and_window_colors();
+	resolves_visual_window_rules();
 	preserves_order_and_replacement_rules();
 	uses_reference_intrinsic_defaults_and_aliases();
 	failed_parse_is_atomic_and_leak_safe();
