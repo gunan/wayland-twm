@@ -1266,6 +1266,21 @@ static void update_decoration(struct toplevel *toplevel) {
 			wlr_buffer_drop(button_bitmap);
 		}
 	}
+	int clipped_text_width = layout.title.width - layout.text.x;
+	if (clipped_text_width > toplevel->title_text_width)
+		clipped_text_width = toplevel->title_text_width;
+	if (clipped_text_width < 0) clipped_text_width = 0;
+	if (clipped_text_width > 0) {
+		struct wlr_fbox text_source = {
+			.width = clipped_text_width,
+			.height = toplevel->title_text_height,
+		};
+		wlr_scene_buffer_set_source_box(toplevel->title_text, &text_source);
+		wlr_scene_buffer_set_dest_size(toplevel->title_text, clipped_text_width,
+			toplevel->title_text_height);
+	}
+	wlr_scene_node_set_enabled(&toplevel->title_text->node,
+		toplevel->decorated && clipped_text_width > 0);
 	wlr_scene_node_set_position(&toplevel->title_text->node,
 		layout.text.x, layout.text.y);
 	wlr_scene_node_set_position(&toplevel->content->node,
