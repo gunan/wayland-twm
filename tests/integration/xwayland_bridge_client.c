@@ -128,16 +128,16 @@ static void set_net_wm_icon(struct client *client, uint32_t width, uint32_t heig
 static xcb_window_t create_window(xcb_connection_t *connection, xcb_screen_t *screen,
 		int16_t x, int16_t y, uint16_t width, uint16_t height, bool override_redirect) {
 	xcb_window_t window = xcb_generate_id(connection);
-	uint32_t mask = XCB_CW_EVENT_MASK;
-	uint32_t values[2] = {
+	uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+	uint32_t values[3] = {
+		screen->white_pixel,
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_PROPERTY_CHANGE,
 		0,
 	};
 	if (override_redirect) {
 		mask |= XCB_CW_OVERRIDE_REDIRECT;
-		values[1] = 1;
 		/* XCB values follow ascending value-mask bit order. */
-		uint32_t ordered[2] = {1, values[0]};
+		uint32_t ordered[3] = {values[0], 1, values[1]};
 		xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root,
 			x, y, width, height, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
 			screen->root_visual, mask, ordered);
@@ -147,6 +147,13 @@ static xcb_window_t create_window(xcb_connection_t *connection, xcb_screen_t *sc
 			screen->root_visual, mask, values);
 	}
 	return window;
+}
+
+static void map_and_damage_window(xcb_connection_t *connection,
+		xcb_window_t window) {
+	xcb_map_window(connection, window);
+	/* Painting the background creates redirected pixmap damage for Xwayland. */
+	xcb_clear_area(connection, false, window, 0, 0, 0, 0);
 }
 
 static bool initialize(struct client *client) {
@@ -208,9 +215,9 @@ static bool initialize(struct client *client) {
 		300, 20, 100, 50, true);
 	set_string(client->connection, client->override_redirect, XCB_ATOM_WM_NAME,
 		"xwm-override-redirect");
-	xcb_map_window(client->connection, client->parent);
-	xcb_map_window(client->connection, client->transient);
-	xcb_map_window(client->connection, client->override_redirect);
+	map_and_damage_window(client->connection, client->parent);
+	map_and_damage_window(client->connection, client->transient);
+	map_and_damage_window(client->connection, client->override_redirect);
 	xcb_flush(client->connection);
 	return true;
 }
@@ -242,7 +249,7 @@ static void create_stubborn(struct client *client) {
 		"xwm-stubborn");
 	set_class(client->stubborn_connection, client->stubborn,
 		"xwm-stubborn-instance", "XwmStubbornClass");
-	xcb_map_window(client->stubborn_connection, client->stubborn);
+	map_and_damage_window(client->stubborn_connection, client->stubborn);
 	xcb_flush(client->stubborn_connection);
 	puts("STUBBORN_MAPPED");
 }
@@ -286,7 +293,7 @@ static bool handle_command(struct client *client, const char *command) {
 		xcb_flush(client->connection);
 		puts("OR_UNMAPPED");
 	} else if (strcmp(command, "REMAP_OR") == 0) {
-		xcb_map_window(client->connection, client->override_redirect);
+		map_and_damage_window(client->connection, client->override_redirect);
 		xcb_flush(client->connection);
 		puts("OR_REMAPPED");
 	} else if (strcmp(command, "UNMAP_PARENT") == 0) {
@@ -294,7 +301,7 @@ static bool handle_command(struct client *client, const char *command) {
 		xcb_flush(client->connection);
 		puts("PARENT_UNMAPPED");
 	} else if (strcmp(command, "REMAP_PARENT") == 0) {
-		xcb_map_window(client->connection, client->parent);
+		map_and_damage_window(client->connection, client->parent);
 		xcb_flush(client->connection);
 		puts("PARENT_REMAPPED");
 	} else if (strcmp(command, "CREATE_STUBBORN") == 0) create_stubborn(client);
