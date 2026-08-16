@@ -161,6 +161,17 @@ static xcb_window_t create_window(xcb_connection_t *connection, xcb_screen_t *sc
 	return window;
 }
 
+static void create_hint_icons(struct client *client, uint16_t size) {
+	client->icon_pixmap = xcb_generate_id(client->connection);
+	xcb_create_pixmap(client->connection, 1, client->icon_pixmap,
+		client->screen->root, size, size);
+	client->icon_mask = xcb_generate_id(client->connection);
+	xcb_create_pixmap(client->connection, 1, client->icon_mask,
+		client->screen->root, size, size);
+	client->icon_window = create_window(client->connection, client->screen,
+		0, 0, size, size, false);
+}
+
 static bool repaint_target_window(xcb_connection_t *connection,
 		struct repaint_target *target) {
 	if (!target->desired_mapped) return false;
@@ -205,14 +216,7 @@ static bool initialize(struct client *client) {
 		.wm_icon_name = intern_atom(client->connection, "WM_ICON_NAME"),
 		.net_wm_icon = intern_atom(client->connection, "_NET_WM_ICON"),
 	};
-	client->icon_pixmap = xcb_generate_id(client->connection);
-	xcb_create_pixmap(client->connection, 1, client->icon_pixmap,
-		client->screen->root, 16, 16);
-	client->icon_mask = xcb_generate_id(client->connection);
-	xcb_create_pixmap(client->connection, 1, client->icon_mask,
-		client->screen->root, 16, 16);
-	client->icon_window = create_window(client->connection, client->screen,
-		0, 0, 16, 16, false);
+	create_hint_icons(client, 16);
 	client->parent = create_window(client->connection, client->screen,
 		40, 50, 220, 150, false);
 	set_string(client->connection, client->parent, XCB_ATOM_WM_NAME,
@@ -258,6 +262,9 @@ static bool initialize(struct client *client) {
 }
 
 static void update_metadata(struct client *client) {
+	xcb_pixmap_t old_icon_pixmap = client->icon_pixmap;
+	xcb_pixmap_t old_icon_mask = client->icon_mask;
+	xcb_window_t old_icon_window = client->icon_window;
 	set_string(client->connection, client->parent, XCB_ATOM_WM_NAME,
 		"xwm-parent-updated");
 	set_string(client->connection, client->parent, client->atoms.wm_icon_name,
@@ -265,7 +272,11 @@ static void update_metadata(struct client *client) {
 	set_class(client->connection, client->parent, "xwm-instance-updated",
 		"XwmClassUpdated");
 	set_normal_hints(client, 100, 70, 300, 220, 50, 40, 25, 15);
+	create_hint_icons(client, 24);
 	set_wm_hints(client, false, true);
+	xcb_free_pixmap(client->connection, old_icon_pixmap);
+	xcb_free_pixmap(client->connection, old_icon_mask);
+	xcb_destroy_window(client->connection, old_icon_window);
 	set_net_wm_icon(client, 3, 2, UINT32_C(0x20));
 	xcb_flush(client->connection);
 	puts("UPDATED");

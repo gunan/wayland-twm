@@ -15,6 +15,16 @@ import time
 from run_compositor import Control
 
 
+SIZE_HINT_KEYS = (
+    "flags", "min_width", "min_height", "max_width", "max_height",
+    "base_width", "base_height", "width_inc", "height_inc",
+    "min_aspect_num", "min_aspect_den", "max_aspect_num", "max_aspect_den",
+    "gravity",
+)
+INITIAL_SIZE_HINTS = (880, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
+UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
+
+
 def wait_path(path: Path) -> str:
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
@@ -84,32 +94,68 @@ def click_title(control: Control, item: dict[str, object], button: int) -> None:
     control.command(f"BUTTON {button} release")
 
 
-def assert_initial_metadata(parent: dict[str, object], transient: dict[str, object]) -> None:
-    if (parent["type"], parent["instance"], parent["class"]) != (
-        "x11", "xwm-instance-initial", "XwmClassInitial"
+def size_hint_values(item: dict[str, object]) -> tuple[object, ...]:
+    hints = item["size_hints"]
+    assert isinstance(hints, dict)
+    return tuple(hints[key] for key in SIZE_HINT_KEYS)
+
+
+def hint_icon_ids(item: dict[str, object]) -> tuple[int, int, int]:
+    return tuple(int(item[key]) for key in (
+        "icon_pixmap", "icon_mask", "icon_window",
+    ))
+
+
+def net_icon_values(item: dict[str, object]) -> tuple[object, ...]:
+    icon = item["net_wm_icon"]
+    assert isinstance(icon, dict)
+    return tuple(icon[key] for key in (
+        "count", "width", "height", "checksum", "truncated",
+    ))
+
+
+def assert_initial_metadata(
+    parent: dict[str, object], transient: dict[str, object]
+) -> tuple[tuple[int, int, int], tuple[object, ...]]:
+    if (parent["title"], parent["type"], parent["instance"], parent["class"]) != (
+        "xwm-parent-initial", "x11", "xwm-instance-initial", "XwmClassInitial"
     ):
-        raise RuntimeError(f"initial WM_CLASS bridge is stale: {parent!r}")
+        raise RuntimeError(f"initial WM_NAME/WM_CLASS bridge is stale: {parent!r}")
     if transient["parent"] != parent["xid"]:
         raise RuntimeError(f"WM_TRANSIENT_FOR relationship is missing: {transient!r}")
     if not parent["supports_delete"] or not parent["urgent"] or parent["input"]:
         raise RuntimeError(f"WM_PROTOCOLS/WM_HINTS bridge is wrong: {parent!r}")
-    if not parent["icon_pixmap"] or not parent["icon_mask"] or not parent["icon_window"]:
+    icon_ids = hint_icon_ids(parent)
+    if any(value == 0 for value in icon_ids) or len(set(icon_ids)) != len(icon_ids):
         raise RuntimeError(f"supplied WM_HINTS icon evidence is missing: {parent!r}")
     if parent["icon_name"] != "xwm-icon-initial":
         raise RuntimeError(f"WM_ICON_NAME bridge is stale: {parent!r}")
-    icon = parent["net_wm_icon"]
-    if (icon["count"], icon["width"], icon["height"], icon["truncated"]) != (
-        1, 2, 2, False
-    ) or icon["checksum"] == 0:
+    icon = net_icon_values(parent)
+    if icon[:3] != (1, 2, 2) or icon[3] == 0 or icon[4] is not False:
         raise RuntimeError(f"_NET_WM_ICON evidence is wrong: {parent!r}")
-    hints = parent["size_hints"]
-    expected = (80, 60, 320, 240, 40, 30, 20, 10)
-    actual = tuple(hints[key] for key in (
-        "min_width", "min_height", "max_width", "max_height",
-        "base_width", "base_height", "width_inc", "height_inc",
-    ))
-    if actual != expected:
+    if size_hint_values(parent) != INITIAL_SIZE_HINTS:
         raise RuntimeError(f"WM_NORMAL_HINTS bridge is wrong: {parent!r}")
+    return icon_ids, icon
+
+
+def updated_metadata_matches(
+    parent: dict[str, object], initial_icon_ids: tuple[int, int, int],
+    initial_net_icon: tuple[object, ...],
+) -> bool:
+    icon_ids = hint_icon_ids(parent)
+    icon = net_icon_values(parent)
+    return (
+        (parent["title"], parent["type"], parent["instance"], parent["class"]) ==
+        ("xwm-parent-updated", "x11", "xwm-instance-updated", "XwmClassUpdated")
+        and parent["icon_name"] == "xwm-icon-updated"
+        and parent["supports_delete"] and not parent["urgent"] and parent["input"]
+        and all(value != 0 for value in icon_ids)
+        and len(set(icon_ids)) == len(icon_ids)
+        and all(after != before for before, after in zip(initial_icon_ids, icon_ids))
+        and size_hint_values(parent) == UPDATED_SIZE_HINTS
+        and icon[:3] == (1, 3, 2) and icon[3] != 0 and icon[4] is False
+        and icon[3] != initial_net_icon[3]
+    )
 
 
 def run(compositor: Path, client_binary: Path) -> None:
@@ -170,7 +216,7 @@ def run(compositor: Path, client_binary: Path) -> None:
             )
             parent = window(state, "xwm-parent-initial")
             transient = window(state, "xwm-transient")
-            assert_initial_metadata(parent, transient)
+            initial_icon_ids, initial_net_icon = assert_initial_metadata(parent, transient)
             parent_xid = int(parent["xid"])
             override = state["override_redirect"][0]
             override_xid = int(override["xid"])
@@ -188,34 +234,31 @@ def run(compositor: Path, client_binary: Path) -> None:
             command(client, "UPDATE", "UPDATED")
             state = wait_state(
                 control,
-                lambda item: any(entry["title"] == "xwm-parent-updated" and
-                    entry["instance"] == "xwm-instance-updated" and
-                    entry["class"] == "XwmClassUpdated" and
-                    entry["icon_name"] == "xwm-icon-updated" and
-                    not entry["urgent"] and entry["input"] and
-                    entry["net_wm_icon"]["width"] == 3
-                    for entry in item["windows"]),
+                lambda item: any(updated_metadata_matches(
+                    entry, initial_icon_ids, initial_net_icon,
+                ) for entry in item["windows"]),
                 "live X11 metadata and hint updates",
             )
             parent = window(state, "xwm-parent-updated")
-            if parent["net_wm_icon"]["height"] != 2:
-                raise RuntimeError(f"updated supplied icon is stale: {parent!r}")
+            updated_icon_ids = hint_icon_ids(parent)
+            updated_net_icon = net_icon_values(parent)
 
             command(client, "TRUNCATE_ICON", "TRUNCATED_ICON_SET")
             state = wait_state(
                 control,
-                lambda item: window(item, "xwm-parent-updated")["net_wm_icon"]["truncated"],
+                lambda item: net_icon_values(window(item, "xwm-parent-updated")) ==
+                (0, 0, 0, 0, True),
                 "bounded oversized _NET_WM_ICON handling",
             )
-            icon = window(state, "xwm-parent-updated")["net_wm_icon"]
-            if icon["count"] != 0:
-                raise RuntimeError(f"partial icon was accepted as complete: {icon!r}")
             command(client, "RESTORE_ICON", "ICON_RESTORED")
-            wait_state(
+            state = wait_state(
                 control,
-                lambda item: not window(item, "xwm-parent-updated")["net_wm_icon"]["truncated"],
+                lambda item: net_icon_values(window(item, "xwm-parent-updated")) ==
+                updated_net_icon,
                 "restored bounded _NET_WM_ICON",
             )
+            if hint_icon_ids(window(state, "xwm-parent-updated")) != updated_icon_ids:
+                raise RuntimeError(f"WM_HINTS icon identifiers regressed: {state!r}")
 
             command(client, "CLEAR_TRANSIENT", "TRANSIENT_CLEARED")
             wait_state(
@@ -236,7 +279,8 @@ def run(compositor: Path, client_binary: Path) -> None:
                 control,
                 lambda item: any(entry["title"] == "xwm-parent-updated" and
                     entry["client_x"] == 120 and entry["client_y"] == 100 and
-                    entry["width"] == 275 and entry["height"] == 190
+                    entry["width"] == 275 and entry["height"] == 190 and
+                    size_hint_values(entry) == UPDATED_SIZE_HINTS
                     for entry in item["windows"]),
                 "hint-constrained configure request",
             )
@@ -320,7 +364,7 @@ def run(compositor: Path, client_binary: Path) -> None:
             if stubborn["supports_delete"]:
                 raise RuntimeError(f"stubborn window unexpectedly supports delete: {stubborn!r}")
             click_title(control, stubborn, 272)
-            time.sleep(0.2)
+            control.command("WAIT 1")
             stubborn = window(control.state(), "xwm-stubborn")
             click_title(control, stubborn, 274)
             wait_line(client, "STUBBORN_KILLED")
