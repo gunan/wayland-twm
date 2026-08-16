@@ -135,6 +135,16 @@ visual_test = executable(
   dependencies: visual_dep,
 )
 test('twm visual layout', visual_test)
+test(
+  'Milestone 5 visual contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m5_visual.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 interaction_lib = static_library(
   'wtwm-interaction-lib',
