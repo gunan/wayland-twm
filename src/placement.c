@@ -130,8 +130,38 @@ void wtwm_random_placement_next(struct wtwm_random_placement *state,
 
 void wtwm_pointer_placement(unsigned index, int pointer_x, int pointer_y,
 		int *x, int *y) {
-	*x = saturate_int((int64_t)pointer_x + (index % 12u) * 24);
-	*y = saturate_int((int64_t)pointer_y + (index % 10u) * 24);
+	(void)index;
+	*x = pointer_x;
+	*y = pointer_y;
+}
+
+enum wtwm_placement_button_action wtwm_placement_button(unsigned button) {
+	switch (button) {
+	case 1: return WTWM_PLACEMENT_BUTTON_CONFIRM;
+	case 2: return WTWM_PLACEMENT_BUTTON_RESIZE;
+	case 3: return WTWM_PLACEMENT_BUTTON_FILL;
+	default: return WTWM_PLACEMENT_BUTTON_IGNORE;
+	}
+}
+
+void wtwm_placement_prompt_position(const struct wtwm_placement_area *area,
+		bool dont_move_off, int outer_width, int outer_height,
+		int pointer_x, int pointer_y, int *x, int *y) {
+	*x = pointer_x;
+	*y = pointer_y;
+	if (dont_move_off)
+		wtwm_clamp_outer_position(area, outer_width, outer_height, x, y);
+}
+
+void wtwm_placement_fill_size(const struct wtwm_placement_area *area,
+		int x, int y, int horizontal_inset, int vertical_inset,
+		int *client_width, int *client_height) {
+	int64_t right = area != NULL ? (int64_t)area->x + area->width : x + 1;
+	int64_t bottom = area != NULL ? (int64_t)area->y + area->height : y + 1;
+	int64_t width = right - x - horizontal_inset;
+	int64_t height = bottom - y - vertical_inset;
+	*client_width = width > 0 ? saturate_int(width) : 1;
+	*client_height = height > 0 ? saturate_int(height) : 1;
 }
 
 void wtwm_clamp_outer_position(const struct wtwm_placement_area *area,
@@ -150,6 +180,7 @@ const char *wtwm_placement_kind_name(enum wtwm_placement_kind kind) {
 	switch (kind) {
 	case WTWM_PLACEMENT_REQUESTED: return "requested";
 	case WTWM_PLACEMENT_RANDOM: return "random";
+	case WTWM_PLACEMENT_INTERACTIVE: return "interactive";
 	case WTWM_PLACEMENT_POINTER: return "pointer";
 	case WTWM_PLACEMENT_REMAPPED: return "remapped";
 	}

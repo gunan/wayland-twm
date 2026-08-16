@@ -779,6 +779,7 @@ if wlroots.found()
       '-B', files('tests/integration/run_placement.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_xwayland_placement_client,
+	  '--native-client', wtwm_xdg_lifecycle_client,
     ],
     timeout: 180,
     is_parallel: false,

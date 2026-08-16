@@ -342,6 +342,35 @@
       ]
     },
     {
+      "id": "interactive-placement",
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "lines": [433, 711],
+      "anchors": [
+        "better wait until all the mouse buttons have been",
+        "XQueryPointer(dpy, Scr->Root",
+        "MoveOutline(Scr->Root, AddingX, AddingY, AddingW, AddingH,",
+        "AddingX = event.xbutton.x_root;",
+        "if (Scr->DontMoveOff)",
+        "if (event.xbutton.button == Button2)",
+        "else if (event.xbutton.button == Button3)",
+        "XMaskEvent(dpy, ButtonReleaseMask, &event);",
+        "tmp_win->attr.x = AddingX;"
+      ]
+    },
+    {
+      "id": "menu-move-logical-release",
+      "member": "twm-1.0.13.1/src/menus.c",
+      "lines": [1560, 1630],
+      "anchors": [
+        "if (menuFromFrameOrWindowOrTitlebar)",
+        "ButtonPress : ButtonRelease",
+        "if (!menuFromFrameOrWindowOrTitlebar && !MovedFromKeyPress)",
+        "test to see if we have a second button press to abort move",
+        "if (Event.type == releaseEvent)",
+        "Event.xbutton.x_root - DragWidth / 2"
+      ]
+    },
+    {
       "id": "no-opaque-resize",
       "members": [
         "twm-1.0.13.1/src/parse.c",
@@ -800,6 +829,62 @@
       "input": {"screen": [640, 480]},
       "expected": {"maximum": [32127, 32287]},
       "sources": ["max-window-default"]
+    },
+    {
+      "id": "interactive-placement-pointer-is-upper-left",
+      "group": "placement",
+      "operation": "placement-position",
+      "input": {"screen": [640, 480], "outer_size": [120, 100], "pointer": [37, 41], "dont_move_off": false},
+      "expected": {"frame_origin": [37, 41]},
+      "sources": ["interactive-placement"]
+    },
+    {
+      "id": "interactive-placement-dont-move-off",
+      "group": "placement",
+      "operation": "placement-position",
+      "input": {"screen": [120, 100], "outer_size": [104, 84], "pointer": [110, 95], "dont_move_off": true},
+      "expected": {"frame_origin": [16, 16]},
+      "sources": ["interactive-placement"]
+    },
+    {
+      "id": "interactive-placement-button1-confirms",
+      "group": "placement",
+      "operation": "placement-button",
+      "input": {"button": 1},
+      "expected": {"phase": "confirm", "commit_event": "release"},
+      "sources": ["interactive-placement"]
+    },
+    {
+      "id": "interactive-placement-button2-resizes",
+      "group": "placement",
+      "operation": "placement-button",
+      "input": {"button": 2},
+      "expected": {"phase": "resize", "commit_event": "release"},
+      "sources": ["interactive-placement"]
+    },
+    {
+      "id": "interactive-placement-button3-fills",
+      "group": "placement",
+      "operation": "placement-button",
+      "input": {"button": 3},
+      "expected": {"phase": "fill", "commit_event": "press"},
+      "sources": ["interactive-placement"]
+    },
+    {
+      "id": "window-menu-move-commits-on-press",
+      "group": "move-rendering",
+      "operation": "move-logical-release",
+      "input": {"menu_from_window": true},
+      "expected": {"commit_event": "press", "second_press_aborts": false},
+      "sources": ["menu-move-logical-release"]
+    },
+    {
+      "id": "ordinary-move-second-press-aborts",
+      "group": "move-rendering",
+      "operation": "move-logical-release",
+      "input": {"menu_from_window": false},
+      "expected": {"commit_event": "release", "second_press_aborts": true},
+      "sources": ["menu-move-logical-release", "interaction-abort"]
     }
   ]
 }

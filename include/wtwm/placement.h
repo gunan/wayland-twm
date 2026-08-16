@@ -13,8 +13,16 @@ enum wtwm_use_p_position {
 enum wtwm_placement_kind {
 	WTWM_PLACEMENT_REQUESTED,
 	WTWM_PLACEMENT_RANDOM,
+	WTWM_PLACEMENT_INTERACTIVE,
 	WTWM_PLACEMENT_POINTER,
 	WTWM_PLACEMENT_REMAPPED,
+};
+
+enum wtwm_placement_button_action {
+	WTWM_PLACEMENT_BUTTON_IGNORE,
+	WTWM_PLACEMENT_BUTTON_CONFIRM,
+	WTWM_PLACEMENT_BUTTON_RESIZE,
+	WTWM_PLACEMENT_BUTTON_FILL,
 };
 
 struct wtwm_random_placement {
@@ -56,9 +64,21 @@ void wtwm_random_placement_next(struct wtwm_random_placement *state,
 	int screen_width, int screen_height, int client_width, int client_height,
 	int *x, int *y);
 
-/* Deterministic Wayland translation for maps that reference twm would prompt. */
+/* Native Wayland translation for maps that reference twm would prompt. */
 void wtwm_pointer_placement(unsigned index, int pointer_x, int pointer_y,
 	int *x, int *y);
+
+enum wtwm_placement_button_action wtwm_placement_button(unsigned button);
+
+/* The reference prompt treats the pointer as the outer frame's upper-left. */
+void wtwm_placement_prompt_position(const struct wtwm_placement_area *area,
+	bool dont_move_off, int outer_width, int outer_height,
+	int pointer_x, int pointer_y, int *x, int *y);
+
+/* Button3 fills the output from the confirmed origin before size constraints. */
+void wtwm_placement_fill_size(const struct wtwm_placement_area *area,
+	int x, int y, int horizontal_inset, int vertical_inset,
+	int *client_width, int *client_height);
 
 /* Clamp an outer frame to the selected output/layout area. */
 void wtwm_clamp_outer_position(const struct wtwm_placement_area *area,

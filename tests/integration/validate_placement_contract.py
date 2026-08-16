@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def validate_text(placement: str, config: str, wtwm: str,
-                  runner: str, meson: str) -> list[str]:
+                  runner: str, client: str, meson: str) -> list[str]:
     errors: list[str] = []
     for marker in (
         "WTWM_USE_P_POSITION_OFF",
@@ -18,7 +18,9 @@ def validate_text(placement: str, config: str, wtwm: str,
         "state->next_x = 50;",
         "state->next_x + 30",
         "edge_adjust(state->next_x, screen_width, client_width)",
-        "pointer_x + (index % 12u) * 24",
+        "WTWM_PLACEMENT_BUTTON_CONFIRM",
+        "wtwm_placement_prompt_position",
+        "wtwm_placement_fill_size",
         "if (*x < area->x) *x = area->x;",
         "if (*x > max_x) *x = max_x;",
     ):
@@ -41,7 +43,12 @@ def validate_text(placement: str, config: str, wtwm: str,
         "wtwm_random_placement_next(&toplevel->server->random_placement",
         "clip_initial_toplevel_size(toplevel, &area, &width, &height);",
         "toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;",
-        "wtwm_clamp_outer_position(area, geometry.outer_width",
+        "toplevel->placement_kind = WTWM_PLACEMENT_INTERACTIVE;",
+        "interaction->intent = INTERACTION_INITIAL_CONFIRM;",
+        "INTERACTION_INITIAL_RESIZE",
+        "INTERACTION_MENU_POSITION",
+        "finish_initial_placement(server);",
+        "wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);",
         'wtwm_placement_kind_name(toplevel->placement_kind)',
     ):
         if marker not in wtwm:
@@ -53,12 +60,27 @@ def validate_text(placement: str, config: str, wtwm: str,
         '"placement-transient": (77, 88, 90, 60, "requested")',
         '"placement-random-3": (110, 110, 100, 80, "random")',
         '"placement-random-oversized": (0, 0, 200, 180, "random")',
-        '"placement-default-max": (10, 12, 32127, 32287, "requested")',
+        '"placement-default-max-width": (10, 12, 32127, 16, "requested")',
+        '"placement-default-max-height": (10, 12, 16, 32287, "requested")',
+        '"placement-confirm", (20, 25), "confirm"',
+        '"placement-resize", (50, 55), "resize"',
+        '"placement-fill", (40, 45), "fill"',
+        'run_native_translation(compositor, native_client)',
         'after["placement"] == "remapped"',
         'event["state"]["placement"]',
     ):
         if marker not in runner:
             errors.append(f"live placement matrix lacks {marker!r}")
+    for marker in (
+        '"placement-default-max-width", 10, 12,',
+        '40000, 16, HINT_US_POSITION',
+        '"placement-default-max-height", 10, 12,',
+        '16, 40000, HINT_US_POSITION',
+    ):
+        if marker not in client:
+            errors.append(f"safe X11 maximum fixture lacks {marker!r}")
+    if "40000, 40000" in client:
+        errors.append("X11 maximum fixture allocates an unsafe two-axis pixmap")
     for marker in (
         "'src/placement.c'",
         "test('twm placement policy', placement_test)",
@@ -83,6 +105,7 @@ def main() -> int:
         (root / "src/config.c").read_text(encoding="utf-8"),
         (root / "src/wtwm.c").read_text(encoding="utf-8"),
         (root / "tests/integration/run_placement.py").read_text(encoding="utf-8"),
+        (root / "tests/integration/xwayland_placement_client.c").read_text(encoding="utf-8"),
         (root / "meson.build").read_text(encoding="utf-8"),
     )
     errors = validate_text(*values)
@@ -100,6 +123,13 @@ def main() -> int:
         )
         if not validate_text(*tampered):
             errors.append("self-test accepted missing remap assertion")
+        tampered = list(values)
+        tampered[2] = tampered[2].replace(
+            "interaction->intent = INTERACTION_INITIAL_CONFIRM;",
+            "interaction->intent = INTERACTION_DRAG;", 1
+        )
+        if not validate_text(*tampered):
+            errors.append("self-test accepted missing placement confirm intent")
     if errors:
         for error in errors:
             print(error)

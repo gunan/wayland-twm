@@ -85,6 +85,10 @@ static void create_scenario(struct client *client, const char *scenario) {
 			HINT_P_POSITION));
 	} else if (strcmp(scenario, "nohint") == 0) {
 		map(client, create_window(client, "placement-nohint", 90, 70, 100, 80, 0));
+	} else if (strcmp(scenario, "buttons") == 0) {
+		map(client, create_window(client, "placement-confirm", 0, 0, 100, 80, 0));
+		map(client, create_window(client, "placement-resize", 0, 0, 100, 80, 0));
+		map(client, create_window(client, "placement-fill", 0, 0, 100, 80, 0));
 	} else if (strcmp(scenario, "transient") == 0) {
 		xcb_window_t owner = create_window(client, "placement-owner", 10, 12,
 			100, 80, HINT_US_POSITION);
@@ -108,8 +112,10 @@ static void create_scenario(struct client *client, const char *scenario) {
 		map(client, create_window(client, "placement-max", 10, 12, 900, 700,
 			HINT_US_POSITION));
 	} else if (strcmp(scenario, "defaultmax") == 0) {
-		map(client, create_window(client, "placement-default-max", 10, 12,
-			40000, 40000, HINT_US_POSITION));
+		map(client, create_window(client, "placement-default-max-width", 10, 12,
+			40000, 16, HINT_US_POSITION));
+		map(client, create_window(client, "placement-default-max-height", 10, 12,
+			16, 40000, HINT_US_POSITION));
 	} else if (strcmp(scenario, "remap") == 0) {
 		client->remap = create_window(client, "placement-remap", 66, 77,
 			100, 80, HINT_US_POSITION);

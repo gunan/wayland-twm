@@ -84,6 +84,13 @@ EXPECTED_CASE_IDS = [
     "random-placement-edge-reset",
     "max-window-initial-clip",
     "max-window-default-derived-from-screen",
+    "interactive-placement-pointer-is-upper-left",
+    "interactive-placement-dont-move-off",
+    "interactive-placement-button1-confirms",
+    "interactive-placement-button2-resizes",
+    "interactive-placement-button3-fills",
+    "window-menu-move-commits-on-press",
+    "ordinary-move-second-press-aborts",
 ]
 
 
@@ -294,6 +301,38 @@ def evaluate(operation: str, values: dict[str, Any]) -> dict[str, Any]:
         return {
             "maximum": [32767 - values["screen"][0], 32767 - values["screen"][1]]
         }
+
+    if operation == "placement-position":
+        x, y = values["pointer"]
+        width, height = values["outer_size"]
+        screen_width, screen_height = values["screen"]
+        if values["dont_move_off"]:
+            right = x + width
+            bottom = y + height
+            if x < 0:
+                x = 0
+            if right > screen_width:
+                x = screen_width - width
+            if y < 0:
+                y = 0
+            if bottom > screen_height:
+                y = screen_height - height
+        return {"frame_origin": [x, y]}
+
+    if operation == "placement-button":
+        button = values["button"]
+        if button == 1:
+            return {"phase": "confirm", "commit_event": "release"}
+        if button == 2:
+            return {"phase": "resize", "commit_event": "release"}
+        if button == 3:
+            return {"phase": "fill", "commit_event": "press"}
+        return {"phase": "ignore", "commit_event": "none"}
+
+    if operation == "move-logical-release":
+        if values["menu_from_window"]:
+            return {"commit_event": "press", "second_press_aborts": False}
+        return {"commit_event": "release", "second_press_aborts": True}
 
     raise ValueError(f"unknown operation {operation!r}")
 

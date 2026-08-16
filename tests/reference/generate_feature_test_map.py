@@ -245,7 +245,7 @@ RUNTIME_CONTRACT_FRAGMENTS = {
     "runtime_dispatch.key-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_KEY,"],
     "runtime_dispatch.menu-definition-lookup-and-rendering": ["strcmp(server->config.menus[i].name, name)"],
     "runtime_dispatch.menu-item-action-dispatch": [
-        "if (activate) execute_action(server, target, &action,"
+        "execute_action(server, target, &action,"
     ],
     "runtime_dispatch.start-iconified-rule-dispatch": ["server->config.start_iconified_windows"],
     "runtime_dispatch.title-button-action-dispatch": [

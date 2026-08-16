@@ -61,6 +61,16 @@ python3 -B tests/reference/validate_reference_interaction_contract.py \
   axis independently near an edge.  `MaxWindowSize` clips initial client size
   before placement; its default is `(32767-screen_width,
   32767-screen_height)`.
+- Non-random X11 placement treats the pointer as the outer frame's upper-left
+  corner and keeps the client hidden behind a compositor-owned outline until
+  confirmation. `DontMoveOff` clamps that outline in the same near-edge then
+  far-edge order as movement. Button1 commits after release, Button2 changes
+  the pending placement into an outline resize and commits on release, and
+  Button3 fills the remaining lower-right area and commits on press.
+- A window-context menu `f.move` uses ButtonPress as its logical release, so
+  the confirming press commits instead of triggering the ordinary
+  second-button abort path. A root-menu `f.move` first defers to the press that
+  selects a target, then that press/release pair is an ordinary move.
 
 ## Remaining live evidence
 

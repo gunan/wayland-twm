@@ -84,7 +84,31 @@ static void clips_sizes_and_outer_positions(void) {
 	wtwm_pointer_placement(0, 8, 9, &x, &y);
 	assert(x == 8 && y == 9);
 	wtwm_pointer_placement(13, 8, 9, &x, &y);
-	assert(x == 32 && y == 81);
+	assert(x == 8 && y == 9);
+}
+
+static void models_interactive_prompt(void) {
+	struct wtwm_placement_area area = {.x = 10, .y = 20,
+		.width = 200, .height = 160};
+	int x = 0, y = 0;
+	wtwm_placement_prompt_position(&area, false, 80, 60, 205, 175, &x, &y);
+	assert(x == 205 && y == 175);
+	wtwm_placement_prompt_position(&area, true, 80, 60, 205, 175, &x, &y);
+	assert(x == 130 && y == 120);
+	/* Reference near-edge then far-edge ordering keeps this oversized result. */
+	wtwm_placement_prompt_position(&area, true, 260, 220, -50, -40, &x, &y);
+	assert(x == -50 && y == -40);
+
+	assert(wtwm_placement_button(1) == WTWM_PLACEMENT_BUTTON_CONFIRM);
+	assert(wtwm_placement_button(2) == WTWM_PLACEMENT_BUTTON_RESIZE);
+	assert(wtwm_placement_button(3) == WTWM_PLACEMENT_BUTTON_FILL);
+	assert(wtwm_placement_button(8) == WTWM_PLACEMENT_BUTTON_IGNORE);
+
+	int width = 80, height = 60;
+	wtwm_placement_fill_size(&area, 50, 60, 6, 28, &width, &height);
+	assert(width == 154 && height == 92);
+	wtwm_placement_fill_size(&area, 500, 500, 6, 28, &width, &height);
+	assert(width == 1 && height == 1);
 }
 
 int main(void) {
@@ -92,6 +116,7 @@ int main(void) {
 	matches_position_hint_policy();
 	matches_random_sequence_and_edge_reset();
 	clips_sizes_and_outer_positions();
+	models_interactive_prompt();
 	puts("placement tests passed");
 	return 0;
 }

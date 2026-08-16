@@ -260,6 +260,55 @@ def delta_stop_scenario(control: Control) -> None:
         raise RuntimeError("f.deltastop did not stop after threshold movement")
 
 
+def menu_position_scenario(control: Control) -> None:
+    item = state_window(control)
+    start = title_point(item)
+    press_at(control, start, 273)
+    menu = control.state()["menu"]
+    if not isinstance(menu, dict):
+        raise RuntimeError("window menu did not open")
+    control.command(f"POINTER {int(menu['x']) + 5} {int(menu['y']) + 5}")
+    release(control, 273)
+    positioning = interaction(control)
+    if positioning["intent"] != "menu-position":
+        raise RuntimeError(f"window-menu f.move did not enter click placement: {positioning!r}")
+    control.command("POINTER 360 300")
+    preview = interaction(control)["preview"]
+    control.command("BUTTON 272 press")
+    if control.state()["interactive"]:
+        raise RuntimeError("menu-position confirming press was treated as an aborting grab")
+    placed = state_window(control)
+    if (int(placed["x"]), int(placed["y"])) != (
+            int(preview["x"]), int(preview["y"])):
+        raise RuntimeError(f"menu-position press did not commit: {placed!r} {preview!r}")
+    release(control)
+
+    # A root menu defers f.move until the next press selects its target. That
+    # selecting press starts an ordinary drag and its release commits it.
+    control.command("POINTER 5 5")
+    control.command("BUTTON 273 press")
+    menu = control.state()["menu"]
+    if not isinstance(menu, dict):
+        raise RuntimeError("root menu did not open")
+    control.command(f"POINTER {int(menu['x']) + 5} {int(menu['y']) + 5}")
+    release(control, 273)
+    if not control.state()["deferred_root_action"]:
+        raise RuntimeError("root-menu f.move was not deferred")
+    item = state_window(control)
+    start = title_point(item)
+    press_at(control, start)
+    pending = interaction(control)
+    if pending["intent"] != "drag":
+        raise RuntimeError(f"root-deferred f.move used the wrong intent: {pending!r}")
+    control.command(f"POINTER {start[0] + 18} {start[1] + 12}")
+    preview = interaction(control)["preview"]
+    release(control)
+    placed = state_window(control)
+    if (int(placed["x"]), int(placed["y"])) != (
+            int(preview["x"]), int(preview["y"])):
+        raise RuntimeError(f"root-deferred f.move did not commit on release: {placed!r}")
+
+
 def run_session(compositor: Path, client_binary: Path, config_text: str,
                 scenario: Callable[[Control], None], number: int) -> None:
     with tempfile.TemporaryDirectory(prefix="wtwm-move-resize-") as directory:
@@ -344,6 +393,9 @@ def main() -> None:
          'Function "move-or-lower" { f.move f.deltastop f.lower }\n'
          'Button1 = : title : f.function "move-or-lower"\n'
          "Button3 = : title : f.raise\n", delta_stop_scenario),
+        (common + "MoveDelta 0\nConstrainedMoveTime 0\n"
+         'Button3 = : title|root : f.menu "position"\n'
+         'Menu "position" { "Move" f.move }\n', menu_position_scenario),
     ]
     for index, (config, scenario) in enumerate(sessions):
         run_session(arguments.compositor.resolve(), arguments.client.resolve(),

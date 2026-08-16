@@ -29,7 +29,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
-| Initial placement and `MaxWindowSize` | Behaviorally equivalent for non-interactive policy | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, and remap stability follow reference twm. Native clients have no position hints and use the same random path. The blocking non-random rubber-band prompt is translated to an immediate pointer-anchored cascade; no confirm-click outline is shown. |
+| Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
 | Canonical X11 reference differential | Behaviorally equivalent for the compared client model | One Debian Trixie CI job runs the same Debian client commands and the same configuration under frozen `twm` 1.0.13.1 and wtwm/Xwayland. It compares exact title, instance/class, map and management state, transient and override-redirect roles, delete/input/urgency hints, icon name and supplied icon dimensions/content checksum, and normal-hint values. Reference management is proven by a distinct reparent frame; wtwm management is proven by its compositor scene decoration. Exact frame geometry, pixel rendering, and native/cross-protocol behavior are explicit later-milestone boundaries. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
@@ -109,11 +109,14 @@ aspect without a final reclamp. Native xdg-shell has no base-size, increment,
 or aspect protocol fields, so only its advertised minimum and maximum sizes
 can be honored. Initial map and managed `ConfigureRequest` coordinates use the
 reference gravity and border translations. Initial maximum clipping and
-position-hint/random/transient selection run before that conversion. The
-remaining placement difference is the explicitly translated non-random prompt:
-wtwm uses an immediate 24-pixel cascade anchored at the current pointer instead
-of grabbing the server, drawing an XOR outline, and waiting for a confirming
-mouse button.
+position-hint/random/transient selection run before that conversion. X11
+windows without an honored hint use a compositor-owned outline while their
+client scene remains hidden: pointer motion selects the outer-frame origin,
+Button1 confirms on release, Button2 enters placement resize, and Button3 fills
+the remaining lower-right output area. Native xdg-shell has no position-hint
+protocol and its initial map cannot be held inside the synchronous X11
+`MapRequest` path, so non-random native maps use the current pointer immediately
+without the obsolete cascade offset.
 
 Interactive move and resize use the source-derived `twm` state machine.
 `MoveDelta` is a strict per-axis threshold (equality starts, zero starts on the
@@ -135,6 +138,11 @@ ended and stops the remainder exactly when the pointer crossed `MoveDelta`.
 raises without changing focus policy. These paths are covered by a Linux
 headless Xwayland runner plus a portable model/tamper contract for hosts without
 wlroots.
+
+Menu-started movement keeps its separate reference intent. A menu invoked for
+a window centers the pointer and commits on the next press; a root menu defers
+target selection to the next press and commits that ordinary drag on release.
+Only an additional press during an ordinary drag takes the abort path.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling
