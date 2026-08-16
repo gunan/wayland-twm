@@ -77,6 +77,44 @@ enum cursor_mode { CURSOR_PASSTHROUGH, CURSOR_MOVE, CURSOR_RESIZE };
 struct server;
 
 #ifdef WTWM_TEST_CONTROL
+enum {
+	TEST_TRACE_INITIAL_CAPACITY = 64,
+	TEST_TRACE_MAX_EVENTS = 4096,
+	TEST_TRACE_IDENTITY_MAX = 256,
+};
+
+struct test_trace_event {
+	uint64_t sequence;
+	uint64_t window_id;
+	char event[16];
+	char context[16];
+	char type[8];
+	char title[TEST_TRACE_IDENTITY_MAX];
+	char app_id[TEST_TRACE_IDENTITY_MAX];
+	char instance[TEST_TRACE_IDENTITY_MAX];
+	char class_name[TEST_TRACE_IDENTITY_MAX];
+	char icon_name[TEST_TRACE_IDENTITY_MAX];
+	int client_x;
+	int client_y;
+	int client_width;
+	int client_height;
+	int frame_x;
+	int frame_y;
+	int frame_width;
+	int frame_height;
+	int outer_width;
+	int outer_height;
+	int border_width;
+	int title_bar_height;
+	int title_height;
+	int content_x;
+	int content_y;
+	int stack;
+	bool mapped;
+	bool iconified;
+	bool focused;
+};
+
 struct test_control {
 	struct server *server;
 	char path[sizeof(((struct sockaddr_un *)0)->sun_path)];
@@ -90,6 +128,12 @@ struct test_control {
 	bool keyboard_initialized;
 	unsigned animation_ms;
 	uint32_t input_time_ms;
+	struct test_trace_event *trace_events;
+	size_t trace_event_count;
+	size_t trace_event_capacity;
+	uint64_t trace_next_sequence;
+	uint64_t trace_next_window_id;
+	uint64_t trace_dropped;
 };
 #endif
 
@@ -135,6 +179,9 @@ struct toplevel {
 	uint32_t net_wm_icon_checksum;
 	bool net_wm_icon_truncated;
 	struct wl_event_source *xwayland_sync_idle;
+#ifdef WTWM_TEST_CONTROL
+	uint64_t test_id;
+#endif
 	struct wl_listener map;
 	struct wl_listener unmap;
 	struct wl_listener commit;
@@ -522,6 +569,152 @@ static void toplevel_geometry(const struct toplevel *toplevel,
 		toplevel_has_frame(toplevel) && toplevel->decorated, geometry);
 }
 
+#ifdef WTWM_TEST_CONTROL
+static void test_trace_copy(char destination[TEST_TRACE_IDENTITY_MAX],
+		const char *source) {
+	if (source == NULL) source = "";
+	(void)snprintf(destination, TEST_TRACE_IDENTITY_MAX, "%s", source);
+}
+
+static int test_trace_stack_index(const struct toplevel *toplevel) {
+	if (!toplevel->mapped || (toplevel->xwayland != NULL &&
+			toplevel->xwayland->override_redirect)) return -1;
+	int index = 0;
+	struct toplevel *item;
+	wl_list_for_each(item, &toplevel->server->toplevels, link) {
+		if (item == toplevel) return index;
+		++index;
+	}
+	return -1;
+}
+
+static struct test_trace_event *test_trace_append(struct toplevel *toplevel,
+		const char *event, const char *context, int frame_x, int frame_y,
+		int width, int height) {
+	struct test_control *control = &toplevel->server->test_control;
+	uint64_t sequence = ++control->trace_next_sequence;
+	if (control->trace_event_count == TEST_TRACE_MAX_EVENTS) {
+		++control->trace_dropped;
+		return NULL;
+	}
+	if (control->trace_event_count == control->trace_event_capacity) {
+		size_t capacity = control->trace_event_capacity == 0 ?
+			TEST_TRACE_INITIAL_CAPACITY : control->trace_event_capacity * 2;
+		if (capacity > TEST_TRACE_MAX_EVENTS) capacity = TEST_TRACE_MAX_EVENTS;
+		struct test_trace_event *events = realloc(control->trace_events,
+			capacity * sizeof(*events));
+		if (events == NULL) {
+			++control->trace_dropped;
+			return NULL;
+		}
+		control->trace_events = events;
+		control->trace_event_capacity = capacity;
+	}
+	struct test_trace_event *trace =
+		&control->trace_events[control->trace_event_count++];
+	memset(trace, 0, sizeof(*trace));
+	trace->sequence = sequence;
+	trace->window_id = toplevel->test_id;
+	(void)snprintf(trace->event, sizeof(trace->event), "%s", event);
+	(void)snprintf(trace->context, sizeof(trace->context), "%s", context);
+	(void)snprintf(trace->type, sizeof(trace->type), "%s",
+		toplevel->xwayland != NULL ? "x11" : "wayland");
+	test_trace_copy(trace->title, toplevel_title(toplevel));
+	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
+		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+	test_trace_copy(trace->app_id, app_id);
+	test_trace_copy(trace->instance, toplevel->xwayland != NULL ?
+		toplevel->xwayland->instance : NULL);
+	test_trace_copy(trace->class_name, toplevel->xwayland != NULL ?
+		toplevel->xwayland->class : NULL);
+	test_trace_copy(trace->icon_name, toplevel->icon_name);
+	struct wtwm_frame_geometry geometry;
+	wtwm_frame_geometry(width, height,
+		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,
+		toplevel->title_bar_height,
+		toplevel_has_frame(toplevel) && toplevel->decorated, &geometry);
+	trace->client_x = frame_x + geometry.content_x;
+	trace->client_y = frame_y + geometry.content_y;
+	trace->client_width = geometry.client_width;
+	trace->client_height = geometry.client_height;
+	trace->frame_x = frame_x;
+	trace->frame_y = frame_y;
+	trace->frame_width = geometry.frame_width;
+	trace->frame_height = geometry.frame_height;
+	trace->outer_width = geometry.outer_width;
+	trace->outer_height = geometry.outer_height;
+	trace->border_width = geometry.border_width;
+	trace->title_bar_height = geometry.title_bar_height;
+	trace->title_height = geometry.title_extent;
+	trace->content_x = geometry.content_x;
+	trace->content_y = geometry.content_y;
+	trace->stack = test_trace_stack_index(toplevel);
+	trace->mapped = toplevel->mapped;
+	trace->iconified = toplevel->iconified;
+	trace->focused = surface_belongs_to_toplevel(
+		toplevel->server->seat->keyboard_state.focused_surface, toplevel);
+	return trace;
+}
+
+static void test_trace_toplevel_event_at(struct toplevel *toplevel,
+		const char *event, const char *context, int frame_x, int frame_y,
+		int width, int height) {
+	(void)test_trace_append(toplevel, event, context,
+		frame_x, frame_y, width, height);
+}
+
+static void test_trace_toplevel_event(struct toplevel *toplevel,
+		const char *event, const char *context) {
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int frame_x = toplevel->frame_x;
+	int frame_y = toplevel->frame_y;
+	if (toplevel->tree != NULL) {
+		frame_x = toplevel->tree->node.x;
+		frame_y = toplevel->tree->node.y;
+	} else if (toplevel->xwayland != NULL && !toplevel->frame_positioned) {
+		frame_x = toplevel->xwayland->x - geometry.content_x;
+		frame_y = toplevel->xwayland->y - geometry.content_y;
+	}
+	test_trace_toplevel_event_at(toplevel, event, context,
+		frame_x, frame_y, toplevel->width, toplevel->height);
+}
+
+static void test_trace_assign_id(struct toplevel *toplevel) {
+	toplevel->test_id = ++toplevel->server->test_control.trace_next_window_id;
+}
+
+static void test_trace_input_snapshot(struct server *server,
+		const char *event) {
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		test_trace_toplevel_event(toplevel, event, "input");
+}
+#else
+static void test_trace_toplevel_event_at(struct toplevel *toplevel,
+		const char *event, const char *context, int frame_x, int frame_y,
+		int width, int height) {
+	(void)toplevel;
+	(void)event;
+	(void)context;
+	(void)frame_x;
+	(void)frame_y;
+	(void)width;
+	(void)height;
+}
+
+static void test_trace_toplevel_event(struct toplevel *toplevel,
+		const char *event, const char *context) {
+	(void)toplevel;
+	(void)event;
+	(void)context;
+}
+
+static void test_trace_assign_id(struct toplevel *toplevel) {
+	(void)toplevel;
+}
+#endif
+
 static void xwayland_gravity_offsets(const struct toplevel *toplevel,
 		int *gravity_x, int *gravity_y) {
 	uint32_t gravity = XCB_GRAVITY_NORTH_WEST;
@@ -713,6 +906,8 @@ static void configure_xwayland_frame(struct toplevel *toplevel,
 		(int16_t)client_x, (int16_t)client_y, (uint16_t)width, (uint16_t)height);
 	if (toplevel->tree != NULL && toplevel->content != NULL)
 		update_decoration(toplevel);
+	test_trace_toplevel_event_at(toplevel, "configure", "client",
+		frame_x, frame_y, width, height);
 }
 
 static void configure_xwayland_client(struct toplevel *toplevel,
@@ -723,22 +918,30 @@ static void configure_xwayland_client(struct toplevel *toplevel,
 }
 
 static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
+	int old_x = toplevel->tree->node.x;
+	int old_y = toplevel->tree->node.y;
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
 		sync_toplevel_popups(toplevel);
-		return;
+	} else {
+		configure_xwayland_frame(toplevel, x, y,
+			toplevel->width, toplevel->height);
 	}
-	configure_xwayland_frame(toplevel, x, y, toplevel->width, toplevel->height);
+	if (x != old_x || y != old_y)
+		test_trace_toplevel_event_at(toplevel, "move", "frame",
+			x, y, toplevel->width, toplevel->height);
 }
 
 static void set_toplevel_size(struct toplevel *toplevel, int width, int height) {
 	constrain_toplevel_size(toplevel, &width, &height);
 	if (toplevel->xwayland == NULL) {
 		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
-		return;
+	} else {
+		configure_xwayland_frame(toplevel, toplevel->tree->node.x,
+			toplevel->tree->node.y, width, height);
 	}
-	configure_xwayland_frame(toplevel, toplevel->tree->node.x,
-		toplevel->tree->node.y, width, height);
+	test_trace_toplevel_event_at(toplevel, "resize", "frame",
+		toplevel->tree->node.x, toplevel->tree->node.y, width, height);
 }
 
 static void activate_toplevel(struct toplevel *toplevel, bool activated) {
@@ -762,8 +965,9 @@ static void focus_toplevel(struct toplevel *toplevel) {
 	if (surface == NULL || (toplevel->xwayland != NULL &&
 			toplevel->xwayland->override_redirect)) return;
 	struct wlr_surface *previous = server->seat->keyboard_state.focused_surface;
+	struct toplevel *old = toplevel_for_surface(previous);
+	bool changed = previous != surface;
 	if (previous != surface) {
-		struct toplevel *old = toplevel_for_surface(previous);
 		if (old != NULL) activate_toplevel(old, false);
 	}
 	wlr_scene_node_raise_to_top(&toplevel->tree->node);
@@ -771,6 +975,7 @@ static void focus_toplevel(struct toplevel *toplevel) {
 	wl_list_insert(&server->toplevels, &toplevel->link);
 	if (toplevel->xwayland != NULL)
 		wlr_xwayland_surface_restack(toplevel->xwayland, NULL, XCB_STACK_MODE_ABOVE);
+	test_trace_toplevel_event(toplevel, "raise", "frame");
 	activate_toplevel(toplevel, true);
 	set_focused_marker(server, toplevel);
 	struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
@@ -778,6 +983,17 @@ static void focus_toplevel(struct toplevel *toplevel) {
 		wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
 			keyboard->num_keycodes, &keyboard->modifiers);
 	}
+	if (changed && old != NULL)
+		test_trace_toplevel_event(old, "unfocus", "client");
+	if (changed) test_trace_toplevel_event(toplevel, "focus", "client");
+}
+
+static void clear_keyboard_focus(struct server *server) {
+	struct toplevel *old = toplevel_for_surface(
+		server->seat->keyboard_state.focused_surface);
+	wlr_seat_keyboard_clear_focus(server->seat);
+	set_focused_marker(server, NULL);
+	if (old != NULL) test_trace_toplevel_event(old, "unfocus", "client");
 }
 
 static void focus_next(struct server *server) {
@@ -788,8 +1004,7 @@ static void focus_next(struct server *server) {
 			return;
 		}
 	}
-	wlr_seat_keyboard_clear_focus(server->seat);
-	set_focused_marker(server, NULL);
+	clear_keyboard_focus(server);
 }
 
 static void lower_toplevel(struct toplevel *toplevel) {
@@ -799,6 +1014,7 @@ static void lower_toplevel(struct toplevel *toplevel) {
 		wlr_xwayland_surface_restack(toplevel->xwayland, NULL, XCB_STACK_MODE_BELOW);
 	wl_list_remove(&toplevel->link);
 	wl_list_insert(toplevel->server->toplevels.prev, &toplevel->link);
+	test_trace_toplevel_event(toplevel, "lower", "frame");
 }
 
 static void reset_cursor(struct server *server) {
@@ -1064,7 +1280,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		if (toplevel) focus_toplevel(toplevel);
 		break;
 	case WTWM_ACTION_UNFOCUS:
-		wlr_seat_keyboard_clear_focus(server->seat); set_focused_marker(server, NULL); break;
+		clear_keyboard_focus(server); break;
 	case WTWM_ACTION_DELETE:
 		if (toplevel) delete_toplevel(toplevel);
 		break;
@@ -1473,6 +1689,7 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 		toplevel->placed = true;
 	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
+	test_trace_toplevel_event(toplevel, "map", "client");
 	if (should_start_iconified(toplevel, initial_rules)) {
 		toplevel->iconified = true;
 		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
@@ -1511,8 +1728,9 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	wl_list_remove(&toplevel->link);
 	wl_list_init(&toplevel->link);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+	test_trace_toplevel_event(toplevel, "unmap", "client");
 	if (had_keyboard_focus) {
-		wlr_seat_keyboard_clear_focus(server->seat);
+		clear_keyboard_focus(server);
 		focus_next(server);
 	}
 }
@@ -1526,6 +1744,8 @@ static void toplevel_unmap(struct wl_listener *listener, void *data) {
 static void toplevel_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
+	int previous_width = toplevel->width;
+	int previous_height = toplevel->height;
 	if (toplevel->xdg->base->initial_commit) {
 		wlr_xdg_toplevel_set_size(toplevel->xdg, 0, 0);
 		update_toplevel_metadata(toplevel, false);
@@ -1535,12 +1755,15 @@ static void toplevel_commit(struct wl_listener *listener, void *data) {
 	if (geometry.width > 0) toplevel->width = geometry.width;
 	if (geometry.height > 0) toplevel->height = geometry.height;
 	update_decoration(toplevel);
+	if (toplevel->width != previous_width || toplevel->height != previous_height)
+		test_trace_toplevel_event(toplevel, "configure", "client");
 }
 
 static void toplevel_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, destroy);
 	unmanage_toplevel(toplevel);
+	test_trace_toplevel_event(toplevel, "destroy", "client");
 	wl_list_remove(&toplevel->map.link);
 	wl_list_remove(&toplevel->unmap.link);
 	wl_list_remove(&toplevel->commit.link);
@@ -1598,6 +1821,7 @@ static void update_toplevel_metadata(struct toplevel *toplevel, bool title_chang
 		configure_xwayland_client(toplevel, toplevel->xwayland->x,
 			toplevel->xwayland->y, toplevel->xwayland->width,
 			toplevel->xwayland->height);
+	if (title_changed) test_trace_toplevel_event(toplevel, "title", "title");
 }
 
 static void set_title(struct wl_listener *listener, void *data) {
@@ -1619,6 +1843,7 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	if (toplevel == NULL) return;
 	toplevel->server = server;
 	toplevel->xdg = xdg;
+	test_trace_assign_id(toplevel);
 	wl_list_init(&toplevel->link);
 	toplevel->width = 640;
 	toplevel->height = 480;
@@ -1724,6 +1949,7 @@ static void position_xwayland_transient(struct toplevel *toplevel) {
 	wlr_scene_node_place_above(&toplevel->tree->node, &parent->tree->node);
 	wlr_xwayland_surface_restack(toplevel->xwayland,
 		parent_surface, XCB_STACK_MODE_ABOVE);
+	test_trace_toplevel_event(toplevel, "restack", "frame");
 }
 
 static void map_xwayland_toplevel(struct toplevel *toplevel) {
@@ -1737,6 +1963,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_set_position(&toplevel->tree->node,
 			toplevel->xwayland->x, toplevel->xwayland->y);
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
+		test_trace_toplevel_event(toplevel, "raise", "frame");
 	} else {
 		wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
 		int frame_x = toplevel->frame_x;
@@ -1760,6 +1987,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	}
 	update_decoration(toplevel);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
+	test_trace_toplevel_event(toplevel, "map", "client");
 	if (toplevel->xwayland->override_redirect) {
 		if (wlr_xwayland_or_surface_wants_focus(toplevel->xwayland)) {
 			struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(toplevel->server->seat);
@@ -1797,9 +2025,13 @@ static void xwayland_surface_unmap(struct wl_listener *listener, void *data) {
 static void xwayland_surface_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
+	int previous_width = toplevel->width;
+	int previous_height = toplevel->height;
 	toplevel->width = toplevel->xwayland->width;
 	toplevel->height = toplevel->xwayland->height;
 	update_decoration(toplevel);
+	if (toplevel->width != previous_width || toplevel->height != previous_height)
+		test_trace_toplevel_event(toplevel, "configure", "client");
 }
 
 static void read_xwayland_icon_name(struct toplevel *toplevel) {
@@ -1811,7 +2043,7 @@ static void read_xwayland_icon_name(struct toplevel *toplevel) {
 		toplevel->xwayland->window_id, toplevel->server->atom_wm_icon_name,
 		XCB_ATOM_ANY, 0, 2048);
 	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
-	free(toplevel->icon_name);
+	char *previous = toplevel->icon_name;
 	toplevel->icon_name = NULL;
 	if (reply != NULL && reply->format == 8) {
 		int length = xcb_get_property_value_length(reply);
@@ -1819,6 +2051,10 @@ static void read_xwayland_icon_name(struct toplevel *toplevel) {
 			toplevel->icon_name = strndup(xcb_get_property_value(reply), (size_t)length);
 	}
 	free(reply);
+	bool changed = strcmp(previous != NULL ? previous : "",
+		toplevel->icon_name != NULL ? toplevel->icon_name : "") != 0;
+	free(previous);
+	if (changed) test_trace_toplevel_event(toplevel, "icon_name", "icon");
 }
 
 static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
@@ -2060,6 +2296,10 @@ static void xwayland_set_hints(struct wl_listener *listener, void *data) {
 static void xwayland_set_geometry(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_geometry);
+	int previous_x = toplevel->tree != NULL ? toplevel->tree->node.x : 0;
+	int previous_y = toplevel->tree != NULL ? toplevel->tree->node.y : 0;
+	int previous_width = toplevel->width;
+	int previous_height = toplevel->height;
 	toplevel->width = toplevel->xwayland->width;
 	toplevel->height = toplevel->xwayland->height;
 	if (toplevel->tree != NULL) {
@@ -2072,6 +2312,11 @@ static void xwayland_set_geometry(struct wl_listener *listener, void *data) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
 		update_decoration(toplevel);
 	}
+	if (toplevel->tree != NULL && (toplevel->tree->node.x != previous_x ||
+			toplevel->tree->node.y != previous_y ||
+			toplevel->width != previous_width ||
+			toplevel->height != previous_height))
+		test_trace_toplevel_event(toplevel, "configure", "client");
 }
 
 static void xwayland_set_override_redirect(struct wl_listener *listener, void *data) {
@@ -2093,11 +2338,12 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, destroy);
 	if (toplevel->associated) {
 		unmanage_toplevel(toplevel);
+		test_trace_toplevel_event(toplevel, "destroy", "client");
 		wl_list_remove(&toplevel->map.link);
 		wl_list_remove(&toplevel->unmap.link);
 		wl_list_remove(&toplevel->commit.link);
 		destroy_xwayland_scene(toplevel);
-	}
+	} else test_trace_toplevel_event(toplevel, "destroy", "client");
 	if (toplevel->xwayland_sync_idle != NULL)
 		wl_event_source_remove(toplevel->xwayland_sync_idle);
 	wl_list_remove(&toplevel->associate.link);
@@ -2123,6 +2369,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	if (toplevel == NULL) return;
 	toplevel->server = server;
 	toplevel->xwayland = xwayland;
+	test_trace_assign_id(toplevel);
 	toplevel->width = xwayland->width;
 	toplevel->height = xwayland->height;
 	toplevel->border_width = configured_border_width(server);
@@ -2188,6 +2435,7 @@ static void restack_xwayland_toplevel(struct toplevel *toplevel,
 		wlr_scene_node_place_below(&toplevel->tree->node, &sibling->tree->node);
 		wl_list_insert(&sibling->link, &toplevel->link);
 	}
+	test_trace_toplevel_event(toplevel, "restack", "frame");
 }
 
 static void configure_override_redirect(xcb_connection_t *connection,
@@ -2518,6 +2766,66 @@ static void test_write_json_string(struct test_control *control, const char *tex
 	test_write(control, "\"");
 }
 
+static void test_write_trace(struct test_control *control) {
+	uint64_t first_sequence = control->trace_event_count != 0 ?
+		control->trace_events[0].sequence : control->trace_next_sequence + 1;
+	test_write(control,
+		"OK TRACE {\"version\":1,\"first_seq\":%" PRIu64
+		",\"next_seq\":%" PRIu64 ",\"dropped\":%" PRIu64 ",\"events\":[",
+		first_sequence, control->trace_next_sequence, control->trace_dropped);
+	for (size_t i = 0; i < control->trace_event_count; ++i) {
+		const struct test_trace_event *event = &control->trace_events[i];
+		if (i != 0) test_write(control, ",");
+		test_write(control, "{\"seq\":%" PRIu64 ",\"event\":",
+			event->sequence);
+		test_write_json_string(control, event->event);
+		test_write(control, ",\"context\":");
+		test_write_json_string(control, event->context);
+		test_write(control, ",\"window\":{\"id\":%" PRIu64 ",\"type\":",
+			event->window_id);
+		test_write_json_string(control, event->type);
+		test_write(control, ",\"title\":");
+		test_write_json_string(control, event->title);
+		test_write(control, ",\"app_id\":");
+		test_write_json_string(control, event->app_id);
+		test_write(control, ",\"instance\":");
+		test_write_json_string(control, event->instance);
+		test_write(control, ",\"class\":");
+		test_write_json_string(control, event->class_name);
+		test_write(control, ",\"icon_name\":");
+		test_write_json_string(control, event->icon_name);
+		test_write(control,
+			"},\"geometry\":{\"client\":{\"x\":%d,\"y\":%d,"
+			"\"width\":%d,\"height\":%d},\"frame\":{\"x\":%d,\"y\":%d,"
+			"\"width\":%d,\"height\":%d,\"outer_width\":%d,"
+			"\"outer_height\":%d,\"border_width\":%d,"
+			"\"title_bar_height\":%d,\"title_height\":%d,"
+			"\"content_x\":%d,\"content_y\":%d}},"
+			"\"state\":{\"mapped\":%s,\"iconified\":%s,\"focused\":%s,"
+			"\"stack\":",
+			event->client_x, event->client_y,
+			event->client_width, event->client_height,
+			event->frame_x, event->frame_y,
+			event->frame_width, event->frame_height,
+			event->outer_width, event->outer_height,
+			event->border_width, event->title_bar_height,
+			event->title_height, event->content_x, event->content_y,
+			event->mapped ? "true" : "false",
+			event->iconified ? "true" : "false",
+			event->focused ? "true" : "false");
+		if (event->stack < 0) test_write(control, "null");
+		else test_write(control, "%d", event->stack);
+		test_write(control, "}}");
+	}
+	test_write(control, "]}\n");
+}
+
+static void test_trace_clear(struct test_control *control) {
+	control->trace_event_count = 0;
+	control->trace_next_sequence = 0;
+	control->trace_dropped = 0;
+}
+
 static void test_write_state(struct test_control *control) {
 	struct server *server = control->server;
 	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
@@ -2538,7 +2846,8 @@ static void test_write_state(struct test_control *control) {
 		first = false;
 		struct wtwm_frame_geometry geometry;
 		toplevel_geometry(toplevel, &geometry);
-		test_write(control, "{\"title\":");
+		test_write(control, "{\"id\":%" PRIu64 ",\"title\":",
+			toplevel->test_id);
 		test_write_json_string(control, toplevel_title(toplevel));
 		test_write(control, ",\"app_id\":");
 		test_write_json_string(control, toplevel_app_id(toplevel));
@@ -2806,6 +3115,7 @@ static void test_execute(struct test_control *control,
 	case WTWM_TEST_COMMAND_POINTER:
 	case WTWM_TEST_COMMAND_SET_CURSOR:
 		test_pointer(server, command->x, command->y);
+		test_trace_input_snapshot(server, "pointer");
 		test_write(control, "OK CURSOR %.3f %.3f\n", server->cursor->x, server->cursor->y);
 		break;
 	case WTWM_TEST_COMMAND_BUTTON: {
@@ -2817,6 +3127,7 @@ static void test_execute(struct test_control *control,
 		};
 		cursor_button(&server->cursor_button, &event);
 		wlr_seat_pointer_notify_frame(server->seat);
+		test_trace_input_snapshot(server, "button");
 		test_write(control, "OK BUTTON %u %s\n", command->code,
 			command->pressed ? "press" : "release");
 		break;
@@ -2830,12 +3141,21 @@ static void test_execute(struct test_control *control,
 				WL_KEYBOARD_KEY_STATE_RELEASED,
 		};
 		wlr_keyboard_notify_key(&control->keyboard, &event);
+		test_trace_input_snapshot(server, "key");
 		test_write(control, "OK KEY %u %s\n", command->code,
 			command->pressed ? "press" : "release");
 		break;
 	}
 	case WTWM_TEST_COMMAND_STATE:
 		test_write_state(control);
+		break;
+	case WTWM_TEST_COMMAND_TRACE:
+		if (command->first != 0) {
+			test_trace_clear(control);
+			test_write(control, "OK TRACE CLEAR\n");
+		} else {
+			test_write_trace(control);
+		}
 		break;
 	case WTWM_TEST_COMMAND_WAIT:
 		if (!test_render_stable(server, (unsigned)command->first))
@@ -2987,6 +3307,8 @@ static void test_control_finish(struct server *server) {
 	if (control->listen_fd >= 0) close(control->listen_fd);
 	if (control->path[0] != '\0') unlink(control->path);
 	if (control->keyboard_initialized) wlr_keyboard_finish(&control->keyboard);
+	free(control->trace_events);
+	control->trace_events = NULL;
 }
 #endif
 

@@ -43,6 +43,9 @@ class Control:
     def state(self) -> dict[str, object]:
         return json.loads(self.command("STATE").removeprefix("OK STATE "))
 
+    def trace(self) -> dict[str, object]:
+        return json.loads(self.command("TRACE").removeprefix("OK TRACE "))
+
     def close(self) -> None:
         self.stream.close()
         self.socket.close()
@@ -57,6 +60,53 @@ def wait_for_window(control: Control, title: str) -> dict[str, object]:
             return state
         time.sleep(0.01)
     raise RuntimeError(f"timed out waiting for mapped client {title!r}")
+
+
+def wait_for_no_window(control: Control, title: str) -> None:
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if not any(window["title"] == title for window in control.state()["windows"]):
+            return
+        time.sleep(0.01)
+    raise RuntimeError(f"timed out waiting for destroyed client {title!r}")
+
+
+def validate_trace(trace: dict[str, object], title: str) -> list[dict[str, object]]:
+    if trace["version"] != 1 or trace["dropped"] != 0:
+        raise RuntimeError(f"invalid or incomplete event trace: {trace!r}")
+    events = trace["events"]
+    sequences = [event["seq"] for event in events]
+    if sequences != list(range(1, len(events) + 1)):
+        raise RuntimeError(f"event sequence is not normalized: {sequences!r}")
+    if trace["first_seq"] != 1 or trace["next_seq"] != len(events):
+        raise RuntimeError(f"event trace bounds disagree with its entries: {trace!r}")
+    matching = [event for event in events if event["window"]["title"] == title]
+    if not matching:
+        raise RuntimeError(f"event trace omitted client {title!r}: {trace!r}")
+    ids = {event["window"]["id"] for event in matching}
+    if len(ids) != 1 or next(iter(ids)) <= 0:
+        raise RuntimeError(f"event trace identity is not stable: {matching!r}")
+    for event in matching:
+        if set(event) != {"seq", "event", "context", "window", "geometry", "state"}:
+            raise RuntimeError(f"event trace schema changed unexpectedly: {event!r}")
+        if any(key in event for key in ("pointer", "timestamp", "time_msec", "xid")):
+            raise RuntimeError(f"event trace exposed nondeterministic identity: {event!r}")
+        window = event["window"]
+        if set(window) != {
+            "id", "type", "title", "app_id", "instance", "class", "icon_name"
+        }:
+            raise RuntimeError(f"event trace identity schema is incomplete: {window!r}")
+        client = event["geometry"]["client"]
+        frame = event["geometry"]["frame"]
+        if client["x"] != frame["x"] + frame["content_x"]:
+            raise RuntimeError(f"client/frame x normalization failed: {event!r}")
+        if client["y"] != frame["y"] + frame["content_y"]:
+            raise RuntimeError(f"client/frame y normalization failed: {event!r}")
+        if frame["outer_width"] != frame["width"] + 2 * frame["border_width"]:
+            raise RuntimeError(f"outer frame width normalization failed: {event!r}")
+        if frame["outer_height"] != frame["height"] + 2 * frame["border_width"]:
+            raise RuntimeError(f"outer frame height normalization failed: {event!r}")
+    return matching
 
 
 def run_once(compositor: Path, client_binary: Path, iteration: int,
@@ -108,6 +158,12 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
                     raise RuntimeError(f"unexpected output response: {output!r}")
             control.command("SET CURSOR 8 8")
             control.command("WAIT 2")
+            control.command("TRACE CLEAR")
+            if control.trace() != {
+                "version": 1, "first_seq": 1, "next_seq": 0,
+                "dropped": 0, "events": [],
+            }:
+                raise RuntimeError("TRACE CLEAR did not reset sequence and overflow state")
 
             title = f"wtwm-test-client-{iteration}"
             client_environment = environment.copy()
@@ -134,6 +190,20 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             control.command("KEY 1 press")
             control.command("KEY 1 release")
             control.command("WAIT 2")
+            trace = validate_trace(control.trace(), title)
+            kinds = {event["event"] for event in trace}
+            required = {
+                "title", "configure", "map", "raise", "focus",
+                "pointer", "button", "key",
+            }
+            if not required.issubset(kinds):
+                raise RuntimeError(
+                    f"headless event trace omitted {sorted(required - kinds)!r}: {trace!r}"
+                )
+            for kind in ("pointer", "button", "key"):
+                snapshots = [event for event in trace if event["event"] == kind]
+                if not snapshots or any(event["state"]["stack"] is None for event in snapshots):
+                    raise RuntimeError(f"{kind} lacks a post-input stack snapshot: {trace!r}")
             if not nested:
                 capture = temporary / "capture.ppm"
                 control.command(f"CAPTURE {capture}")
@@ -144,6 +214,13 @@ def run_once(compositor: Path, client_binary: Path, iteration: int,
             client.terminate()
             client.wait(timeout=5)
             client = None
+            wait_for_no_window(control, title)
+            final_trace = validate_trace(control.trace(), title)
+            final_kinds = [event["event"] for event in final_trace]
+            if "unmap" not in final_kinds or "destroy" not in final_kinds:
+                raise RuntimeError(f"client teardown was not traced: {final_trace!r}")
+            if final_kinds.index("unmap") > final_kinds.index("destroy"):
+                raise RuntimeError(f"destroy preceded unmap: {final_trace!r}")
             control.command("QUIT")
             process.wait(timeout=5)
             if process.returncode != 0:

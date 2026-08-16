@@ -6,16 +6,34 @@ that interface. The control socket accepts one newline-delimited command at a
 time and returns one `OK` or `ERROR` line.
 
 Commands are `PING`, `OUTPUT width height`, `POINTER x y`, `BUTTON code
-press|release`, `KEY code press|release`, `STATE`, `WAIT [frames]`, `CAPTURE
-path`, `SET ANIMATION_MS n`, `SET PLACEMENT_SEED n`, `SET CURSOR x y`, `SET
-FONT description`, and `QUIT`. `STATE` returns JSON containing focus, client
-geometry, exact frame/title/border extents, advertised size constraints,
+press|release`, `KEY code press|release`, `STATE`, `TRACE`, `TRACE CLEAR`,
+`WAIT [frames]`, `CAPTURE path`, `SET ANIMATION_MS n`, `SET PLACEMENT_SEED n`,
+`SET CURSOR x y`, `SET FONT description`, and `QUIT`. `STATE` returns JSON
+containing focus, client geometry, exact frame/title/border extents,
+advertised size constraints,
 top-to-bottom stacking order, iconified clients, menu state, cursor position,
 and deterministic-control values. `CAPTURE` writes the first output as a binary
 PPM. The host-native `geometry runtime wiring contract` additionally guards
 that only compositor-driven resize paths call the portable constraint model;
 ordinary X11 configure requests and hint-property changes remain unsnapped as
 they are under reference `twm`.
+
+`TRACE` returns a versioned, pull-only JSON event ledger. Each entry has a
+monotonic sequence, a creation-order window ID, protocol identity strings,
+semantic context, current mapped/focused/stack state, and normalized client and
+frame geometry. The geometry includes border/title extents and content offsets,
+so a reference observer can compare the same visible rectangles without XIDs,
+addresses, timestamps, or input-event clocks. Identity strings are capped at
+255 bytes. Events cover map/unmap, focus/unfocus, configure/move/resize,
+raise/lower/restack, title and icon-name changes, and destroy. Synthetic
+pointer, button, and key commands also append a post-dispatch snapshot for each
+managed window, including its resulting stack index.
+
+The ledger retains at most 4096 entries. It stops appending on overflow and
+increments `dropped`, making incomplete evidence explicit. `TRACE CLEAR` resets
+the entries, sequence, and `dropped` count; live windows keep their unique IDs.
+The next event therefore starts at sequence 1. A plain `TRACE` never clears or
+otherwise changes the captured evidence.
 
 Run the headless stability check explicitly with:
 

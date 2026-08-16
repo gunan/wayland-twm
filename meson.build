@@ -101,6 +101,16 @@ test_control_protocol_test = executable(
 )
 test('test control protocol', test_control_protocol_test)
 test(
+  'deterministic event trace contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_event_trace.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'test control synthetic seat contract',
   find_program('python3'),
   args: [
