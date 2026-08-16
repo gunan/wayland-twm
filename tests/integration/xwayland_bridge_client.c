@@ -310,10 +310,19 @@ static bool handle_command(struct client *client, const char *command) {
 	return true;
 }
 
+static void repaint_after_map(xcb_connection_t *connection,
+		xcb_generic_event_t *event) {
+	if ((event->response_type & ~UINT8_C(0x80)) != XCB_MAP_NOTIFY) return;
+	xcb_map_notify_event_t *map = (xcb_map_notify_event_t *)event;
+	xcb_clear_area(connection, false, map->window, 0, 0, 0, 0);
+	xcb_flush(connection);
+}
+
 static void handle_events(struct client *client) {
 	xcb_generic_event_t *event;
 	while ((event = xcb_poll_for_event(client->connection)) != NULL) {
-		if ((event->response_type & ~0x80) == XCB_CLIENT_MESSAGE) {
+		repaint_after_map(client->connection, event);
+		if ((event->response_type & ~UINT8_C(0x80)) == XCB_CLIENT_MESSAGE) {
 			xcb_client_message_event_t *message = (xcb_client_message_event_t *)event;
 			if (message->type == client->atoms.wm_protocols &&
 					message->data.data32[0] == client->atoms.wm_delete_window) {
@@ -349,8 +358,10 @@ int main(void) {
 		handle_events(&client);
 		if (client.stubborn_connection != NULL) {
 			xcb_generic_event_t *event;
-			while ((event = xcb_poll_for_event(client.stubborn_connection)) != NULL)
+			while ((event = xcb_poll_for_event(client.stubborn_connection)) != NULL) {
+				repaint_after_map(client.stubborn_connection, event);
 				free(event);
+			}
 		}
 		if (client.stubborn_connection != NULL && !client.stubborn_reported &&
 				xcb_connection_has_error(client.stubborn_connection) != 0) {
