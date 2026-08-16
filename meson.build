@@ -330,6 +330,12 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_xwayland_rules_client = executable(
+    'wtwm-xwayland-rules-client',
+    'tests/integration/xwayland_rules_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   integration_runner = find_program('python3')
   test(
     'Xwayland lifecycle integration',
@@ -348,6 +354,16 @@ if wlroots.found()
       '-B', files('tests/integration/run_xwayland_bridge.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_xwayland_bridge_client,
+    ],
+    timeout: 60,
+  )
+  test(
+    'Xwayland window-list rules integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_rules.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_rules_client,
     ],
     timeout: 60,
   )

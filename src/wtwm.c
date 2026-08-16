@@ -115,6 +115,8 @@ struct toplevel {
 	bool iconified;
 	bool decorated;
 	bool associated;
+	bool rules_initialized;
+	bool auto_raise;
 	char *icon_name;
 	uint32_t net_wm_icon_width;
 	uint32_t net_wm_icon_height;
@@ -448,11 +450,40 @@ static void color_value(const char *name, float color[4]) {
 	}
 }
 
-static bool name_matches(const struct wtwm_string_list *patterns,
-	struct wlr_xdg_toplevel *xdg) {
-	const char *app_id = xdg->app_id ? xdg->app_id : "";
-	const char *title = xdg->title ? xdg->title : "";
-	return wtwm_config_match_native(patterns, title, app_id);
+static bool toplevel_matches(const struct wtwm_string_list *patterns,
+		const struct toplevel *toplevel) {
+	if (toplevel->xwayland != NULL)
+		return wtwm_config_match_x11(patterns, toplevel->xwayland->title,
+			toplevel->xwayland->instance, toplevel->xwayland->class);
+	return wtwm_config_match_native(patterns, toplevel->xdg->title,
+		toplevel->xdg->app_id);
+}
+
+static bool should_decorate(const struct toplevel *toplevel) {
+	if (toplevel->xwayland != NULL && toplevel->xwayland->override_redirect)
+		return false;
+	bool decorated = !toplevel->server->config.no_title;
+	if (toplevel_matches(&toplevel->server->config.make_title_windows, toplevel))
+		decorated = true;
+	/* Reference twm applies NoTitle after MakeTitle, so NoTitle wins a collision. */
+	if (toplevel_matches(&toplevel->server->config.no_title_windows, toplevel))
+		decorated = false;
+	return decorated;
+}
+
+static bool initialize_toplevel_rules(struct toplevel *toplevel) {
+	if (toplevel->rules_initialized || (toplevel->xwayland != NULL &&
+			toplevel->xwayland->override_redirect)) return false;
+	toplevel->auto_raise = toplevel->server->config.auto_raise ||
+		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	toplevel->rules_initialized = true;
+	return true;
+}
+
+static bool should_start_iconified(const struct toplevel *toplevel,
+		bool initial_rules) {
+	return initial_rules && toplevel_matches(
+		&toplevel->server->config.start_iconified_windows, toplevel);
 }
 
 static void update_title_text(struct toplevel *toplevel) {
@@ -503,8 +534,8 @@ static void update_decoration(struct toplevel *toplevel) {
 }
 
 static void set_decorated(struct toplevel *toplevel, bool enabled) {
-	if (toplevel->title == NULL) return;
 	toplevel->decorated = enabled;
+	if (toplevel->title == NULL) return;
 	wlr_scene_node_set_enabled(&toplevel->frame->node, enabled);
 	wlr_scene_node_set_enabled(&toplevel->title->node, enabled);
 	wlr_scene_node_set_enabled(&toplevel->focus_mark->node, false);
@@ -1065,9 +1096,7 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	struct hit_result hit = desktop_at(server, server->cursor->x, server->cursor->y);
 	if (hit.toplevel != NULL &&
 		server->seat->keyboard_state.focused_surface != toplevel_surface(hit.toplevel) &&
-		(server->config.auto_raise || (hit.toplevel->xdg != NULL &&
-			name_matches(&server->config.auto_raise_windows,
-			hit.toplevel->xdg)))) focus_toplevel(hit.toplevel);
+		hit.toplevel->auto_raise) focus_toplevel(hit.toplevel);
 	if (hit.surface != NULL) {
 		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
 		wlr_seat_pointer_notify_motion(server->seat, time_msec, hit.sx, hit.sy);
@@ -1329,6 +1358,7 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	if (toplevel->mapped) return;
+	bool initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
@@ -1339,8 +1369,7 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 		toplevel->placed = true;
 	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
-	if (name_matches(&toplevel->server->config.start_iconified_windows,
-			toplevel->xdg)) {
+	if (should_start_iconified(toplevel, initial_rules)) {
 		toplevel->iconified = true;
 		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
 		suspend_toplevel(toplevel, true);
@@ -1458,11 +1487,13 @@ static void request_minimize(struct wl_listener *listener, void *data) {
 
 static void update_toplevel_metadata(struct toplevel *toplevel, bool title_changed) {
 	if (title_changed) update_title_text(toplevel);
-	set_decorated(toplevel, (!toplevel->server->config.no_title &&
-		!name_matches(&toplevel->server->config.no_title_windows,
-			toplevel->xdg)) ||
-		name_matches(&toplevel->server->config.make_title_windows,
-			toplevel->xdg));
+	bool was_decorated = toplevel->decorated;
+	set_decorated(toplevel, should_decorate(toplevel));
+	if (toplevel->xwayland != NULL && toplevel->associated && toplevel->mapped &&
+			was_decorated != toplevel->decorated)
+		configure_xwayland_toplevel(toplevel, toplevel->xwayland->x,
+			toplevel->xwayland->y, toplevel->xwayland->width,
+			toplevel->xwayland->height);
 }
 
 static void set_title(struct wl_listener *listener, void *data) {
@@ -1489,7 +1520,6 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	toplevel->height = 480;
 	toplevel->title_height = server->config.title_padding * 2 + 10;
 	if (toplevel->title_height < 18) toplevel->title_height = 18;
-	toplevel->decorated = !server->config.no_title;
 	toplevel->tree = wlr_scene_tree_create(server->view_tree);
 	if (toplevel->tree == NULL) {
 		free(toplevel);
@@ -1512,8 +1542,7 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	toplevel->title_text = wlr_scene_buffer_create(toplevel->tree, NULL);
 	toplevel->content = wlr_scene_xdg_surface_create(toplevel->tree, xdg->base);
 	xdg->base->data = toplevel->content;
-	update_title_text(toplevel);
-	set_decorated(toplevel, toplevel->decorated);
+	update_toplevel_metadata(toplevel, true);
 	toplevel->map.notify = toplevel_map;
 	wl_signal_add(&xdg->base->surface->events.map, &toplevel->map);
 	toplevel->unmap.notify = toplevel_unmap;
@@ -1564,9 +1593,7 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 		toplevel->tree = NULL;
 		return false;
 	}
-	update_title_text(toplevel);
-	set_decorated(toplevel, !toplevel->xwayland->override_redirect &&
-		!toplevel->server->config.no_title);
+	update_toplevel_metadata(toplevel, true);
 	return true;
 }
 
@@ -1597,6 +1624,7 @@ static void position_xwayland_transient(struct toplevel *toplevel) {
 
 static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->mapped || toplevel->tree == NULL) return;
+	bool initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	toplevel->width = toplevel->xwayland->width;
@@ -1625,7 +1653,14 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		}
 	} else {
 		position_xwayland_transient(toplevel);
-		focus_toplevel(toplevel);
+		if (should_start_iconified(toplevel, initial_rules)) {
+			toplevel->iconified = true;
+			wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+			suspend_toplevel(toplevel, true);
+		} else {
+			suspend_toplevel(toplevel, false);
+			focus_toplevel(toplevel);
+		}
 	}
 }
 
@@ -1814,6 +1849,10 @@ static void xwayland_dissociate(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->commit.link);
 	destroy_xwayland_scene(toplevel);
 	toplevel->associated = false;
+	/* twm discards its managed-window record on client unmap. The next X11
+	 * MapRequest is therefore a fresh rule snapshot, including StartIconified. */
+	toplevel->rules_initialized = false;
+	toplevel->auto_raise = false;
 }
 
 static void xwayland_request_configure(struct wl_listener *listener, void *data) {
@@ -1826,13 +1865,13 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 static void xwayland_set_title(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_title);
-	update_title_text(toplevel);
+	update_toplevel_metadata(toplevel, true);
 }
 
 static void xwayland_set_class(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_class);
-	update_title_text(toplevel);
+	update_toplevel_metadata(toplevel, false);
 }
 
 static void xwayland_set_parent(struct wl_listener *listener, void *data) {
@@ -2309,11 +2348,14 @@ static void test_write_state(struct test_control *control) {
 			toplevel->xwayland->class : "");
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
-			"\"title_height\":%d,\"stack\":%u,\"mapped\":%s,\"iconified\":%s",
+			"\"title_height\":%d,\"stack\":%u,\"mapped\":%s,\"iconified\":%s,"
+			"\"decorated\":%s,\"auto_raise\":%s",
 			toplevel->tree->node.x, toplevel->tree->node.y,
 			toplevel->width, toplevel->height, toplevel->title_height, stack++,
 			toplevel->mapped ? "true" : "false",
-			toplevel->iconified ? "true" : "false");
+			toplevel->iconified ? "true" : "false",
+			toplevel->decorated ? "true" : "false",
+			toplevel->auto_raise ? "true" : "false");
 		if (toplevel->xwayland != NULL) {
 			struct wlr_xwayland_surface *xsurface = toplevel->xwayland;
 			xcb_icccm_wm_hints_t *hints = xsurface->hints;

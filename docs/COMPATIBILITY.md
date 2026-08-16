@@ -17,7 +17,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
 | Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups follow their parent scene and are constrained to the output bounds |
-| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | Bare forms and lists match Wayland `app_id` and title |
+| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match `app_id` and title |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use compositor scene nodes |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
 | Icon windows and icon manager | Parsed | Wayland has no client icon-window primitive; compositor UI is pending |
@@ -27,7 +27,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
-| Xwayland `.twmrc` window-list matching | Not yet | The bridge retains `WM_NAME` and both `WM_CLASS` strings, but applying configuration lists is the next compatibility stage |
+| Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -71,6 +71,19 @@ icon pixmap, mask, and window identifiers are retained. `_NET_WM_ICON` parsing
 is bounded to one complete 256x256 image worth of 32-bit words; incomplete or
 larger properties are reported as truncated and never treated as a complete
 icon. Rendering supplied icons in compositor-owned icon UI remains pending.
+
+Managed Xwayland windows use the reference `LookInList` identity order:
+case-sensitive `WM_NAME`, then the `WM_CLASS` resource name (instance), then
+the resource class. `NoTitle` starts from the bare global setting, applies a
+matching `MakeTitle`, and finally applies a matching `NoTitle`, so `NoTitle`
+wins when both lists contain the same identity. Title and class property
+changes immediately recompute visible title decoration. `AutoRaise` is
+captured for each management cycle, as in `twm`, rather than changing with
+live metadata. An X11 client unmap withdraws that managed window; its next
+map begins a fresh cycle that snapshots `AutoRaise` again and re-applies
+`StartIconified`. A native xdg toplevel retains its snapshots across a
+protocol unmap and remap because it remains the same managed object.
+Override-redirect windows bypass all of these managed-window rules.
 
 For X11 clients, `f.delete` follows `twm`: it sends `WM_DELETE_WINDOW` only
 when the client advertises that protocol and never falls back to killing a
