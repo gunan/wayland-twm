@@ -135,6 +135,7 @@ def run(compositor: Path, client_binary: Path) -> None:
             state = wait_state(control, lambda item: len(item["windows"]) == 1,
                                "initial toplevel map")
             window = state["windows"][0]
+            initial_coordinates = (window["x"], window["y"])
             if (window["title"], window["app_id"]) != (
                     "wtwm-lifecycle-initial", "org.wtwm.LifecycleInitial"):
                 raise RuntimeError(f"initial metadata is stale: {window!r}")
@@ -158,6 +159,10 @@ def run(compositor: Path, client_binary: Path) -> None:
             client_command(client, "REMAP", "MAPPED 2")
             state = wait_state(control, lambda item: len(item["windows"]) == 1,
                                "toplevel remap")
+            remap_coordinates = (state["windows"][0]["x"],
+                                 state["windows"][0]["y"])
+            if remap_coordinates != initial_coordinates:
+                raise RuntimeError(f"first remap changed placement: {state!r}")
             if (state["windows"][0]["title"], state["windows"][0]["app_id"]) != (
                     "wtwm-lifecycle-updated", "org.wtwm.LifecycleUpdated"):
                 raise RuntimeError(f"remapped metadata is stale: {state!r}")
@@ -175,8 +180,12 @@ def run(compositor: Path, client_binary: Path) -> None:
                            "DISMISSED_POPUPS_DROPPED")
 
             client_command(client, "REMAP", "MAPPED 3")
-            wait_state(control, lambda item: len(item["windows"]) == 1,
-                       "second toplevel remap")
+            state = wait_state(control, lambda item: len(item["windows"]) == 1,
+                               "second toplevel remap")
+            remap_coordinates = (state["windows"][0]["x"],
+                                 state["windows"][0]["y"])
+            if remap_coordinates != initial_coordinates:
+                raise RuntimeError(f"second remap changed placement: {state!r}")
             client_command(client, "CREATE_POPUPS", "POPUPS_MAPPED")
             state = wait_state(control, lambda item: len(item["popups"]) == 2,
                                "second nested popup map")

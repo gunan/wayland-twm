@@ -105,6 +105,7 @@ struct toplevel {
 	int height;
 	int title_height;
 	bool mapped;
+	bool placed;
 	bool iconified;
 	bool decorated;
 	struct wl_listener map;
@@ -1005,9 +1006,12 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
-	unsigned n = toplevel->server->placement_index++;
-	wlr_scene_node_set_position(&toplevel->tree->node, 32 + (int)(n % 12) * 24,
-		32 + (int)(n % 10) * 24);
+	if (!toplevel->placed) {
+		unsigned n = toplevel->server->placement_index++;
+		wlr_scene_node_set_position(&toplevel->tree->node,
+			32 + (int)(n % 12) * 24, 32 + (int)(n % 10) * 24);
+		toplevel->placed = true;
+	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	if (name_matches(&toplevel->server->config.start_iconified_windows,
 			toplevel->xdg)) {
