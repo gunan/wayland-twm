@@ -38,6 +38,8 @@ struct client {
 	struct role_surface popup;
 	struct role_surface nested_popup;
 	unsigned map_generation;
+	const char *title;
+	const char *app_id;
 	bool closed;
 };
 
@@ -195,6 +197,10 @@ static bool wait_until_mapped(struct role_surface *role) {
 
 static bool map_toplevel(struct client *client) {
 	struct role_surface *role = &client->toplevel_surface;
+	if (client->map_generation > 0) {
+		xdg_toplevel_set_title(client->toplevel, client->title);
+		xdg_toplevel_set_app_id(client->toplevel, client->app_id);
+	}
 	role->attach_on_configure = true;
 	role->mapped = false;
 	wl_surface_commit(role->surface);
@@ -269,8 +275,10 @@ static bool unmap_toplevel(struct client *client) {
 
 static bool handle_command(struct client *client, const char *command, bool *done) {
 	if (strcmp(command, "METADATA") == 0) {
-		xdg_toplevel_set_title(client->toplevel, "wtwm-lifecycle-updated");
-		xdg_toplevel_set_app_id(client->toplevel, "org.wtwm.LifecycleUpdated");
+		client->title = "wtwm-lifecycle-updated";
+		client->app_id = "org.wtwm.LifecycleUpdated";
+		xdg_toplevel_set_title(client->toplevel, client->title);
+		xdg_toplevel_set_app_id(client->toplevel, client->app_id);
 		if (wl_display_roundtrip(client->display) < 0) return false;
 		printf("METADATA_UPDATED\n");
 		return true;
@@ -344,8 +352,10 @@ int main(void) {
 		&xdg_surface_listener, &client.toplevel_surface);
 	client.toplevel = xdg_surface_get_toplevel(client.toplevel_surface.xdg_surface);
 	xdg_toplevel_add_listener(client.toplevel, &toplevel_listener, &client);
-	xdg_toplevel_set_title(client.toplevel, "wtwm-lifecycle-initial");
-	xdg_toplevel_set_app_id(client.toplevel, "org.wtwm.LifecycleInitial");
+	client.title = "wtwm-lifecycle-initial";
+	client.app_id = "org.wtwm.LifecycleInitial";
+	xdg_toplevel_set_title(client.toplevel, client.title);
+	xdg_toplevel_set_app_id(client.toplevel, client.app_id);
 	if (!map_toplevel(&client)) return 1;
 
 	bool done = false;
