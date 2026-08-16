@@ -1,0 +1,12 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+NoHighlight
+NoTitleHighlight
+NoTitleFocus
+NoMenuShadows
+UsePPosition "on"
+BorderWidth 5
+FramePadding 4
+TitlePadding 12
+TitleFont "9x15"

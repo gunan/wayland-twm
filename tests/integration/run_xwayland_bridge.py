@@ -21,8 +21,8 @@ SIZE_HINT_KEYS = (
     "min_aspect_num", "min_aspect_den", "max_aspect_num", "max_aspect_den",
     "gravity",
 )
-INITIAL_SIZE_HINTS = (880, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
-UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
+INITIAL_SIZE_HINTS = (881, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
+UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
 
 
 def wait_path(path: Path) -> str:
@@ -114,6 +114,34 @@ def net_icon_values(item: dict[str, object]) -> tuple[object, ...]:
     ))
 
 
+def assert_frame_contract(
+    item: dict[str, object], *, frame_x: int, frame_y: int,
+    width: int, height: int,
+) -> None:
+    border = int(item["border_width"])
+    title_extent = int(item["title_height"])
+    expected = {
+        "x": frame_x,
+        "y": frame_y,
+        "width": width,
+        "height": height,
+        "frame_width": width,
+        "frame_height": height + title_extent,
+        "outer_width": width + 2 * border,
+        "outer_height": height + title_extent + 2 * border,
+        "content_x": border,
+        "content_y": border + title_extent,
+        "client_x": frame_x + border,
+        "client_y": frame_y + border + title_extent,
+    }
+    actual = {key: int(item[key]) for key in expected}
+    if actual != expected:
+        raise RuntimeError(
+            f"reference frame/client extent contract is wrong: "
+            f"expected={expected!r} actual={actual!r}"
+        )
+
+
 def assert_initial_metadata(
     parent: dict[str, object], transient: dict[str, object]
 ) -> tuple[tuple[int, int, int], tuple[object, ...]]:
@@ -195,6 +223,7 @@ def run(compositor: Path, client_binary: Path) -> None:
             control = Control(control_path, process)
             control.command("SET FONT DejaVu Sans 10")
             control.command("OUTPUT 640 480")
+            control.command("SET CURSOR 44 55")
             display = wait_path(display_marker)
             client_environment = environment.copy()
             client_environment["DISPLAY"] = display
@@ -217,6 +246,8 @@ def run(compositor: Path, client_binary: Path) -> None:
             parent = window(state, "xwm-parent-initial")
             transient = window(state, "xwm-transient")
             initial_icon_ids, initial_net_icon = assert_initial_metadata(parent, transient)
+            assert_frame_contract(parent, frame_x=44, frame_y=55,
+                                  width=221, height=151)
             parent_xid = int(parent["xid"])
             override = state["override_redirect"][0]
             override_xid = int(override["xid"])
@@ -240,6 +271,8 @@ def run(compositor: Path, client_binary: Path) -> None:
                 "live X11 metadata and hint updates",
             )
             parent = window(state, "xwm-parent-updated")
+            assert_frame_contract(parent, frame_x=44, frame_y=55,
+                                  width=221, height=151)
             updated_icon_ids = hint_icon_ids(parent)
             updated_net_icon = net_icon_values(parent)
 
@@ -278,13 +311,21 @@ def run(compositor: Path, client_binary: Path) -> None:
             state = wait_state(
                 control,
                 lambda item: any(entry["title"] == "xwm-parent-updated" and
-                    entry["client_x"] == 120 and entry["client_y"] == 100 and
-                    entry["width"] == 275 and entry["height"] == 190 and
+                    entry["client_x"] == 120 and
+                    entry["client_y"] == 100 + entry["title_height"] and
+                    entry["width"] == 277 and entry["height"] == 199 and
                     size_hint_values(entry) == UPDATED_SIZE_HINTS
                     for entry in item["windows"]),
-                "hint-constrained configure request",
+                "reference ConfigureRequest geometry",
             )
             parent = window(state, "xwm-parent-updated")
+            assert_frame_contract(
+                parent,
+                frame_x=120 - int(parent["border_width"]),
+                frame_y=100 - int(parent["border_width"]),
+                width=277,
+                height=199,
+            )
             command(client, "RESTACK", "RESTACK_REQUESTED")
             state = wait_state(
                 control,

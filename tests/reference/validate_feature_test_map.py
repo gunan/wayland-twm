@@ -18,6 +18,7 @@ from generate_feature_test_map import (
     MESON_TEST,
     SUMMARY_PATH,
     TEST_PATH,
+    INTERACTION_RUNTIME_FEATURES,
     build,
     canonical,
 )
@@ -108,10 +109,6 @@ def validate_mapping(
             if value[field] != registered[field]:
                 errors.append(f"{label}.{field} differs from its registered test")
     path = repository_path(value["path"], source_root, f"{label}.path", errors)
-    if path is not None and str(PurePosixPath(*path.parts)) != TEST_PATH:
-        errors.append(f"{label}.path is not the feature-map executable test")
-    if value["meson_test"] != MESON_TEST:
-        errors.append(f"{label}.meson_test is not the registered Meson case")
     if value["case"] != feature["id"]:
         errors.append(f"{label}.case must equal its exact feature ID")
     if value["dimension"] not in DIMENSIONS:
@@ -149,7 +146,10 @@ def validate_mapping(
             if checks != sorted(checks, key=lambda item: (item.get("location", ""), item.get("contains", "")) if isinstance(item, dict) else ("", "")):
                 errors.append(f"{label}.checks are not deterministically ordered")
     elif value["dimension"] == "runtime":
-        errors.append(f"{label} makes an unavailable portable runtime claim")
+        if value["expected"] != "pass":
+            errors.append(f"{label} runtime mapping must require a pass")
+        if fixture != "" or checks != []:
+            errors.append(f"{label} runtime mapping cannot contain fixture/source checks")
 
 
 def validate_feature_map(
@@ -180,8 +180,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 2:
-        errors.append("feature_map.test_catalog must contain the two registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 3:
+        errors.append("feature_map.test_catalog must contain the three registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -194,8 +194,12 @@ def validate_feature_map(
     if [item.get("test_id") for item in catalog_values if isinstance(item, dict)] != sorted(catalog):
         errors.append("feature_map.test_catalog is not ordered by test ID")
     meson_text = (source_root / "meson.build").read_text(encoding="utf-8")
-    if f"'{MESON_TEST}'" not in meson_text or TEST_PATH not in meson_text:
-        errors.append("feature-map test is not registered in meson.build")
+    for registered in catalog_values:
+        if not isinstance(registered, dict):
+            continue
+        if (f"'{registered['meson_test']}'" not in meson_text or
+                str(registered["path"]) not in meson_text):
+            errors.append(f"registered test is absent from meson.build: {registered!r}")
     entries = feature_map["entries"]
     if not isinstance(entries, list):
         return errors + ["feature_map.entries must be an array"]
@@ -232,6 +236,8 @@ def validate_feature_map(
         expected_dimensions = [] if feature.get("category") == "runtime_dispatch" else ["syntax"]
         if feature.get("native_wayland_status") == "effective":
             expected_dimensions.append("source_contract")
+        if feature.get("id") in INTERACTION_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:
             errors.append(f"{label}.tests dimensions must be {expected_dimensions}")
@@ -371,10 +377,14 @@ def main() -> int:
             test["dimension"] == "source_contract"
             for entry in feature_map["entries"] for test in entry["tests"]
         )
+        runtime_count = sum(
+            test["dimension"] == "runtime"
+            for entry in feature_map["entries"] for test in entry["tests"]
+        )
         print(
             f"current feature coverage valid: {len(feature_map['entries'])} features, "
             f"{syntax_count} syntax cases, {contract_count} source-contract cases, "
-            "0 runtime claims"
+            f"{runtime_count} runtime claims"
         )
         return 0
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:

@@ -112,12 +112,15 @@ jobs:
         run: sh tests/reference/build_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build
       - name: Capture repeatable reference behavior
         run: sh tests/reference/capture_reference_twm.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-capture "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline"
+      - name: Capture repeatable reference geometry matrix
+        run: sh tests/reference/capture_reference_geometry_matrix.sh "$GITHUB_WORKSPACE" /tmp/reference-build /tmp/reference-geometry-matrix
       - name: Verify canonical X11 applications
         run: sh tests/reference/verify_canonical_x11_apps.sh "$GITHUB_WORKSPACE" /tmp/reference-build
       - name: Build portable configuration checker
         run: |
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
-            -Iinclude src/config.c src/config_check.c -o /tmp/wtwm-config
+            -Iinclude src/config.c src/placement.c src/config_check.c \
+            -o /tmp/wtwm-config
       - name: Compare the complete parser with reference twm
         run: sh tests/reference/run_reference_parser_comparison.sh "$GITHUB_WORKSPACE" /tmp/wtwm-config /tmp/wtwm-parser-comparison.json
       - name: Upload parser differential
@@ -134,6 +137,13 @@ jobs:
           name: reference-capture
           path: /tmp/reference-capture
           if-no-files-found: error
+      - name: Upload reference geometry matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-geometry-matrix
+          path: /tmp/reference-geometry-matrix
+          if-no-files-found: error
 
   x11-differential:
     name: Reference twm / wtwm X11 differential
@@ -149,6 +159,7 @@ jobs:
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat reference/environment/debian-trixie-x11-packages.txt
+            printf '%s\n' libxtst-dev
           } | sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' | sort -u |
             xargs apt-get install -y --no-install-recommends
       - name: Validate X11 differential contract
@@ -162,6 +173,18 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/x11_differential_probe.c \
             -o /tmp/x11-differential-probe $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/reference/geometry_matrix_client.c \
+            -o /tmp/reference-geometry-matrix-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m4_trace_client.c \
+            -o /tmp/m4-trace-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m4_trace_probe.c \
+            -o /tmp/m4-trace-probe $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11 xtst) tests/integration/m4_trace_input.c \
+            -o /tmp/m4-trace-input $(pkg-config --libs x11 xtst)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -174,6 +197,31 @@ jobs:
             --xterm /usr/bin/xterm --xclock /usr/bin/xclock \
             --xload /usr/bin/xload --emacs /usr/bin/emacs \
             --dialog /usr/bin/dialog
+      - name: Compare identical Milestone 4 event traces live
+        if: always()
+        timeout-minutes: 15
+        run: |
+          python3 -B tests/integration/run_m4_trace_differential.py \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client /tmp/m4-trace-client \
+            --probe /tmp/m4-trace-probe \
+            --input-driver /tmp/m4-trace-input \
+            --config "$GITHUB_WORKSPACE/tests/integration/m4_trace_differential.twmrc" \
+            --contract "$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json" \
+            --oracle "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline/phase-alpha.json" \
+            --output /tmp/m4-trace-differential.json
+      - name: Compare the complete Milestone 4 geometry cross-product live
+        if: always()
+        run: |
+          python3 -B tests/integration/run_m4_geometry_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --reference-client /tmp/reference-geometry-matrix-client \
+            --wtwm-client "$GITHUB_WORKSPACE/build-differential/wtwm-xwayland-geometry-matrix-client" \
+            --output /tmp/m4-geometry-differential.json \
+            --evidence-dir /tmp/m4-geometry-differential-evidence
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -182,4 +230,22 @@ jobs:
           path: |
             /tmp/x11-differential.json
             /tmp/x11-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 4 event trace differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-trace-differential
+          path: |
+            /tmp/m4-trace-differential.json
+            /tmp/m4-trace-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 4 geometry differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m4-geometry-differential
+          path: |
+            /tmp/m4-geometry-differential.json
+            /tmp/m4-geometry-differential-evidence
           if-no-files-found: error

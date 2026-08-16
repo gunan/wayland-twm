@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "reference": {
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "archive_sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "name": "X.Org twm",
+    "version": "1.0.13.1"
+  },
+  "environment": {
+    "contract": "reference/environment/debian-trixie-x11.json",
+    "contract_sha256": "c65424ca2533d36780bf59d3c3392d3d967086cecf179cc49d191aae38ef7d29",
+    "packages": "reference/environment/debian-trixie-x11-packages.txt",
+    "packages_sha256": "3a6ad091fee1752c507e8c593b23d3e700c62710a425c50bbe44faa9187ea7f7"
+  },
+  "screen": {
+    "depth": 24,
+    "height": 480,
+    "width": 640
+  },
+  "capture": {
+    "baseline": {
+      "artifact_digest": "sha256:b1f83cab27cc67ec73c1225050b7d8b65026fa8f4a4e04e527005ee4e87eb550",
+      "artifact_id": 9268627063,
+      "captured_matrix_sha256": "aea22f237971be13c167647c8124d6854e4f3ef2a6d1a52e0991fa9228a95d1d",
+      "head_sha": "d04249381a987f2ca65516cf163029909179096a",
+      "path": "reference/geometry/twm-1.0.13.1/baseline.json",
+      "sha256": "cebc050c5e0ae37eedf33aaf8b2acc84211ddabfc1b2d87c1f1a9a6d58810810",
+      "workflow_run_id": 31966479997
+    },
+    "clean_runs": 2,
+    "committed_baseline": true,
+    "live_artifact": "geometry-matrix.json",
+    "stable_observations_per_case": 3,
+    "volatile_fields_omitted": [
+      "display_number",
+      "pid",
+      "timestamp",
+      "xid"
+    ]
+  },
+  "configurations": [
+    {
+      "border_width": 2,
+      "client_border_width": false,
+      "decorate_transients": false,
+      "frame_padding": 2,
+      "path": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "sha256": "001438f952b0e9a2e85366998b6ddd71189a5e726f1f122dae10ea2c8c83b006",
+      "title_font": "variable",
+      "title_padding": 8
+    },
+    {
+      "border_width": 2,
+      "client_border_width": true,
+      "decorate_transients": false,
+      "frame_padding": 2,
+      "path": "reference/geometry/twm-1.0.13.1/configs/client-border.twmrc",
+      "sha256": "6eb7b18ad408dbb01cdf4a6fcf81cf89993d9fec560cfa95c5c206edb7724af2",
+      "title_font": "variable",
+      "title_padding": 8
+    },
+    {
+      "border_width": 2,
+      "client_border_width": false,
+      "decorate_transients": false,
+      "frame_padding": 2,
+      "path": "reference/geometry/twm-1.0.13.1/configs/no-title.twmrc",
+      "sha256": "f5461e4e5a7b1f85b88af66c7e7a8b1023c97be515bb82d122aa171cc4c1d929",
+      "title_font": "variable",
+      "title_padding": 8
+    },
+    {
+      "border_width": 2,
+      "client_border_width": false,
+      "decorate_transients": false,
+      "frame_padding": 2,
+      "path": "reference/geometry/twm-1.0.13.1/configs/make-title.twmrc",
+      "sha256": "2a904763e35ec252563f7cfc3ba17a5c20f2e5ccacb396309a844204e0fcf1d2",
+      "title_font": "variable",
+      "title_padding": 8
+    },
+    {
+      "border_width": 2,
+      "client_border_width": false,
+      "decorate_transients": true,
+      "frame_padding": 2,
+      "path": "reference/geometry/twm-1.0.13.1/configs/decorate-transients.twmrc",
+      "sha256": "02a01011d7dc98a47a144020a8ed9afae1122ae0a083ff0f25d8d1274e9e2498",
+      "title_font": "variable",
+      "title_padding": 8
+    },
+    {
+      "border_width": 0,
+      "client_border_width": false,
+      "decorate_transients": false,
+      "frame_padding": 0,
+      "path": "reference/geometry/twm-1.0.13.1/configs/compact-fixed.twmrc",
+      "sha256": "6c89652a9cf9845068192091b93a9c578dfb067f4c9243926816287ef6047ab3",
+      "title_font": "fixed",
+      "title_padding": 0
+    },
+    {
+      "border_width": 5,
+      "client_border_width": false,
+      "decorate_transients": false,
+      "frame_padding": 4,
+      "path": "reference/geometry/twm-1.0.13.1/configs/spacious-9x15.twmrc",
+      "sha256": "75a35156cbbaef8a45222b0f4105f416cbaed70d11596cb4dd2cf15e781020ab",
+      "title_font": "9x15",
+      "title_padding": 12
+    }
+  ],
+  "cases": [
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "normal-default-decoration",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "normal-client-border-ignored",
+      "initial_border_width": 4,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/client-border.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "normal-client-border-preserved-on-frame",
+      "initial_border_width": 4,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/no-title.twmrc",
+      "expected_title": false,
+      "hint_profile": "position-size",
+      "id": "normal-no-title",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/make-title.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "make-title",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": false,
+      "hint_profile": "position-size",
+      "id": "transient-default-no-title",
+      "initial_border_width": 0,
+      "kind": "transient",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/decorate-transients.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "transient-decorated",
+      "initial_border_width": 0,
+      "kind": "transient",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/compact-fixed.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "compact-fixed-font",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/spacious-9x15.twmrc",
+      "expected_title": true,
+      "hint_profile": "position-size",
+      "id": "spacious-9x15-font",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": true,
+      "hint_profile": "min-max",
+      "id": "hints-min-max",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": true,
+      "hint_profile": "base-increment",
+      "id": "hints-base-increment",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    },
+    {
+      "configuration": "reference/geometry/twm-1.0.13.1/configs/default-variable.twmrc",
+      "expected_title": true,
+      "hint_profile": "complete",
+      "id": "hints-complete-aspect",
+      "initial_border_width": 0,
+      "kind": "normal",
+      "size": [137, 91]
+    }
+  ],
+  "observer_sources": [
+    {
+      "path": "tests/reference/geometry_matrix_client.c",
+      "sha256": "ad5b13bc197ef81c5a6bb73b382eeba5cfc87f5c37191da112f393dd8c404b31"
+    },
+    {
+      "path": "tests/reference/run_reference_geometry_matrix.py",
+      "sha256": "fea865dc86b2ae724be1e2f9746763a4db112d64d6bdf7f5b71527f7c2ca92cf"
+    },
+    {
+      "path": "tests/reference/capture_reference_geometry_matrix.sh",
+      "sha256": "7cce6649aa9ea495a1a78b67a6e62420b3dfcb37db5e84103399483e8a28e435"
+    }
+  ]
+}

@@ -85,8 +85,10 @@ def validate_text(
         "reference_ready(observed)",
         "wtwm_control_ready(state)",
         'state["xwayland_lifecycle"]',
+        "def normalized_common(item: dict[str, object], managed: bool)",
         "if not item[\"root_parent\"]:",
         "wait_dialog_process(dialog_app.process.pid, dialog)",
+        'fields[0] != "Z"',
         'icccm.stdin.write("EXIT\\n")',
         '"result": "equivalent"',
         '"result": "failed"',
@@ -104,6 +106,8 @@ def validate_text(
             errors.append(f"X11 differential runner lacks {marker!r}")
     if runner.count("canonical_commands(programs)") != 1:
         errors.append("canonical client commands must be constructed exactly once and shared")
+    if 'scene["decorated"]' in runner:
+        errors.append("management differential must not conflate title state with frame management")
     if runner.count("if current == previous:") != 2 or runner.count(
         "if consecutive >= REQUIRED_STABLE_CAPTURES:"
     ) != 2:
@@ -175,10 +179,13 @@ def validate_text(
         errors.append("X11 observer compares position values excluded from the differential")
 
     for marker in (
-        "same Debian client commands and the same configuration",
+        "identical clients, configuration, and input descriptions",
         "reparent frame",
         "scene decoration",
-        "Exact frame geometry, pixel rendering",
+        "A 21-event trace",
+        "48-case Cartesian product",
+        "no numeric tolerances or geometry exclusions",
+        "Pixel rendering and native/cross-protocol equivalence remain",
     ):
         if marker not in compatibility:
             errors.append(f"compatibility boundary lacks {marker!r}")
@@ -304,7 +311,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
             workflow,
             runner,
             probe,
-            compatibility.replace("Exact frame geometry, pixel rendering", "Later work", 1),
+            compatibility.replace(
+                "Pixel rendering and native/cross-protocol equivalence remain",
+                "Later work remains",
+                1,
+            ),
             config,
         ),
         (

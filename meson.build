@@ -13,15 +13,160 @@ inc = include_directories('include')
 config_args = [
   '-DWTWM_SYSTEM_CONFIG="' + get_option('prefix') / get_option('datadir') / 'wtwm/system.twmrc' + '"',
 ]
+
+font_lib = static_library(
+  'wtwm-font-lib',
+  'src/font.c',
+  include_directories: inc,
+)
+font_dep = declare_dependency(
+  link_with: font_lib,
+  include_directories: inc,
+)
+
+font_test = executable(
+  'font-test',
+  'tests/font_test.c',
+  dependencies: font_dep,
+)
+test('X core bitmap font metrics', font_test)
+
+placement_lib = static_library(
+  'wtwm-placement-lib',
+  'src/placement.c',
+  include_directories: inc,
+)
+placement_dep = declare_dependency(
+  link_with: placement_lib,
+  include_directories: inc,
+)
+
+placement_test = executable(
+  'placement-test',
+  'tests/placement_test.c',
+  dependencies: placement_dep,
+)
+test('twm placement policy', placement_test)
+test(
+  'placement runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_placement_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 config_lib = static_library(
   'wtwm-config-lib',
   'src/config.c',
   include_directories: inc,
   c_args: config_args,
+  dependencies: placement_dep,
 )
 config_dep = declare_dependency(
   link_with: config_lib,
   include_directories: inc,
+  dependencies: placement_dep,
+)
+
+geometry_lib = static_library(
+  'wtwm-geometry-lib',
+  'src/geometry.c',
+  include_directories: inc,
+)
+geometry_dep = declare_dependency(
+  link_with: geometry_lib,
+  include_directories: inc,
+)
+
+interaction_lib = static_library(
+  'wtwm-interaction-lib',
+  'src/interaction.c',
+  include_directories: inc,
+)
+interaction_dep = declare_dependency(
+  link_with: interaction_lib,
+  include_directories: inc,
+)
+
+interaction_test = executable(
+  'interaction-test',
+  'tests/interaction_test.c',
+  dependencies: interaction_dep,
+)
+test('twm move and resize interaction model', interaction_test)
+
+lifecycle_model_lib = static_library(
+  'wtwm-lifecycle-model-lib',
+  'src/lifecycle_model.c',
+  include_directories: inc,
+)
+lifecycle_model_dep = declare_dependency(
+  link_with: lifecycle_model_lib,
+  include_directories: inc,
+)
+
+lifecycle_model_test = executable(
+  'lifecycle-model-test',
+  'tests/lifecycle_model_test.c',
+  dependencies: lifecycle_model_dep,
+)
+test('randomized lifecycle and stacking model', lifecycle_model_test)
+
+focus_stack_lib = static_library(
+  'wtwm-focus-stack-lib',
+  'src/focus_stack.c',
+  include_directories: inc,
+)
+focus_stack_dep = declare_dependency(
+  link_with: focus_stack_lib,
+  include_directories: inc,
+)
+
+focus_stack_test = executable(
+  'focus-stack-test',
+  'tests/focus_stack_test.c',
+  dependencies: focus_stack_dep,
+)
+test('twm focus contexts and stacking model', focus_stack_test)
+test(
+  'focus contexts and stacking runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_focus_stack_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
+geometry_test = executable(
+  'geometry-test',
+  'tests/geometry_test.c',
+  dependencies: geometry_dep,
+)
+test('twm geometry and size constraints', geometry_test)
+test(
+  'geometry runtime wiring contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_geometry_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'wtwm Xwayland geometry matrix contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_wtwm_geometry_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
 )
 
 config_tool = executable(
@@ -73,6 +218,26 @@ test_control_protocol_test = executable(
   dependencies: test_control_protocol_dep,
 )
 test('test control protocol', test_control_protocol_test)
+test(
+  'deterministic event trace contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_event_trace.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'move and resize runtime wiring contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_move_resize_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 test(
   'test control synthetic seat contract',
   find_program('python3'),
@@ -249,6 +414,46 @@ test(
   ],
 )
 test(
+  'reference geometry matrix contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_geometry_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 4 geometry cross-product contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_geometry_cross_product.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'reference interaction source contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_interaction_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 4 trace differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m4_trace_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'canonical X11 application manifest',
   find_program('python3'),
   args: [
@@ -308,6 +513,16 @@ test(
     '--self-test-tamper',
   ],
 )
+test(
+  'randomized lifecycle model contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_lifecycle_model.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
 
 wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
 if wlroots.found()
@@ -328,15 +543,15 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, wlroots, pangocairo, wayland_server, xkbcommon, xcb],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep,
-      wlroots,
+      config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep,
+      focus_stack_dep,
       pangocairo,
       dependency('fontconfig'),
       wayland_server,
@@ -435,6 +650,30 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_xwayland_geometry_matrix_client = executable(
+    'wtwm-xwayland-geometry-matrix-client',
+    'tests/integration/xwayland_geometry_matrix_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_interaction_x11_client = executable(
+    'wtwm-interaction-x11-client',
+    'tests/integration/interaction_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_xwayland_placement_client = executable(
+    'wtwm-xwayland-placement-client',
+    'tests/integration/xwayland_placement_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_focus_stack_x11_client = executable(
+    'wtwm-focus-stack-x11-client',
+    'tests/integration/focus_stack_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   wtwm_xwayland_rules_client = executable(
     'wtwm-xwayland-rules-client',
     'tests/integration/xwayland_rules_client.c',
@@ -528,6 +767,52 @@ if wlroots.found()
     timeout: 60,
   )
   test(
+    'wtwm Xwayland geometry matrix integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_geometry_matrix.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_geometry_matrix_client,
+      '--source-root', meson.project_source_root(),
+    ],
+    timeout: 240,
+    is_parallel: false,
+  )
+  test(
+    'move and resize interaction integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_move_resize.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_interaction_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'initial placement integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_placement.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_placement_client,
+	  '--native-client', wtwm_xdg_lifecycle_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'focus contexts and stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_focus_stack.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
     'Xwayland window-list rules integration',
     integration_runner,
     args: [
@@ -569,6 +854,18 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'randomized lifecycle and stacking integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_randomized_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
     is_parallel: false,
   )
   test(

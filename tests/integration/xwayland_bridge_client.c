@@ -82,6 +82,7 @@ static void set_normal_hints(struct client *client, int min_width, int min_heigh
 		int max_width, int max_height, int base_width, int base_height,
 		int width_inc, int height_inc) {
 	enum {
+		US_POSITION = 1 << 0,
 		P_MIN_SIZE = 1 << 4,
 		P_MAX_SIZE = 1 << 5,
 		P_RESIZE_INC = 1 << 6,
@@ -89,7 +90,10 @@ static void set_normal_hints(struct client *client, int min_width, int min_heigh
 		P_WIN_GRAVITY = 1 << 9,
 	};
 	uint32_t hints[18] = {0};
-	hints[0] = P_MIN_SIZE | P_MAX_SIZE | P_RESIZE_INC | BASE_SIZE | P_WIN_GRAVITY;
+	hints[0] = US_POSITION | P_MIN_SIZE | P_MAX_SIZE | P_RESIZE_INC |
+		BASE_SIZE | P_WIN_GRAVITY;
+	hints[1] = 44;
+	hints[2] = 55;
 	hints[5] = (uint32_t)min_width;
 	hints[6] = (uint32_t)min_height;
 	hints[7] = (uint32_t)max_width;

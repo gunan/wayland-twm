@@ -1,0 +1,40 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+NoHighlight
+NoTitleHighlight
+NoTitleFocus
+NoMenuShadows
+OpaqueMove
+NoRaiseOnMove
+NoRaiseOnResize
+UsePPosition "on"
+BorderWidth 3
+TitleButtonBorderWidth 0
+ButtonIndent 0
+FramePadding 2
+TitlePadding 2
+MoveDelta 3
+TitleFont "fixed"
+MenuFont "fixed"
+IconFont "fixed"
+IconManagerFont "fixed"
+ResizeFont "fixed"
+
+Button1 = : title : f.move
+Button2 = : window|title|frame : f.raise
+Button3 = : window|title|frame : f.focus
+"F1" = : all : f.raise
+"F2" = : all : f.lower
+"F3" = : all : f.iconify
+
+Color
+{
+    BorderColor "#101010"
+    BorderTileForeground "#101010"
+    BorderTileBackground "#101010"
+    TitleForeground "#ffffff"
+    TitleBackground "#204060"
+    DefaultForeground "#ffffff"
+    DefaultBackground "#303030"
+}

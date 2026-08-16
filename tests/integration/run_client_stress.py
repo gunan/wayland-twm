@@ -161,7 +161,9 @@ def assert_survivor_only(state: dict[str, object]) -> None:
         survivor["type"] != "wayland"
         or survivor["app_id"] != SURVIVOR_APP_ID
         or not survivor["decorated"]
-        or state["focus"] != SURVIVOR_TITLE
+        or state["focus"] not in (None, SURVIVOR_TITLE)
+        or state["active"] != state["focus"]
+        or (state["focus"] is None and not state["focus_root"])
         or state["xwayland_lifecycle"]
         or state["interactive"]
         or state["menu"] is not None
@@ -218,7 +220,6 @@ def x11_target_unmapped(state: dict[str, object], xid: int) -> bool:
         and not lifecycle[0]["mapped"]
         and not lifecycle[0]["has_buffer"]
         and not lifecycle[0]["override_redirect"]
-        and state["focus"] == SURVIVOR_TITLE
     )
 
 
@@ -251,10 +252,12 @@ def visible_content_point(
 
 
 def click_content(control: Control, state: dict[str, object], title: str) -> None:
+    if state["focus"] == title and state["focus_root"] is False:
+        return
     x, y = visible_content_point(state, title)
     control.command(f"POINTER {x} {y}")
-    control.command("BUTTON 272 press")
-    control.command("BUTTON 272 release")
+    control.command("BUTTON 273 press")
+    control.command("BUTTON 273 release")
 
 
 def click_title(control: Control, state: dict[str, object], title: str, button: int) -> None:
@@ -304,8 +307,10 @@ def run(
         display_marker = temporary / "display"
         config = temporary / "stress.twmrc"
         config.write_text(
+            "RandomPlacement\n"
             "Button1 = : title : f.delete\n"
-            "Button2 = : title : f.destroy\n",
+            "Button2 = : title : f.destroy\n"
+            "Button3 = : window : f.focus\n",
             encoding="utf-8",
         )
         startup = f'printf "%s\\n" "$DISPLAY" > {shlex.quote(str(display_marker))}'
@@ -367,9 +372,15 @@ def run(
                 f"one live {protocol} target {title}",
             )
             assert_mapped_target(state, title, protocol, xid)
+            click_content(control, state, title)
+            state = wait_state(
+                control,
+                lambda item: item["focus"] == title,
+                f"explicit pointer focus for {protocol} target {title}",
+            )
             if state["focus"] != title:
                 raise RuntimeError(
-                    f"new {protocol} target did not own focus: {state!r}"
+                    f"explicitly entered {protocol} target did not own focus: {state!r}"
                 )
             control.command("WAIT 1")
             return state
@@ -378,9 +389,14 @@ def run(
             state = wait_state(
                 control,
                 lambda item: exact_titles(item, {SURVIVOR_TITLE})
-                and item["focus"] == SURVIVOR_TITLE
                 and not item["xwayland_lifecycle"],
                 description,
+            )
+            click_content(control, state, SURVIVOR_TITLE)
+            state = wait_state(
+                control,
+                lambda item: item["focus"] == SURVIVOR_TITLE,
+                description + " survivor refocus",
             )
             assert_survivor_only(state)
             control.command("WAIT 1")

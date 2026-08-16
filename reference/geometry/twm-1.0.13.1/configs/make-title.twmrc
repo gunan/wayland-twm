@@ -1,0 +1,14 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+NoHighlight
+NoTitleHighlight
+NoTitleFocus
+NoMenuShadows
+UsePPosition "on"
+NoTitle
+MakeTitle { "make-title" }
+BorderWidth 2
+FramePadding 2
+TitlePadding 8
+TitleFont "variable"

@@ -31,6 +31,13 @@ def validate(source: str) -> None:
             "test control must advertise POINTER|KEYBOARD after installing "
             "its synthetic keyboard"
         )
+    for fragment in (
+        "sync_xwayland_input_focus(server, toplevel)",
+        "wlr_xwayland_surface_activate(toplevel->xwayland, true);",
+        "send_take_focus && !xwm_sent_take_focus",
+    ):
+        if fragment not in source:
+            raise ValueError(f"XWM selection focus synchronization lacks {fragment}")
 
 
 def validate_bridge_handshake(
@@ -50,11 +57,21 @@ def validate_bridge_handshake(
         "static bool proxy_owners_ready",
         "static bool wait_for_bridge_ready",
         "xcb_get_input_focus(client->connection)",
+        'xcb_atom_t wm_hints = atom(client, "WM_HINTS");',
+        "uint32_t hints[9] = {1, 1};",
         'strcmp(command, "WAIT BRIDGE")',
         'strcmp(command, "WAIT FOCUS")',
     ):
         if fragment not in x11_client:
             raise ValueError(f"X11 bridge handshake lacks {fragment}")
+    for fragment in (
+        "def visible_content_point(",
+        'int(item["stack"]) < int(target["stack"])',
+        'int(other["outer_width"])',
+        'int(other["outer_height"])',
+    ):
+        if fragment not in runner:
+            raise ValueError(f"selection focus targeting lacks {fragment}")
     bridge_start = x11_client.find("static bool wait_for_bridge_ready")
     bridge_end = x11_client.find("static void request_selection", bridge_start)
     bridge = x11_client[bridge_start:bridge_end]

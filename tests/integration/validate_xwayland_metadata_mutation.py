@@ -8,8 +8,8 @@ import ast
 from pathlib import Path
 
 
-INITIAL_SIZE_HINTS = (880, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
-UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
+INITIAL_SIZE_HINTS = (881, 80, 60, 320, 240, 40, 30, 20, 10, 0, 0, 0, 0, 1)
+UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15, 0, 0, 0, 0, 1)
 MUTATION_COMMANDS = (
     'command(client, "UPDATE", "UPDATED")',
     'command(client, "TRUNCATE_ICON", "TRUNCATED_ICON_SET")',
@@ -74,7 +74,10 @@ def validate_text(client: str, runner: str, meson: str) -> list[str]:
         "updated_net_icon",
         'window(item, "xwm-transient")["parent"] == 0',
         'window(item, "xwm-transient")["parent"] ==',
-        'entry["width"] == 275 and entry["height"] == 190 and',
+        'entry["width"] == 277 and entry["height"] == 199 and',
+        'entry["client_y"] == 100 + entry["title_height"]',
+        "assert_frame_contract(parent, frame_x=44, frame_y=55,",
+        'frame_x=120 - int(parent["border_width"]),',
         "size_hint_values(entry) == UPDATED_SIZE_HINTS",
         'control.command("WAIT 1")',
     ):
@@ -166,8 +169,8 @@ def read_sources(source_root: Path) -> tuple[str, str, str] | None:
 def self_test_tamper(client: str, runner: str, meson: str) -> list[str]:
     failures: list[str] = []
     tampered = runner.replace(
-        "UPDATED_SIZE_HINTS = (880, 100, 70, 300, 220, 50, 40, 25, 15,",
-        "UPDATED_SIZE_HINTS = (880, 101, 70, 300, 220, 50, 40, 25, 15,",
+        "UPDATED_SIZE_HINTS = (881, 100, 70, 300, 220, 50, 40, 25, 15,",
+        "UPDATED_SIZE_HINTS = (881, 101, 70, 300, 220, 50, 40, 25, 15,",
         1,
     )
     if not validate_text(client, tampered, meson):

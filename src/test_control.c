@@ -110,6 +110,17 @@ bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command
 			WTWM_TEST_COMMAND_QUIT;
 		return true;
 	}
+	if (strcmp(verb, "TRACE") == 0) {
+		char *option = next_word(&cursor);
+		if (option != NULL && strcmp(option, "CLEAR") == 0 && no_more_words(cursor)) {
+			command->first = 1;
+		} else if (option != NULL) {
+			set_error(error, error_size, "usage: TRACE [CLEAR]");
+			return false;
+		}
+		command->type = WTWM_TEST_COMMAND_TRACE;
+		return true;
+	}
 	if (strcmp(verb, "OUTPUT") == 0) {
 		char *width = next_word(&cursor);
 		char *height = next_word(&cursor);

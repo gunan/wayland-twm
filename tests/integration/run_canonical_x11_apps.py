@@ -255,13 +255,22 @@ def ensure_alive(apps: list[RunningApp], dialog_pid: int) -> None:
         raise RuntimeError("terminal dialog exited during observation")
 
 
+def pid_is_running(pid: int) -> bool:
+    try:
+        suffix = Path(f"/proc/{pid}/stat").read_text(encoding="ascii").rpartition(")")[2]
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+    fields = suffix.split()
+    return bool(fields) and fields[0] != "Z"
+
+
 def wait_pid_gone(pid: int, timeout: float) -> bool:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if not Path(f"/proc/{pid}").exists():
+        if not pid_is_running(pid):
             return True
         time.sleep(0.01)
-    return not Path(f"/proc/{pid}").exists()
+    return not pid_is_running(pid)
 
 
 def stop_dialog_child(parent: subprocess.Popen[str], dialog_pid: int) -> None:

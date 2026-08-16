@@ -28,7 +28,7 @@ struct client {
 	struct xdg_surface *xdg_surface;
 	struct xdg_toplevel *toplevel;
 	struct wl_buffer *buffer;
-	const char *title;
+	char title[128];
 	const char *app_id;
 	char token[64];
 	unsigned key_count;
@@ -284,7 +284,16 @@ static bool unmap_client(struct client *client) {
 
 static bool handle_command(struct client *client, char *command, bool *done) {
 	char token[64];
+	char title[128];
 	unsigned cycle;
+	if (sscanf(command, "TITLE %127s", title) == 1) {
+		if (!client->mapped) return false;
+		strcpy(client->title, title);
+		xdg_toplevel_set_title(client->toplevel, client->title);
+		if (wl_display_roundtrip(client->display) < 0) return false;
+		printf("OK TITLE %s\n", client->title);
+		return true;
+	}
 	if (sscanf(command, "ARM %63s", token) == 1) {
 		if (wl_display_roundtrip(client->display) < 0) return false;
 		strcpy(client->token, token);
@@ -349,10 +358,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "usage: %s TITLE APP_ID\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	struct client client = {
-		.title = argv[1],
-		.app_id = argv[2],
-	};
+	struct client client = {.app_id = argv[2]};
+	(void)snprintf(client.title, sizeof(client.title), "%s", argv[1]);
 	client.display = wl_display_connect(NULL);
 	if (client.display == NULL) {
 		fprintf(stderr, "stress Wayland client: connect failed: %s\n",

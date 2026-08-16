@@ -15,6 +15,22 @@ MAP_PATH = "reference/audits/feature-test-map.json"
 SUMMARY_PATH = "docs/audits/feature-test-map.md"
 TEST_PATH = "tests/reference/validate_feature_test_map.py"
 MESON_TEST = "current feature coverage"
+INTERACTION_RUNTIME_PATH = "tests/integration/run_move_resize.py"
+INTERACTION_RUNTIME_TEST = "move and resize interaction integration"
+INTERACTION_RUNTIME_ID = "test.current-feature.move-resize-runtime"
+INTERACTION_RUNTIME_FEATURES = {
+    "action.f-deltastop",
+    "action.f-forcemove",
+    "action.f-move",
+    "action.f-resize",
+    "directive.autorelativeresize",
+    "directive.constrainedmovetime",
+    "directive.dontmoveoff",
+    "directive.movedelta",
+    "directive.noraiseonmove",
+    "directive.noraiseonresize",
+    "directive.opaquemove",
+}
 
 
 def canonical(value: object) -> str:
@@ -83,7 +99,10 @@ INT_DIRECTIVES = {
     "BorderWidth", "ButtonIndent", "ConstrainedMoveTime", "FramePadding",
     "MenuBorderWidth", "MoveDelta", "TitleButtonBorderWidth", "TitlePadding",
 }
-STRING_DIRECTIVES = {"IconFont", "IconManagerFont", "MenuFont", "ResizeFont", "TitleFont"}
+STRING_DIRECTIVES = {
+    "IconFont", "IconManagerFont", "MaxWindowSize", "MenuFont", "ResizeFont",
+    "TitleFont", "UsePPosition",
+}
 COLOR_ENTRIES = {
     "BorderColor", "MenuBackground", "MenuBorderColor", "MenuForeground",
     "MenuTitleBackground", "MenuTitleForeground", "TitleBackground", "TitleForeground",
@@ -215,17 +234,23 @@ RUNTIME_CONTRACT_FRAGMENTS = {
     ],
     "runtime_dispatch.button-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
     "runtime_dispatch.configuration-load-at-startup": ["wtwm_config_load(&server.config,"],
-    "runtime_dispatch.configured-frame-and-title-rendering": ["toplevel->title_height = server->config.title_padding"],
+    "runtime_dispatch.configured-frame-and-title-rendering": [
+        "static int configured_title_bar_height("
+    ],
     "runtime_dispatch.execute-configured-action": ["switch (action->type)"],
     "runtime_dispatch.function-action-recursion": [
-        "server->config.functions[i].action_count",
-        "&server->config.functions[i].actions[j], depth + 1",
+        "static bool push_action_frame(",
+        "struct action_frame *frame =",
     ],
     "runtime_dispatch.key-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_KEY,"],
     "runtime_dispatch.menu-definition-lookup-and-rendering": ["strcmp(server->config.menus[i].name, name)"],
-    "runtime_dispatch.menu-item-action-dispatch": ["execute_action(server, target, &action, 0)"],
+    "runtime_dispatch.menu-item-action-dispatch": [
+        "execute_action(server, target, &action,"
+    ],
     "runtime_dispatch.start-iconified-rule-dispatch": ["server->config.start_iconified_windows"],
-    "runtime_dispatch.title-button-action-dispatch": ["execute_action(server, hit.toplevel, configured, 0)"],
+    "runtime_dispatch.title-button-action-dispatch": [
+        "if (configured != NULL) execute_action(server, hit.toplevel, configured,"
+    ],
     "runtime_dispatch.title-decoration-rule-dispatch": [
         "set_decorated(toplevel, should_decorate(toplevel));"
     ],
@@ -237,12 +262,12 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
         "&toplevel->server->config.auto_raise_windows,",
     ],
     "directive.bordercolor": ["color_value(server->config.border_color, border);"],
-    "directive.borderwidth": ["int border = toplevel->server->config.border_width;"],
+    "directive.borderwidth": ["return server->config.border_width;"],
     "directive.buttonn-binding": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
     "directive.color": ["color_value(server->config.border_color, border);"],
     "directive.function": [
-        "server->config.functions[i].action_count",
-        "&server->config.functions[i].actions[j], depth + 1",
+        "static bool push_action_frame(",
+        "struct action_frame *frame =",
     ],
     "directive.lefttitlebutton": [
         "server->config.title_buttons[i].right_side == hit.right_button"
@@ -257,7 +282,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.menutitlebackground": ["server->config.menu_title_background, row_color);"],
     "directive.menutitleforeground": ["server->config.menu_title_foreground : server->config.menu_foreground);"],
     "directive.notitle": [
-        "bool decorated = !toplevel->server->config.no_title;",
+        "return wtwm_window_has_title(toplevel->server->config.no_title,",
         "&toplevel->server->config.no_title_windows,",
     ],
     "directive.righttitlebutton": [
@@ -270,7 +295,7 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
     "directive.titlebackground": ["color_value(server->config.title_background, title);"],
     "directive.titlefont": ["toplevel->server->config.title_font, foreground, &width, &height);"],
     "directive.titleforeground": ["color_value(server->config.title_foreground, foreground);"],
-    "directive.titlepadding": ["toplevel->title_height = server->config.title_padding * 2 + 10;"],
+    "directive.titlepadding": ["int title_padding = toplevel->server->config.title_padding;"],
 }
 
 
@@ -346,6 +371,21 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": source_checks(source_root, feature),
             })
+        if feature_id in INTERACTION_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": INTERACTION_RUNTIME_ID,
+                "path": INTERACTION_RUNTIME_PATH,
+                "meson_test": INTERACTION_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    f"The Linux headless compositor runner exercises {feature_id} through synthetic pointer/button input and TRACE/STATE assertions.",
+                    "The source-derived twm interaction contract supplies the exact expected threshold, geometry, timing, and render-path results.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -364,6 +404,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
             "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0.",
         },
         "test_catalog": [
+            {
+                "test_id": INTERACTION_RUNTIME_ID,
+                "path": INTERACTION_RUNTIME_PATH,
+                "meson_test": INTERACTION_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
             {
                 "test_id": "test.current-feature.source-contract",
                 "path": TEST_PATH,
@@ -393,7 +439,8 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "",
         "`reference/audits/feature-test-map.json` is the authoritative exit-gate",
         "mapping layered over the immutable current-implementation audit snapshot.",
-        "Every mapping is executed by the Meson `current feature coverage` test.",
+        "Portable mappings are executed by Meson's `current feature coverage` test;",
+        "runtime mappings name their separately registered compositor integration test.",
         "Syntax cases use one dedicated accepted or rejected configuration fixture per feature. Source-contract",
         "cases check exact implementation/dispatch sites but are explicitly non-runtime and",
         "non-behavioral; they do not upgrade compatibility-ledger runtime or parity claims.",
@@ -428,9 +475,11 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "",
         "## Limitations",
         "",
-        "- The portable profile has no wlroots compositor runtime, so the map makes zero",
-        "  `runtime` claims. Effective features receive exact `source_contract` coverage",
-        "  and, when configurable, a separate syntax case.",
+        "- Runtime mappings name separately registered Linux headless tests; the portable",
+        "  profile still executes their tamper-resistant wiring contracts while wlroots",
+        "  behavior runs in the compositor-enabled CI jobs.",
+        "- The immutable current audit status records its audited commit. A newer runtime",
+        "  mapping is current behavioral evidence and does not rewrite that historical field.",
         "- Parser acceptance proves only that the feature spelling/form loads. It does not",
         "  prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.",
         "- The immutable current audit retains the tests visible at its audited commit; this",

@@ -247,13 +247,22 @@ def wait_dialog_process(xterm_pid: int, dialog: Path) -> int:
     raise RuntimeError("real dialog process did not remain alive beneath terminal xterm")
 
 
+def pid_is_running(pid: int) -> bool:
+    try:
+        suffix = Path(f"/proc/{pid}/stat").read_text(encoding="ascii").rpartition(")")[2]
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+    fields = suffix.split()
+    return bool(fields) and fields[0] != "Z"
+
+
 def wait_pid_gone(pid: int, timeout: float) -> bool:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if not Path(f"/proc/{pid}").exists():
+        if not pid_is_running(pid):
             return True
         time.sleep(0.01)
-    return not Path(f"/proc/{pid}").exists()
+    return not pid_is_running(pid)
 
 
 def stop_dialog_child(parent: subprocess.Popen[str], dialog_pid: int) -> None:
@@ -397,8 +406,6 @@ def wtwm_control_ready(state: dict[str, object]) -> bool:
         ]
         if len(matches) != 1 or not matches[0]["mapped"]:
             return False
-        if not role.override_redirect and not matches[0]["decorated"]:
-            return False
         xid = int(matches[0]["xid"])
         lifecycle = [
             entry
@@ -423,11 +430,10 @@ def wait_control(control: Control) -> dict[str, object]:
     raise RuntimeError(f"timed out waiting for wtwm scene management: {control.state()!r}")
 
 
-def normalized_common(item: dict[str, object], managed: bool, decorated: bool) -> dict[str, object]:
+def normalized_common(item: dict[str, object], managed: bool) -> dict[str, object]:
     result = dict(item)
     result.pop("root_parent")
     result["managed"] = managed
-    result["decorated"] = decorated
     return result
 
 
@@ -435,8 +441,7 @@ def normalize_reference(observed: dict[str, object]) -> list[dict[str, object]]:
     if not reference_ready(observed):
         raise RuntimeError(f"reference twm did not reparent the managed workload: {observed!r}")
     return [
-        normalized_common(item, not ROLE_BY_NAME[str(item["role"])].override_redirect,
-                          not ROLE_BY_NAME[str(item["role"])].override_redirect)
+        normalized_common(item, not ROLE_BY_NAME[str(item["role"])].override_redirect)
         for item in raw_clients(observed)
     ]
 
@@ -455,8 +460,7 @@ def normalize_wtwm(
             raise RuntimeError(f"wtwm scene role is ambiguous: {role.name}: {state!r}")
         scene = matches[0]
         managed = not role.override_redirect and bool(scene["mapped"])
-        decorated = managed and bool(scene["decorated"])
-        results.append(normalized_common(item, managed, decorated))
+        results.append(normalized_common(item, managed))
     return results
 
 

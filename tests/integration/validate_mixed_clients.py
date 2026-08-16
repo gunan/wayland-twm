@@ -65,7 +65,12 @@ def validate_text(
         'not entry["associated"] or not entry["mapped"] or not entry["has_buffer"]',
         'window_by_role(item, role)["stack"] == 0',
         'window_by_role(item, role)["stack"] == len(EXPECTED) - 1',
+        'Function "focus-raise" { f.focus f.raise }',
+        'Button1 = : window : f.function "focus-raise"',
         'Button2 = : window : f.lower',
+        'Button3 = : window : f.raise',
+        'current["focus"] == title and current["focus_root"] is False',
+        'click(control, current, role, button)',
         'lower_and_restore(control, wayland, x11, "native-a", "stack-native")',
         'lower_and_restore(control, wayland, x11, "x11-a", "stack-x11")',
         'wayland.command("UNMAP native-b", "OK UNMAPPED native-b")',
@@ -75,8 +80,7 @@ def validate_text(
         'and not lifecycle[0]["associated"]',
         'and not lifecycle[0]["mapped"]',
         'state["popups"] or state["override_redirect"]',
-        'TITLE_TO_ROLE.get(state["focus"]) not in {"x11-a", "x11-b"}',
-        'TITLE_TO_ROLE.get(state["focus"]) not in {"native-a", "native-b"}',
+        'state["focus"] is not None or state["focus_root"] is not True',
     )
     for marker in runner_markers:
         if marker not in runner:

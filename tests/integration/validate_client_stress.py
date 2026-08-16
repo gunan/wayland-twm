@@ -73,7 +73,15 @@ def validate_text(
         'survivor.wait_for_key_pair(token)',
         'control.socket.settimeout(10)',
         'control.command("WAIT 1")',
+        'Button3 = : window : f.focus',
+        'state["focus"] == title and state["focus_root"] is False',
+        'control.command("BUTTON 273 press")',
+        'f"explicit pointer focus for {protocol} target {title}"',
+        'description + " survivor refocus"',
         'if state["focus"] != title:',
+        'state["focus"] not in (None, SURVIVOR_TITLE)',
+        'state["active"] != state["focus"]',
+        '(state["focus"] is None and not state["focus_root"])',
     )
     for marker in runner_markers:
         if marker not in runner:
@@ -92,6 +100,9 @@ def validate_text(
         'printf("EVENT CLOSE %u\\n", client->close_count);',
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
+        'sscanf(command, "TITLE %127s", title)',
+        "xdg_toplevel_set_title(client->toplevel, client->title);",
+        'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
         "cycle != client->cycle",
         "wl_surface_attach(client->surface, NULL, 0, 0);",
@@ -104,6 +115,10 @@ def validate_text(
     for marker in wayland_markers:
         if marker not in wayland_client:
             errors.append(f"stress Wayland client lacks {marker!r}")
+    if wayland_client.count(
+        "xdg_toplevel_set_title(client->toplevel, client->title);"
+    ) != 2:
+        errors.append("stress Wayland client must set its title on map and mutation")
 
     x11_markers = (
         '"WM_DELETE_WINDOW"',
@@ -111,6 +126,9 @@ def validate_text(
         'printf("EVENT DELETE %u\\n", client->close_count);',
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
+        'sscanf(command, "TITLE %127s", title)',
+        "set_string(client, XCB_ATOM_WM_NAME, client->title);",
+        'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
         "cycle != client->cycle",
         "client->desired_mapped = false;",
@@ -127,6 +145,10 @@ def validate_text(
     for marker in x11_markers:
         if marker not in x11_client:
             errors.append(f"stress X11 client lacks {marker!r}")
+    if x11_client.count(
+        "set_string(client, XCB_ATOM_WM_NAME, client->title);"
+    ) != 2:
+        errors.append("stress X11 client must set its title on map and mutation")
     unmap = x11_client[x11_client.find("static bool unmap_client"):]
     unmap = unmap[:unmap.find("static bool initialize")]
     if not (0 <= unmap.find("client->desired_mapped = false;") <
@@ -168,6 +190,7 @@ def validate_text(
         "ignores `f.delete`",
         "native `f.destroy`",
         "X11 `f.destroy`",
+        "Random placement leaves focus on PointerRoot",
     )
     for marker in doc_markers:
         if marker not in documentation:
@@ -190,6 +213,10 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
          wayland, x11, meson, compatibility, integration_readme),
         ("focused-exit", runner.replace('if state["focus"] != title:',
                                         "if False:", 1),
+         wayland, x11, meson, compatibility, integration_readme),
+        ("survivor-root-focus", runner.replace(
+            'state["focus"] not in (None, SURVIVOR_TITLE)',
+            'state["focus"] != SURVIVOR_TITLE', 1),
          wayland, x11, meson, compatibility, integration_readme),
         ("hang-liveness", runner.replace('control.command("PING")',
                                          'control.command("WAIT 1")', 1),
@@ -216,8 +243,16 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
         ("wayland-hang", runner,
          wayland.replace("for (;;) pause();", "return true;", 1),
          x11, meson, compatibility, integration_readme),
+        ("wayland-title", runner,
+         wayland.replace(
+             "xdg_toplevel_set_title(client->toplevel, client->title);", "", 1),
+         x11, meson, compatibility, integration_readme),
         ("x11-delete-protocol", runner, wayland,
          x11.replace('"WM_DELETE_WINDOW"', '"WM_TAKE_FOCUS"', 1),
+         meson, compatibility, integration_readme),
+        ("x11-title", runner, wayland,
+         x11.replace("set_string(client, XCB_ATOM_WM_NAME, client->title);",
+                     "", 1),
          meson, compatibility, integration_readme),
         ("x11-remap-order", runner, wayland,
          x11.replace(

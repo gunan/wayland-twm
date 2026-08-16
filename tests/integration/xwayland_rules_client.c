@@ -123,6 +123,13 @@ static bool initialize(struct client *client) {
 			specs[i].title);
 		set_class(client->connection, window->window, specs[i].instance,
 			specs[i].class_name);
+		uint32_t normal_hints[18] = {0};
+		normal_hints[0] = 1u; /* USPosition */
+		normal_hints[1] = (uint32_t)specs[i].x;
+		normal_hints[2] = (uint32_t)specs[i].y;
+		xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+			window->window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS,
+			32, 18, normal_hints);
 		map_and_damage_window(client, window);
 	}
 	xcb_flush(client->connection);

@@ -76,6 +76,13 @@ def exercise_target_cleanup(control: Control, state: dict[str, object]) -> None:
     if not control.state()["interactive"]:
         raise RuntimeError("title press did not begin an interactive operation")
     control.command("BUTTON 273 press")
+    control.command("BUTTON 273 release")
+    # An aborted move can leave the cursor at a constrained-move warp point.
+    # Re-establish the title hit target before exercising its Button3 binding.
+    state = control.state()
+    window = state["windows"][0]
+    control.command(f"POINTER {window['x'] + 100} {window['y'] + 8}")
+    control.command("BUTTON 273 press")
     target_state = control.state()
     if target_state["menu"] is None:
         raise RuntimeError("title binding did not open a target-owned menu")

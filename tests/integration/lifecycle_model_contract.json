@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "operations_per_seed": 6000,
+  "seeds": [1, 7, 42, 305419896, 3735928559],
+  "operations": [
+    "create",
+    "map",
+    "unmap",
+    "remap",
+    "title",
+    "iconify",
+    "deiconify",
+    "destroy",
+    "raise",
+    "lower",
+    "raiselower",
+    "circle_up",
+    "circle_down",
+    "focus"
+  ],
+  "invariants": [
+    "monotonic_creation_ids",
+    "mapped_exactly_once_in_stack",
+    "no_stale_or_duplicate_stack_ids",
+    "focus_is_visible_or_empty",
+    "iconified_implies_mapped",
+    "transient_parent_is_live_or_empty"
+  ],
+  "runtime": {
+    "runs": 2,
+    "steps_per_run": 96,
+    "seed": 1279870533
+  }
+}

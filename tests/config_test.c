@@ -102,7 +102,7 @@ static void parses_every_construct_family(void) {
 		"MakeTitle { \"special\" }\nNoHighlight\nNoStackMode { \"stacked\" }\n"
 		"NoTitle { \"xclock\" }\nNoTitleHighlight\nStartIconified { \"mail\" }\n"
 		"WarpCursor\nWindowRing { \"xterm\" }\n"
-		"Function \"ops\" { f.move f.deltastop f.raise f.colormap \"next\" }\n"
+		"Function \"ops\" { f.move f.deltastop f.raise f.circleup f.circledown f.colormap \"next\" }\n"
 		"Function \"ops\" { f.lower }\n"
 		"Menu \"main\" (\"white\":\"black\") { \"Title\" f.title \"Run\" ! \"xterm &\" }\n"
 		"Menu \"main\" { \"Quit\" f.quit }\n"
@@ -134,7 +134,9 @@ static void parses_every_construct_family(void) {
 	assert(config.squeeze_entry_count == 2);
 	assert(config.window_list_count == 14);
 	assert(config.function_count == 1);
-	assert(config.functions[0].action_count == 5);
+	assert(config.functions[0].action_count == 7);
+	assert(config.functions[0].actions[3].type == WTWM_ACTION_CIRCLEUP);
+	assert(config.functions[0].actions[4].type == WTWM_ACTION_CIRCLEDOWN);
 	assert(config.menu_count == 1);
 	assert(config.menus[0].item_count == 3);
 	assert(config.title_button_count == 2);
@@ -473,6 +475,34 @@ static void parse_defaults(void) {
 	wtwm_config_finish(&config);
 }
 
+static void parses_placement_options(void) {
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(config.use_p_position_mode == WTWM_USE_P_POSITION_OFF);
+	assert(!config.max_window_size_set);
+	assert(wtwm_config_parse(&config, "placement",
+		"UsePPosition \"non-zero\"\nMaxWindowSize \"=800x600+1-2\"\n",
+		error, sizeof(error)));
+	assert(config.use_p_position_mode == WTWM_USE_P_POSITION_NON_ZERO);
+	assert(config.max_window_size_set);
+	assert(config.max_window_width == 800 && config.max_window_height == 600);
+	assert(strcmp(config.use_p_position, "non-zero") == 0);
+
+	assert(wtwm_config_parse(&config, "invalid-ppos",
+		"UsePPosition \"sometimes\"\n", error, sizeof(error)));
+	assert(config.use_p_position_mode == WTWM_USE_P_POSITION_OFF);
+	assert(config.warning_count == 1);
+
+	assert(!wtwm_config_parse(&config, "bad-maximum",
+		"MaxWindowSize \"800x0\"\n", error, sizeof(error)));
+	assert(strstr(error, "bad-maximum:1:") != NULL);
+	/* Invalid replacement is atomic. */
+	assert(config.use_p_position_mode == WTWM_USE_P_POSITION_OFF);
+	assert(config.warning_count == 1);
+	wtwm_config_finish(&config);
+}
+
 static void parse_rules_and_title_buttons(void) {
 	static const char source[] =
 		"NoTitle { \"xclock\" \"xload\" }\nAutoRaise { \"xterm\" }\n"
@@ -544,6 +574,7 @@ int main(void) {
 	dumps_comprehensive_ordered_model();
 	parses_frozen_upstream_examples();
 	parse_defaults();
+	parses_placement_options();
 	parse_rules_and_title_buttons();
 	rejects_invalid_binding();
 	accepts_legacy_syntax();

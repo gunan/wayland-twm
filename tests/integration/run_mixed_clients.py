@@ -242,8 +242,14 @@ def focus_and_key(
 ) -> dict[str, object]:
     wayland.command(f"ARM {token}", f"OK ARMED {token}")
     x11.command(f"ARM {token}", f"OK ARMED {token}")
-    click(control, control.state(), role, 272)
     title = EXPECTED[role]["title"]
+    current = control.state()
+    button = (
+        273
+        if current["focus"] == title and current["focus_root"] is False
+        else 272
+    )
+    click(control, current, role, button)
     state = wait_state(
         control,
         lambda item: item["focus"] == title and
@@ -331,8 +337,8 @@ def exercise_cleanup(
         "native unmap while X11 remains live",
     )
     assert_clients(state, remaining)
-    if TITLE_TO_ROLE.get(state["focus"]) not in {"x11-a", "x11-b"}:
-        raise RuntimeError(f"native unmap did not transfer focus to live X11: {state!r}")
+    if state["focus"] is not None or state["focus_root"] is not True:
+        raise RuntimeError(f"native unmap did not restore PointerRoot focus: {state!r}")
     wayland.command("REMAP native-b", "OK REMAPPED native-b")
     state = wait_state(control, lambda item: clients_ready(item, set(EXPECTED)),
                        "native remap into mixed session")
@@ -349,8 +355,8 @@ def exercise_cleanup(
         "X11 unmap/dissociation while native clients remain live",
     )
     assert_clients(state, remaining)
-    if TITLE_TO_ROLE.get(state["focus"]) not in {"native-a", "native-b"}:
-        raise RuntimeError(f"X11 unmap did not transfer focus to live native: {state!r}")
+    if state["focus"] is not None or state["focus_root"] is not True:
+        raise RuntimeError(f"X11 unmap did not restore PointerRoot focus: {state!r}")
     if not x11_dissociated(state, x11_b_xid):
         raise RuntimeError(f"X11 unmap did not cleanly dissociate: {state!r}")
     x11.command("REMAP x11-b", "OK REMAPPED x11-b")
@@ -369,7 +375,10 @@ def run(compositor: Path, wayland_binary: Path, x11_binary: Path) -> None:
         config = temporary / "mixed.twmrc"
         config.write_text(
             "NoDefaults\nRandomPlacement\nNoGrabServer\nNoIconManagers\n"
-            "Button2 = : window : f.lower\n",
+            'Function "focus-raise" { f.focus f.raise }\n'
+            'Button1 = : window : f.function "focus-raise"\n'
+            "Button2 = : window : f.lower\n"
+            "Button3 = : window : f.raise\n",
             encoding="utf-8",
         )
         display_name = f"wtwm-mixed-{os.getpid()}"

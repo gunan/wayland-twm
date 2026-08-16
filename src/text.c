@@ -2,6 +2,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "text.h"
+#include <wtwm/font.h>
 
 #include <drm_fourcc.h>
 #include <pango/pangocairo.h>
@@ -46,15 +47,35 @@ static const struct wlr_buffer_impl text_impl = {
 	.end_data_ptr_access = text_end_access,
 };
 
+int wtwm_measure_font_height(const char *font) {
+	int bitmap_height = wtwm_x11_bitmap_font_height(font);
+	if (bitmap_height > 0) return bitmap_height;
+	cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+	cairo_t *cairo = cairo_create(surface);
+	PangoLayout *layout = pango_cairo_create_layout(cairo);
+	PangoFontDescription *description =
+		pango_font_description_from_string(wtwm_pango_font_description(font));
+	pango_layout_set_font_description(layout, description);
+	/* Logical line height is independent of the title's particular glyphs. */
+	pango_layout_set_text(layout, "Mg", -1);
+	int width = 0, height = 0;
+	pango_layout_get_pixel_size(layout, &width, &height);
+	(void)width;
+	pango_font_description_free(description);
+	g_object_unref(layout);
+	cairo_destroy(cairo);
+	cairo_surface_destroy(surface);
+	return height > 0 ? height : 1;
+}
+
 struct wlr_buffer *wtwm_render_text(const char *value, const char *font,
 	const float color[static 4], int *width, int *height) {
 	const char *text = value ? value : "";
-	/* XLFD names are meaningful to Xlib, not Fontconfig/Pango. */
-	const char *description = font && font[0] && font[0] != '-' ? font : "Sans Bold 10";
 	cairo_surface_t *measure_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
 	cairo_t *measure = cairo_create(measure_surface);
 	PangoLayout *layout = pango_cairo_create_layout(measure);
-	PangoFontDescription *font_description = pango_font_description_from_string(description);
+	PangoFontDescription *font_description =
+		pango_font_description_from_string(wtwm_pango_font_description(font));
 	pango_layout_set_font_description(layout, font_description);
 	pango_layout_set_text(layout, text, -1);
 	int text_width = 0, text_height = 0;

@@ -52,6 +52,10 @@ int main(void) {
 
 	assert(parse("PING").type == WTWM_TEST_COMMAND_PING);
 	assert(parse("STATE").type == WTWM_TEST_COMMAND_STATE);
+	command = parse("TRACE");
+	assert(command.type == WTWM_TEST_COMMAND_TRACE && command.first == 0);
+	command = parse("TRACE CLEAR");
+	assert(command.type == WTWM_TEST_COMMAND_TRACE && command.first == 1);
 	assert(parse("QUIT").type == WTWM_TEST_COMMAND_QUIT);
 
 	reject("");
@@ -63,6 +67,8 @@ int main(void) {
 	reject("WAIT 121");
 	reject("SET FONT");
 	reject("PING now");
+	reject("TRACE RESET");
+	reject("TRACE CLEAR now");
 	reject("UNKNOWN");
 	return 0;
 }

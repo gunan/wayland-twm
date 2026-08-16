@@ -9,26 +9,29 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | --- | --- | --- |
 | `~/.twmrc.0`, `~/.twmrc`, `-f` search | Effective | Same precedence, followed by packaged defaults |
 | `Color` / `Monochrome` blocks | Effective in part | Frame and title colors accept `#RRGGBB`, `rgb:r/g/b`, gray percentages, and common names |
-| Border/title padding and widths | Partial | Border width and title padding have consumers; other stored widths/padding remain parsed-only |
+| Frame, border, and title extents | Effective for the exact Xwayland matrix | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame, title height is the font line height plus twice `FramePadding` rounded up to odd, and the title extent includes its lower border. The canonical X core `fixed` alias and numeric bitmap aliases use their exact structural heights. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations. Full title-item layout remains pending |
+| Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
 | `ButtonN` and quoted key bindings | Effective | libinput buttons and xkbcommon key symbols |
-| `root`, `window`, `title`, `frame`, `all` contexts | Effective | Scene hit-test contexts |
+| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all` contexts | Effective except icon-manager UI | Scene hit-test contexts; compositor menus deliberately have no binding context |
 | Shift, Control, Lock, Meta modifiers | Partial | Shift, Control, Lock, Meta/Mod1, and Meta4 have native mappings; other parsed Meta numbers lack audited runtime evidence |
 | `Function` and `f.function` | Effective | Recursive action sequence, depth limited to eight |
-| Move, force-move, resize, raise, lower | Effective | Compositor-controlled scene operations |
-| Focus, unfocus, delete/destroy, exec, quit | Effective | `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
+| Move, force-move, resize, raise, lower | Effective for move/resize interaction | Non-opaque moves and all resizes use compositor-owned outlines with release commit; `OpaqueMove` updates the live window, while second-button abort restores the original geometry. Raise/lower never imply focus |
+| Focus, unfocus, delete/destroy, exec, quit | Effective | PointerRoot/sloppy focus is distinct from the click-locked `f.focus` toggle; `NoTitleFocus`, X11 input hints, and `WM_TAKE_FOCUS` are applied independently. Direct X input focus also synchronizes wlroots' XWM focus record so its guarded X11/Wayland selection bridge remains available, after which wtwm reasserts the exact core-focus target. `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
+| `f.raiselower`, `f.circleup`, `f.circledown` | Effective | The shared native/Xwayland stack uses actual visible overlap: overlap-dependent `f.raiselower` matches X `Opposite`, while circulation moves the bottommost occluded or topmost occluding item. Parent/transient actions are not grouped |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
-| `NoTitle`, `MakeTitle`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id` |
+| `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays |
 | Title buttons | Parsed / partial | Classic built-in dot and resize boxes are effective; bitmap substitution is pending |
-| Icon windows and icon manager | Parsed | Wayland has no client icon-window primitive; compositor UI is pending |
+| Icon windows and icon manager | Parsed / minimal context bridge | Wayland has no client icon-window primitive. M4 supplies a minimal compositor-owned icon hit target for exact binding/focus context tests; image/text layout and the icon manager remain Milestone 7 work |
 | Zoom/maximize variants | Parsed | Output-aware geometry and saved-state restore are pending |
 | `WarpCursor` and warp actions | Parsed | Requires explicit Wayland-compositor behavior; pending |
-| Fonts / XLFD strings | Partial | Pango/Fontconfig names work; XLFD names use the classic fallback font pending full translation |
+| Fonts / XLFD strings | Partial | Pango/Fontconfig names work; the canonical `fixed` and numeric bitmap aliases have deterministic structural metrics and practical Pango render mappings. General XLFD translation and exact rasterization remain Milestone 5 work |
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
+| Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
-| Canonical X11 reference differential | Behaviorally equivalent for the compared client model | One Debian Trixie CI job runs the same Debian client commands and the same configuration under frozen `twm` 1.0.13.1 and wtwm/Xwayland. It compares exact title, instance/class, map and management state, transient and override-redirect roles, delete/input/urgency hints, icon name and supplied icon dimensions/content checksum, and normal-hint values. Reference management is proven by a distinct reparent frame; wtwm management is proven by its compositor scene decoration. Exact frame geometry, pixel rendering, and native/cross-protocol behavior are explicit later-milestone boundaries. |
+| Canonical X11 reference differential | Exact for the Milestone 4 normalized model | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace additionally compares exact client/frame geometry, focus, mapped/iconified/title state, and visible bottom-to-top stacking after every press, release, and pointer motion. A separate 48-case Cartesian product compares titled/untitled, border ownership, normal/transient decoration, and none/min-max/base-increment/aspect profiles with no numeric tolerances or geometry exclusions. Pixel rendering and native/cross-protocol equivalence remain later-milestone boundaries. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
@@ -94,10 +97,52 @@ action model. Override-redirect windows remain undecorated and outside the
 managed focus/action list. They share an overlay stack above managed clients
 with native xdg popups, so each popup or override-redirect map/remap raises that
 surface above older overlay siblings. Transient relationships are mirrored in
-both the X and scene stacks, and configure requests preserve X11 client
-coordinates while enforcing advertised minimum, maximum, base-size, and
-resize-increment hints. Aspect and gravity values are retained for later
-placement/geometry parity work.
+both the X and scene stacks. A transient has no title by default, and
+`DecorateTransients` restores the ordinary global/`MakeTitle`/`NoTitle`
+decision; transient suppression otherwise runs last and therefore also wins
+over a matching `MakeTitle`. As in reference `twm`, ordinary X11 client
+configure requests are not snapped to `WM_NORMAL_HINTS`, and changing the
+hints alone does not resize a mapped client. Compositor-driven resizing applies
+minimum, maximum, base-size, resize-increment, and aspect constraints in
+reference order: clamp, snap down to the base/increment lattice, then adjust
+aspect without a final reclamp. Native xdg-shell has no base-size, increment,
+or aspect protocol fields, so only its advertised minimum and maximum sizes
+can be honored. Initial map and managed `ConfigureRequest` coordinates use the
+reference gravity and border translations. Initial maximum clipping and
+position-hint/random/transient selection run before that conversion. X11
+windows without an honored hint use a compositor-owned outline while their
+client scene remains hidden: pointer motion selects the outer-frame origin,
+Button1 confirms on release, Button2 enters placement resize, and Button3 fills
+the remaining lower-right output area. Native xdg-shell has no position-hint
+protocol and its initial map cannot be held inside the synchronous X11
+`MapRequest` path, so non-random native maps use the current pointer immediately
+without the obsolete cascade offset.
+
+Interactive move and resize use the source-derived `twm` state machine.
+`MoveDelta` is a strict per-axis threshold (equality starts, zero starts on the
+first motion); a rapid second move enters `ConstrainedMoveTime` only when the
+unsigned elapsed timestamp is strictly smaller than the configured value.
+Leaving both outer-rectangle thirds at once selects vertical motion, matching
+the reference's ordered tests. `DontMoveOff` clamps the outer frame in
+near-edge/far-edge order, including the reference far-edge result for a frame
+larger than the output, while `f.forcemove` bypasses that clamp.
+`AutoRelativeResize` selects left/right and top/bottom edges from thirds after
+the title offset and is disabled for title-bar invocation. Size constraints
+preserve the opposite edge during left/top resizing. Non-opaque moves and every
+resize keep client geometry unchanged while an overlay outline is displayed;
+release commits it, and a second button press cancels it. `OpaqueMove` changes
+the live window during motion and restores the saved origin on cancel.
+`f.deltastop` resumes its function only after the asynchronous interaction has
+ended and stops the remainder exactly when the pointer crossed `MoveDelta`.
+`NoRaiseOnMove` and `NoRaiseOnResize` suppress their respective interaction
+raises without changing focus policy. These paths are covered by a Linux
+headless Xwayland runner plus a portable model/tamper contract for hosts without
+wlroots.
+
+Menu-started movement keeps its separate reference intent. A menu invoked for
+a window centers the pointer and commits on the next press; a root menu defers
+target selection to the next press and commits that ordinary drag on release.
+Only an additional press during an ordinary drag takes the abort path.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling
