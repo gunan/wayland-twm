@@ -278,7 +278,7 @@ comparison with the original `twm`.
 Implementation work:
 
 - [x] Manage native `xdg-shell` toplevels and popups correctly.
-- [ ] Integrate Xwayland lifecycle management and `DISPLAY` export.
+- [x] Integrate Xwayland lifecycle management and `DISPLAY` export.
 - [ ] Implement an X window-manager bridge for names and classes, transient
   relationships, normal and size hints, delete-window requests, forced client
   termination, icon names and supplied icons, urgency and input hints,

@@ -63,6 +63,7 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
+#include <wlr/xwayland/xwayland.h>
 #include <xkbcommon/xkbcommon.h>
 
 enum cursor_mode { CURSOR_PASSTHROUGH, CURSOR_MOVE, CURSOR_RESIZE };
@@ -179,6 +180,7 @@ struct server {
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
+	struct wlr_compositor *compositor;
 	struct wlr_scene *scene;
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
@@ -205,6 +207,11 @@ struct server {
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
 	struct wl_list keyboards;
+	struct wlr_xwayland *xwayland;
+	struct wl_listener xwayland_ready;
+	char *previous_display;
+	bool had_previous_display;
+	bool xwayland_display_exported;
 	enum cursor_mode cursor_mode;
 	struct toplevel *grabbed;
 	double grab_x;
@@ -216,6 +223,67 @@ struct server {
 	struct test_control test_control;
 #endif
 };
+
+static void xwayland_ready(struct wl_listener *listener, void *data) {
+	struct server *server = wl_container_of(listener, server, xwayland_ready);
+	(void)data;
+	wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
+}
+
+static void xwayland_finish(struct server *server) {
+	if (server->xwayland != NULL) {
+		wl_list_remove(&server->xwayland_ready.link);
+		wlr_xwayland_destroy(server->xwayland);
+		server->xwayland = NULL;
+	}
+	if (server->xwayland_display_exported) {
+		if (server->had_previous_display)
+			(void)setenv("DISPLAY", server->previous_display, true);
+		else
+			(void)unsetenv("DISPLAY");
+		server->xwayland_display_exported = false;
+	}
+	free(server->previous_display);
+	server->previous_display = NULL;
+}
+
+static bool xwayland_start(struct server *server) {
+	const char *xwayland_override = getenv("WLR_XWAYLAND");
+	if (xwayland_override != NULL && strchr(xwayland_override, '/') != NULL &&
+			access(xwayland_override, X_OK) < 0) {
+		wlr_log(WLR_ERROR, "Xwayland executable %s is unavailable: %s",
+			xwayland_override, strerror(errno));
+		return false;
+	}
+	server->xwayland = wlr_xwayland_create(
+		server->display, server->compositor, true);
+	if (server->xwayland == NULL) {
+		wlr_log(WLR_ERROR, "%s", "Xwayland setup failed; continuing without X11 support");
+		return false;
+	}
+	server->xwayland_ready.notify = xwayland_ready;
+	wl_signal_add(&server->xwayland->events.ready, &server->xwayland_ready);
+	wlr_xwayland_set_seat(server->xwayland, server->seat);
+
+	const char *previous_display = getenv("DISPLAY");
+	server->had_previous_display = previous_display != NULL;
+	if (server->had_previous_display) {
+		server->previous_display = strdup(previous_display);
+		if (server->previous_display == NULL) {
+			wlr_log(WLR_ERROR, "%s", "failed to preserve DISPLAY for Xwayland");
+			xwayland_finish(server);
+			return false;
+		}
+	}
+	if (setenv("DISPLAY", server->xwayland->display_name, true) < 0) {
+		wlr_log(WLR_ERROR, "failed to export Xwayland DISPLAY: %s", strerror(errno));
+		xwayland_finish(server);
+		return false;
+	}
+	server->xwayland_display_exported = true;
+	wlr_log(WLR_INFO, "Xwayland allocated DISPLAY=%s", server->xwayland->display_name);
+	return true;
+}
 
 struct hit_result {
 	struct toplevel *toplevel;
@@ -1897,7 +1965,11 @@ int main(int argc, char **argv) {
 	wlr_renderer_init_wl_display(server.renderer, server.display);
 	server.allocator = wlr_allocator_autocreate(server.backend, server.renderer);
 	if (server.allocator == NULL) goto fail_renderer;
-	wlr_compositor_create(server.display, 5, server.renderer);
+	server.compositor = wlr_compositor_create(server.display, 5, server.renderer);
+	if (server.compositor == NULL) {
+		wlr_allocator_destroy(server.allocator);
+		goto fail_renderer;
+	}
 	wlr_subcompositor_create(server.display);
 	wlr_data_device_manager_create(server.display);
 	server.output_layout = wlr_output_layout_create(server.display);
@@ -1961,9 +2033,11 @@ int main(int argc, char **argv) {
 	}
 #endif
 	setenv("WAYLAND_DISPLAY", socket, true);
+	(void)xwayland_start(&server);
 	if (startup != NULL) spawn_shell(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
+	xwayland_finish(&server);
 	wl_display_destroy_clients(server.display);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
@@ -1983,6 +2057,7 @@ int main(int argc, char **argv) {
 	return 0;
 
 fail_runtime:
+	xwayland_finish(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
 #endif

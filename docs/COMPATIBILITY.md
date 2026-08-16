@@ -25,7 +25,8 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `WarpCursor` and warp actions | Parsed | Requires explicit Wayland-compositor behavior; pending |
 | Fonts / XLFD strings | Partial | Pango/Fontconfig names work; XLFD names use the classic fallback font pending full translation |
 | X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
-| Xwayland applications and `WM_CLASS` matching | Not yet | Xwayland lifecycle integration is pending |
+| Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
+| Xwayland application management and `WM_CLASS` matching | Not yet | ICCCM/EWMH window management and X11 window-list matching are the next compatibility stage |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -41,6 +42,17 @@ output's layout bounds in root-surface coordinates. Parent unmap or destruction
 dismisses every rooted popup before the toplevel state is released. Layer-shell
 exclusive zones are not implemented yet, so the usable area is currently the
 full output-layout box.
+
+wtwm reserves an Xwayland display during compositor startup and starts the X
+server lazily when the first X11 client connects. The allocated `DISPLAY` is
+exported before the `-s` startup command, so legacy programs launched there
+inherit the correct server instead of a parent session's display. Xwayland is
+wired to the compositor seat, reports every successful readiness event
+including a wlroots-managed restart, and is destroyed before the remaining
+Wayland clients and display. If Xwayland cannot be created or its display
+cannot be exported, wtwm keeps the inherited `DISPLAY` unchanged and continues
+with native Wayland support. This lifecycle integration does not yet manage
+X11 windows or implement ICCCM/EWMH policy.
 
 ## Complete configuration model
 

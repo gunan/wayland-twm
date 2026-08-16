@@ -316,7 +316,23 @@ if wlroots.found()
     dependencies: wayland_client,
     install: false,
   )
+  wtwm_xwayland_probe = executable(
+    'wtwm-xwayland-probe',
+    'tests/integration/xwayland_probe.c',
+    dependencies: dependency('xcb'),
+    install: false,
+  )
   integration_runner = find_program('python3')
+  test(
+    'Xwayland lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--probe', wtwm_xwayland_probe,
+    ],
+    timeout: 60,
+  )
   test(
     'xdg-shell lifecycle integration',
     integration_runner,
