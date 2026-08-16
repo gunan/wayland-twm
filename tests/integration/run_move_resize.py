@@ -184,8 +184,13 @@ def resize_scenario(control: Control) -> None:
 
     original = {key: int(item[key]) for key in
                 ("x", "y", "width", "height", "content_x", "content_y")}
-    bottom_right = (original["x"] + original["content_x"] + original["width"] - 5,
-                    original["y"] + original["content_y"] + original["height"] - 5)
+    # Xwayland applies the ConfigureWindow from the first resize asynchronously.
+    # Probe well inside the bottom-right third so the point remains within both
+    # the old surface buffer and the newly configured frame while they converge.
+    bottom_right = (
+        original["x"] + original["content_x"] + original["width"] * 5 // 6,
+        original["y"] + original["content_y"] + original["height"] * 5 // 6,
+    )
     press_at(control, bottom_right, 273)
     if int(interaction(control)["edges"]) != 10:
         raise RuntimeError(f"AutoRelativeResize did not select bottom-right: {interaction(control)!r}")
