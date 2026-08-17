@@ -3165,8 +3165,8 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 			size_t selector_length = strlen(named->window_name);
 			for (unsigned category = 0; category < 3; ++category) {
 				bool matched = false;
-				struct toplevel *item;
-				wl_list_for_each(item, &server->toplevels, link) {
+				struct toplevel *item, *temporary;
+				wl_list_for_each_safe(item, temporary, &server->toplevels, link) {
 					if (!item->mapped || item->placement_pending) continue;
 					struct wtwm_client_identity identity = toplevel_identity(item);
 					const char *value = category == 0 ?

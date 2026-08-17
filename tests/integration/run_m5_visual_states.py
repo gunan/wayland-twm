@@ -325,6 +325,7 @@ def run_mode(arguments: argparse.Namespace, config: Path, mode: str,
         images["menu-normal"] = capture(control, mode_dir, "menu-normal")
         menu_x = int(menu["x"])
         menu_y = int(menu["y"])
+        menu_width = int(menu["width"])
         row_height = int(menu["row_height"])
         menu_border = 2
         control.command(
@@ -348,14 +349,23 @@ def run_mode(arguments: argparse.Namespace, config: Path, mode: str,
         wait_state(control, lambda value: value["menu"]["selected"] == 3,
                    "submenu row")
         images["menu-pull"] = capture(control, mode_dir, "menu-pull")
-        control.command("BUTTON 273 release")
-        wait_state(
+        control.command(
+            f"POINTER {menu_x + 3 * menu_width // 4} "
+            f"{menu_y + menu_border + 3 * row_height + row_height // 2}"
+        )
+        state = wait_state(
             control,
             lambda value: value["menu"] is not None and
             value["menu"]["name"] == "child",
             "child submenu",
         )
+        child = state["menu"]
+        control.command(
+            f"POINTER {int(child['x']) + int(child['width']) // 2} "
+            f"{int(child['y']) + int(child['row_height']) // 2}"
+        )
         images["submenu"] = capture(control, mode_dir, "submenu")
+        control.command("BUTTON 273 release")
 
         report["configured_color_samples"] = {
             name: list(value) for name, value in samples.items()
