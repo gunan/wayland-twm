@@ -109,6 +109,42 @@ config_dep = declare_dependency(
   dependencies: placement_dep,
 )
 
+icon_layout_lib = static_library(
+  'wtwm-icon-layout-lib',
+  'src/icon_layout.c',
+  include_directories: inc,
+  dependencies: config_dep,
+)
+icon_layout_dep = declare_dependency(
+  link_with: icon_layout_lib,
+  include_directories: inc,
+  dependencies: config_dep,
+)
+
+icon_layout_test = executable(
+  'icon-layout-test',
+  'tests/icon_layout_test.c',
+  dependencies: icon_layout_dep,
+)
+test('twm icon-region allocator', icon_layout_test)
+
+icon_manager_lib = static_library(
+  'wtwm-icon-manager-lib',
+  'src/icon_manager.c',
+  include_directories: inc,
+)
+icon_manager_dep = declare_dependency(
+  link_with: icon_manager_lib,
+  include_directories: inc,
+)
+
+icon_manager_test = executable(
+  'icon-manager-test',
+  'tests/icon_manager_test.c',
+  dependencies: icon_manager_dep,
+)
+test('twm icon-manager model', icon_manager_test)
+
 geometry_lib = static_library(
   'wtwm-geometry-lib',
   'src/geometry.c',
@@ -681,7 +717,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -691,7 +727,7 @@ if wlroots.found()
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
       command_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
-      focus_stack_dep,
+      focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,
       dependency('fontconfig'),
       wayland_server,
