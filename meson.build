@@ -163,6 +163,23 @@ interaction_test = executable(
 )
 test('twm move and resize interaction model', interaction_test)
 
+actions_lib = static_library(
+  'wtwm-actions-lib',
+  'src/actions.c',
+  include_directories: inc,
+)
+actions_dep = declare_dependency(
+  link_with: actions_lib,
+  include_directories: inc,
+)
+
+actions_test = executable(
+  'actions-test',
+  'tests/actions_test.c',
+  dependencies: actions_dep,
+)
+test('twm built-in action model', actions_test)
+
 lifecycle_model_lib = static_library(
   'wtwm-lifecycle-model-lib',
   'src/lifecycle_model.c',
