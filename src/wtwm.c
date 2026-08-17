@@ -650,6 +650,13 @@ static struct wlr_surface *toplevel_surface(const struct toplevel *toplevel) {
 	return toplevel->xwayland != NULL ? toplevel->xwayland->surface : NULL;
 }
 
+static void finish_surface_frame(struct wlr_surface *surface) {
+	if (surface == NULL || !wlr_surface_has_buffer(surface)) return;
+	struct timespec now;
+	if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
+		wlr_surface_send_frame_done(surface, &now);
+}
+
 static const char *toplevel_title(const struct toplevel *toplevel) {
 	const char *title = toplevel->xdg != NULL ? toplevel->xdg->title :
 		(toplevel->xwayland != NULL ? toplevel->xwayland->title : NULL);
@@ -2157,6 +2164,11 @@ static void set_toplevel_iconified_one(struct toplevel *toplevel, bool iconified
 	}
 	sync_toplevel_scene_stack(toplevel);
 	suspend_toplevel(toplevel, iconified);
+	/* Hidden scene nodes do not receive output frame callbacks.  Complete the
+	 * pending Xwayland callback when minimizing so one iconified client cannot
+	 * stall surface creation and updates for unrelated X11 windows. */
+	if (iconified && toplevel->xwayland != NULL)
+		finish_surface_frame(toplevel->xwayland->surface);
 	refresh_icon_managers(toplevel->server);
 	test_trace_toplevel_event(toplevel,
 		iconified ? "iconify" : "deiconify", "icon");
@@ -5753,9 +5765,7 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 		 * then misses that commit. Complete any pending callback after our
 		 * listeners exist, and manage the retained buffer without depending on
 		 * Xwayland producing another commit. */
-		struct timespec now;
-		if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
-			wlr_surface_send_frame_done(toplevel->xwayland->surface, &now);
+		finish_surface_frame(toplevel->xwayland->surface);
 		map_xwayland_toplevel(toplevel);
 	}
 }
