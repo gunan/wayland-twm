@@ -1,0 +1,540 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 Milestone 6 action and binding behavior",
+  "upstream": {
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "action_table_member": "twm-1.0.13.1/src/parse.c",
+  "actions": [
+    {"name": "f.autoraise", "parser_token": "FKEYWORD", "behavior": "F_AUTORAISE", "line": 419},
+    {"name": "f.backiconmgr", "parser_token": "FKEYWORD", "behavior": "F_BACKICONMGR", "line": 420},
+    {"name": "f.beep", "parser_token": "FKEYWORD", "behavior": "F_BEEP", "line": 421},
+    {"name": "f.bottomzoom", "parser_token": "FKEYWORD", "behavior": "F_BOTTOMZOOM", "line": 422},
+    {"name": "f.circledown", "parser_token": "FKEYWORD", "behavior": "F_CIRCLEDOWN", "line": 423},
+    {"name": "f.circleup", "parser_token": "FKEYWORD", "behavior": "F_CIRCLEUP", "line": 424},
+    {"name": "f.colormap", "parser_token": "FSKEYWORD", "behavior": "F_COLORMAP", "line": 425},
+    {"name": "f.cut", "parser_token": "FSKEYWORD", "behavior": "F_CUT", "line": 426},
+    {"name": "f.cutfile", "parser_token": "FKEYWORD", "behavior": "F_CUTFILE", "line": 427},
+    {"name": "f.deiconify", "parser_token": "FKEYWORD", "behavior": "F_DEICONIFY", "line": 428},
+    {"name": "f.delete", "parser_token": "FKEYWORD", "behavior": "F_DELETE", "line": 429},
+    {"name": "f.deltastop", "parser_token": "FKEYWORD", "behavior": "F_DELTASTOP", "line": 430},
+    {"name": "f.destroy", "parser_token": "FKEYWORD", "behavior": "F_DESTROY", "line": 431},
+    {"name": "f.downiconmgr", "parser_token": "FKEYWORD", "behavior": "F_DOWNICONMGR", "line": 432},
+    {"name": "f.exec", "parser_token": "FSKEYWORD", "behavior": "F_EXEC", "line": 433},
+    {"name": "f.file", "parser_token": "FSKEYWORD", "behavior": "F_FILE", "line": 434},
+    {"name": "f.focus", "parser_token": "FKEYWORD", "behavior": "F_FOCUS", "line": 435},
+    {"name": "f.forcemove", "parser_token": "FKEYWORD", "behavior": "F_FORCEMOVE", "line": 436},
+    {"name": "f.forwiconmgr", "parser_token": "FKEYWORD", "behavior": "F_FORWICONMGR", "line": 437},
+    {"name": "f.fullzoom", "parser_token": "FKEYWORD", "behavior": "F_FULLZOOM", "line": 438},
+    {"name": "f.function", "parser_token": "FSKEYWORD", "behavior": "F_FUNCTION", "line": 439},
+    {"name": "f.hbzoom", "parser_token": "FKEYWORD", "behavior": "F_BOTTOMZOOM", "line": 440},
+    {"name": "f.hideiconmgr", "parser_token": "FKEYWORD", "behavior": "F_HIDELIST", "line": 441},
+    {"name": "f.horizoom", "parser_token": "FKEYWORD", "behavior": "F_HORIZOOM", "line": 442},
+    {"name": "f.htzoom", "parser_token": "FKEYWORD", "behavior": "F_TOPZOOM", "line": 443},
+    {"name": "f.hzoom", "parser_token": "FKEYWORD", "behavior": "F_HORIZOOM", "line": 444},
+    {"name": "f.iconify", "parser_token": "FKEYWORD", "behavior": "F_ICONIFY", "line": 445},
+    {"name": "f.identify", "parser_token": "FKEYWORD", "behavior": "F_IDENTIFY", "line": 446},
+    {"name": "f.lefticonmgr", "parser_token": "FKEYWORD", "behavior": "F_LEFTICONMGR", "line": 447},
+    {"name": "f.leftzoom", "parser_token": "FKEYWORD", "behavior": "F_LEFTZOOM", "line": 448},
+    {"name": "f.lower", "parser_token": "FKEYWORD", "behavior": "F_LOWER", "line": 449},
+    {"name": "f.menu", "parser_token": "FSKEYWORD", "behavior": "F_MENU", "line": 450},
+    {"name": "f.move", "parser_token": "FKEYWORD", "behavior": "F_MOVE", "line": 451},
+    {"name": "f.nexticonmgr", "parser_token": "FKEYWORD", "behavior": "F_NEXTICONMGR", "line": 452},
+    {"name": "f.nop", "parser_token": "FKEYWORD", "behavior": "F_NOP", "line": 453},
+    {"name": "f.previconmgr", "parser_token": "FKEYWORD", "behavior": "F_PREVICONMGR", "line": 454},
+    {"name": "f.priority", "parser_token": "FSKEYWORD", "behavior": "F_PRIORITY", "line": 455},
+    {"name": "f.quit", "parser_token": "FKEYWORD", "behavior": "F_QUIT", "line": 456},
+    {"name": "f.raise", "parser_token": "FKEYWORD", "behavior": "F_RAISE", "line": 457},
+    {"name": "f.raiselower", "parser_token": "FKEYWORD", "behavior": "F_RAISELOWER", "line": 458},
+    {"name": "f.refresh", "parser_token": "FKEYWORD", "behavior": "F_REFRESH", "line": 459},
+    {"name": "f.resize", "parser_token": "FKEYWORD", "behavior": "F_RESIZE", "line": 460},
+    {"name": "f.restart", "parser_token": "FKEYWORD", "behavior": "F_RESTART", "line": 461},
+    {"name": "f.righticonmgr", "parser_token": "FKEYWORD", "behavior": "F_RIGHTICONMGR", "line": 462},
+    {"name": "f.rightzoom", "parser_token": "FKEYWORD", "behavior": "F_RIGHTZOOM", "line": 463},
+    {"name": "f.saveyourself", "parser_token": "FKEYWORD", "behavior": "F_SAVEYOURSELF", "line": 464},
+    {"name": "f.showiconmgr", "parser_token": "FKEYWORD", "behavior": "F_SHOWLIST", "line": 465},
+    {"name": "f.sorticonmgr", "parser_token": "FKEYWORD", "behavior": "F_SORTICONMGR", "line": 466},
+    {"name": "f.source", "parser_token": "FSKEYWORD", "behavior": "F_BEEP", "line": 467},
+    {"name": "f.startwm", "parser_token": "FSKEYWORD", "behavior": "F_STARTWM", "line": 468},
+    {"name": "f.title", "parser_token": "FKEYWORD", "behavior": "F_TITLE", "line": 469},
+    {"name": "f.topzoom", "parser_token": "FKEYWORD", "behavior": "F_TOPZOOM", "line": 470},
+    {"name": "f.twmrc", "parser_token": "FKEYWORD", "behavior": "F_RESTART", "line": 471},
+    {"name": "f.unfocus", "parser_token": "FKEYWORD", "behavior": "F_UNFOCUS", "line": 472},
+    {"name": "f.upiconmgr", "parser_token": "FKEYWORD", "behavior": "F_UPICONMGR", "line": 473},
+    {"name": "f.version", "parser_token": "FKEYWORD", "behavior": "F_VERSION", "line": 474},
+    {"name": "f.vlzoom", "parser_token": "FKEYWORD", "behavior": "F_LEFTZOOM", "line": 475},
+    {"name": "f.vrzoom", "parser_token": "FKEYWORD", "behavior": "F_RIGHTZOOM", "line": 476},
+    {"name": "f.warpnext", "parser_token": "FKEYWORD", "behavior": "F_WARPNEXT", "line": 477},
+    {"name": "f.warpprev", "parser_token": "FKEYWORD", "behavior": "F_WARPPREV", "line": 478},
+    {"name": "f.warpring", "parser_token": "FSKEYWORD", "behavior": "F_WARPRING", "line": 479},
+    {"name": "f.warpto", "parser_token": "FSKEYWORD", "behavior": "F_WARPTO", "line": 480},
+    {"name": "f.warptoiconmgr", "parser_token": "FSKEYWORD", "behavior": "F_WARPTOICONMGR", "line": 481},
+    {"name": "f.warptoscreen", "parser_token": "FSKEYWORD", "behavior": "F_WARPTOSCREEN", "line": 482},
+    {"name": "f.winrefresh", "parser_token": "FKEYWORD", "behavior": "F_WINREFRESH", "line": 483},
+    {"name": "f.zoom", "parser_token": "FKEYWORD", "behavior": "F_ZOOM", "line": 484}
+  ],
+  "behaviors": {
+    "F_AUTORAISE": {
+      "aliases": ["f.autoraise"],
+      "effect": "After selecting a target when invoked at root, toggle that window's auto_raise flag and adjust NumAutoRaises by plus or minus one.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1342, "text": "    case F_AUTORAISE:"}
+    },
+    "F_BACKICONMGR": {
+      "aliases": ["f.backiconmgr"],
+      "effect": "Call MoveIconManager(F_BACKICONMGR), moving backward in the current icon-manager traversal with its row-preserving wrap rule.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1288, "text": "    case F_BACKICONMGR:"}
+    },
+    "F_BEEP": {
+      "aliases": ["f.beep", "f.source"],
+      "effect": "Ring the informational bell. f.source is deliberately mapped to this same behavior; its required string is ignored and no file is sourced.",
+      "no_op_when": "Only when the X server suppresses or cannot render the bell.",
+      "evidence": {"member": "twm-1.0.13.1/src/parse.c", "line": 467, "text": "    { \"f.source\",               FSKEYWORD, F_BEEP },  /* XXX - don't work */"}
+    },
+    "F_BOTTOMZOOM": {
+      "aliases": ["f.bottomzoom", "f.hbzoom"],
+      "effect": "Select a window if necessary, then pass F_BOTTOMZOOM to fullzoom to toggle the bottom-half zoom geometry.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1439, "text": "    case F_BOTTOMZOOM:"}
+    },
+    "F_CIRCLEDOWN": {
+      "aliases": ["f.circledown"],
+      "effect": "Issue XCirculateSubwindowsDown on the root, lowering the topmost child that occludes another child.",
+      "no_op_when": "The X stacking order has no eligible occluding child.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1898, "text": "    case F_CIRCLEDOWN:"}
+    },
+    "F_CIRCLEUP": {
+      "aliases": ["f.circleup"],
+      "effect": "Issue XCirculateSubwindowsUp on the root, raising the lowest child that is occluded by another child.",
+      "no_op_when": "The X stacking order has no eligible occluded child.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1894, "text": "    case F_CIRCLEUP:"}
+    },
+    "F_COLORMAP": {
+      "aliases": ["f.colormap"],
+      "effect": "For argument next or prev, bump the selected window's colormap index by plus or minus one; default selects index zero. Invalid arguments are converted to F_NOP while parsing.",
+      "no_op_when": "The target has no alternate observable colormap, or the argument was invalid and parsed as F_NOP.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1967, "text": "    case F_COLORMAP:"}
+    },
+    "F_CUT": {
+      "aliases": ["f.cut"],
+      "effect": "Append a newline to the argument and replace X cut buffer 0 using XStoreBytes.",
+      "no_op_when": "Never at the action layer; an empty argument still stores a newline.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1915, "text": "    case F_CUT:"}
+    },
+    "F_CUTFILE": {
+      "aliases": ["f.cutfile"],
+      "effect": "Read the first whitespace-delimited filename from X cut buffer 0, expand it, read at most MAX_FILE_SIZE minus one bytes, and replace the cut buffer with the bytes read.",
+      "no_op_when": "The cut buffer is empty or has no token, expansion/open fails, or the file read returns no bytes.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1921, "text": "    case F_CUTFILE:"}
+    },
+    "F_DEICONIFY": {
+      "aliases": ["f.deiconify"],
+      "effect": "Select a target if necessary and deiconify it only if it is currently iconified.",
+      "no_op_when": "The selected window is already deiconified or selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1784, "text": "    case F_DEICONIFY:"}
+    },
+    "F_DELETE": {
+      "aliases": ["f.delete"],
+      "effect": "Hide the icon manager when it is the target; otherwise send WM_DELETE_WINDOW only to clients advertising that protocol, and ring the minor-error bell otherwise.",
+      "no_op_when": "Selection is canceled; a noncompliant client receives only a bell and is not killed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1872, "text": "    case F_DELETE:"}
+    },
+    "F_DELTASTOP": {
+      "aliases": ["f.deltastop"],
+      "effect": "Return false from ExecuteFunction when the global WindowMoved flag is true, stopping the immediate enclosing f.function loop; otherwise continue.",
+      "no_op_when": "WindowMoved is false, or when used outside a named function where its return value has no remaining sequence to stop.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1266, "text": "    case F_DELTASTOP:"}
+    },
+    "F_DESTROY": {
+      "aliases": ["f.destroy"],
+      "effect": "Select a target if necessary, then XKillClient for a normal client; targeting an icon manager rings the minor-error bell instead.",
+      "no_op_when": "Selection is canceled or the icon manager is selected.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1862, "text": "    case F_DESTROY:"}
+    },
+    "F_DOWNICONMGR": {
+      "aliases": ["f.downiconmgr"],
+      "effect": "Call MoveIconManager(F_DOWNICONMGR) to move to the next row in the current icon manager with same-column wrapping.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1284, "text": "    case F_DOWNICONMGR:"}
+    },
+    "F_EXEC": {
+      "aliases": ["f.exec"],
+      "effect": "Pop down menus, release a grabbed X server, temporarily rewrite DISPLAY to the current screen, and pass the decoded configuration string unchanged to C system().",
+      "no_op_when": "The invoked shell command has no observable effect; twm ignores system()'s status.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1902, "text": "    case F_EXEC:"}
+    },
+    "F_FILE": {
+      "aliases": ["f.file"],
+      "effect": "Expand the argument as a filename, read at most MAX_FILE_SIZE minus one bytes, and replace X cut buffer 0 with bytes read.",
+      "no_op_when": "Expansion/open fails or the file read returns no bytes.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2113, "text": "    case F_FILE:"}
+    },
+    "F_FOCUS": {
+      "aliases": ["f.focus"],
+      "effect": "Select a target if necessary. For a non-iconified window, toggle back to root focus when it is already click-focused; otherwise update borders/colormaps and focus it subject to its input hint.",
+      "no_op_when": "The target is iconified or selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1835, "text": "    case F_FOCUS:"}
+    },
+    "F_FORCEMOVE": {
+      "aliases": ["f.forcemove"],
+      "effect": "Run the same interactive move as f.move, but bypass DontMoveOff clamping. Motion below MoveDelta does not start a drag; a second button cancels and restores opaque geometry.",
+      "no_op_when": "Selection is canceled or the gesture ends before crossing the movement threshold.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1446, "text": "    case F_FORCEMOVE:"}
+    },
+    "F_FORWICONMGR": {
+      "aliases": ["f.forwiconmgr"],
+      "effect": "Call MoveIconManager(F_FORWICONMGR), moving forward in the current icon-manager traversal with its row-preserving wrap rule.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1287, "text": "    case F_FORWICONMGR:"}
+    },
+    "F_FULLZOOM": {
+      "aliases": ["f.fullzoom"],
+      "effect": "Select a window if necessary, then pass F_FULLZOOM to fullzoom to toggle full-screen zoom geometry.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1435, "text": "    case F_FULLZOOM:"}
+    },
+    "F_FUNCTION": {
+      "aliases": ["f.function"],
+      "effect": "Find the case-sensitive named function, optionally defer the whole immediate list from root when NeedToDefer finds a target action, then execute entries recursively in declaration order until an entry returns false.",
+      "no_op_when": "The name is missing (warning and continue), the function is empty, or execution is canceled before entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1761, "text": "    case F_FUNCTION:"}
+    },
+    "F_HIDELIST": {
+      "aliases": ["f.hideiconmgr"],
+      "effect": "Hide the current icon manager through HideIconManager.",
+      "no_op_when": "NoIconManagers is set.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1304, "text": "    case F_HIDELIST:"}
+    },
+    "F_HORIZOOM": {
+      "aliases": ["f.horizoom", "f.hzoom"],
+      "effect": "Select a window if necessary, then pass F_HORIZOOM to fullzoom to toggle full-width zoom geometry while retaining height.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1434, "text": "    case F_HORIZOOM:"}
+    },
+    "F_ICONIFY": {
+      "aliases": ["f.iconify"],
+      "effect": "Select a target if necessary; deiconify it when already iconified, otherwise iconify it near the invoking root coordinates.",
+      "no_op_when": "Selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1785, "text": "    case F_ICONIFY:"}
+    },
+    "F_IDENTIFY": {
+      "aliases": ["f.identify"],
+      "effect": "Select a target if necessary and show its Identify information window.",
+      "no_op_when": "Selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1331, "text": "    case F_IDENTIFY:"}
+    },
+    "F_LEFTICONMGR": {
+      "aliases": ["f.lefticonmgr"],
+      "effect": "Call MoveIconManager(F_LEFTICONMGR) for leftward icon-manager navigation.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1285, "text": "    case F_LEFTICONMGR:"}
+    },
+    "F_LEFTZOOM": {
+      "aliases": ["f.leftzoom", "f.vlzoom"],
+      "effect": "Select a window if necessary, then pass F_LEFTZOOM to fullzoom to toggle left-half zoom geometry.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1436, "text": "    case F_LEFTZOOM:"}
+    },
+    "F_LOWER": {
+      "aliases": ["f.lower"],
+      "effect": "Select a target if necessary and lower its icon window when invoked on the icon, otherwise lower its frame.",
+      "no_op_when": "Selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1824, "text": "    case F_LOWER:"}
+    },
+    "F_MENU": {
+      "aliases": ["f.menu"],
+      "effect": "Resolve a case-sensitive menu name at parse time and store it as a menu/pull-right route for pointer bindings, DefaultFunction, title buttons, and menu entries; hovering the right half opens the submenu.",
+      "no_op_when": "The named menu is empty; when F_MENU reaches ExecuteFunction directly (for example from a key or named-function entry), the upstream switch has no F_MENU case and performs no menu action.",
+      "evidence": {"member": "twm-1.0.13.1/src/gram.y", "line": 596, "text": "                                  case F_MENU:"}
+    },
+    "F_MOVE": {
+      "aliases": ["f.move"],
+      "effect": "Interactively move a selected frame or icon, using outline or opaque preview, MoveDelta threshold, constrained double-click axis selection, cancellation by a second button, and DontMoveOff clamping.",
+      "no_op_when": "Selection is canceled or the gesture ends before crossing the movement threshold.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1445, "text": "    case F_MOVE:"}
+    },
+    "F_NEXTICONMGR": {
+      "aliases": ["f.nexticonmgr"],
+      "effect": "Call JumpIconManager(F_NEXTICONMGR) to find the next nonempty icon manager across screens.",
+      "no_op_when": "No eligible nonempty icon manager exists.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1292, "text": "    case F_NEXTICONMGR:"}
+    },
+    "F_NOP": {
+      "aliases": ["f.nop"],
+      "effect": "Perform no action and return continue=true.",
+      "no_op_when": "Always.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1262, "text": "    case F_NOP:"}
+    },
+    "F_PREVICONMGR": {
+      "aliases": ["f.previconmgr"],
+      "effect": "Call JumpIconManager(F_PREVICONMGR) to find the previous nonempty icon manager across screens.",
+      "no_op_when": "No eligible nonempty icon manager exists.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1293, "text": "    case F_PREVICONMGR:"}
+    },
+    "F_PRIORITY": {
+      "aliases": ["f.priority"],
+      "effect": "When the X SYNC extension is present, select a target if necessary and call XSyncSetPriority on its client window with atoi(argument).",
+      "no_op_when": "The X SYNC extension is unavailable or selection is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2177, "text": "    case F_PRIORITY:"}
+    },
+    "F_QUIT": {
+      "aliases": ["f.quit"],
+      "effect": "Call Done to restore borders and terminate twm.",
+      "no_op_when": "Never if process termination succeeds.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2173, "text": "    case F_QUIT:"}
+    },
+    "F_RAISE": {
+      "aliases": ["f.raise"],
+      "effect": "Select a target if necessary; raise its icon when invoked on an icon outside root WindowFunction handling, otherwise raise its frame.",
+      "no_op_when": "Selection is canceled or the target is already topmost.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1812, "text": "    case F_RAISE:"}
+    },
+    "F_RAISELOWER": {
+      "aliases": ["f.raiselower"],
+      "effect": "Select a target if necessary and, unless WindowMoved is true, request X Opposite stacking for its icon or frame (raise if occluded, otherwise lower).",
+      "no_op_when": "WindowMoved is true, selection is canceled, or the X Opposite request leaves stacking unchanged.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1798, "text": "    case F_RAISELOWER:"}
+    },
+    "F_REFRESH": {
+      "aliases": ["f.refresh"],
+      "effect": "Map and immediately destroy a screen-sized black root child, forcing exposures for all windows, then flush.",
+      "no_op_when": "Clients do not need or do not respond to the resulting exposures.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2134, "text": "    case F_REFRESH:"}
+    },
+    "F_RESIZE": {
+      "aliases": ["f.resize"],
+      "effect": "Select a target if necessary, reject icons, then run outline resize until button release or cancellation; key-triggered resize is rejected before ExecuteFunction.",
+      "no_op_when": "Invoked by key, targeted at an icon, or selection/gesture is canceled.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1370, "text": "    case F_RESIZE:"}
+    },
+    "F_RESTART": {
+      "aliases": ["f.restart", "f.twmrc"],
+      "effect": "Synchronize, restore client borders, close the session-management connection, and execvp the original twm Argv in place. f.twmrc is exactly the same token and does not reread configuration independently.",
+      "no_op_when": "execvp fails after borders were restored; a warning is emitted.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1271, "text": "    case F_RESTART:"}
+    },
+    "F_RIGHTICONMGR": {
+      "aliases": ["f.righticonmgr"],
+      "effect": "Call MoveIconManager(F_RIGHTICONMGR) for rightward icon-manager navigation.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1286, "text": "    case F_RIGHTICONMGR:"}
+    },
+    "F_RIGHTZOOM": {
+      "aliases": ["f.rightzoom", "f.vrzoom"],
+      "effect": "Select a window if necessary, then pass F_RIGHTZOOM to fullzoom to toggle right-half zoom geometry.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1437, "text": "    case F_RIGHTZOOM:"}
+    },
+    "F_SAVEYOURSELF": {
+      "aliases": ["f.saveyourself"],
+      "effect": "Select a target if necessary and send WM_SAVEYOURSELF only when advertised in WM_PROTOCOLS, otherwise ring the minor-error bell.",
+      "no_op_when": "Selection is canceled or the client does not advertise WM_SAVEYOURSELF (bell only).",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1884, "text": "    case F_SAVEYOURSELF:"}
+    },
+    "F_SHOWLIST": {
+      "aliases": ["f.showiconmgr"],
+      "effect": "Deiconify and raise the default/current icon-manager frame.",
+      "no_op_when": "NoIconManagers is set.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1297, "text": "    case F_SHOWLIST:"}
+    },
+    "F_SORTICONMGR": {
+      "aliases": ["f.sorticonmgr"],
+      "effect": "Select a target if necessary, temporarily force SortIconMgr, then sort the current icon manager or the target window's manager.",
+      "no_op_when": "Selection is canceled or the target has no icon-manager membership (bell only).",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1310, "text": "    case F_SORTICONMGR:"}
+    },
+    "F_STARTWM": {
+      "aliases": ["f.startwm"],
+      "effect": "Replace twm using execlp('/bin/sh', 'sh', '-c', argument); unlike f.exec it does not return when successful.",
+      "no_op_when": "The shell exec fails, in which case a warning is emitted and twm continues.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2184, "text": "    case F_STARTWM:"}
+    },
+    "F_TITLE": {
+      "aliases": ["f.title"],
+      "effect": "Render a centered separator/title menu row that cannot highlight or activate; ExecuteFunction itself performs no action.",
+      "no_op_when": "Always outside menu presentation.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1263, "text": "    case F_TITLE:"}
+    },
+    "F_TOPZOOM": {
+      "aliases": ["f.htzoom", "f.topzoom"],
+      "effect": "Select a window if necessary, then pass F_TOPZOOM to fullzoom to toggle top-half zoom geometry.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1438, "text": "    case F_TOPZOOM:"}
+    },
+    "F_UNFOCUS": {
+      "aliases": ["f.unfocus"],
+      "effect": "Restore pointer-root focus, clear click focus, reset focused borders/highlight, and install root colormaps.",
+      "no_op_when": "Already in pointer-root focus with no focused window and root colormaps installed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1911, "text": "    case F_UNFOCUS:"}
+    },
+    "F_UPICONMGR": {
+      "aliases": ["f.upiconmgr"],
+      "effect": "Call MoveIconManager(F_UPICONMGR) to move to the previous row in the current icon manager with same-column wrapping.",
+      "no_op_when": "The icon-manager navigation helper has no eligible entry.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1283, "text": "    case F_UPICONMGR:"}
+    },
+    "F_VERSION": {
+      "aliases": ["f.version"],
+      "effect": "Call Identify with a null window to show twm version information.",
+      "no_op_when": "Only if the information window cannot be displayed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1338, "text": "    case F_VERSION:"}
+    },
+    "F_WARPNEXT": {
+      "aliases": ["f.warpnext"],
+      "effect": "Walk the managed-window list forward from focus with wrap, skipping icon managers, the origin, and unmapped windows unless WarpUnmapped; deiconify/raise as configured and warp to the first eligible target.",
+      "no_op_when": "No eligible target exists (minor-error bell).",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1982, "text": "    case F_WARPNEXT:"}
+    },
+    "F_WARPPREV": {
+      "aliases": ["f.warpprev"],
+      "effect": "Walk the managed-window list backward from focus with wrap, skipping icon managers, the origin, and unmapped windows unless WarpUnmapped; deiconify/raise as configured and warp to the first eligible target.",
+      "no_op_when": "No eligible target exists (minor-error bell).",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1981, "text": "    case F_WARPPREV:"}
+    },
+    "F_WARPRING": {
+      "aliases": ["f.warpring"],
+      "effect": "For parser-validated next or prev, warp forward or backward along WindowRing using the event coordinates.",
+      "no_op_when": "An invalid argument is parsed as F_NOP; runtime default also only rings the minor-error bell.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2099, "text": "    case F_WARPRING:"}
+    },
+    "F_WARPTO": {
+      "aliases": ["f.warpto"],
+      "effect": "Find the first eligible managed window by case-sensitive argument-prefix match, searching title first, then resource name, then resource class; optionally deiconify, optionally raise, then warp.",
+      "no_op_when": "No eligible prefix match exists (minor-error bell), including an unmapped match when WarpUnmapped is false.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2028, "text": "    case F_WARPTO:"}
+    },
+    "F_WARPTOICONMGR": {
+      "aliases": ["f.warptoiconmgr"],
+      "effect": "With an empty argument choose the pointed window's icon-manager row or the active default row; otherwise prefix-match icon_name for a mapped manager, raise that manager and warp to row coordinates 5,5.",
+      "no_op_when": "No eligible mapped icon-manager row is found (minor-error bell).",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2060, "text": "    case F_WARPTOICONMGR:"}
+    },
+    "F_WARPTOSCREEN": {
+      "aliases": ["f.warptoscreen"],
+      "effect": "For parser-validated next, prev, or back choose the corresponding screen traversal; otherwise parse a numeric screen with atoi and warp there.",
+      "no_op_when": "An invalid argument is parsed as F_NOP or the requested screen cannot be visited.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1950, "text": "    case F_WARPTOSCREEN:"}
+    },
+    "F_WINREFRESH": {
+      "aliases": ["f.winrefresh"],
+      "effect": "Select a target if necessary, map and destroy a 9999 by 9999 black child over its icon or frame, then flush to force exposures.",
+      "no_op_when": "Selection is canceled or the client does not need/respond to exposures.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 2155, "text": "    case F_WINREFRESH:"}
+    },
+    "F_ZOOM": {
+      "aliases": ["f.zoom"],
+      "effect": "Select a window if necessary, then pass F_ZOOM to fullzoom to toggle full-height zoom while retaining width.",
+      "no_op_when": "No successful target selection is completed.",
+      "evidence": {"member": "twm-1.0.13.1/src/menus.c", "line": 1433, "text": "    case F_ZOOM:"}
+    }
+  },
+  "binding_contract": {
+    "contexts": [
+      {"name": "window", "aliases": ["w", "window"], "runtime": "C_WINDOW", "mouse": true, "key": true},
+      {"name": "title", "aliases": ["t", "title"], "runtime": "C_TITLE", "mouse": true, "key": true},
+      {"name": "icon", "aliases": ["i", "icon"], "runtime": "C_ICON", "mouse": true, "key": true},
+      {"name": "root", "aliases": ["r", "root"], "runtime": "C_ROOT", "mouse": true, "key": true},
+      {"name": "frame", "aliases": ["f", "frame"], "runtime": "C_FRAME", "mouse": true, "key": true},
+      {"name": "iconmgr", "aliases": ["m", "meta", "mod", "iconmgr"], "runtime": "C_ICONMGR", "mouse": true, "key": true},
+      {"name": "name", "aliases": ["quoted-string"], "runtime": "C_NAME", "mouse": false, "key": true},
+      {"name": "all", "aliases": ["all"], "runtime": "C_ALL_BITS", "expands_to": ["window", "title", "icon", "root", "frame", "iconmgr"], "mouse": true, "key": true}
+    ],
+    "modifiers": [
+      {"name": "shift", "aliases": ["s", "shift"], "mask": "ShiftMask"},
+      {"name": "control", "aliases": ["c", "control"], "mask": "ControlMask"},
+      {"name": "lock", "aliases": ["l", "lock"], "mask": "LockMask"},
+      {"name": "meta", "aliases": ["m", "meta", "mod"], "mask": "Mod1Mask"},
+      {"name": "meta-number", "aliases": ["m1", "m2", "m3", "m4", "m5", "meta1", "meta2", "meta3", "meta4", "meta5", "mod1", "mod2", "mod3", "mod4", "mod5"], "masks": ["Mod1Mask", "Mod2Mask", "Mod3Mask", "Mod4Mask", "Mod5Mask"]},
+      {"name": "none", "aliases": [], "mask": "0"}
+    ],
+    "matching": [
+      "The vertical bar is only a separator; modifier and context tokens are ORed, and an empty modifier list means mask zero.",
+      "A binding is installed independently into every selected concrete context. An empty context list installs nothing. all expands to the six visible contexts and excludes name/internal contexts.",
+      "Runtime state is masked by global mods_used and then compared for exact equality with the binding mask; extra significant modifiers prevent a match.",
+      "mods_used initially contains Shift, Control, and Mod1. Mod2 through Mod5 and Lock are ignored until any configured binding names them; after that they become globally significant, so Caps Lock no longer matches a non-Lock binding.",
+      "Pointer dispatch indexes exactly one button/context/masked-modifier slot, with a later declaration replacing that slot; it tries the slot's action or menu first, then DefaultFunction. Key dispatch requires exact keysym, exact masked modifiers, and exact context or C_NAME. New unique key/context/modifier triples are prepended (reverse first-declaration order), while redeclaring an exact triple replaces that node in place.",
+      "A name-context key uses case-sensitive prefix matching and executes for every match in the first successful category: title, else resource name, else resource class; each executes with frame context. If no key binding matches, key presses on managed decoration/icon-manager surfaces are forwarded to the client."
+    ],
+    "evidence": [
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 319, "text": "keys            : /* Empty */"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 323, "text": "key             : META                  { mods |= Mod1Mask; }"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 327, "text": "                | META number           { if ($2 < 1 || $2 > 5) {"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 343, "text": "context         : WINDOW                { cont |= C_WINDOW_BIT; }"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 350, "text": "                | ALL                   { cont |= C_ALL_BITS; }"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 367, "text": "                | string                { Name = $1; cont |= C_NAME_BIT; }"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 777, "text": "    for (i = 0; i < NUM_CONTEXTS; i++) {"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 795, "text": "    mods_used |= (unsigned) mods;"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 593, "text": "    modifier = (Event.xkey.state & mods_used);"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 597, "text": "        if (key->keysym == ks &&"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 621, "text": "                for (Tmp_win = Scr->TwmRoot.next; Tmp_win != NULL;"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 631, "text": "                /* now try the res_name */"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 646, "text": "                /* now try the res_class */"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1911, "text": "    modifier = (Event.xbutton.state & mods_used);"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1917, "text": "    if (Scr->Mouse[Event.xbutton.button][Context][modifier].func == F_MENU) {"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 188, "text": "    /* see if there already is a key defined for this context */"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 196, "text": "        tmp->next = Scr->FuncKeyRoot.next;"}
+    ]
+  },
+  "fallback_contract": {
+    "default_function": "Stored from one action. On an otherwise unbound pointer press in a valid context, a configured menu is opened or its action is executed. Despite the manual's key-or-button wording, HandleKeyPress has no DefaultFunction fallback. Zero/unset does nothing.",
+    "window_function": "When a TwmWindows F_POPUP item is selected, execute the configured action on that window with frame context. When unset, deiconify and raise the selected window. F_MENU is not specially stored for WindowFunction and reaches no ExecuteFunction case.",
+    "evidence": [
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 251, "text": "                | DEFAULT_FUNCTION action { Scr->DefaultFunction.func = $2;"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 267, "text": "                | WINDOW_FUNCTION action { Scr->WindowFunction.func = $2;"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1930, "text": "    else if (Scr->DefaultFunction.func != 0) {"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1357, "text": "    case F_POPUP:"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1364, "text": "        else {"}
+    ]
+  },
+  "ordering_and_interruption": {
+    "named_functions": [
+      "Function entries are appended in configuration order and ExecuteFunction traverses first-to-next, recursively executing f.function calls in place.",
+      "Function names are case-sensitive. A missing function warns and returns continue=true.",
+      "There is no recursion-depth or cycle guard in upstream twm 1.0.13.1.",
+      "At root, NeedToDefer scans only the immediate entries for its fixed target-requiring set; it does not descend through nested f.function entries.",
+      "f.deltastop is the only ordinary action that returns continue=false, and only when WindowMoved is true. It stops its immediate loop. An inner f.function consumes that stop and itself returns true, so interruption does not propagate to an outer function.",
+      "Cancel at ExecuteFunction entry returns true, so cancellation skips that action but does not itself stop a named-function loop."
+    ],
+    "menus": [
+      "A menu highlights only non-title rows. Moving into the right half of an f.menu row opens its submenu at that row; returning to the parent unmaps one submenu level.",
+      "At most ten menus may be mapped. Attempting to exceed MAXMENUDEPTH rings the minor-error bell once while remaining over the same item.",
+      "Button release activates the one ActiveItem, then all menu ancestors are popped unless the action deferred selection through RootFunction. Releasing with no active row cancels the menu without executing an action.",
+      "A second pointer press during an active non-menu operation sets Cancel and restores the original opaque-move geometry; an active menu is popped first."
+    ],
+    "evidence": [
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 565, "text": "function_entry  : action                { AddToMenu(root, empty, Action, NULL, $1,"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1229, "text": "    if (Cancel)"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1775, "text": "            for (mitem = mroot->first; mitem != NULL; mitem = mitem->next) {"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1776, "text": "                if (!ExecuteFunction(mitem->func, mitem->action, w,"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 2245, "text": "    for (mitem = root->first; mitem != NULL; mitem = mitem->next) {"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 562, "text": "        if (ActiveItem && ActiveItem->func == F_MENU &&"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 568, "text": "            if (MenuDepth < MAXMENUDEPTH) {"},
+      {"member": "twm-1.0.13.1/src/menus.h", "line": 148, "text": "#define MAXMENUDEPTH    10      /* max number of nested menus */"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1599, "text": "    if (ActiveMenu != NULL && RootFunction == 0) {"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1631, "text": "            if (RootFunction == 0) {"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1720, "text": "    /* pop down the menu, if any */"},
+      {"member": "twm-1.0.13.1/src/events.c", "line": 1730, "text": "        Cancel = TRUE;"}
+    ]
+  },
+  "command_execution": {
+    "configuration_decoding": "The lexer accepts a double-quoted string with backslash escapes. RemoveDQuote removes the outer quotes, translates n/b/r/t/f, octal and hex escapes, removes backslash-newline, and otherwise removes the backslash while retaining the escaped character.",
+    "f_exec": "The fully decoded string is passed verbatim to system(), so upstream always invokes the implementation's command processor (normally /bin/sh -c), and shell quoting/metacharacters are interpreted there. The exit status is ignored. DISPLAY is temporarily rewritten to the invoking twm screen and restored afterward.",
+    "bang_alias": "The lexical ! shorthand returns FSKEYWORD/F_EXEC and therefore has identical decoding and launch behavior to f.exec.",
+    "f_startwm": "The decoded string is passed as the -c argument in execlp('/bin/sh', 'sh', '-c', action). A successful exec replaces twm; failure warns and returns.",
+    "f_restart_and_twmrc": "Both execvp the original Argv directly without a shell after rebordering clients.",
+    "evidence": [
+      {"member": "twm-1.0.13.1/src/lex.l", "line": 100, "text": "string                          \\\"([^\"]|\\\\.)*\\\""},
+      {"member": "twm-1.0.13.1/src/lex.l", "line": 124, "text": "\"!\"                             { yylval.num = F_EXEC; return FSKEYWORD; }"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 648, "text": "string          : STRING                { ptr = strdup($1);"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 672, "text": "    for (i = str + 1, o = str; *i && *i != '\\\"'; o++) {"},
+      {"member": "twm-1.0.13.1/src/gram.y", "line": 732, "text": "            case '\\n':"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1278, "text": "        execvp(*Argv, Argv);"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 1908, "text": "        Execute(action);"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 2185, "text": "        execlp(\"/bin/sh\", \"sh\", \"-c\", action, (void *) NULL);"},
+      {"member": "twm-1.0.13.1/src/menus.c", "line": 2330, "text": "    (void) system(s);"}
+    ]
+  }
+}
