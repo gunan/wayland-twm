@@ -354,8 +354,11 @@ def wait_initial_geometry(
     repeats = 0
     latest = state
     while time.monotonic() < deadline:
-        time.sleep(0.25)
-        latest = wait_final_state(control, titles, 15, 0.1)
+        # STATE is several hundred KiB at this scale.  Leave a real no-poll
+        # interval so the Xwayland association queue can drain instead of
+        # manufacturing a short-lived, partially processed "stable" sample.
+        time.sleep(5)
+        latest = wait_final_state(control, titles, 15, 0.25)
         current = rectangle_signature(latest)
         if current == previous:
             repeats += 1
