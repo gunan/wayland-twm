@@ -6959,7 +6959,17 @@ static bool test_capture_ppm(struct server *server, const char *path,
 		wlr_scene_get_scene_output(server->scene, output->wlr);
 	struct wlr_output_state state;
 	wlr_output_state_init(&state);
-	if (scene_output == NULL || !wlr_scene_output_build_state(scene_output, &state, NULL) ||
+	char cursor_role[sizeof(server->cursor_role)];
+	(void)snprintf(cursor_role, sizeof(cursor_role), "%s", server->cursor_role);
+	/* Screenshot contracts compare compositor-owned window pixels.  Exclude the
+	 * independently timed software pointer overlay, then restore its role after
+	 * the render state has captured immutable output pixels. */
+	wlr_cursor_set_buffer(server->cursor, NULL, 0, 0, 1.0f);
+	bool built = scene_output != NULL &&
+		wlr_scene_output_build_state(scene_output, &state, NULL);
+	server->cursor_role[0] = '\0';
+	set_cursor_role(server, cursor_role);
+	if (!built ||
 		state.buffer == NULL) {
 		snprintf(error, error_size, "unable to render output");
 		wlr_output_state_finish(&state);
