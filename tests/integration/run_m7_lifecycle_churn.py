@@ -24,7 +24,9 @@ OPERATIONS_PER_CYCLE = 5
 OPERATION_COUNT = CYCLE_COUNT * OPERATIONS_PER_CYCLE
 OPERATION_KINDS = ("deiconify", "iconify", "rename", "destroy", "recreate")
 # Exactly 16 by 16 allocation cells: all 256 icons must fill the region.
-REGION = (0, 256, 2048, 1024)
+GRID = (76, 21)
+REGION = (0, 192, 1216, 336)
+OUTPUT = (1216, 528)
 
 
 def base_title(index: int, generation: int) -> str:
@@ -124,6 +126,13 @@ def self_test() -> None:
         raise RuntimeError("deterministic final model lost a window")
     if sum(generations) != CYCLE_COUNT:
         raise RuntimeError("deterministic final generation count is wrong")
+    columns, extra_width = divmod(REGION[2], GRID[0])
+    rows, extra_height = divmod(REGION[3], GRID[1])
+    if (extra_width != 0 or extra_height != 0 or
+            columns * rows != WINDOW_COUNT):
+        raise RuntimeError("the live icon region is not exactly 256 cells")
+    if REGION[0] + REGION[2] > OUTPUT[0] or REGION[1] + REGION[3] > OUTPUT[1]:
+        raise RuntimeError("the live icon region escapes the headless output")
     tampered = operations[:-1]
     try:
         validate_schedule(tampered)
@@ -311,6 +320,7 @@ def wait_trace_kinds(
 
 def wait_final_state(
     control: Control, titles: list[str], deadline_seconds: float = 15,
+    poll_seconds: float = 0.02,
 ) -> dict[str, object]:
     deadline = time.monotonic() + deadline_seconds
     latest: dict[str, object] = {}
@@ -322,7 +332,7 @@ def wait_final_state(
         icon_titles = {str(item["title"]) for item in latest["icon_views"]}
         if window_titles == wanted and entry_labels == wanted and icon_titles == wanted:
             return latest
-        time.sleep(0.005)
+        time.sleep(poll_seconds)
     raise RuntimeError("compositor did not converge after recreate: " + repr(latest))
 
 
@@ -351,9 +361,10 @@ def config_text() -> str:
         "NoGrabServer\n"
         "NoTitle\n"
         "ShowIconManager\n"
-        "IconManagerGeometry \"2048x5+0+0\" 32\n"
+        f"IconManagerGeometry \"{OUTPUT[0]}x5+0+0\" 32\n"
         "StartIconified { \"M7Churn\" }\n"
-        "IconRegion \"2048x1024+0+256\" North West 128 64\n"
+        f"IconRegion \"{REGION[2]}x{REGION[3]}+{REGION[0]}+{REGION[1]}\" "
+        f"North West {GRID[0]} {GRID[1]}\n"
         "IconFont \"fixed\"\n"
         "IconManagerFont \"fixed\"\n"
         "IconBorderWidth 1\n"
@@ -413,7 +424,7 @@ def run(arguments: argparse.Namespace) -> None:
             control = Control(control_path, compositor)
             control.command("SET ANIMATION_MS 0")
             control.command("SET PLACEMENT_SEED 0")
-            control.command("OUTPUT 2048 1280")
+            control.command(f"OUTPUT {OUTPUT[0]} {OUTPUT[1]}")
             display = wait_display(control, display_marker)
             client_environment = environment.copy()
             client_environment["DISPLAY"] = display
@@ -426,7 +437,9 @@ def run(arguments: argparse.Namespace) -> None:
             titles = [base_title(index, 0) for index in range(WINDOW_COUNT)]
             live_generations = [0] * WINDOW_COUNT
             manager_order = list(range(WINDOW_COUNT))
-            state = wait_final_state(control, titles, 120)
+            # A full STATE response grows to hundreds of kilobytes.  Polling it
+            # continuously can starve the Xwayland association event stream.
+            state = wait_final_state(control, titles, 120, 0.25)
             initial_rectangles, entry_ids = validate_state(
                 state, titles, manager_order, None
             )

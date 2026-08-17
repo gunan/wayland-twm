@@ -32,6 +32,24 @@ static unsigned long named_pixel(Display *display, const char *name) {
 	return screen.pixel;
 }
 
+static void wait_mapped(Display *display, Window window) {
+	for (unsigned int attempt = 0; attempt < 1500; ++attempt) {
+		while (XPending(display) != 0) {
+			XEvent event;
+			XNextEvent(display, &event);
+			if (event.type == MapNotify && event.xmap.window == window) return;
+		}
+		fd_set descriptors;
+		FD_ZERO(&descriptors);
+		FD_SET(ConnectionNumber(display), &descriptors);
+		struct timeval timeout = {.tv_sec = 0, .tv_usec = 10000};
+		int result = select(ConnectionNumber(display) + 1, &descriptors,
+			NULL, NULL, &timeout);
+		if (result < 0 && errno != EINTR) fail("select failed while mapping");
+	}
+	fail("normal client did not map");
+}
+
 static void set_metadata(Display *display, struct client_window *client,
 		int x, int y, int width, int height) {
 	XClassHint class_hint = {
@@ -68,13 +86,15 @@ int main(void) {
 		0, named_pixel(display, "#101010"), named_pixel(display, "#904828"));
 	set_metadata(display, &clients[0], 30, 80, 120, 70);
 	set_metadata(display, &clients[1], 180, 80, 120, 70);
-	for (size_t index = 0; index < 2; ++index) {
+	for (size_t index = 0; index < 2; ++index)
 		XSelectInput(display, clients[index].window,
 			ExposureMask | StructureNotifyMask);
-		XMapWindow(display, clients[index].window);
-		XSync(display, False);
-	}
-	/* StartIconified legitimately suppresses a client MapNotify under twm. */
+	XMapWindow(display, clients[0].window);
+	XSync(display, False);
+	wait_mapped(display, clients[0].window);
+	/* StartIconified legitimately suppresses Bravo's MapNotify under twm. */
+	XMapWindow(display, clients[1].window);
+	XSync(display, False);
 	puts("READY");
 
 	bool running = true;
