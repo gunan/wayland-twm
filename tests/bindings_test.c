@@ -253,6 +253,30 @@ static void later_overlaps_win_deterministically(void) {
 	assert(wtwm_bindings_select(named, 2, &trigger) == NULL);
 	alpha.title = "Beta editor";
 	assert(wtwm_bindings_select(named, 2, &trigger) == &named[1]);
+
+	/* A different modifier occupies a distinct upstream AddFuncKey slot. */
+	struct wtwm_binding named_modifiers[] = {
+		key_binding("F8", 0, WTWM_CONTEXT_WINDOW, "Alpha", WTWM_ACTION_RAISE),
+		key_binding("F8", WTWM_MOD_SHIFT, WTWM_CONTEXT_WINDOW, "Beta",
+			WTWM_ACTION_LOWER),
+	};
+	alpha.title = "Alpha editor";
+	trigger.client = &alpha;
+	trigger.modifiers = 0;
+	assert(wtwm_bindings_select(named_modifiers, 2, &trigger) ==
+		&named_modifiers[0]);
+	trigger.modifiers = WTWM_MOD_SHIFT;
+	assert(wtwm_bindings_select(named_modifiers, 2, &trigger) == NULL);
+
+	/* C_NAME and the concrete event context are also distinct slots. */
+	struct wtwm_binding named_and_root[] = {
+		key_binding("F8", 0, WTWM_CONTEXT_ROOT, NULL, WTWM_ACTION_BEEP),
+		key_binding("F8", 0, WTWM_CONTEXT_WINDOW, "Beta", WTWM_ACTION_LOWER),
+	};
+	trigger.modifiers = 0;
+	trigger.context = WTWM_CONTEXT_ROOT;
+	assert(wtwm_bindings_select(named_and_root, 2, &trigger) ==
+		&named_and_root[0]);
 }
 
 static void misses_and_repeated_triggers_are_stateless(void) {

@@ -77,6 +77,12 @@ const struct wtwm_binding *wtwm_bindings_select(
 		bool named = named_binding(binding);
 		if (!same_trigger(binding, trigger) ||
 			binding->modifiers != (trigger->modifiers & used_modifiers)) continue;
+		/*
+		 * Reference AddFuncKey identifies a C_NAME slot by keysym and modifiers;
+		 * win_name is replacement data, not part of the slot key.  config.c
+		 * currently retains different selectors, so suppress the older records
+		 * even when the effective later selector finds no client.
+		 */
 		bool named_match = named && !named_slot_seen &&
 			named_client_matches(binding->window_name, trigger->client);
 		if (named && !named_slot_seen) named_slot_seen = true;
