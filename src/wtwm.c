@@ -3163,10 +3163,19 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 		}
 		if (named != NULL) {
 			size_t selector_length = strlen(named->window_name);
+			size_t client_count = 0;
+			struct toplevel *item;
+			wl_list_for_each(item, &server->toplevels, link) ++client_count;
+			struct toplevel **clients = client_count == 0 ? NULL :
+				calloc(client_count, sizeof(*clients));
+			if (client_count != 0 && clients == NULL) return false;
+			size_t client_index = 0;
+			wl_list_for_each(item, &server->toplevels, link)
+				clients[client_index++] = item;
 			for (unsigned category = 0; category < 3; ++category) {
 				bool matched = false;
-				struct toplevel *item, *temporary;
-				wl_list_for_each_safe(item, temporary, &server->toplevels, link) {
+				for (client_index = 0; client_index < client_count; ++client_index) {
+					item = clients[client_index];
 					if (!item->mapped || item->placement_pending) continue;
 					struct wtwm_client_identity identity = toplevel_identity(item);
 					const char *value = category == 0 ?
@@ -3182,8 +3191,12 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 					server->action_from_key = previous_from_key;
 					matched = true;
 				}
-				if (matched) return true;
+				if (matched) {
+					free(clients);
+					return true;
+				}
 			}
+			free(clients);
 		}
 	}
 	struct wtwm_binding_trigger trigger = {
