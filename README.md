@@ -11,10 +11,12 @@ The project is currently an **0.1 development release**, suitable for nested
 testing. It already has a working wlroots compositor core, classic server-side
 titlebars and window names, click-to-focus, interactive move/resize, root and
 window menus, xdg-shell windows, clipboard plumbing, multi-output layout, and
-a portable `.twmrc` parser. The stock `twm` 1.0.13.1 `system.twmrc` and all
-three upstream sample files parse successfully. Icon-manager UI, Xwayland, and
-several uncommon actions remain release blockers for a claim of drop-in
-compatibility.
+a portable `.twmrc` parser. Xwayland clients share the managed stack, and
+compositor-owned icons and icon managers implement the reference allocation,
+ordering, and navigation model. The stock `twm` 1.0.13.1 `system.twmrc` and all
+three upstream sample files parse successfully. Lifecycle/output translations,
+hardening, and final differential certification remain release blockers for a
+claim of drop-in compatibility.
 
 ## Build
 

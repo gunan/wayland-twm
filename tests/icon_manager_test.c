@@ -69,9 +69,19 @@ static void insertion_sorting_and_layout(void) {
 	add_entry(&state, 10, 6, "alpha");
 	const uint64_t stable_equal[] = {5, 2, 3, 6, 4, 1};
 	assert_order(&state, 10, stable_equal, 6);
+	assert(wtwm_icon_manager_entry_update(&state, 4, 10, "Alpha") ==
+		WTWM_ICON_MANAGER_APPLIED);
+	assert(wtwm_icon_manager_set_case_sensitive(&state, 10, false) ==
+		WTWM_ICON_MANAGER_APPLIED);
+	const uint64_t folded[] = {5, 2, 3, 4, 6, 1};
+	assert_order(&state, 10, folded, 6);
+	assert(wtwm_icon_manager_set_case_sensitive(&state, 10, true) ==
+		WTWM_ICON_MANAGER_APPLIED);
+	const uint64_t sensitive_again[] = {4, 5, 2, 3, 6, 1};
+	assert_order(&state, 10, sensitive_again, 6);
 	assert(wtwm_icon_manager_entry_update(&state, 1, 10, "00-delta") ==
 		WTWM_ICON_MANAGER_APPLIED);
-	const uint64_t renamed[] = {1, 5, 2, 3, 6, 4};
+	const uint64_t renamed[] = {1, 4, 5, 2, 3, 6};
 	assert_order(&state, 10, renamed, 6);
 
 	assert(wtwm_icon_manager_set_columns(&state, 10, 4) ==

@@ -46,6 +46,7 @@ struct wtwm_icon_manager {
 	size_t entry_count;
 	size_t order[WTWM_ICON_MANAGER_MAX_ENTRIES];
 	bool sorted;
+	bool case_sensitive;
 	bool visible;
 };
 
@@ -81,6 +82,9 @@ enum wtwm_icon_manager_result wtwm_icon_manager_set_columns(
 	struct wtwm_icon_manager_state *state, uint64_t identity, size_t columns);
 enum wtwm_icon_manager_result wtwm_icon_manager_set_sorted(
 	struct wtwm_icon_manager_state *state, uint64_t identity, bool sorted);
+enum wtwm_icon_manager_result wtwm_icon_manager_set_case_sensitive(
+	struct wtwm_icon_manager_state *state, uint64_t identity,
+	bool case_sensitive);
 enum wtwm_icon_manager_result wtwm_icon_manager_sort(
 	struct wtwm_icon_manager_state *state, uint64_t identity);
 

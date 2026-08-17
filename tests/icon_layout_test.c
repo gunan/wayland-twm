@@ -332,6 +332,47 @@ static void test_invalid_operations_and_regions(void) {
 	wtwm_icon_layout_destroy(NULL);
 }
 
+static void test_randomized_lifecycle_churn(void) {
+	enum { WINDOW_COUNT = 256, OPERATION_COUNT = 2000 };
+	struct wtwm_icon_layout_region geometry = region(0, 0, 640, 640,
+		WTWM_ICON_LAYOUT_NORTH, WTWM_ICON_LAYOUT_WEST, 20, 20);
+	struct wtwm_icon_layout *layout = wtwm_icon_layout_create(&geometry, 1);
+	assert(layout != NULL);
+	bool occupied[WINDOW_COUNT] = {false};
+	uint32_t random = UINT32_C(0x1c07b3a5);
+	for (unsigned operation = 0; operation < OPERATION_COUNT; ++operation) {
+		random = random * UINT32_C(1664525) + UINT32_C(1013904223);
+		unsigned slot = random % WINDOW_COUNT;
+		uint64_t key = (uint64_t)slot + 1;
+		if (occupied[slot]) {
+			assert(wtwm_icon_layout_release(layout, key));
+			occupied[slot] = false;
+		} else {
+			int width = 1 + (int)((random >> 8) % 19u);
+			int height = 1 + (int)((random >> 16) % 19u);
+			(void)allocate(layout, key, width, height);
+			occupied[slot] = true;
+		}
+		if (operation % 100 != 0) continue;
+		for (unsigned i = 0; i < WINDOW_COUNT; ++i) {
+			if (!occupied[i]) continue;
+			struct wtwm_icon_layout_placement first;
+			assert(wtwm_icon_layout_lookup(layout, (uint64_t)i + 1, &first));
+			for (unsigned j = i + 1; j < WINDOW_COUNT; ++j) {
+				if (!occupied[j]) continue;
+				struct wtwm_icon_layout_placement second;
+				assert(wtwm_icon_layout_lookup(layout, (uint64_t)j + 1,
+					&second));
+				assert(!placements_overlap(first, second));
+			}
+		}
+	}
+	for (unsigned i = 0; i < WINDOW_COUNT; ++i)
+		if (occupied[i]) assert(wtwm_icon_layout_release(layout, (uint64_t)i + 1));
+	assert(wtwm_icon_layout_allocation_count(layout) == 0);
+	wtwm_icon_layout_destroy(layout);
+}
+
 int main(void) {
 	test_config_conversion();
 	test_malformed_config();
@@ -340,5 +381,6 @@ int main(void) {
 	test_release_reuse_and_coalescing();
 	test_stable_sequence();
 	test_invalid_operations_and_regions();
+	test_randomized_lifecycle_churn();
 	return 0;
 }

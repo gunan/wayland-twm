@@ -144,6 +144,21 @@ icon_manager_test = executable(
   dependencies: icon_manager_dep,
 )
 test('twm icon-manager model', icon_manager_test)
+test(
+  'Milestone 7 icon runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m7_icon_runtime.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'reference twm icon behavior contract',
+  find_program('python3'),
+  args: [files('tests/reference/validate_reference_icon_contract.py')],
+)
 
 geometry_lib = static_library(
   'wtwm-geometry-lib',
@@ -704,6 +719,7 @@ if wlroots.found()
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
   xcb = dependency('xcb')
+  x11 = dependency('x11')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
@@ -824,6 +840,12 @@ if wlroots.found()
     'wtwm-xwayland-bridge-client',
     'tests/integration/xwayland_bridge_client.c',
     dependencies: xcb,
+    install: false,
+  )
+  wtwm_m5_visual_client = executable(
+    'wtwm-m5-visual-client',
+    'tests/integration/m5_visual_client.c',
+    dependencies: x11,
     install: false,
   )
   wtwm_xwayland_geometry_matrix_client = executable(
@@ -995,6 +1017,18 @@ if wlroots.found()
       '-B', files('tests/integration/run_m6_actions.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 7 icons and icon managers integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m7_icons.py'),
+      '--compositor', wtwm_test_compositor,
+      '--bridge-client', wtwm_xwayland_bridge_client,
+      '--visual-client', wtwm_m5_visual_client,
     ],
     timeout: 120,
     is_parallel: false,

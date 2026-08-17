@@ -149,3 +149,14 @@ and X11 clients, including live title mutations and an iconify/deiconify action
 cycle. It checks STATE and TRACE structural invariants continuously
 and compares the normalized histories without freezing focus or stacking
 outcomes that belong to the focused interaction compatibility tests.
+
+`run_m7_icons.py` starts two X11 fixture clients on a two-output headless wtwm
+session. It checks `StartIconified`, `IconifyByUnmapping`, configured/forced and
+client-supplied image precedence, collision-free region placement, manager
+matching and sorting, custom negative-output geometry, row activation,
+iconify/deiconify clicks, directional and cross-manager warps, show/hide, live
+icon-name reorder, animation traces, and a rendered screenshot. The portable
+allocator and manager tests add full/partial regions, release/reuse, malformed
+inputs, capacity churn, selection repair, and wrapped grid navigation. The
+frozen `reference/icons/twm-1.0.13.1/icon-contract.json` validator ties those
+assertions to exact reference source and manual anchors.

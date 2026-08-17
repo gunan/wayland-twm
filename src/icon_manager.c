@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "wtwm/icon_manager.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -76,9 +77,22 @@ static void repack(struct wtwm_icon_manager_state *state,
 		manager->entry_count : manager->columns;
 }
 
+static int compare_labels(const char *left, const char *right,
+		bool case_sensitive) {
+	if (case_sensitive) return strcmp(left, right);
+	while (*left != '\0' && *right != '\0') {
+		int result = tolower((unsigned char)*left) -
+			tolower((unsigned char)*right);
+		if (result != 0) return result;
+		++left;
+		++right;
+	}
+	return (unsigned char)*left - (unsigned char)*right;
+}
+
 static int compare_entries(const struct wtwm_icon_manager_entry *left,
-		const struct wtwm_icon_manager_entry *right) {
-	int result = strcmp(left->label, right->label);
+		const struct wtwm_icon_manager_entry *right, bool case_sensitive) {
+	int result = compare_labels(left->label, right->label, case_sensitive);
 	if (result != 0) return result;
 	if (left->insertion_serial < right->insertion_serial) return -1;
 	if (left->insertion_serial > right->insertion_serial) return 1;
@@ -92,7 +106,8 @@ static bool sort_order(struct wtwm_icon_manager_state *state,
 		size_t slot = manager->order[i];
 		size_t position = i;
 		while (position > 0 && compare_entries(&state->entries[slot],
-				&state->entries[manager->order[position - 1]]) < 0) {
+				&state->entries[manager->order[position - 1]],
+				manager->case_sensitive) < 0) {
 			manager->order[position] = manager->order[position - 1];
 			--position;
 			changed = true;
@@ -118,6 +133,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_add(
 	manager->identity = identity;
 	manager->columns = columns;
 	manager->sorted = sorted;
+	manager->case_sensitive = true;
 	manager->visible = visible;
 	(void)snprintf(manager->label, sizeof(manager->label), "%s", label);
 	return WTWM_ICON_MANAGER_APPLIED;
@@ -195,6 +211,18 @@ enum wtwm_icon_manager_result wtwm_icon_manager_set_sorted(
 	return WTWM_ICON_MANAGER_APPLIED;
 }
 
+enum wtwm_icon_manager_result wtwm_icon_manager_set_case_sensitive(
+		struct wtwm_icon_manager_state *state, uint64_t identity,
+		bool case_sensitive) {
+	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
+	if (manager->case_sensitive == case_sensitive)
+		return WTWM_ICON_MANAGER_UNCHANGED;
+	manager->case_sensitive = case_sensitive;
+	if (manager->sorted) (void)sort_order(state, manager);
+	return WTWM_ICON_MANAGER_APPLIED;
+}
+
 static size_t free_entry_slot(const struct wtwm_icon_manager_state *state) {
 	for (size_t i = 0; i < WTWM_ICON_MANAGER_MAX_ENTRIES; ++i) {
 		if (!state->entries[i].occupied) return i;
@@ -209,7 +237,7 @@ static void insert_slot(struct wtwm_icon_manager_state *state,
 		position = 0;
 		while (position < manager->entry_count &&
 				compare_entries(&state->entries[manager->order[position]],
-					&state->entries[slot]) <= 0)
+					&state->entries[slot], manager->case_sensitive) <= 0)
 			++position;
 	}
 	if (position < manager->entry_count) {
@@ -504,7 +532,8 @@ bool wtwm_icon_manager_validate(const struct wtwm_icon_manager_state *state,
 					memchr(entry->label, '\0', sizeof(entry->label)) == NULL)
 				return invalid(error, error_size, "invalid entry");
 			if (manager->sorted && j != 0 && compare_entries(
-					&state->entries[manager->order[j - 1]], entry) > 0)
+					&state->entries[manager->order[j - 1]], entry,
+					manager->case_sensitive) > 0)
 				return invalid(error, error_size, "unsorted manager");
 			if (entry->identity == manager->selected_entry_identity)
 				selected_found = true;

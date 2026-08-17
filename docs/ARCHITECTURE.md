@@ -13,6 +13,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
        bindings.c / actions.c / command.c / interaction.c
        (portable trigger, action, launch, and gesture decisions)
                               │
+              icon_layout.c / icon_manager.c
+       (portable allocation, ordering, and navigation state)
+                              │
                               v
                      DRM, nested Wayland, or X11 backend
 ```
@@ -66,6 +69,17 @@ during motion. Release or second-button abort is the single terminal boundary,
 which also resumes a bounded function-continuation stack so `f.deltastop`
 observes the completed asynchronous interaction. Unmap and destruction clear
 both the session and any continuation before releasing the toplevel.
+
+Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
+the reference first-fit region allocator, including gravity splits, grid-cell
+rounding, collision reservations, and release coalescing; the compositor only
+converts output layout geometry and supplies each rendered outer icon size.
+`src/icon_manager.c` owns fixed-capacity manager membership, stable or sorted
+ordering, partial-row coordinates, selection repair, and wrapped navigation.
+The compositor adapter resolves client/window-list rules, renders manager rows,
+and maps scene hits back to the `icon` and `iconmgr` binding contexts. Copied
+X11 icon pixels never outlive their toplevel, and manager entries and region
+reservations are removed at the same unmanage boundary as focus and stacking.
 
 The installed binary is called `wtwm`, not `twm`. The Wayland-session desktop
 file is also namespaced, so installing the package is co-installable and
