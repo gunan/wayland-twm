@@ -426,33 +426,33 @@ Exit criteria:
 
 Implementation work:
 
-- [ ] Implement compositor-owned icon windows with reference text, borders, colors,
+- [x] Implement compositor-owned icon windows with reference text, borders, colors,
   and images.
-- [ ] Complete `IconifyByUnmapping`, icon-window mapping, `ForceIcons`,
+- [x] Complete `IconifyByUnmapping`, icon-window mapping, `ForceIcons`,
   `UnknownIcon`, and `IconDirectory`.
-- [ ] Implement icon regions, gravity, placement direction, grid behavior, and
+- [x] Implement icon regions, gravity, placement direction, grid behavior, and
   collision handling.
-- [ ] Implement per-window icon selection and supplied client icons.
-- [ ] Complete single and multiple icon managers, including window matching,
+- [x] Implement per-window icon selection and supplied client icons.
+- [x] Complete single and multiple icon managers, including window matching,
   geometry and columns, sorting, show and hide rules, active-row highlighting,
   focus and pointer interaction, and all directional and cross-manager
   navigation functions.
-- [ ] Match `StartIconified`, iconify/deiconify animation, and associated raise
+- [x] Match `StartIconified`, iconify/deiconify animation, and associated raise
   behavior.
 
 Testing:
 
-- [ ] Compare icon placement for identical creation and destruction sequences.
-- [ ] Exercise full and partially occupied icon regions.
-- [ ] Test multiple icon managers across outputs.
-- [ ] Compare icon and icon-manager screenshots and navigation traces.
-- [ ] Repeatedly iconify, deiconify, close, and recreate large window sets.
+- [x] Compare icon placement for identical creation and destruction sequences.
+- [x] Exercise full and partially occupied icon regions.
+- [x] Test multiple icon managers across outputs.
+- [x] Compare icon and icon-manager screenshots and navigation traces.
+- [x] Repeatedly iconify, deiconify, close, and recreate large window sets.
 
 Exit criteria:
 
-- [ ] Icon placement and manager ordering match reference `twm`.
-- [ ] Every icon-related directive and action is covered.
-- [ ] Long-running icon lifecycle tests produce no stale entries or overlapping
+- [x] Icon placement and manager ordering match reference `twm`.
+- [x] Every icon-related directive and action is covered.
+- [x] Long-running icon lifecycle tests produce no stale entries or overlapping
   allocations.
 
 ### Milestone 8: Reconcile Wayland-specific lifecycle and screen behavior
