@@ -101,12 +101,38 @@ def key(control: Control, code: int) -> None:
     control.command(f"KEY {code} release")
 
 
-def ppm_color_count(path: Path) -> int:
+def ppm_structure(path: Path, state: dict[str, object]) -> dict[str, int]:
     data = path.read_bytes()
     if not data.startswith(b"P6\n"):
         raise RuntimeError("icon screenshot is not a binary PPM")
-    _, payload = data.split(b"\n255\n", 1)
-    return len({payload[index:index + 3] for index in range(0, len(payload), 3)})
+    header, payload = data.split(b"\n255\n", 1)
+    dimensions = header.splitlines()[1].split()
+    if len(dimensions) != 2:
+        raise RuntimeError("icon screenshot dimensions are invalid")
+    width, height = (int(value) for value in dimensions)
+    if len(payload) != width * height * 3:
+        raise RuntimeError("icon screenshot pixel payload is invalid")
+
+    rectangles = [
+        item for item in state["icon_managers"] if item["visible"]
+    ] + list(state["icon_views"])
+    visible = 0
+    structured = 0
+    for item in rectangles:
+        left = max(0, int(item["x"]))
+        top = max(0, int(item["y"]))
+        right = min(width, int(item["x"]) + int(item["width"]))
+        bottom = min(height, int(item["y"]) + int(item["height"]))
+        if left >= right or top >= bottom:
+            continue
+        visible += 1
+        colors = {
+            payload[(y * width + x) * 3:(y * width + x + 1) * 3]
+            for y in range(top, bottom) for x in range(left, right)
+        }
+        if len(colors) >= 2:
+            structured += 1
+    return {"visible": visible, "structured": structured}
 
 
 def run(compositor_binary: Path, bridge_binary: Path,
@@ -335,8 +361,12 @@ def run(compositor_binary: Path, bridge_binary: Path,
             capture = temporary / "icons.ppm"
             control.command("WAIT 2")
             control.command(f"CAPTURE {capture}")
-            if ppm_color_count(capture) < 4:
-                raise RuntimeError("icon/manager screenshot lacks expected visual structure")
+            structure = ppm_structure(capture, control.state())
+            if structure["visible"] < 2 or structure["structured"] < 2:
+                raise RuntimeError(
+                    "icon/manager screenshot lacks expected visual structure: "
+                    f"{structure!r}"
+                )
             events = control.trace()["events"]
             if not any(event["event"] == "animation" for event in events):
                 raise RuntimeError("Zoom iconification did not emit an animation transition")
