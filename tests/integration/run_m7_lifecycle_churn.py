@@ -431,13 +431,22 @@ def run(arguments: argparse.Namespace) -> None:
             "LC_ALL": "C", "XDG_RUNTIME_DIR": str(runtime),
             "WLR_RENDERER": "pixman",
         })
+        # The compositor emits enough lifecycle diagnostics during 2,000
+        # operations to fill an unread pipe and block its event loop.  Keep the
+        # complete logs in seekable files and collect them after shutdown.
+        compositor_stdout_file = tempfile.TemporaryFile(
+            mode="w+", encoding="utf-8"
+        )
+        compositor_stderr_file = tempfile.TemporaryFile(
+            mode="w+", encoding="utf-8"
+        )
         compositor = subprocess.Popen(
             [str(arguments.compositor), "-f", str(config), "-s", startup,
              "--test-control", str(control_path),
              "--test-socket", f"wtwm-m7-churn-{os.getpid()}",
              "--test-backend", "headless"],
-            env=environment, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            env=environment, text=True, stdout=compositor_stdout_file,
+            stderr=compositor_stderr_file,
         )
         control: Control | None = None
         client: subprocess.Popen[str] | None = None
@@ -557,10 +566,16 @@ def run(arguments: argparse.Namespace) -> None:
             if compositor.poll() is None:
                 compositor.terminate()
             try:
-                compositor_stdout, compositor_stderr = compositor.communicate(timeout=10)
+                compositor.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 compositor.kill()
-                compositor_stdout, compositor_stderr = compositor.communicate(timeout=5)
+                compositor.wait(timeout=5)
+            compositor_stdout_file.seek(0)
+            compositor_stdout = compositor_stdout_file.read()
+            compositor_stdout_file.close()
+            compositor_stderr_file.seek(0)
+            compositor_stderr = compositor_stderr_file.read()
+            compositor_stderr_file.close()
             arguments.log.write_text(
                 f"client stdout:\n{client_stdout}\nclient stderr:\n{client_stderr}\n"
                 f"compositor stdout:\n{compositor_stdout}\n"
