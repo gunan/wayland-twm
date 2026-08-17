@@ -1402,8 +1402,9 @@ static void update_decoration(struct toplevel *toplevel) {
 		toplevel->decorated && clipped_text_width > 0);
 	wlr_scene_node_set_position(&toplevel->title_text->node,
 		layout.text.x, layout.text.y);
-	wlr_scene_node_set_position(&toplevel->content->node,
-		geometry.content_x, geometry.content_y);
+	if (toplevel->content != NULL)
+		wlr_scene_node_set_position(&toplevel->content->node,
+			geometry.content_x, geometry.content_y);
 	sync_toplevel_popups(toplevel);
 }
 
