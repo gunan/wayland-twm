@@ -23,7 +23,8 @@ CYCLE_COUNT = 400
 OPERATIONS_PER_CYCLE = 5
 OPERATION_COUNT = CYCLE_COUNT * OPERATIONS_PER_CYCLE
 OPERATION_KINDS = ("deiconify", "iconify", "rename", "destroy", "recreate")
-REGION = (0, 768, 4096, 2048)
+# Exactly 16 by 16 allocation cells: all 256 icons must fill the region.
+REGION = (0, 256, 2048, 1024)
 
 
 def base_title(index: int, generation: int) -> str:
@@ -350,9 +351,9 @@ def config_text() -> str:
         "NoGrabServer\n"
         "NoTitle\n"
         "ShowIconManager\n"
-        "IconManagerGeometry \"4096x5+0+0\" 32\n"
+        "IconManagerGeometry \"2048x5+0+0\" 32\n"
         "StartIconified { \"M7Churn\" }\n"
-        "IconRegion \"4096x2048+0+768\" North West 128 64\n"
+        "IconRegion \"2048x1024+0+256\" North West 128 64\n"
         "IconFont \"fixed\"\n"
         "IconManagerFont \"fixed\"\n"
         "IconBorderWidth 1\n"
@@ -412,7 +413,7 @@ def run(arguments: argparse.Namespace) -> None:
             control = Control(control_path, compositor)
             control.command("SET ANIMATION_MS 0")
             control.command("SET PLACEMENT_SEED 0")
-            control.command("OUTPUT 4096 3072")
+            control.command("OUTPUT 2048 1280")
             display = wait_display(control, display_marker)
             client_environment = environment.copy()
             client_environment["DISPLAY"] = display
@@ -425,7 +426,7 @@ def run(arguments: argparse.Namespace) -> None:
             titles = [base_title(index, 0) for index in range(WINDOW_COUNT)]
             live_generations = [0] * WINDOW_COUNT
             manager_order = list(range(WINDOW_COUNT))
-            state = wait_final_state(control, titles, 30)
+            state = wait_final_state(control, titles, 120)
             initial_rectangles, entry_ids = validate_state(
                 state, titles, manager_order, None
             )

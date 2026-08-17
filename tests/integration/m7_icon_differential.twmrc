@@ -9,6 +9,8 @@ NoRaiseOnResize
 UsePPosition "on"
 ShowIconManager
 ForceIcons
+# Compare manager row content without reference twm's self-managed title frame.
+NoTitle { "TWM Icon Manager" }
 BorderWidth 1
 IconBorderWidth 2
 TitleButtonBorderWidth 0
