@@ -277,11 +277,13 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
                 raise RuntimeError(f"dynamic windows menu did not open: {windows!r}")
             control.command(
                 f"POINTER {int(windows['x']) + int(windows['width']) // 2} "
-                f"{int(windows['y']) + int(windows['row_height']) * 3 // 2}"
+                f"{int(windows['y']) + int(windows['row_height']) * 5 // 2}"
             )
             control.command("BUTTON 272 release")
-            if sum(bool(item["iconified"]) for item in control.state()["windows"]) != 1:
-                raise RuntimeError("WindowFunction did not iconify the selected window")
+            state = control.state()
+            if (sum(bool(item["iconified"]) for item in state["windows"]) != 1 or
+                    state["icon_views"][0]["title"] != "focus-a"):
+                raise RuntimeError(f"WindowFunction iconified the wrong window: {state!r}")
 
             # Reference twm rejects key-initiated resize before selecting a client.
             control.command("KEY 64 press")
@@ -303,7 +305,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             control.command("BUTTON 274 release")
             moved_icon = control.state()["icon_views"][0]
             if (moved_icon["x"], moved_icon["y"]) == (icon["x"], icon["y"]):
-                raise RuntimeError("f.move did not move the icon view")
+                raise RuntimeError(f"f.move did not move the icon view: {control.state()!r}")
             moved_point = (int(moved_icon["x"]) + int(moved_icon["width"]) // 2,
                            int(moved_icon["y"]) + int(moved_icon["height"]) // 2)
             click(control, moved_point, 273)
