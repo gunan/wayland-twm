@@ -15,6 +15,7 @@ REQUIRED = {
         "wtwm_render_argb_icon",
         "read_xwayland_wm_hints_icon",
         "manage_bufferless_start_iconified",
+        "start_iconified_match",
         "XCB_ATOM_WM_CLASS",
         "initialize_icon_managers",
         "sync_icon_manager_toplevel",

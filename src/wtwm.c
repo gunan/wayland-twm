@@ -206,6 +206,7 @@ struct toplevel {
 	bool decorated;
 	bool associated;
 	bool rules_initialized;
+	bool start_iconified_match;
 	bool auto_raise;
 	bool iconify_by_unmapping;
 	bool icon_region_allocated;
@@ -817,8 +818,9 @@ static bool initialize_toplevel_rules(struct toplevel *toplevel) {
 
 static bool should_start_iconified(const struct toplevel *toplevel,
 		bool initial_rules) {
-	return initial_rules && toplevel_matches(
-		&toplevel->server->config.start_iconified_windows, toplevel);
+	return initial_rules && (toplevel->start_iconified_match ||
+		toplevel_matches(&toplevel->server->config.start_iconified_windows,
+			toplevel));
 }
 
 static void sync_toplevel_popups(struct toplevel *toplevel);
@@ -5895,6 +5897,7 @@ static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
 			toplevel->xwayland->override_redirect ||
 			!bufferless_start_iconified_matches(toplevel, start_iconified))
 		return;
+	toplevel->start_iconified_match = true;
 	initialize_xwayland_border(toplevel);
 	read_xwayland_icon_name(toplevel);
 	read_xwayland_net_wm_icon(toplevel);
