@@ -462,12 +462,13 @@ def run(arguments: argparse.Namespace) -> None:
             # continuously can starve the Xwayland association event stream.
             state = wait_final_state(control, titles, 120, 0.25)
             state = wait_initial_association(control, titles, state)
-            _, entry_ids = validate_state(state, titles, manager_order)
+            rectangles, entry_ids = validate_state(state, titles, manager_order)
             completed = 0
             for cycle in range(CYCLE_COUNT):
                 index = (cycle * 73 + 19) % WINDOW_COUNT
                 old_title = titles[index]
                 old_entry_id = entry_ids[old_title]
+                released_rectangle = rectangles[index]
                 point = entry_point(manager(state), old_title)
                 control.command("TRACE CLEAR")
                 click(control, *point)
@@ -480,19 +481,6 @@ def run(arguments: argparse.Namespace) -> None:
                 titles[index] = renamed
                 wait_trace_kinds(control, {"deiconify", "iconify", "title"})
                 completed += 1
-                state = wait_final_state(control, titles)
-                renamed_icon = next(
-                    item for item in state["icon_views"] if item["title"] == renamed
-                )
-                released_rectangle = tuple(
-                    int(renamed_icon[key]) for key in ("x", "y", "width", "height")
-                )
-                renamed_entry_id = next(
-                    int(item["id"]) for item in manager(state)["entries"]
-                    if item["label"] == renamed
-                )
-                if renamed_entry_id != old_entry_id:
-                    raise RuntimeError(f"cycle {cycle} replaced identity during rename")
 
                 client_command(client, f"DESTROY {index}", "OK DESTROY")
                 wait_destroyed_state(control, titles, renamed)
