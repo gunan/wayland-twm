@@ -5750,12 +5750,13 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	} else if (wlr_surface_has_buffer(toplevel->xwayland->surface)) {
 		/* Xwayland may commit its buffer and queue a frame callback before
 		 * wlroots pairs WL_SURFACE_ID with this X window. The Xwayland role
-		 * then misses that commit and remains unmapped while waiting for the
-		 * callback. Complete it only after our association listeners exist so
-		 * Xwayland produces a post-association commit for the role to map. */
+		 * then misses that commit. Complete any pending callback after our
+		 * listeners exist, and manage the retained buffer without depending on
+		 * Xwayland producing another commit. */
 		struct timespec now;
 		if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
 			wlr_surface_send_frame_done(toplevel->xwayland->surface, &now);
+		map_xwayland_toplevel(toplevel);
 	}
 }
 

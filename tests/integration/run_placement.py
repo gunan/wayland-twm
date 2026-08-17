@@ -256,32 +256,38 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
                     ):
                         raise RuntimeError(f"placement confirm missing for {title}: {trace!r}")
             if remap:
-                before = window(state, "placement-remap")
-                assert client.stdin is not None
-                client.stdin.write("UNMAP\n")
-                client.stdin.flush()
-                wait_line(client, "UNMAPPED")
-                wait_xwayland_unmapped(
-                    control, int(before["xid"]), "placement-remap"
-                )
-                client.stdin.write("REMAP\n")
-                client.stdin.flush()
-                wait_line(client, "REMAPPED")
-                deadline = time.monotonic() + 10
-                while time.monotonic() < deadline:
-                    state = control.state()
-                    try:
-                        after = window(state, "placement-remap")
-                    except KeyError:
-                        pass
+                for cycle in range(3):
+                    before = window(state, "placement-remap")
+                    assert client.stdin is not None
+                    client.stdin.write("UNMAP\n")
+                    client.stdin.flush()
+                    wait_line(client, "UNMAPPED")
+                    wait_xwayland_unmapped(
+                        control, int(before["xid"]), "placement-remap"
+                    )
+                    client.stdin.write("REMAP\n")
+                    client.stdin.flush()
+                    wait_line(client, "REMAPPED")
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        state = control.state()
+                        try:
+                            after = window(state, "placement-remap")
+                        except KeyError:
+                            pass
+                        else:
+                            if after["placement"] == "remapped":
+                                break
+                        time.sleep(0.01)
                     else:
-                        if after["placement"] == "remapped":
-                            break
-                    time.sleep(0.01)
-                else:
-                    raise RuntimeError(f"remap state never stabilized: {state!r}")
-                if (after["x"], after["y"]) != (before["x"], before["y"]):
-                    raise RuntimeError(f"remap moved the frame: before={before!r} after={after!r}")
+                        raise RuntimeError(
+                            f"remap cycle {cycle + 1} never stabilized: {state!r}"
+                        )
+                    if (after["x"], after["y"]) != (before["x"], before["y"]):
+                        raise RuntimeError(
+                            f"remap cycle {cycle + 1} moved the frame: "
+                            f"before={before!r} after={after!r}"
+                        )
         finally:
             if client is not None and client.poll() is None:
                 client.terminate()
