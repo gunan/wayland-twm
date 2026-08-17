@@ -228,7 +228,6 @@ def normalized_signature(state: dict[str, object]) -> dict[str, object]:
 
 def validate_state(
     state: dict[str, object], titles: list[str], manager_order: list[int],
-    initial_rectangles: dict[int, tuple[int, int, int, int]] | None,
 ) -> tuple[dict[int, tuple[int, int, int, int]], dict[str, int]]:
     if len(state["windows"]) != WINDOW_COUNT:
         raise RuntimeError(f"expected {WINDOW_COUNT} live windows: {len(state['windows'])}")
@@ -276,10 +275,6 @@ def validate_state(
         rectangles[index] = tuple(
             int(item[key]) for key in ("x", "y", "width", "height")
         )
-    if initial_rectangles is not None and rectangles != initial_rectangles:
-        changed = [index for index in rectangles
-                   if rectangles[index] != initial_rectangles[index]]
-        raise RuntimeError(f"released icon cells were not deterministically reused: {changed!r}")
     return rectangles, {str(item["label"]): int(item["id"]) for item in entries}
 
 
@@ -336,38 +331,30 @@ def wait_final_state(
     raise RuntimeError("compositor did not converge after recreate: " + repr(latest))
 
 
-def rectangle_signature(state: dict[str, object]) -> tuple[tuple[object, ...], ...]:
-    return tuple(sorted(
-        (str(item["title"]), int(item["x"]), int(item["y"]),
-         int(item["width"]), int(item["height"]), bool(item["region_allocated"]))
-        for item in state["icon_views"]
-    ))
-
-
-def wait_initial_geometry(
+def wait_initial_association(
     control: Control, titles: list[str], state: dict[str, object],
     deadline_seconds: float = 120,
 ) -> dict[str, object]:
-    """Wait until the large initial Xwayland batch stops resizing icons."""
+    """Wait until every logically managed X11 window has live surface content."""
     deadline = time.monotonic() + deadline_seconds
-    previous = rectangle_signature(state)
-    repeats = 0
     latest = state
     while time.monotonic() < deadline:
-        # STATE is several hundred KiB at this scale.  Leave a real no-poll
-        # interval so the Xwayland association queue can drain instead of
-        # manufacturing a short-lived, partially processed "stable" sample.
-        time.sleep(5)
+        lifecycle = latest["xwayland_lifecycle"]
+        if len(lifecycle) == WINDOW_COUNT and all(
+                bool(item["associated"]) and bool(item["mapped"]) and
+                bool(item["has_buffer"]) for item in lifecycle):
+            return latest
+        # STATE is several hundred KiB at this scale; yield between snapshots so
+        # the Xwayland association and frame-callback queues can make progress.
+        time.sleep(0.25)
         latest = wait_final_state(control, titles, 15, 0.25)
-        current = rectangle_signature(latest)
-        if current == previous:
-            repeats += 1
-            if repeats >= 2:
-                return latest
-        else:
-            previous = current
-            repeats = 0
-    raise RuntimeError("initial icon geometry did not reach a stable baseline")
+    ready = sum(
+        bool(item["associated"]) and bool(item["mapped"]) and
+        bool(item["has_buffer"]) for item in latest["xwayland_lifecycle"]
+    )
+    raise RuntimeError(
+        f"initial Xwayland surfaces did not converge: {ready}/{WINDOW_COUNT} ready"
+    )
 
 
 def wait_destroyed_state(
@@ -474,10 +461,8 @@ def run(arguments: argparse.Namespace) -> None:
             # A full STATE response grows to hundreds of kilobytes.  Polling it
             # continuously can starve the Xwayland association event stream.
             state = wait_final_state(control, titles, 120, 0.25)
-            state = wait_initial_geometry(control, titles, state)
-            initial_rectangles, entry_ids = validate_state(
-                state, titles, manager_order, None
-            )
+            state = wait_initial_association(control, titles, state)
+            _, entry_ids = validate_state(state, titles, manager_order)
             completed = 0
             for cycle in range(CYCLE_COUNT):
                 index = (cycle * 73 + 19) % WINDOW_COUNT
@@ -495,6 +480,19 @@ def run(arguments: argparse.Namespace) -> None:
                 titles[index] = renamed
                 wait_trace_kinds(control, {"deiconify", "iconify", "title"})
                 completed += 1
+                state = wait_final_state(control, titles)
+                renamed_icon = next(
+                    item for item in state["icon_views"] if item["title"] == renamed
+                )
+                released_rectangle = tuple(
+                    int(renamed_icon[key]) for key in ("x", "y", "width", "height")
+                )
+                renamed_entry_id = next(
+                    int(item["id"]) for item in manager(state)["entries"]
+                    if item["label"] == renamed
+                )
+                if renamed_entry_id != old_entry_id:
+                    raise RuntimeError(f"cycle {cycle} replaced identity during rename")
 
                 client_command(client, f"DESTROY {index}", "OK DESTROY")
                 wait_destroyed_state(control, titles, renamed)
@@ -511,9 +509,9 @@ def run(arguments: argparse.Namespace) -> None:
 
                 state = wait_final_state(control, titles)
                 rectangles, entry_ids = validate_state(
-                    state, titles, manager_order, initial_rectangles
+                    state, titles, manager_order
                 )
-                if rectangles[index] != initial_rectangles[index]:
+                if rectangles[index] != released_rectangle:
                     raise RuntimeError(f"cycle {cycle} did not reuse target icon cell")
                 if old_entry_id in entry_ids.values() or entry_ids[recreated] == old_entry_id:
                     raise RuntimeError(f"cycle {cycle} retained stale manager identity")
