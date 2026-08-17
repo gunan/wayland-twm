@@ -65,6 +65,8 @@ def stack_index(state: dict[str, object], title: str) -> int:
 
 
 def run(compositor_binary: Path, client_binary: Path) -> None:
+    compositor_binary = compositor_binary.resolve()
+    client_binary = client_binary.resolve()
     with tempfile.TemporaryDirectory(prefix="wtwm-m6-actions-") as directory:
         temporary = Path(directory)
         runtime = temporary / "runtime"
