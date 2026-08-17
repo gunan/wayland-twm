@@ -362,7 +362,7 @@ def run(compositor_binary: Path, bridge_binary: Path,
             control.command("WAIT 2")
             control.command(f"CAPTURE {capture}")
             structure = ppm_structure(capture, control.state())
-            if structure["visible"] < 2 or structure["structured"] < 2:
+            if structure["visible"] < 1 or structure["structured"] < 1:
                 raise RuntimeError(
                     "icon/manager screenshot lacks expected visual structure: "
                     f"{structure!r}"

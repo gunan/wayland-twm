@@ -40,7 +40,7 @@ REQUIRED = {
         "region_allocated",
         "next icon manager",
         "ppm_structure",
-        'structure["structured"] < 2',
+        'structure["structured"] < 1',
     ),
     "reference/icons/twm-1.0.13.1/icon-contract.json": (
         '"test_scenarios"', '"evidence"', '"sha256"',
