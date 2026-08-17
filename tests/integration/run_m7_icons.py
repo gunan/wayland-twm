@@ -100,6 +100,9 @@ def ppm_color_count(path: Path) -> int:
 
 def run(compositor_binary: Path, bridge_binary: Path,
         visual_binary: Path) -> None:
+    compositor_binary = compositor_binary.resolve()
+    bridge_binary = bridge_binary.resolve()
+    visual_binary = visual_binary.resolve()
     with tempfile.TemporaryDirectory(prefix="wtwm-m7-icons-") as directory:
         temporary = Path(directory)
         runtime = temporary / "runtime"

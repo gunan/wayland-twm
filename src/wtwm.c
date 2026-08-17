@@ -1906,7 +1906,8 @@ static void rebuild_icon_layout(struct server *server) {
 
 static void refresh_toplevel_icon(struct toplevel *toplevel) {
 	bool recreate = toplevel->icon_tree != NULL;
-	bool visible = toplevel->iconified && !toplevel->iconify_by_unmapping;
+	bool visible = toplevel->mapped && toplevel->tree != NULL &&
+		toplevel->iconified && !toplevel->iconify_by_unmapping;
 	if (!recreate && !visible) return;
 	destroy_icon_scene(toplevel);
 	if (!visible || !create_icon_scene(toplevel)) return;
