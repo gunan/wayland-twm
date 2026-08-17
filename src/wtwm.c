@@ -5833,16 +5833,33 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 		width, height);
 }
 
+static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
+	const struct wtwm_config *config = &toplevel->server->config;
+	const struct wtwm_string_list *start_iconified =
+		&config->start_iconified_windows;
+	if (toplevel->mapped || toplevel->associated ||
+			toplevel->xwayland->override_redirect ||
+			!toplevel_matches(start_iconified, toplevel))
+		return;
+	initialize_xwayland_border(toplevel);
+	read_xwayland_icon_name(toplevel);
+	read_xwayland_net_wm_icon(toplevel);
+	read_xwayland_wm_hints_icon(toplevel);
+	if (create_xwayland_frame_scene(toplevel)) map_xwayland_toplevel(toplevel);
+}
+
 static void xwayland_set_title(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_title);
 	update_toplevel_metadata(toplevel, true);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void xwayland_set_class(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_class);
 	update_toplevel_metadata(toplevel, false);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void xwayland_set_parent(struct wl_listener *listener, void *data) {
@@ -5999,18 +6016,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	 * windows, so build the logical icon and manager entry directly from X11
 	 * metadata when StartIconified matches.  Association attaches content if
 	 * the window is deiconified later. */
-	const struct wtwm_config *config = &server->config;
-	const struct wtwm_string_list *start_iconified =
-		&config->start_iconified_windows;
-	if (!xwayland->override_redirect &&
-			toplevel_matches(start_iconified, toplevel)) {
-		initialize_xwayland_border(toplevel);
-		read_xwayland_icon_name(toplevel);
-		read_xwayland_net_wm_icon(toplevel);
-		read_xwayland_wm_hints_icon(toplevel);
-		if (create_xwayland_frame_scene(toplevel))
-			map_xwayland_toplevel(toplevel);
-	}
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static struct toplevel *xwayland_toplevel_for_window(struct server *server,

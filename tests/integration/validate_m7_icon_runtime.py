@@ -14,6 +14,7 @@ REQUIRED = {
         "should_iconify_by_unmapping",
         "wtwm_render_argb_icon",
         "read_xwayland_wm_hints_icon",
+        "manage_bufferless_start_iconified",
         "initialize_icon_managers",
         "sync_icon_manager_toplevel",
         "move_icon_manager_selection",
