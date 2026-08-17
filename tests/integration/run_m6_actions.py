@@ -86,12 +86,14 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             'Button4 = : icon : f.resize\n'
             'Button5 = : root : f.warpto "focus-a"\n'
             'Button6 = : root : f.warpnext\n'
+            'Button7 = : frame : f.function "stop-after-move"\n'
             '"F2" = : "focus-" : f.lower\n'
             '"F3" = shift : root : f.menu "root-menu"\n'
             '"F4" = lock : root : f.menu "root-menu"\n'
             '"F6" = : "focus-" : f.resize\n'
             'Function "inner" { f.raise f.lower }\n'
             'Function "outer" { f.function "inner" f.raise }\n'
+            'Function "stop-after-move" { f.move f.deltastop f.lower }\n'
             'Menu "root-menu" {\n'
             '  "Actions" f.title\n'
             '  "Nested" f.menu "child-menu"\n'
@@ -172,6 +174,25 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
                         if event["event"] in {"raise", "lower"}]
             if ordering[-3:] != ["raise", "lower", "raise"]:
                 raise RuntimeError(f"nested function order is wrong: {ordering!r}")
+
+            # A named function pauses for its gesture. Delta-stop continues if
+            # no movement occurred, and stops the same frame after a real move.
+            target = window(control.state(), "focus-a")
+            control.command("TRACE CLEAR")
+            click(control, frame_point(target), 278)
+            stationary = [event["event"] for event in control.trace()["events"]]
+            if "lower" not in stationary:
+                raise RuntimeError(f"stationary f.deltastop did not continue: {stationary!r}")
+            target = window(control.state(), "focus-a")
+            point = frame_point(target)
+            control.command("TRACE CLEAR")
+            control.command(f"POINTER {point[0]} {point[1]}")
+            control.command("BUTTON 278 press")
+            control.command(f"POINTER {point[0] + 30} {point[1] + 20}")
+            control.command("BUTTON 278 release")
+            moved = [event["event"] for event in control.trace()["events"]]
+            if "commit" not in moved or "lower" in moved:
+                raise RuntimeError(f"moved f.deltastop did not interrupt: {moved!r}")
 
             # Full zoom toggles back to the exact saved client geometry.
             before = window(control.state(), "focus-a")

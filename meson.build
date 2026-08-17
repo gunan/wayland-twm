@@ -571,6 +571,17 @@ test(
   ],
 )
 test(
+  'Milestone 6 action implementation matrix',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_m6_implementation_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--config-tool', config_tool,
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 4 trace differential contract',
   find_program('python3'),
   args: [
