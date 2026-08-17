@@ -55,8 +55,8 @@ def frame_point(item: dict[str, object]) -> tuple[int, int]:
 
 
 def right_content_point(item: dict[str, object]) -> tuple[int, int]:
-    return (int(item["content_x"]) + int(item["width"]) - 1,
-            int(item["content_y"]) + int(item["height"]) // 2)
+    return (int(item["x"]) + int(item["content_x"]) + int(item["width"]) - 1,
+            int(item["y"]) + int(item["content_y"]) + int(item["height"]) // 2)
 
 
 def click(control: Control, point: tuple[int, int], code: int) -> None:
