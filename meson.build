@@ -562,6 +562,15 @@ test(
   ],
 )
 test(
+  'reference action behavior contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_action_contract.py'),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 4 trace differential contract',
   find_program('python3'),
   args: [
@@ -661,7 +670,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep, command_dep, bindings_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -926,6 +935,17 @@ if wlroots.found()
     integration_runner,
     args: [
       '-B', files('tests/integration/run_focus_stack.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 6 actions and bindings integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m6_actions.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_focus_stack_x11_client,
     ],
