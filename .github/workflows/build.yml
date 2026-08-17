@@ -236,7 +236,7 @@ jobs:
         run: |
           python3 -B tests/integration/run_m5_visual_differential.py \
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
-            --client /tmp/m7-icon-client \
+            --client /tmp/m5-visual-client \
             --config "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/scenario.twmrc" \
             --baseline "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline" \
             --output /tmp/m5-visual-differential.json \
@@ -258,7 +258,7 @@ jobs:
             --source-root "$GITHUB_WORKSPACE" \
             --reference-twm /tmp/reference-build/twm \
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
-            --client /tmp/m5-visual-client \
+            --client /tmp/m7-icon-client \
             --input-driver /tmp/m4-trace-input \
             --observer /tmp/m7-icon-observer \
             --config "$GITHUB_WORKSPACE/tests/integration/m7_icon_differential.twmrc" \
