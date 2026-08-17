@@ -348,6 +348,9 @@ def run_session(compositor: Path, client_binary: Path, config_text: str,
             wait_line(client, "READY")
             state_window(control)
             state_window(control, "interaction-secondary")
+            # Mapping metadata can precede the first fully hittable Xwayland
+            # scene buffer under debug and sanitizer instrumentation.
+            control.command("WAIT 2")
             control.command("TRACE CLEAR")
             scenario(control)
             assert client.stdin is not None
