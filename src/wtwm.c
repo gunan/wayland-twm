@@ -520,6 +520,7 @@ static void refresh_icon_managers(struct server *server);
 static void sync_icon_manager_toplevel(struct toplevel *toplevel);
 static void rebuild_icon_layout(struct server *server);
 static void finish_icon_animation(struct server *server);
+static void manage_bufferless_start_iconified(struct toplevel *toplevel);
 static bool icon_selector_matches(const struct wtwm_client_identity *identity,
 	const char *selector, unsigned int pass);
 static struct server *xwayland_event_server;
@@ -5715,6 +5716,7 @@ static void xwayland_deferred_sync(void *data) {
 		free(reply);
 	}
 	if (parent_cleared) update_toplevel_metadata(toplevel, false);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void schedule_xwayland_sync(struct toplevel *toplevel) {
@@ -5833,13 +5835,65 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 		width, height);
 }
 
+static char *read_xwayland_property_bytes(struct toplevel *toplevel,
+		xcb_atom_t atom, size_t *length) {
+	*length = 0;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (connection == NULL) return NULL;
+	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+		xcb_get_property(connection, false, toplevel->xwayland->window_id,
+			atom, XCB_ATOM_ANY, 0, 1024), NULL);
+	if (reply == NULL || reply->format != 8) {
+		free(reply);
+		return NULL;
+	}
+	int byte_count = xcb_get_property_value_length(reply);
+	if (byte_count <= 0) {
+		free(reply);
+		return NULL;
+	}
+	char *value = malloc((size_t)byte_count + 1);
+	if (value != NULL) {
+		memcpy(value, xcb_get_property_value(reply), (size_t)byte_count);
+		value[byte_count] = '\0';
+		*length = (size_t)byte_count;
+	}
+	free(reply);
+	return value;
+}
+
+static bool bufferless_start_iconified_matches(struct toplevel *toplevel,
+		const struct wtwm_string_list *patterns) {
+	if (toplevel_matches(patterns, toplevel)) return true;
+	size_t name_length = 0;
+	char *name = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_NAME,
+		&name_length);
+	(void)name_length;
+	size_t class_length = 0;
+	char *class_data = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_CLASS,
+		&class_length);
+	const char *instance = class_data;
+	const char *resource_class = NULL;
+	if (class_data != NULL) {
+		size_t instance_length = strnlen(class_data, class_length);
+		if (instance_length < class_length)
+			resource_class = class_data + instance_length + 1;
+	}
+	bool matched = wtwm_config_match_x11(patterns, name, instance,
+		resource_class);
+	free(name);
+	free(class_data);
+	return matched;
+}
+
 static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
 	const struct wtwm_config *config = &toplevel->server->config;
 	const struct wtwm_string_list *start_iconified =
 		&config->start_iconified_windows;
 	if (toplevel->mapped || toplevel->associated ||
 			toplevel->xwayland->override_redirect ||
-			!toplevel_matches(start_iconified, toplevel))
+			!bufferless_start_iconified_matches(toplevel, start_iconified))
 		return;
 	initialize_xwayland_border(toplevel);
 	read_xwayland_icon_name(toplevel);
@@ -6017,6 +6071,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	 * metadata when StartIconified matches.  Association attaches content if
 	 * the window is deiconified later. */
 	manage_bufferless_start_iconified(toplevel);
+	schedule_xwayland_sync(toplevel);
 }
 
 static struct toplevel *xwayland_toplevel_for_window(struct server *server,
