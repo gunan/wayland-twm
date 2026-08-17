@@ -692,6 +692,15 @@ static void parses_all_actions_as_runtime_dispatchable(void) {
 	for (size_t i = 0; i < 3; ++i)
 		assert(config.functions[0].actions[i].type == WTWM_ACTION_NOP);
 	wtwm_config_finish(&config);
+
+	wtwm_config_init(&config);
+	assert(wtwm_config_parse(&config, "restart-alias",
+		"Button1 = : root : f.restart\n"
+		"Button2 = : root : f.twmrc\n", error, sizeof(error)));
+	assert(config.binding_count == 2);
+	assert(config.bindings[0].action.type == WTWM_ACTION_RESTART);
+	assert(config.bindings[1].action.type == WTWM_ACTION_RESTART);
+	wtwm_config_finish(&config);
 }
 
 static void applies_global_and_exception_rules(void) {

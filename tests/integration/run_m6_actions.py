@@ -81,11 +81,15 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             'Button1 = : root : f.menu "root-menu"\n'
             'Button3 = : frame : f.function "outer"\n'
             'Button4 = : frame : f.fullzoom\n'
+            'Button2 = : icon : f.move\n'
+            'Button3 = : icon : f.iconify\n'
+            'Button4 = : icon : f.resize\n'
             'Button5 = : root : f.warpto "focus-a"\n'
             'Button6 = : root : f.warpnext\n'
             '"F2" = : "focus-" : f.lower\n'
             '"F3" = shift : root : f.menu "root-menu"\n'
             '"F4" = lock : root : f.menu "root-menu"\n'
+            '"F6" = : "focus-" : f.resize\n'
             'Function "inner" { f.raise f.lower }\n'
             'Function "outer" { f.function "inner" f.raise }\n'
             'Menu "root-menu" {\n'
@@ -221,6 +225,33 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             control.command("BUTTON 272 release")
             if sum(bool(item["iconified"]) for item in control.state()["windows"]) != 1:
                 raise RuntimeError("WindowFunction did not iconify the selected window")
+
+            # Reference twm rejects key-initiated resize before selecting a client.
+            control.command("KEY 64 press")
+            if control.state()["interactive"]:
+                raise RuntimeError("a named key binding started f.resize")
+            control.command("KEY 64 release")
+
+            # Icons can be moved, but cannot be resized. f.iconify toggles them back.
+            icon = control.state()["icon_views"][0]
+            icon_point = (int(icon["x"]) + int(icon["width"]) // 2,
+                          int(icon["y"]) + int(icon["height"]) // 2)
+            control.command(f"POINTER {icon_point[0]} {icon_point[1]}")
+            control.command("BUTTON 275 press")
+            if control.state()["interactive"]:
+                raise RuntimeError("f.resize started on an icon")
+            control.command("BUTTON 275 release")
+            control.command("BUTTON 274 press")
+            control.command(f"POINTER {icon_point[0] + 30} {icon_point[1] + 20}")
+            control.command("BUTTON 274 release")
+            moved_icon = control.state()["icon_views"][0]
+            if (moved_icon["x"], moved_icon["y"]) == (icon["x"], icon["y"]):
+                raise RuntimeError("f.move did not move the icon view")
+            moved_point = (int(moved_icon["x"]) + int(moved_icon["width"]) // 2,
+                           int(moved_icon["y"]) + int(moved_icon["height"]) // 2)
+            click(control, moved_point, 273)
+            if control.state()["icon_views"]:
+                raise RuntimeError("f.iconify did not toggle the iconified client")
         finally:
             if client is not None:
                 if client.stdin is not None and client.poll() is None:

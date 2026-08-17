@@ -23,6 +23,7 @@
 #endif
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -48,7 +49,6 @@
 #include <wlr/backend.h>
 #ifdef WTWM_TEST_CONTROL
 #include <drm_fourcc.h>
-#include <fcntl.h>
 #include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
 #include <sys/socket.h>
@@ -351,6 +351,7 @@ struct interaction_session {
 	bool started;
 	bool moved;
 	bool raised;
+	bool icon_move;
 };
 
 struct action_frame {
@@ -364,6 +365,7 @@ struct action_continuation {
 	size_t frame_count;
 	struct toplevel *toplevel;
 	uint32_t context;
+	bool from_key;
 	bool active;
 };
 
@@ -419,6 +421,7 @@ struct server {
 	xcb_atom_t atom_wm_take_focus;
 	xcb_atom_t atom_wm_delete_window;
 	xcb_atom_t atom_wm_save_yourself;
+	xcb_atom_t atom_cut_buffer0;
 	xcb_atom_t atom_wm_normal_hints;
 	xcb_atom_t atom_wm_transient_for;
 	xcb_atom_t atom_wm_icon_name;
@@ -435,6 +438,7 @@ struct server {
 	uint32_t current_input_time_ms;
 	uint32_t last_move_time_ms;
 	bool last_interaction_moved;
+	bool action_from_key;
 	uint64_t frame_sequence;
 	struct toplevel *focus;
 	struct toplevel *xwayland_input_focus;
@@ -488,6 +492,7 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_delete_window = xwayland_atom(connection, "WM_DELETE_WINDOW");
 		server->atom_wm_save_yourself = xwayland_atom(connection,
 			"WM_SAVE_YOURSELF");
+		server->atom_cut_buffer0 = xwayland_atom(connection, "CUT_BUFFER0");
 		server->atom_wm_normal_hints = xwayland_atom(connection, "WM_NORMAL_HINTS");
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
@@ -1861,6 +1866,10 @@ static void show_interaction_outline(struct server *server) {
 		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,
 		toplevel->title_bar_height,
 		toplevel_has_frame(toplevel) && toplevel->decorated, &geometry);
+	int outer_width = server->interaction.icon_move ?
+		server->interaction.preview.width : geometry.outer_width;
+	int outer_height = server->interaction.icon_move ?
+		server->interaction.preview.height : geometry.outer_height;
 	if (server->interaction.outline == NULL) {
 		float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		server->interaction.outline = wlr_scene_tree_create(server->overlay_tree);
@@ -1884,17 +1893,17 @@ static void show_interaction_outline(struct server *server) {
 	wlr_scene_node_set_position(&server->interaction.outline->node,
 		server->interaction.preview.x, server->interaction.preview.y);
 	wlr_scene_rect_set_size(server->interaction.outline_top,
-		geometry.outer_width, 1);
+		outer_width, 1);
 	wlr_scene_rect_set_size(server->interaction.outline_bottom,
-		geometry.outer_width, 1);
+		outer_width, 1);
 	wlr_scene_rect_set_size(server->interaction.outline_left,
-		1, geometry.outer_height);
+		1, outer_height);
 	wlr_scene_rect_set_size(server->interaction.outline_right,
-		1, geometry.outer_height);
+		1, outer_height);
 	wlr_scene_node_set_position(&server->interaction.outline_bottom->node,
-		0, geometry.outer_height > 0 ? geometry.outer_height - 1 : 0);
+		0, outer_height > 0 ? outer_height - 1 : 0);
 	wlr_scene_node_set_position(&server->interaction.outline_right->node,
-		geometry.outer_width > 0 ? geometry.outer_width - 1 : 0, 0);
+		outer_width > 0 ? outer_width - 1 : 0, 0);
 	test_trace_toplevel_event_at(toplevel, "outline",
 		server->cursor_mode == CURSOR_MOVE ? "move" : "resize",
 		server->interaction.preview.x, server->interaction.preview.y,
@@ -1919,7 +1928,8 @@ static uint32_t resize_edges_from_wlr(uint32_t edges) {
 
 static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		uint32_t edges, bool force_move, bool from_titlebar, uint32_t time_msec) {
-	if (toplevel == NULL || !toplevel->mapped || toplevel->iconified) return;
+	if (toplevel == NULL || !toplevel->mapped ||
+			(toplevel->iconified && mode != CURSOR_MOVE)) return;
 	struct server *server = toplevel->server;
 	if (server->grabbed != NULL) return;
 	struct wtwm_frame_geometry geometry;
@@ -1930,16 +1940,16 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	server->last_interaction_moved = false;
 	server->interaction = (struct interaction_session){
 		.original = {
-			.x = toplevel->tree->node.x,
-			.y = toplevel->tree->node.y,
-			.width = toplevel->width,
-			.height = toplevel->height,
+			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
+			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
+			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.preview = {
-			.x = toplevel->tree->node.x,
-			.y = toplevel->tree->node.y,
-			.width = toplevel->width,
-			.height = toplevel->height,
+			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
+			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
+			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.pointer_start_x = server->cursor->x,
 		.pointer_start_y = server->cursor->y,
@@ -1947,6 +1957,7 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.opaque_move = mode == CURSOR_MOVE && server->config.opaque_move,
 		.started = server->config.move_delta <= 0,
 		.intent = INTERACTION_DRAG,
+		.icon_move = toplevel->iconified,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -1955,9 +1966,11 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 			server->interaction.constrained_move = true;
 			server->interaction.constrained_axis = WTWM_AXIS_NONE;
 			double center_x = server->interaction.original.x +
-				geometry.border_width + geometry.frame_width / 2.0;
+				(toplevel->iconified ? server->interaction.original.width / 2.0 :
+				geometry.border_width + geometry.frame_width / 2.0);
 			double center_y = server->interaction.original.y +
-				geometry.border_width + geometry.frame_height / 2.0;
+				(toplevel->iconified ? server->interaction.original.height / 2.0 :
+				geometry.border_width + geometry.frame_height / 2.0);
 			wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 		} else {
 			server->interaction.constrained_axis = WTWM_AXIS_NONE;
@@ -1999,15 +2012,19 @@ static void begin_menu_position(struct toplevel *toplevel, bool force_move,
 	struct server *server = toplevel->server;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
-	double center_x = server->interaction.original.x + geometry.frame_width / 2.0;
-	double center_y = server->interaction.original.y + geometry.frame_height / 2.0;
+	int width = server->interaction.icon_move ?
+		server->interaction.original.width : geometry.frame_width;
+	int height = server->interaction.icon_move ?
+		server->interaction.original.height : geometry.frame_height;
+	double center_x = server->interaction.original.x + width / 2.0;
+	double center_y = server->interaction.original.y + height / 2.0;
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 	set_cursor_role(server, "Move");
 	server->interaction.intent = INTERACTION_MENU_POSITION;
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
-	server->interaction.grab_x = geometry.frame_width / 2.0;
-	server->interaction.grab_y = geometry.frame_height / 2.0;
+	server->interaction.grab_x = width / 2.0;
+	server->interaction.grab_y = height / 2.0;
 	server->interaction.started = server->config.move_delta <= 0;
 	server->interaction.moved = false;
 	server->interaction.preview = server->interaction.original;
@@ -2029,17 +2046,32 @@ static void finish_interactive(struct server *server, bool aborted) {
 	enum cursor_mode mode = server->cursor_mode;
 	clear_interaction_outline(server);
 	if (aborted) {
-		if (mode == CURSOR_MOVE && interaction.opaque_move)
-			set_toplevel_position(toplevel,
-				interaction.original.x, interaction.original.y);
+		if (mode == CURSOR_MOVE && interaction.opaque_move) {
+			if (interaction.icon_move) {
+				toplevel->icon_x = interaction.original.x;
+				toplevel->icon_y = interaction.original.y;
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+			} else {
+				set_toplevel_position(toplevel,
+					interaction.original.x, interaction.original.y);
+			}
+		}
 		test_trace_toplevel_event_at(toplevel, "abort",
 			mode == CURSOR_MOVE ? "move" : "resize",
 			interaction.original.x, interaction.original.y,
 			interaction.original.width, interaction.original.height);
 	} else if (mode == CURSOR_MOVE) {
 		if (!interaction.opaque_move && interaction.started) {
-			set_toplevel_position(toplevel,
-				interaction.preview.x, interaction.preview.y);
+			if (interaction.icon_move) {
+				toplevel->icon_x = interaction.preview.x;
+				toplevel->icon_y = interaction.preview.y;
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+			} else {
+				set_toplevel_position(toplevel,
+					interaction.preview.x, interaction.preview.y);
+			}
 			if (!server->config.no_raise_on_move) raise_toplevel(toplevel);
 		}
 		test_trace_toplevel_event_at(toplevel, "commit", "move",
@@ -2575,8 +2607,11 @@ static void resume_action_continuation(struct server *server) {
 				find_function(server, action->argument));
 			continue;
 		}
+		bool previous_from_key = server->action_from_key;
+		server->action_from_key = continuation->from_key;
 		execute_action(server, continuation->toplevel, action,
 			continuation->context);
+		server->action_from_key = previous_from_key;
 		if (server->grabbed != NULL) return;
 	}
 	memset(continuation, 0, sizeof(*continuation));
@@ -2588,6 +2623,7 @@ static void start_action_function(struct server *server,
 	memset(&server->continuation, 0, sizeof(server->continuation));
 	server->continuation.toplevel = toplevel;
 	server->continuation.context = context;
+	server->continuation.from_key = server->action_from_key;
 	server->continuation.active = true;
 	if (!push_action_frame(&server->continuation, function)) {
 		memset(&server->continuation, 0, sizeof(server->continuation));
@@ -2811,48 +2847,97 @@ static bool send_save_yourself(struct toplevel *toplevel) {
 	return true;
 }
 
-static void reload_config(struct server *server) {
-	struct wtwm_config replacement;
-	wtwm_config_init(&replacement);
-	char error[1024];
-	if (!wtwm_config_load(&replacement, server->config_path, error,
-			sizeof(error))) {
-		wlr_log(WLR_ERROR, "configuration reload rejected: %s", error);
-		wtwm_config_finish(&replacement);
-		return;
+static bool xwayland_root(struct server *server,
+		xcb_connection_t **connection, xcb_window_t *root) {
+	if (server->xwayland == NULL || server->atom_cut_buffer0 == XCB_ATOM_NONE)
+		return false;
+	*connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (*connection == NULL) return false;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(*connection));
+	if (screens.rem == 0) return false;
+	*root = screens.data->root;
+	return true;
+}
+
+static bool store_cut_buffer(struct server *server, const char *bytes,
+		size_t length) {
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (!xwayland_root(server, &connection, &root) || length > UINT32_MAX)
+		return false;
+	xcb_change_property(connection, XCB_PROP_MODE_REPLACE, root,
+		server->atom_cut_buffer0, XCB_ATOM_STRING, 8, (uint32_t)length, bytes);
+	xcb_flush(connection);
+	return true;
+}
+
+static char *fetch_cut_buffer(struct server *server) {
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (!xwayland_root(server, &connection, &root)) return NULL;
+	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+		xcb_get_property(connection, false, root, server->atom_cut_buffer0,
+			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), NULL);
+	if (reply == NULL) return NULL;
+	int length = xcb_get_property_value_length(reply);
+	char *value = length > 0 ? malloc((size_t)length + 1) : NULL;
+	if (value != NULL) {
+		memcpy(value, xcb_get_property_value(reply), (size_t)length);
+		value[length] = '\0';
 	}
-	hide_menu(server);
-	memset(&server->continuation, 0, sizeof(server->continuation));
-	wtwm_config_finish(&server->config);
-	server->config = replacement;
-	struct toplevel *item;
-	wl_list_for_each(item, &server->toplevels, link) {
-		item->rules_initialized = false;
-		(void)initialize_toplevel_rules(item);
-		if (item->title_tree != NULL)
-			wlr_scene_node_destroy(&item->title_tree->node);
-		free(item->title_buttons);
-		item->title_tree = NULL;
-		item->title = NULL;
-		item->focus_mark = NULL;
-		item->title_text = NULL;
-		item->title_buttons = NULL;
-		item->title_button_count = 0;
-		if (!create_title_scene(item)) {
-			wlr_log(WLR_ERROR, "%s", "failed to rebuild title after reload");
-			continue;
-		}
-		set_decorated(item, should_decorate(item));
-		update_title_text(item);
-		update_decoration(item);
+	free(reply);
+	return value;
+}
+
+static char *expand_filename(const char *name) {
+	if (name == NULL) return NULL;
+	if (name[0] != '~') return strdup(name);
+	const char *home = getenv("HOME");
+	if (home == NULL) return NULL;
+	size_t length = strlen(home) + strlen(name) + 2;
+	char *expanded = malloc(length);
+	if (expanded != NULL)
+		(void)snprintf(expanded, length, "%s/%s", home, name + 1);
+	return expanded;
+}
+
+static bool file_to_cut_buffer(struct server *server, const char *name) {
+	char *expanded = expand_filename(name);
+	if (expanded == NULL) return false;
+	int descriptor = open(expanded, O_RDONLY);
+	if (descriptor < 0) {
+		wlr_log_errno(WLR_ERROR, "unable to open cut-buffer file %s", expanded);
+		free(expanded);
+		return false;
 	}
-	reset_cursor(server);
-	schedule_refresh(server);
-	wlr_log(WLR_INFO, "%s", "configuration reloaded atomically");
+	char bytes[4095];
+	ssize_t count = read(descriptor, bytes, sizeof(bytes));
+	close(descriptor);
+	free(expanded);
+	return count > 0 && store_cut_buffer(server, bytes, (size_t)count);
+}
+
+static void cut_text(struct server *server, const char *text) {
+	if (text == NULL) text = "";
+	size_t length = strlen(text);
+	char *line = malloc(length + 2);
+	if (line == NULL) return;
+	memcpy(line, text, length);
+	line[length] = '\n';
+	line[length + 1] = '\0';
+	if (!store_cut_buffer(server, line, length + 1))
+		wlr_log(WLR_DEBUG, "%s",
+			"f.cut has no native Wayland cut-buffer equivalent");
+	free(line);
 }
 
 static void execute_action(struct server *server, struct toplevel *toplevel,
 		const struct wtwm_action *action, uint32_t context) {
+	/* Reference twm refuses f.resize from a key binding and on an icon before
+	 * it enters the select-a-window path. */
+	if (action->type == WTWM_ACTION_RESIZE &&
+			(server->action_from_key || context == WTWM_CONTEXT_ICON)) return;
 	if (toplevel == NULL && context == WTWM_CONTEXT_ROOT &&
 			action_needs_toplevel(action->type)) {
 		server->deferred_root_action = *action;
@@ -2865,7 +2950,16 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_DELTASTOP:
 		break;
 	case WTWM_ACTION_BEEP:
-		wlr_log(WLR_DEBUG, "%s", "f.beep has no Wayland bell protocol");
+		if (server->xwayland != NULL) {
+			xcb_connection_t *connection =
+				wlr_xwayland_get_xwm_connection(server->xwayland);
+			if (connection != NULL) {
+				xcb_bell(connection, 0);
+				xcb_flush(connection);
+				break;
+			}
+		}
+		wlr_log(WLR_DEBUG, "%s", "f.beep has no native Wayland bell protocol");
 		break;
 	case WTWM_ACTION_MOVE: case WTWM_ACTION_FORCEMOVE:
 		begin_interactive(toplevel, CURSOR_MOVE, 0,
@@ -2880,7 +2974,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_LOWER:
 		lower_toplevel(toplevel); break;
 	case WTWM_ACTION_RAISELOWER:
-		raise_lower_toplevel(toplevel);
+		if (!server->last_interaction_moved) raise_lower_toplevel(toplevel);
 		break;
 	case WTWM_ACTION_CIRCLEUP:
 		circulate_toplevels(server, true);
@@ -2889,7 +2983,12 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		circulate_toplevels(server, false);
 		break;
 	case WTWM_ACTION_ICONIFY:
-		set_toplevel_iconified(toplevel, true);
+		if (toplevel != NULL && toplevel->iconified) {
+			set_toplevel_iconified(toplevel, false);
+			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+		} else {
+			set_toplevel_iconified(toplevel, true);
+		}
 		break;
 	case WTWM_ACTION_DEICONIFY:
 		if (toplevel) {
@@ -2915,8 +3014,6 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		show_menu(server, action->argument, toplevel); break;
 	case WTWM_ACTION_FUNCTION: start_action_function(server, toplevel,
 		find_function(server, action->argument), context); break;
-	case WTWM_ACTION_RELOAD:
-		reload_config(server); break;
 	case WTWM_ACTION_REFRESH:
 	case WTWM_ACTION_WINREFRESH:
 		schedule_refresh(server); break;
@@ -2979,11 +3076,18 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 				"f.saveyourself requires X11 WM_SAVE_YOURSELF support");
 		break;
 	case WTWM_ACTION_CUT:
-	case WTWM_ACTION_CUTFILE:
-	case WTWM_ACTION_FILE:
-		wlr_log(WLR_DEBUG, "%s",
-			"legacy X cut-buffer action has no native Wayland equivalent");
+		cut_text(server, action->argument); break;
+	case WTWM_ACTION_CUTFILE: {
+		char *filename = fetch_cut_buffer(server);
+		if (filename != NULL) {
+			filename[strcspn(filename, " \t\r\n")] = '\0';
+			if (filename[0] != '\0') (void)file_to_cut_buffer(server, filename);
+			free(filename);
+		}
 		break;
+	}
+	case WTWM_ACTION_FILE:
+		(void)file_to_cut_buffer(server, action->argument); break;
 	case WTWM_ACTION_COLORMAP:
 		wlr_log(WLR_DEBUG, "%s",
 			"Xwayland owns installed colormaps; f.colormap is a verified no-op");
@@ -3072,7 +3176,10 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 					if (value == NULL || strncmp(value, named->window_name,
 							selector_length) != 0) continue;
 					test_trace_toplevel_event(item, "binding", "frame");
+					bool previous_from_key = server->action_from_key;
+					server->action_from_key = true;
 					execute_action(server, item, &named->action, WTWM_CONTEXT_FRAME);
+					server->action_from_key = previous_from_key;
 					matched = true;
 				}
 				if (matched) return true;
@@ -3093,7 +3200,10 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 	if (toplevel != NULL)
 		test_trace_toplevel_event(toplevel, "binding",
 			binding_context_name(context));
+	bool previous_from_key = server->action_from_key;
+	server->action_from_key = type == WTWM_BINDING_KEY;
 	execute_action(server, toplevel, &binding->action, context);
+	server->action_from_key = previous_from_key;
 	return true;
 }
 
@@ -3233,10 +3343,15 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		int y = (int)(server->cursor->y - interaction->grab_y);
 		if (interaction->constrained_move) {
 			if (interaction->constrained_axis == WTWM_AXIS_NONE) {
-				struct wtwm_frame_geometry geometry;
-				toplevel_geometry(server->grabbed, &geometry);
+				struct wtwm_frame_geometry geometry = {0};
+				if (!interaction->icon_move)
+					toplevel_geometry(server->grabbed, &geometry);
+				int width = interaction->icon_move ?
+					interaction->original.width : geometry.outer_width;
+				int height = interaction->icon_move ?
+					interaction->original.height : geometry.outer_height;
 				interaction->constrained_axis = wtwm_constrained_move_axis(
-					geometry.outer_width, geometry.outer_height,
+					width, height,
 					(int)server->cursor->x - interaction->original.x,
 					(int)server->cursor->y - interaction->original.y);
 			}
@@ -3246,15 +3361,20 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 			else
 				x = interaction->original.x;
 		}
-		struct wtwm_frame_geometry geometry;
-		toplevel_geometry(server->grabbed, &geometry);
+		struct wtwm_frame_geometry geometry = {0};
+		if (!interaction->icon_move)
+			toplevel_geometry(server->grabbed, &geometry);
+		int width = interaction->icon_move ?
+			interaction->original.width : geometry.outer_width;
+		int height = interaction->icon_move ?
+			interaction->original.height : geometry.outer_height;
 		if (server->config.dont_move_off) {
 			struct wlr_box output_box = {0};
 			wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
 			x -= output_box.x;
 			y -= output_box.y;
 			wtwm_clamp_move(output_box.width, output_box.height,
-				geometry.outer_width, geometry.outer_height,
+				width, height,
 				interaction->force_move, &x, &y);
 			x += output_box.x;
 			y += output_box.y;
@@ -3266,7 +3386,13 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 				raise_toplevel(server->grabbed);
 				interaction->raised = true;
 			}
-			set_toplevel_position(server->grabbed, x, y);
+			if (interaction->icon_move) {
+				server->grabbed->icon_x = x;
+				server->grabbed->icon_y = y;
+				wlr_scene_node_set_position(&server->grabbed->icon_tree->node, x, y);
+			} else {
+				set_toplevel_position(server->grabbed, x, y);
+			}
 		} else {
 			show_interaction_outline(server);
 		}

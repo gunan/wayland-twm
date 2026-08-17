@@ -104,7 +104,7 @@ static const struct named_action actions[] = {
 	ACT("f.sorticonmgr", WTWM_ACTION_ICONMGR_SORT),
 	{"f.source", WTWM_ACTION_BEEP, true, WTWM_COMPAT_WAYLAND_TRANSLATED},
 	ACT_ARG("f.startwm", WTWM_ACTION_STARTWM), ACT("f.title", WTWM_ACTION_TITLE),
-	ACT("f.topzoom", WTWM_ACTION_TOPZOOM), ACT("f.twmrc", WTWM_ACTION_RELOAD),
+	ACT("f.topzoom", WTWM_ACTION_TOPZOOM), ACT("f.twmrc", WTWM_ACTION_RESTART),
 	ACT("f.unfocus", WTWM_ACTION_UNFOCUS),
 	ACT("f.upiconmgr", WTWM_ACTION_ICONMGR_UP),
 	ACT("f.version", WTWM_ACTION_VERSION), ACT("f.vlzoom", WTWM_ACTION_LEFTZOOM),
