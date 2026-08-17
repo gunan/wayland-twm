@@ -4660,6 +4660,11 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 		struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
 		struct toplevel *toplevel = toplevel_for_surface(focused);
 		uint32_t context = toplevel ? WTWM_CONTEXT_WINDOW : WTWM_CONTEXT_ROOT;
+		if (server->pointer_context == WTWM_CONTEXT_ICONMGR &&
+				server->pointer_toplevel != NULL) {
+			toplevel = server->pointer_toplevel;
+			context = WTWM_CONTEXT_ICONMGR;
+		}
 		for (int i = 0; i < count && !handled; ++i) {
 			char name[128];
 			xkb_keysym_get_name(symbols[i], name, sizeof(name));

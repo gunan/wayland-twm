@@ -1798,7 +1798,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5131",
+              "location": "src/wtwm.c:5136",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -1960,7 +1960,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5131",
+              "location": "src/wtwm.c:5136",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -3181,7 +3181,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4666",
+              "location": "src/wtwm.c:4671",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3702,7 +3702,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:7112",
+              "location": "src/wtwm.c:7117",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]
@@ -3810,7 +3810,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4666",
+              "location": "src/wtwm.c:4671",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3940,7 +3940,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5085",
+              "location": "src/wtwm.c:5090",
               "contains": "set_decorated(toplevel, should_decorate(toplevel));"
             }
           ]
