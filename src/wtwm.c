@@ -8,6 +8,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/bindings.h"
 #include "wtwm/command.h"
 #include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
@@ -2575,6 +2576,21 @@ static uint32_t current_modifiers(struct server *server) {
 	if (wlr & WLR_MODIFIER_CTRL) mods |= WTWM_MOD_CONTROL;
 	if (wlr & WLR_MODIFIER_ALT) mods |= WTWM_MOD_META1;
 	if (wlr & WLR_MODIFIER_LOGO) mods |= WTWM_MOD_META4;
+	static const struct {
+		const char *name;
+		uint32_t modifier;
+	} xkb_modifiers[] = {
+		{"Mod1", WTWM_MOD_META1},
+		{"Mod2", WTWM_MOD_META2},
+		{"Mod3", WTWM_MOD_META3},
+		{"Mod4", WTWM_MOD_META4},
+		{"Mod5", WTWM_MOD_META5},
+	};
+	for (size_t i = 0; i < sizeof(xkb_modifiers) / sizeof(xkb_modifiers[0]); ++i) {
+		if (xkb_state_mod_name_is_active(keyboard->xkb_state,
+				xkb_modifiers[i].name, XKB_STATE_MODS_EFFECTIVE) > 0)
+			mods |= xkb_modifiers[i].modifier;
+	}
 	return mods;
 }
 
@@ -2593,22 +2609,59 @@ static const char *binding_context_name(uint32_t context) {
 static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 	unsigned button, const char *key, uint32_t context, struct toplevel *toplevel) {
 	uint32_t modifiers = current_modifiers(server);
-	for (size_t i = 0; i < server->config.binding_count; ++i) {
-		const struct wtwm_binding *binding = &server->config.bindings[i];
-		uint32_t compared_modifiers = modifiers;
-		if ((binding->modifiers & WTWM_MOD_LOCK) == 0)
-			compared_modifiers &= ~WTWM_MOD_LOCK;
-		if (binding->type != type || binding->modifiers != compared_modifiers ||
-			(binding->contexts & context) == 0) continue;
-		if (type == WTWM_BINDING_BUTTON && binding->button != button) continue;
-		if (type == WTWM_BINDING_KEY && strcasecmp(binding->key, key) != 0) continue;
-		if (toplevel != NULL)
-			test_trace_toplevel_event(toplevel, "binding",
-				binding_context_name(context));
-		execute_action(server, toplevel, &binding->action, context);
-		return true;
+	uint32_t used = wtwm_bindings_used_modifiers(server->config.bindings,
+		server->config.binding_count);
+	if (type == WTWM_BINDING_KEY) {
+		/* C_NAME is one independent key/modifier slot.  Its selector is applied
+		 * to every managed client, by title then resource/app-id then class. */
+		const struct wtwm_binding *named = NULL;
+		for (size_t i = server->config.binding_count; i > 0; --i) {
+			const struct wtwm_binding *candidate = &server->config.bindings[i - 1];
+			if (candidate->type == type && candidate->window_name[0] != '\0' &&
+					key != NULL && strcmp(candidate->key, key) == 0 &&
+					candidate->modifiers == (modifiers & used)) {
+				named = candidate;
+				break;
+			}
+		}
+		if (named != NULL) {
+			size_t selector_length = strlen(named->window_name);
+			for (unsigned category = 0; category < 3; ++category) {
+				bool matched = false;
+				struct toplevel *item;
+				wl_list_for_each(item, &server->toplevels, link) {
+					if (!item->mapped || item->placement_pending) continue;
+					struct wtwm_client_identity identity = toplevel_identity(item);
+					const char *value = category == 0 ?
+						(identity.name != NULL ? identity.name : identity.title) :
+						(category == 1 ? (identity.resource_name != NULL ?
+						identity.resource_name : identity.app_id) : identity.resource_class);
+					if (value == NULL || strncmp(value, named->window_name,
+							selector_length) != 0) continue;
+					test_trace_toplevel_event(item, "binding", "frame");
+					execute_action(server, item, &named->action, WTWM_CONTEXT_FRAME);
+					matched = true;
+				}
+				if (matched) return true;
+			}
+		}
 	}
-	return false;
+	struct wtwm_binding_trigger trigger = {
+		.type = type,
+		.button = button,
+		.key = key,
+		.modifiers = modifiers,
+		.context = context,
+		.client = NULL,
+	};
+	const struct wtwm_binding *binding = wtwm_bindings_select(
+		server->config.bindings, server->config.binding_count, &trigger);
+	if (binding == NULL) return false;
+	if (toplevel != NULL)
+		test_trace_toplevel_event(toplevel, "binding",
+			binding_context_name(context));
+	execute_action(server, toplevel, &binding->action, context);
+	return true;
 }
 
 static struct hit_result desktop_at(struct server *server, double lx, double ly) {

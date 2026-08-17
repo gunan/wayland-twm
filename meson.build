@@ -197,6 +197,25 @@ command_test = executable(
 )
 test('twm command execution planning', command_test)
 
+bindings_lib = static_library(
+  'wtwm-bindings-lib',
+  'src/bindings.c',
+  include_directories: inc,
+  dependencies: config_dep,
+)
+bindings_dep = declare_dependency(
+  link_with: bindings_lib,
+  include_directories: inc,
+  dependencies: config_dep,
+)
+
+bindings_test = executable(
+  'bindings-test',
+  'tests/bindings_test.c',
+  dependencies: bindings_dep,
+)
+test('twm input binding selection', bindings_test)
+
 lifecycle_model_lib = static_library(
   'wtwm-lifecycle-model-lib',
   'src/lifecycle_model.c',
@@ -642,7 +661,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep, command_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep, command_dep, bindings_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -650,7 +669,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
-      command_dep, wlroots, font_dep,
+      command_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep,
       pangocairo,
