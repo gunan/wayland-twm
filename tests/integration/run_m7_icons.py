@@ -285,7 +285,11 @@ def run(compositor_binary: Path, bridge_binary: Path,
             bravo_entry = next(entry for entry in default["entries"]
                                if entry["label"] == "Reference Bravo")
             if int(selected) != int(bravo_entry["id"]):
-                raise RuntimeError("forward icon-manager navigation selected the wrong row")
+                raise RuntimeError(
+                    "forward icon-manager navigation selected the wrong row: "
+                    f"selected={selected!r}, expected={bravo_entry!r}, "
+                    f"state={control.state()!r}"
+                )
 
             control.command("POINTER 630 470")
             key(control, 64)  # F6: named f.warptoiconmgr from root
