@@ -164,6 +164,15 @@ test(
   ],
 )
 test(
+  'Milestone 7 deterministic lifecycle churn contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m7_lifecycle_churn.py'),
+    '--self-test',
+  ],
+)
+test(
   'reference twm icon behavior contract',
   find_program('python3'),
   args: [files('tests/reference/validate_reference_icon_contract.py')],
@@ -855,6 +864,12 @@ if wlroots.found()
     'wtwm-m5-visual-client',
     'tests/integration/m5_visual_client.c',
     dependencies: x11,
+    install: false,
+  )
+  wtwm_m7_lifecycle_client = executable(
+    'wtwm-m7-lifecycle-client',
+    'tests/integration/m7_lifecycle_client.c',
+    dependencies: xcb,
     install: false,
   )
   wtwm_xwayland_geometry_matrix_client = executable(

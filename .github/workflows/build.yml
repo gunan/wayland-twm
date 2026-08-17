@@ -261,6 +261,15 @@ jobs:
             --config "$GITHUB_WORKSPACE/tests/integration/m7_icon_differential.twmrc" \
             --output /tmp/m7-icon-differential.json \
             --evidence /tmp/m7-icon-differential-evidence
+      - name: Run deterministic Milestone 7 large-set lifecycle churn
+        if: always()
+        timeout-minutes: 15
+        run: |
+          python3 -B tests/integration/run_m7_lifecycle_churn.py \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client "$GITHUB_WORKSPACE/build-differential/wtwm-m7-lifecycle-client" \
+            --output /tmp/m7-lifecycle-churn.json \
+            --log /tmp/m7-lifecycle-churn.log
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -314,4 +323,13 @@ jobs:
           path: |
             /tmp/m7-icon-differential.json
             /tmp/m7-icon-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 7 lifecycle churn
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m7-lifecycle-churn
+          path: |
+            /tmp/m7-lifecycle-churn.json
+            /tmp/m7-lifecycle-churn.log
           if-no-files-found: error
