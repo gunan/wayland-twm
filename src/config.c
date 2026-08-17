@@ -61,53 +61,64 @@ struct named_action {
 
 #define ACT(name, type) {name, type, false, WTWM_COMPAT_EFFECTIVE}
 #define ACT_ARG(name, type) {name, type, true, WTWM_COMPAT_EFFECTIVE}
-#define ACT_PARSED(name) {name, WTWM_ACTION_UNSUPPORTED, false, WTWM_COMPAT_PARSED_ONLY}
-#define ACT_PARSED_ARG(name) {name, WTWM_ACTION_UNSUPPORTED, true, WTWM_COMPAT_PARSED_ONLY}
 static const struct named_action actions[] = {
-	ACT_PARSED("f.autoraise"), ACT_PARSED("f.backiconmgr"),
+	ACT("f.autoraise", WTWM_ACTION_AUTORAISE),
+	ACT("f.backiconmgr", WTWM_ACTION_ICONMGR_BACKWARD),
 	ACT("f.beep", WTWM_ACTION_BEEP), ACT("f.bottomzoom", WTWM_ACTION_BOTTOMZOOM),
 	ACT("f.circledown", WTWM_ACTION_CIRCLEDOWN),
 	ACT("f.circleup", WTWM_ACTION_CIRCLEUP),
-	ACT_PARSED_ARG("f.colormap"), ACT_PARSED_ARG("f.cut"),
-	ACT_PARSED("f.cutfile"), ACT("f.deiconify", WTWM_ACTION_DEICONIFY),
+	ACT_ARG("f.colormap", WTWM_ACTION_COLORMAP),
+	ACT_ARG("f.cut", WTWM_ACTION_CUT),
+	ACT("f.cutfile", WTWM_ACTION_CUTFILE),
+	ACT("f.deiconify", WTWM_ACTION_DEICONIFY),
 	{"f.delete", WTWM_ACTION_DELETE, false, WTWM_COMPAT_WAYLAND_TRANSLATED},
 	ACT("f.deltastop", WTWM_ACTION_DELTASTOP),
 	{"f.destroy", WTWM_ACTION_DESTROY, false, WTWM_COMPAT_WAYLAND_TRANSLATED},
-	ACT_PARSED("f.downiconmgr"),
+	ACT("f.downiconmgr", WTWM_ACTION_ICONMGR_DOWN),
 	ACT_ARG("f.exec", WTWM_ACTION_EXEC),
-	{"f.file", WTWM_ACTION_UNSUPPORTED, true, WTWM_COMPAT_UNSUPPORTED},
+	ACT_ARG("f.file", WTWM_ACTION_FILE),
 	ACT("f.focus", WTWM_ACTION_FOCUS), ACT("f.forcemove", WTWM_ACTION_FORCEMOVE),
-	ACT_PARSED("f.forwiconmgr"), ACT("f.fullzoom", WTWM_ACTION_FULLZOOM),
+	ACT("f.forwiconmgr", WTWM_ACTION_ICONMGR_FORWARD),
+	ACT("f.fullzoom", WTWM_ACTION_FULLZOOM),
 	ACT_ARG("f.function", WTWM_ACTION_FUNCTION),
-	ACT("f.hbzoom", WTWM_ACTION_BOTTOMZOOM), ACT_PARSED("f.hideiconmgr"),
-	ACT("f.horizoom", WTWM_ACTION_ZOOM), ACT("f.htzoom", WTWM_ACTION_TOPZOOM),
-	ACT("f.hzoom", WTWM_ACTION_ZOOM), ACT("f.iconify", WTWM_ACTION_ICONIFY),
-	ACT_PARSED("f.identify"), ACT_PARSED("f.lefticonmgr"),
+	ACT("f.hbzoom", WTWM_ACTION_BOTTOMZOOM),
+	ACT("f.hideiconmgr", WTWM_ACTION_ICONMGR_HIDE),
+	ACT("f.horizoom", WTWM_ACTION_HORIZOOM),
+	ACT("f.htzoom", WTWM_ACTION_TOPZOOM),
+	ACT("f.hzoom", WTWM_ACTION_HORIZOOM), ACT("f.iconify", WTWM_ACTION_ICONIFY),
+	ACT("f.identify", WTWM_ACTION_IDENTIFY),
+	ACT("f.lefticonmgr", WTWM_ACTION_ICONMGR_LEFT),
 	ACT("f.leftzoom", WTWM_ACTION_LEFTZOOM), ACT("f.lower", WTWM_ACTION_LOWER),
 	ACT_ARG("f.menu", WTWM_ACTION_MENU), ACT("f.move", WTWM_ACTION_MOVE),
-	ACT_PARSED("f.nexticonmgr"), ACT("f.nop", WTWM_ACTION_NOP),
-	ACT_PARSED("f.previconmgr"), ACT_PARSED_ARG("f.priority"),
+	ACT("f.nexticonmgr", WTWM_ACTION_ICONMGR_NEXT), ACT("f.nop", WTWM_ACTION_NOP),
+	ACT("f.previconmgr", WTWM_ACTION_ICONMGR_PREVIOUS),
+	ACT_ARG("f.priority", WTWM_ACTION_PRIORITY),
 	ACT("f.quit", WTWM_ACTION_QUIT), ACT("f.raise", WTWM_ACTION_RAISE),
 	ACT("f.raiselower", WTWM_ACTION_RAISELOWER), ACT("f.refresh", WTWM_ACTION_REFRESH),
 	ACT("f.resize", WTWM_ACTION_RESIZE), ACT("f.restart", WTWM_ACTION_RESTART),
-	ACT_PARSED("f.righticonmgr"), ACT("f.rightzoom", WTWM_ACTION_RIGHTZOOM),
-	{"f.saveyourself", WTWM_ACTION_UNSUPPORTED, false, WTWM_COMPAT_UNSUPPORTED},
-	ACT_PARSED("f.showiconmgr"), ACT_PARSED("f.sorticonmgr"),
-	{"f.source", WTWM_ACTION_BEEP, true, WTWM_COMPAT_UNSUPPORTED},
-	ACT_PARSED_ARG("f.startwm"), ACT("f.title", WTWM_ACTION_TITLE),
+	ACT("f.righticonmgr", WTWM_ACTION_ICONMGR_RIGHT),
+	ACT("f.rightzoom", WTWM_ACTION_RIGHTZOOM),
+	{"f.saveyourself", WTWM_ACTION_SAVEYOURSELF, false,
+		WTWM_COMPAT_WAYLAND_TRANSLATED},
+	ACT("f.showiconmgr", WTWM_ACTION_ICONMGR_SHOW),
+	ACT("f.sorticonmgr", WTWM_ACTION_ICONMGR_SORT),
+	{"f.source", WTWM_ACTION_BEEP, true, WTWM_COMPAT_WAYLAND_TRANSLATED},
+	ACT_ARG("f.startwm", WTWM_ACTION_STARTWM), ACT("f.title", WTWM_ACTION_TITLE),
 	ACT("f.topzoom", WTWM_ACTION_TOPZOOM), ACT("f.twmrc", WTWM_ACTION_RESTART),
-	ACT("f.unfocus", WTWM_ACTION_UNFOCUS), ACT_PARSED("f.upiconmgr"),
-	ACT_PARSED("f.version"), ACT("f.vlzoom", WTWM_ACTION_LEFTZOOM),
+	ACT("f.unfocus", WTWM_ACTION_UNFOCUS),
+	ACT("f.upiconmgr", WTWM_ACTION_ICONMGR_UP),
+	ACT("f.version", WTWM_ACTION_VERSION), ACT("f.vlzoom", WTWM_ACTION_LEFTZOOM),
 	ACT("f.vrzoom", WTWM_ACTION_RIGHTZOOM), ACT("f.warpnext", WTWM_ACTION_WARPNEXT),
-	ACT("f.warpprev", WTWM_ACTION_WARPPREV), ACT_PARSED_ARG("f.warpring"),
-	ACT_ARG("f.warpto", WTWM_ACTION_WARPTO), ACT_PARSED_ARG("f.warptoiconmgr"),
-	ACT_PARSED_ARG("f.warptoscreen"), ACT_PARSED("f.winrefresh"),
+	ACT("f.warpprev", WTWM_ACTION_WARPPREV),
+	ACT_ARG("f.warpring", WTWM_ACTION_WARPRING),
+	ACT_ARG("f.warpto", WTWM_ACTION_WARPTO),
+	ACT_ARG("f.warptoiconmgr", WTWM_ACTION_WARPTOICONMGR),
+	ACT_ARG("f.warptoscreen", WTWM_ACTION_WARPTOSCREEN),
+	ACT("f.winrefresh", WTWM_ACTION_WINREFRESH),
 	ACT("f.zoom", WTWM_ACTION_ZOOM),
 };
 #undef ACT
 #undef ACT_ARG
-#undef ACT_PARSED
-#undef ACT_PARSED_ARG
 
 static bool equal_ci(const char *a, const char *b) {
 	for (; *a && *b; ++a, ++b) {
@@ -446,6 +457,51 @@ static const struct named_action *find_action(const char *name) {
 	return NULL;
 }
 
+static void lowercase_ascii(char *text) {
+	for (; *text != '\0'; ++text)
+		if (*text >= 'A' && *text <= 'Z') *text = (char)(*text - 'A' + 'a');
+}
+
+static bool decimal_string(const char *text) {
+	for (; *text != '\0'; ++text)
+		if (*text < '0' || *text > '9') return false;
+	return true;
+}
+
+static bool validate_action_argument(struct parser *parser,
+		struct wtwm_action *action) {
+	bool valid = true;
+	switch (action->type) {
+	case WTWM_ACTION_WARPRING:
+		lowercase_ascii(action->argument);
+		valid = strcmp(action->argument, "next") == 0 ||
+			strcmp(action->argument, "prev") == 0;
+		break;
+	case WTWM_ACTION_WARPTOSCREEN:
+		lowercase_ascii(action->argument);
+		valid = strcmp(action->argument, "next") == 0 ||
+			strcmp(action->argument, "prev") == 0 ||
+			strcmp(action->argument, "back") == 0 ||
+			decimal_string(action->argument);
+		break;
+	case WTWM_ACTION_COLORMAP:
+		lowercase_ascii(action->argument);
+		valid = strcmp(action->argument, "next") == 0 ||
+			strcmp(action->argument, "prev") == 0 ||
+			strcmp(action->argument, "default") == 0;
+		break;
+	default:
+		break;
+	}
+	if (!valid) {
+		action->type = WTWM_ACTION_NOP;
+		action->compatibility = WTWM_COMPAT_EFFECTIVE;
+		copy_text(action->name, sizeof(action->name), "f.nop");
+		++parser->config->warning_count;
+	}
+	return valid;
+}
+
 static bool parse_action(struct parser *parser, struct wtwm_action *action) {
 	if (parser->token.type != TOK_WORD) return fail(parser, "expected an f.action");
 	const char *spelling = parser->token.text;
@@ -464,7 +520,9 @@ static bool parse_action(struct parser *parser, struct wtwm_action *action) {
 		project_text(parser, action->argument, sizeof(action->argument), parser->token.text);
 		if (!next_token(parser)) return false;
 	}
-	if (named->compatibility != WTWM_COMPAT_EFFECTIVE) ++parser->config->warning_count;
+	bool valid_argument = validate_action_argument(parser, action);
+	if (valid_argument && named->compatibility != WTWM_COMPAT_EFFECTIVE)
+		++parser->config->warning_count;
 	return true;
 }
 

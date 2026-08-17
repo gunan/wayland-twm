@@ -8,6 +8,9 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/bindings.h"
+#include "wtwm/actions.h"
+#include "wtwm/command.h"
 #include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
@@ -20,6 +23,7 @@
 #endif
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -45,7 +49,6 @@
 #include <wlr/backend.h>
 #ifdef WTWM_TEST_CONTROL
 #include <drm_fourcc.h>
-#include <fcntl.h>
 #include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
 #include <sys/socket.h>
@@ -201,6 +204,7 @@ struct toplevel {
 	bool associated;
 	bool rules_initialized;
 	bool auto_raise;
+	struct wtwm_zoom_state zoom;
 	enum wtwm_placement_kind placement_kind;
 	char *icon_name;
 	uint32_t net_wm_icon_width;
@@ -290,6 +294,7 @@ struct decoration {
 };
 
 struct menu_view {
+	struct menu_view *parent;
 	struct wlr_scene_tree *tree;
 	struct menu_row_view *rows;
 	size_t row_count;
@@ -298,6 +303,7 @@ struct menu_view {
 	int x;
 	int y;
 	int width;
+	int height;
 	int row_height;
 	int selected;
 };
@@ -345,6 +351,7 @@ struct interaction_session {
 	bool started;
 	bool moved;
 	bool raised;
+	bool icon_move;
 };
 
 struct action_frame {
@@ -358,6 +365,7 @@ struct action_continuation {
 	size_t frame_count;
 	struct toplevel *toplevel;
 	uint32_t context;
+	bool from_key;
 	bool active;
 };
 
@@ -389,6 +397,8 @@ struct server {
 	uint64_t placement_order_next;
 	struct wtwm_random_placement random_placement;
 	struct menu_view menu;
+	struct wtwm_menu windows_menu;
+	struct toplevel **windows_menu_targets;
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_manager;
 	struct wlr_buffer *configured_cursor_buffer;
@@ -410,6 +420,8 @@ struct server {
 	xcb_atom_t atom_wm_protocols;
 	xcb_atom_t atom_wm_take_focus;
 	xcb_atom_t atom_wm_delete_window;
+	xcb_atom_t atom_wm_save_yourself;
+	xcb_atom_t atom_cut_buffer0;
 	xcb_atom_t atom_wm_normal_hints;
 	xcb_atom_t atom_wm_transient_for;
 	xcb_atom_t atom_wm_icon_name;
@@ -426,12 +438,19 @@ struct server {
 	uint32_t current_input_time_ms;
 	uint32_t last_move_time_ms;
 	bool last_interaction_moved;
+	bool action_from_key;
 	uint64_t frame_sequence;
 	struct toplevel *focus;
 	struct toplevel *xwayland_input_focus;
 	struct toplevel *pointer_toplevel;
 	uint32_t pointer_context;
 	bool focus_root;
+	const char *config_path;
+	int argc;
+	char **argv;
+	int previous_output_index;
+	struct toplevel *ring_leader;
+	bool restart_requested;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -471,6 +490,9 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_protocols = xwayland_atom(connection, "WM_PROTOCOLS");
 		server->atom_wm_take_focus = xwayland_atom(connection, "WM_TAKE_FOCUS");
 		server->atom_wm_delete_window = xwayland_atom(connection, "WM_DELETE_WINDOW");
+		server->atom_wm_save_yourself = xwayland_atom(connection,
+			"WM_SAVE_YOURSELF");
+		server->atom_cut_buffer0 = xwayland_atom(connection, "CUT_BUFFER0");
 		server->atom_wm_normal_hints = xwayland_atom(connection, "WM_NORMAL_HINTS");
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
@@ -1726,21 +1748,6 @@ static void clear_keyboard_focus(struct server *server) {
 	clear_focus(server, true);
 }
 
-static void focus_next(struct server *server) {
-	struct toplevel *item;
-	wl_list_for_each(item, &server->toplevels, link) {
-		if (item->mapped && !item->placement_pending && !item->iconified) {
-			server->focus_root = false;
-			focus_toplevel(item, item->xwayland == NULL ||
-				xwayland_accepts_input(item),
-				false, "client");
-			return;
-		}
-	}
-	server->focus_root = true;
-	clear_keyboard_focus(server);
-}
-
 static void lower_toplevel(struct toplevel *toplevel) {
 	if (toplevel == NULL || !toplevel->mapped) return;
 	struct wlr_scene_node *node = toplevel_visible_node(toplevel);
@@ -1859,6 +1866,10 @@ static void show_interaction_outline(struct server *server) {
 		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,
 		toplevel->title_bar_height,
 		toplevel_has_frame(toplevel) && toplevel->decorated, &geometry);
+	int outer_width = server->interaction.icon_move ?
+		server->interaction.preview.width : geometry.outer_width;
+	int outer_height = server->interaction.icon_move ?
+		server->interaction.preview.height : geometry.outer_height;
 	if (server->interaction.outline == NULL) {
 		float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		server->interaction.outline = wlr_scene_tree_create(server->overlay_tree);
@@ -1882,17 +1893,17 @@ static void show_interaction_outline(struct server *server) {
 	wlr_scene_node_set_position(&server->interaction.outline->node,
 		server->interaction.preview.x, server->interaction.preview.y);
 	wlr_scene_rect_set_size(server->interaction.outline_top,
-		geometry.outer_width, 1);
+		outer_width, 1);
 	wlr_scene_rect_set_size(server->interaction.outline_bottom,
-		geometry.outer_width, 1);
+		outer_width, 1);
 	wlr_scene_rect_set_size(server->interaction.outline_left,
-		1, geometry.outer_height);
+		1, outer_height);
 	wlr_scene_rect_set_size(server->interaction.outline_right,
-		1, geometry.outer_height);
+		1, outer_height);
 	wlr_scene_node_set_position(&server->interaction.outline_bottom->node,
-		0, geometry.outer_height > 0 ? geometry.outer_height - 1 : 0);
+		0, outer_height > 0 ? outer_height - 1 : 0);
 	wlr_scene_node_set_position(&server->interaction.outline_right->node,
-		geometry.outer_width > 0 ? geometry.outer_width - 1 : 0, 0);
+		outer_width > 0 ? outer_width - 1 : 0, 0);
 	test_trace_toplevel_event_at(toplevel, "outline",
 		server->cursor_mode == CURSOR_MOVE ? "move" : "resize",
 		server->interaction.preview.x, server->interaction.preview.y,
@@ -1917,7 +1928,8 @@ static uint32_t resize_edges_from_wlr(uint32_t edges) {
 
 static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		uint32_t edges, bool force_move, bool from_titlebar, uint32_t time_msec) {
-	if (toplevel == NULL || !toplevel->mapped || toplevel->iconified) return;
+	if (toplevel == NULL || !toplevel->mapped ||
+			(toplevel->iconified && mode != CURSOR_MOVE)) return;
 	struct server *server = toplevel->server;
 	if (server->grabbed != NULL) return;
 	struct wtwm_frame_geometry geometry;
@@ -1928,16 +1940,16 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	server->last_interaction_moved = false;
 	server->interaction = (struct interaction_session){
 		.original = {
-			.x = toplevel->tree->node.x,
-			.y = toplevel->tree->node.y,
-			.width = toplevel->width,
-			.height = toplevel->height,
+			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
+			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
+			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.preview = {
-			.x = toplevel->tree->node.x,
-			.y = toplevel->tree->node.y,
-			.width = toplevel->width,
-			.height = toplevel->height,
+			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
+			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
+			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.pointer_start_x = server->cursor->x,
 		.pointer_start_y = server->cursor->y,
@@ -1945,6 +1957,7 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.opaque_move = mode == CURSOR_MOVE && server->config.opaque_move,
 		.started = server->config.move_delta <= 0,
 		.intent = INTERACTION_DRAG,
+		.icon_move = toplevel->iconified,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -1953,9 +1966,11 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 			server->interaction.constrained_move = true;
 			server->interaction.constrained_axis = WTWM_AXIS_NONE;
 			double center_x = server->interaction.original.x +
-				geometry.border_width + geometry.frame_width / 2.0;
+				(toplevel->iconified ? server->interaction.original.width / 2.0 :
+				geometry.border_width + geometry.frame_width / 2.0);
 			double center_y = server->interaction.original.y +
-				geometry.border_width + geometry.frame_height / 2.0;
+				(toplevel->iconified ? server->interaction.original.height / 2.0 :
+				geometry.border_width + geometry.frame_height / 2.0);
 			wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 		} else {
 			server->interaction.constrained_axis = WTWM_AXIS_NONE;
@@ -1997,15 +2012,19 @@ static void begin_menu_position(struct toplevel *toplevel, bool force_move,
 	struct server *server = toplevel->server;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
-	double center_x = server->interaction.original.x + geometry.frame_width / 2.0;
-	double center_y = server->interaction.original.y + geometry.frame_height / 2.0;
+	int width = server->interaction.icon_move ?
+		server->interaction.original.width : geometry.frame_width;
+	int height = server->interaction.icon_move ?
+		server->interaction.original.height : geometry.frame_height;
+	double center_x = server->interaction.original.x + width / 2.0;
+	double center_y = server->interaction.original.y + height / 2.0;
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 	set_cursor_role(server, "Move");
 	server->interaction.intent = INTERACTION_MENU_POSITION;
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
-	server->interaction.grab_x = geometry.frame_width / 2.0;
-	server->interaction.grab_y = geometry.frame_height / 2.0;
+	server->interaction.grab_x = width / 2.0;
+	server->interaction.grab_y = height / 2.0;
 	server->interaction.started = server->config.move_delta <= 0;
 	server->interaction.moved = false;
 	server->interaction.preview = server->interaction.original;
@@ -2027,17 +2046,32 @@ static void finish_interactive(struct server *server, bool aborted) {
 	enum cursor_mode mode = server->cursor_mode;
 	clear_interaction_outline(server);
 	if (aborted) {
-		if (mode == CURSOR_MOVE && interaction.opaque_move)
-			set_toplevel_position(toplevel,
-				interaction.original.x, interaction.original.y);
+		if (mode == CURSOR_MOVE && interaction.opaque_move) {
+			if (interaction.icon_move) {
+				toplevel->icon_x = interaction.original.x;
+				toplevel->icon_y = interaction.original.y;
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+			} else {
+				set_toplevel_position(toplevel,
+					interaction.original.x, interaction.original.y);
+			}
+		}
 		test_trace_toplevel_event_at(toplevel, "abort",
 			mode == CURSOR_MOVE ? "move" : "resize",
 			interaction.original.x, interaction.original.y,
 			interaction.original.width, interaction.original.height);
 	} else if (mode == CURSOR_MOVE) {
 		if (!interaction.opaque_move && interaction.started) {
-			set_toplevel_position(toplevel,
-				interaction.preview.x, interaction.preview.y);
+			if (interaction.icon_move) {
+				toplevel->icon_x = interaction.preview.x;
+				toplevel->icon_y = interaction.preview.y;
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+			} else {
+				set_toplevel_position(toplevel,
+					interaction.preview.x, interaction.preview.y);
+			}
 			if (!server->config.no_raise_on_move) raise_toplevel(toplevel);
 		}
 		test_trace_toplevel_event_at(toplevel, "commit", "move",
@@ -2057,41 +2091,78 @@ static void finish_interactive(struct server *server, bool aborted) {
 	resume_action_continuation(server);
 }
 
-static bool spawn_shell(const char *command) {
-	if (command == NULL || command[0] == '\0') return true;
+static bool spawn_command(const char *command) {
+	struct wtwm_command_plan plan;
+	enum wtwm_command_result result = wtwm_command_plan_create(command, &plan);
+	if (result == WTWM_COMMAND_EMPTY) return true;
+	if (result != WTWM_COMMAND_OK) {
+		wlr_log(WLR_ERROR, "cannot execute command: %s",
+			wtwm_command_result_message(result));
+		return false;
+	}
 	pid_t intermediate = fork();
 	if (intermediate < 0) {
-		wlr_log_errno(WLR_ERROR, "%s", "failed to fork shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to fork command launcher");
+		wtwm_command_plan_destroy(&plan);
 		return false;
 	}
 	if (intermediate == 0) {
 		pid_t child = fork();
 		if (child < 0) _exit(EXIT_FAILURE);
 		if (child == 0) {
-			execl("/bin/sh", "/bin/sh", "-c", command, (void *)NULL);
+			if (plan.mode == WTWM_COMMAND_DIRECT)
+				execvp(plan.argv[0], plan.argv);
+			else
+				execl("/bin/sh", "/bin/sh", "-c", plan.command, (void *)NULL);
 			_exit(127);
 		}
 		_exit(EXIT_SUCCESS);
 	}
+	wtwm_command_plan_destroy(&plan);
 
 	int status;
 	while (waitpid(intermediate, &status, 0) < 0) {
 		if (errno == EINTR) continue;
-		wlr_log_errno(WLR_ERROR, "%s", "failed to reap shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to reap command launcher");
 		return false;
 	}
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
-		wlr_log(WLR_ERROR, "%s", "failed to launch shell command");
+		wlr_log(WLR_ERROR, "%s", "failed to launch command");
 		return false;
 	}
 	return true;
 }
 
 static void hide_menu(struct server *server) {
-	if (server->menu.tree != NULL) wlr_scene_node_destroy(&server->menu.tree->node);
-	free(server->menu.rows);
+	struct menu_view current = server->menu;
+	while (current.tree != NULL) {
+		wlr_scene_node_destroy(&current.tree->node);
+		free(current.rows);
+		struct menu_view *parent = current.parent;
+		if (parent == NULL) break;
+		current = *parent;
+		free(parent);
+	}
 	memset(&server->menu, 0, sizeof(server->menu));
 	server->menu.selected = -1;
+}
+
+static bool pop_menu(struct server *server) {
+	struct menu_view *parent = server->menu.parent;
+	if (parent == NULL) return false;
+	if (server->menu.tree != NULL)
+		wlr_scene_node_destroy(&server->menu.tree->node);
+	free(server->menu.rows);
+	server->menu = *parent;
+	free(parent);
+	return true;
+}
+
+static unsigned menu_depth(const struct menu_view *menu) {
+	unsigned depth = menu->tree != NULL ? 1 : 0;
+	for (const struct menu_view *parent = menu->parent; parent != NULL;
+			parent = parent->parent) ++depth;
+	return depth;
 }
 
 static void menu_palettes(struct server *server, const struct wtwm_menu *menu,
@@ -2151,20 +2222,65 @@ static void menu_palettes(struct server *server, const struct wtwm_menu *menu,
 	}
 }
 
-static void show_menu(struct server *server, const char *name,
-	struct toplevel *target) {
+static bool build_windows_menu(struct server *server) {
+	free(server->windows_menu.items);
+	free(server->windows_menu_targets);
+	memset(&server->windows_menu, 0, sizeof(server->windows_menu));
+	server->windows_menu_targets = NULL;
+	size_t count = 0;
+	struct toplevel *item;
+	wl_list_for_each_reverse(item, &server->toplevels, link)
+		if (item->mapped && !item->placement_pending) ++count;
+	server->windows_menu.items = calloc(count + 1,
+		sizeof(*server->windows_menu.items));
+	server->windows_menu_targets = calloc(count + 1,
+		sizeof(*server->windows_menu_targets));
+	if (server->windows_menu.items == NULL ||
+			server->windows_menu_targets == NULL) {
+		free(server->windows_menu.items);
+		free(server->windows_menu_targets);
+		memset(&server->windows_menu, 0, sizeof(server->windows_menu));
+		server->windows_menu_targets = NULL;
+		return false;
+	}
+	(void)snprintf(server->windows_menu.name, sizeof(server->windows_menu.name),
+		"%s", "TwmWindows");
+	(void)snprintf(server->windows_menu.items[0].label,
+		sizeof(server->windows_menu.items[0].label), "%s", "Twm Windows");
+	server->windows_menu.items[0].action.type = WTWM_ACTION_TITLE;
+	size_t index = 1;
+	wl_list_for_each_reverse(item, &server->toplevels, link) {
+		if (!item->mapped || item->placement_pending) continue;
+		(void)snprintf(server->windows_menu.items[index].label,
+			sizeof(server->windows_menu.items[index].label), "%s",
+			toplevel_title(item));
+		server->windows_menu.items[index].action.type = WTWM_ACTION_NOP;
+		server->windows_menu_targets[index] = item;
+		++index;
+	}
+	server->windows_menu.item_count = count + 1;
+	return true;
+}
+
+static void show_menu_at(struct server *server, const char *name,
+		struct toplevel *target, bool submenu, int requested_x, int requested_y) {
 	const struct wtwm_menu *menu = NULL;
-	for (size_t i = 0; i < server->config.menu_count; ++i) {
-		if (strcmp(server->config.menus[i].name, name) == 0) {
-			menu = &server->config.menus[i];
-			break;
+	if (strcmp(name, "TwmWindows") == 0 && build_windows_menu(server)) {
+		menu = &server->windows_menu;
+	} else {
+		for (size_t i = 0; i < server->config.menu_count; ++i) {
+			if (strcmp(server->config.menus[i].name, name) == 0) {
+				menu = &server->config.menus[i];
+				break;
+			}
 		}
 	}
 	if (menu == NULL || menu->item_count == 0) {
 		wlr_log(WLR_ERROR, "menu '%s' is not defined", name);
 		return;
 	}
-	hide_menu(server);
+	if (submenu && (server->menu.tree == NULL || menu_depth(&server->menu) >= 10))
+		return;
 	int *widths = calloc(menu->item_count, sizeof(*widths));
 	int *heights = calloc(menu->item_count, sizeof(*heights));
 	struct menu_row_palette *palettes = calloc(menu->item_count,
@@ -2307,15 +2423,28 @@ static void show_menu(struct server *server, const char *name,
 	free(widths); free(heights); free(palettes);
 	struct wlr_box output = {0};
 	wlr_output_layout_get_box(server->output_layout, NULL, &output);
-	int menu_x = (int)server->cursor->x;
-	int menu_y = (int)server->cursor->y;
+	int menu_x = submenu ? requested_x : (int)server->cursor->x;
+	int menu_y = submenu ? requested_y : (int)server->cursor->y;
 	if (menu_x + layout.outer.width > output.x + output.width)
 		menu_x = output.x + output.width - layout.outer.width;
 	if (menu_y + layout.outer.height > output.y + output.height)
 		menu_y = output.y + output.height - layout.outer.height;
 	if (menu_x < output.x) menu_x = output.x;
 	if (menu_y < output.y) menu_y = output.y;
+	struct menu_view *parent = NULL;
+	if (submenu) {
+		parent = malloc(sizeof(*parent));
+		if (parent == NULL) {
+			wlr_scene_node_destroy(&tree->node);
+			free(rows);
+			return;
+		}
+		*parent = server->menu;
+	} else {
+		hide_menu(server);
+	}
 	server->menu = (struct menu_view){
+		.parent = parent,
 		.tree = tree,
 		.rows = rows,
 		.row_count = menu->item_count,
@@ -2324,10 +2453,21 @@ static void show_menu(struct server *server, const char *name,
 		.x = menu_x,
 		.y = menu_y,
 		.width = layout.outer.width,
+		.height = layout.outer.height,
 		.row_height = layout.row_height,
 		.selected = -1,
 	};
 	wlr_scene_node_set_position(&tree->node, server->menu.x, server->menu.y);
+}
+
+static void show_menu(struct server *server, const char *name,
+		struct toplevel *target) {
+	show_menu_at(server, name, target, false, 0, 0);
+}
+
+static bool menu_contains(const struct menu_view *menu, double x, double y) {
+	return menu->tree != NULL && x >= menu->x && x < menu->x + menu->width &&
+		y >= menu->y && y < menu->y + menu->height;
 }
 
 static int menu_item_at(struct server *server) {
@@ -2362,6 +2502,16 @@ static void update_menu_selection(struct server *server) {
 			wlr_scene_node_set_enabled(&row->pull_highlight->node, active);
 	}
 	server->menu.selected = selected;
+	if (selected >= 0 &&
+			server->menu.definition->items[selected].action.type == WTWM_ACTION_MENU &&
+			server->cursor->x >= server->menu.x + server->menu.width / 2.0) {
+		const struct wtwm_action *pull =
+			&server->menu.definition->items[selected].action;
+		show_menu_at(server, pull->argument, server->menu.target, true,
+			server->menu.x + server->menu.width / 2,
+			server->menu.y + server->config.menu_border_width +
+				selected * server->menu.row_height);
+	}
 }
 
 static bool xwayland_supports_delete(struct toplevel *toplevel) {
@@ -2374,6 +2524,16 @@ static bool xwayland_supports_delete(struct toplevel *toplevel) {
 	return false;
 }
 
+static bool ring_bell(struct server *server) {
+	if (server->xwayland == NULL) return false;
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return false;
+	xcb_bell(connection, 0);
+	xcb_flush(connection);
+	return true;
+}
+
 static void delete_toplevel(struct toplevel *toplevel) {
 	if (toplevel->xdg != NULL) {
 		wlr_xdg_toplevel_send_close(toplevel->xdg);
@@ -2382,6 +2542,7 @@ static void delete_toplevel(struct toplevel *toplevel) {
 	if (!xwayland_supports_delete(toplevel)) {
 		wlr_log(WLR_INFO, "X11 window 0x%08" PRIx32
 			" does not advertise WM_DELETE_WINDOW", toplevel->xwayland->window_id);
+		(void)ring_bell(toplevel->server);
 		return;
 	}
 	xcb_connection_t *connection =
@@ -2457,8 +2618,11 @@ static void resume_action_continuation(struct server *server) {
 				find_function(server, action->argument));
 			continue;
 		}
+		bool previous_from_key = server->action_from_key;
+		server->action_from_key = continuation->from_key;
 		execute_action(server, continuation->toplevel, action,
 			continuation->context);
+		server->action_from_key = previous_from_key;
 		if (server->grabbed != NULL) return;
 	}
 	memset(continuation, 0, sizeof(*continuation));
@@ -2470,6 +2634,7 @@ static void start_action_function(struct server *server,
 	memset(&server->continuation, 0, sizeof(server->continuation));
 	server->continuation.toplevel = toplevel;
 	server->continuation.context = context;
+	server->continuation.from_key = server->action_from_key;
 	server->continuation.active = true;
 	if (!push_action_frame(&server->continuation, function)) {
 		memset(&server->continuation, 0, sizeof(server->continuation));
@@ -2493,9 +2658,312 @@ static void toggle_click_focus(struct server *server, struct toplevel *toplevel)
 	}
 }
 
+static bool action_needs_toplevel(enum wtwm_action_type type) {
+	switch (type) {
+	case WTWM_ACTION_MOVE:
+	case WTWM_ACTION_FORCEMOVE:
+	case WTWM_ACTION_RESIZE:
+	case WTWM_ACTION_RAISE:
+	case WTWM_ACTION_LOWER:
+	case WTWM_ACTION_RAISELOWER:
+	case WTWM_ACTION_ICONIFY:
+	case WTWM_ACTION_DEICONIFY:
+	case WTWM_ACTION_FOCUS:
+	case WTWM_ACTION_DESTROY:
+	case WTWM_ACTION_DELETE:
+	case WTWM_ACTION_WINREFRESH:
+	case WTWM_ACTION_ZOOM:
+	case WTWM_ACTION_HORIZOOM:
+	case WTWM_ACTION_FULLZOOM:
+	case WTWM_ACTION_LEFTZOOM:
+	case WTWM_ACTION_RIGHTZOOM:
+	case WTWM_ACTION_TOPZOOM:
+	case WTWM_ACTION_BOTTOMZOOM:
+	case WTWM_ACTION_AUTORAISE:
+	case WTWM_ACTION_IDENTIFY:
+	case WTWM_ACTION_SAVEYOURSELF:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static void schedule_refresh(struct server *server) {
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link)
+		wlr_output_schedule_frame(output->wlr);
+}
+
+static void apply_zoom(struct toplevel *toplevel,
+		enum wtwm_action_type type) {
+	if (toplevel == NULL) return;
+	struct wlr_box layout = {0};
+	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	struct wtwm_interaction_box output = {
+		.x = layout.x,
+		.y = layout.y,
+		.width = layout.width,
+		.height = layout.height,
+	};
+	struct wtwm_interaction_box current = {
+		.x = toplevel->frame_x,
+		.y = toplevel->frame_y,
+		.width = toplevel->width,
+		.height = toplevel->height,
+	};
+	struct wtwm_interaction_box next = wtwm_action_zoom(type, &output,
+		geometry.outer_width - toplevel->width,
+		geometry.outer_height - toplevel->height, &current, &toplevel->zoom);
+	constrain_toplevel_size(toplevel, &next.width, &next.height);
+	set_toplevel_box(toplevel, next.x, next.y, next.width, next.height);
+	if (!toplevel->server->config.no_raise_on_resize) raise_toplevel(toplevel);
+	test_trace_toplevel_event_at(toplevel, "commit", "zoom", next.x, next.y,
+		next.width, next.height);
+}
+
+static void warp_to_toplevel(struct server *server, struct toplevel *toplevel) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->placement_pending)
+		return;
+	if (toplevel->iconified) {
+		if (!server->config.warp_unmapped) return;
+		set_toplevel_iconified(toplevel, false);
+	}
+	if (!server->config.no_raise_on_warp) raise_toplevel(toplevel);
+	server->focus_root = false;
+	focus_toplevel(toplevel, toplevel->xwayland == NULL ||
+		xwayland_accepts_input(toplevel), false, "client");
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	wlr_cursor_warp_closest(server->cursor, NULL,
+		toplevel->frame_x + geometry.outer_width / 2.0,
+		toplevel->frame_y + geometry.outer_height / 2.0);
+	process_cursor_motion(server, server->current_input_time_ms);
+}
+
+static bool prefix_category_matches(const struct toplevel *toplevel,
+		const char *selector, unsigned category) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	const char *value = category == 0 ?
+		(identity.name != NULL ? identity.name : identity.title) :
+		(category == 1 ? (identity.resource_name != NULL ? identity.resource_name :
+		identity.app_id) : identity.resource_class);
+	return value != NULL && strncmp(value, selector, strlen(selector)) == 0;
+}
+
+static void warp_to_name(struct server *server, const char *selector) {
+	if (selector == NULL) return;
+	for (unsigned category = 0; category < 3; ++category) {
+		struct toplevel *item;
+		wl_list_for_each(item, &server->toplevels, link) {
+			if (prefix_category_matches(item, selector, category)) {
+				warp_to_toplevel(server, item);
+				return;
+			}
+		}
+	}
+}
+
+static void warp_cycle(struct server *server, bool forward, bool ring_only) {
+	size_t count = 0;
+	struct toplevel *item;
+	wl_list_for_each_reverse(item, &server->toplevels, link) {
+		struct wtwm_client_identity identity = toplevel_identity(item);
+		if (item->mapped && !item->placement_pending &&
+				(!item->iconified || server->config.warp_unmapped) &&
+				(!ring_only || wtwm_config_window_list_matches(&server->config,
+				"WindowRing", &identity))) ++count;
+	}
+	if (count == 0) return;
+	struct toplevel **items = calloc(count, sizeof(*items));
+	if (items == NULL) return;
+	size_t index = 0;
+	int current = -1;
+	wl_list_for_each_reverse(item, &server->toplevels, link) {
+		struct wtwm_client_identity identity = toplevel_identity(item);
+		if (!item->mapped || item->placement_pending ||
+				(item->iconified && !server->config.warp_unmapped) ||
+				(ring_only && !wtwm_config_window_list_matches(&server->config,
+				"WindowRing", &identity))) continue;
+		items[index] = item;
+		if ((!ring_only && item == server->focus) ||
+				(ring_only && item == server->ring_leader)) current = (int)index;
+		++index;
+	}
+	int target = wtwm_action_cycle_index((int)count, current, forward);
+	if (target >= 0) {
+		warp_to_toplevel(server, items[target]);
+		if (ring_only) server->ring_leader = items[target];
+	}
+	free(items);
+}
+
+static void warp_to_screen(struct server *server, const char *argument) {
+	int count = (int)wl_list_length(&server->outputs);
+	if (count <= 0) return;
+	int current = 0;
+	int index = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		struct wlr_box box = {0};
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (server->cursor->x >= box.x && server->cursor->x < box.x + box.width &&
+				server->cursor->y >= box.y && server->cursor->y < box.y + box.height)
+			current = index;
+		++index;
+	}
+	int target = wtwm_action_screen_target(argument, current,
+		server->previous_output_index, count);
+	if (target < 0 || target == current) return;
+	struct output *from = NULL;
+	struct output *to = NULL;
+	index = 0;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (index == current) from = output;
+		if (index == target) to = output;
+		++index;
+	}
+	if (from == NULL || to == NULL) return;
+	struct wlr_box from_box = {0};
+	struct wlr_box to_box = {0};
+	wlr_output_layout_get_box(server->output_layout, from->wlr, &from_box);
+	wlr_output_layout_get_box(server->output_layout, to->wlr, &to_box);
+	double x = to_box.x + (server->cursor->x - from_box.x);
+	double y = to_box.y + (server->cursor->y - from_box.y);
+	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
+	server->previous_output_index = current;
+	process_cursor_motion(server, server->current_input_time_ms);
+}
+
+static bool send_save_yourself(struct toplevel *toplevel) {
+	if (toplevel == NULL || toplevel->xwayland == NULL ||
+			toplevel->server->atom_wm_save_yourself == XCB_ATOM_NONE ||
+			!xwayland_supports_protocol(toplevel,
+			toplevel->server->atom_wm_save_yourself)) return false;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (connection == NULL) return false;
+	xcb_client_message_event_t event = {
+		.response_type = XCB_CLIENT_MESSAGE,
+		.format = 32,
+		.window = toplevel->xwayland->window_id,
+		.type = toplevel->server->atom_wm_protocols,
+	};
+	event.data.data32[0] = toplevel->server->atom_wm_save_yourself;
+	event.data.data32[1] = XCB_CURRENT_TIME;
+	xcb_send_event(connection, false, toplevel->xwayland->window_id,
+		XCB_EVENT_MASK_NO_EVENT, (const char *)&event);
+	xcb_flush(connection);
+	return true;
+}
+
+static bool xwayland_root(struct server *server,
+		xcb_connection_t **connection, xcb_window_t *root) {
+	if (server->xwayland == NULL || server->atom_cut_buffer0 == XCB_ATOM_NONE)
+		return false;
+	*connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (*connection == NULL) return false;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(*connection));
+	if (screens.rem == 0) return false;
+	*root = screens.data->root;
+	return true;
+}
+
+static bool store_cut_buffer(struct server *server, const char *bytes,
+		size_t length) {
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (!xwayland_root(server, &connection, &root) || length > UINT32_MAX)
+		return false;
+	xcb_change_property(connection, XCB_PROP_MODE_REPLACE, root,
+		server->atom_cut_buffer0, XCB_ATOM_STRING, 8, (uint32_t)length, bytes);
+	xcb_flush(connection);
+	return true;
+}
+
+static char *fetch_cut_buffer(struct server *server) {
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (!xwayland_root(server, &connection, &root)) return NULL;
+	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+		xcb_get_property(connection, false, root, server->atom_cut_buffer0,
+			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), NULL);
+	if (reply == NULL) return NULL;
+	int length = xcb_get_property_value_length(reply);
+	char *value = length > 0 ? malloc((size_t)length + 1) : NULL;
+	if (value != NULL) {
+		memcpy(value, xcb_get_property_value(reply), (size_t)length);
+		value[length] = '\0';
+	}
+	free(reply);
+	return value;
+}
+
+static char *expand_filename(const char *name) {
+	if (name == NULL) return NULL;
+	if (name[0] != '~') return strdup(name);
+	const char *home = getenv("HOME");
+	if (home == NULL) return NULL;
+	size_t length = strlen(home) + strlen(name) + 2;
+	char *expanded = malloc(length);
+	if (expanded != NULL)
+		(void)snprintf(expanded, length, "%s/%s", home, name + 1);
+	return expanded;
+}
+
+static bool file_to_cut_buffer(struct server *server, const char *name) {
+	char *expanded = expand_filename(name);
+	if (expanded == NULL) return false;
+	int descriptor = open(expanded, O_RDONLY);
+	if (descriptor < 0) {
+		wlr_log_errno(WLR_ERROR, "unable to open cut-buffer file %s", expanded);
+		free(expanded);
+		return false;
+	}
+	char bytes[4095];
+	ssize_t count = read(descriptor, bytes, sizeof(bytes));
+	close(descriptor);
+	free(expanded);
+	return count > 0 && store_cut_buffer(server, bytes, (size_t)count);
+}
+
+static void cut_text(struct server *server, const char *text) {
+	if (text == NULL) text = "";
+	size_t length = strlen(text);
+	char *line = malloc(length + 2);
+	if (line == NULL) return;
+	memcpy(line, text, length);
+	line[length] = '\n';
+	line[length + 1] = '\0';
+	if (!store_cut_buffer(server, line, length + 1))
+		wlr_log(WLR_DEBUG, "%s",
+			"f.cut has no native Wayland cut-buffer equivalent");
+	free(line);
+}
+
 static void execute_action(struct server *server, struct toplevel *toplevel,
 		const struct wtwm_action *action, uint32_t context) {
+	/* Reference twm refuses f.resize from a key binding and on an icon before
+	 * it enters the select-a-window path. */
+	if (action->type == WTWM_ACTION_RESIZE &&
+			(server->action_from_key || context == WTWM_CONTEXT_ICON)) return;
+	if (toplevel == NULL && context == WTWM_CONTEXT_ROOT &&
+			action_needs_toplevel(action->type)) {
+		server->deferred_root_action = *action;
+		server->deferred_root_action_active = true;
+		return;
+	}
 	switch (action->type) {
+	case WTWM_ACTION_NOP:
+	case WTWM_ACTION_TITLE:
+	case WTWM_ACTION_DELTASTOP:
+		break;
+	case WTWM_ACTION_BEEP:
+		if (!ring_bell(server))
+			wlr_log(WLR_DEBUG, "%s", "f.beep has no native Wayland bell protocol");
+		break;
 	case WTWM_ACTION_MOVE: case WTWM_ACTION_FORCEMOVE:
 		begin_interactive(toplevel, CURSOR_MOVE, 0,
 			action->type == WTWM_ACTION_FORCEMOVE,
@@ -2509,7 +2977,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_LOWER:
 		lower_toplevel(toplevel); break;
 	case WTWM_ACTION_RAISELOWER:
-		raise_lower_toplevel(toplevel);
+		if (!server->last_interaction_moved) raise_lower_toplevel(toplevel);
 		break;
 	case WTWM_ACTION_CIRCLEUP:
 		circulate_toplevels(server, true);
@@ -2518,7 +2986,12 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		circulate_toplevels(server, false);
 		break;
 	case WTWM_ACTION_ICONIFY:
-		set_toplevel_iconified(toplevel, true);
+		if (toplevel != NULL && toplevel->iconified) {
+			set_toplevel_iconified(toplevel, false);
+			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+		} else {
+			set_toplevel_iconified(toplevel, true);
+		}
 		break;
 	case WTWM_ACTION_DEICONIFY:
 		if (toplevel) {
@@ -2539,17 +3012,110 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		if (toplevel) destroy_toplevel_client(toplevel);
 		break;
 	case WTWM_ACTION_EXEC:
-		spawn_shell(action->argument); break;
+		spawn_command(action->argument); break;
 	case WTWM_ACTION_MENU:
-		show_menu(server, action->argument, toplevel); break;
+		/* Pointer routes intercept F_MENU before ExecuteFunction. */
+		break;
 	case WTWM_ACTION_FUNCTION: start_action_function(server, toplevel,
 		find_function(server, action->argument), context); break;
-	case WTWM_ACTION_DELTASTOP: break;
-	case WTWM_ACTION_WARPNEXT: focus_next(server); break;
-	case WTWM_ACTION_QUIT: wl_display_terminate(server->display); break;
-	default:
-		wlr_log(WLR_DEBUG, "%s is parsed but not effective yet", action->name); break;
+	case WTWM_ACTION_REFRESH:
+	case WTWM_ACTION_WINREFRESH:
+		schedule_refresh(server); break;
+	case WTWM_ACTION_ZOOM:
+	case WTWM_ACTION_HORIZOOM:
+	case WTWM_ACTION_FULLZOOM:
+	case WTWM_ACTION_LEFTZOOM:
+	case WTWM_ACTION_RIGHTZOOM:
+	case WTWM_ACTION_TOPZOOM:
+	case WTWM_ACTION_BOTTOMZOOM:
+		apply_zoom(toplevel, action->type); break;
+	case WTWM_ACTION_WARPNEXT:
+		warp_cycle(server, true, false); break;
+	case WTWM_ACTION_WARPPREV:
+		warp_cycle(server, false, false); break;
+	case WTWM_ACTION_WARPTO:
+		warp_to_name(server, action->argument); break;
+	case WTWM_ACTION_WARPRING:
+		warp_cycle(server, strcmp(action->argument, "next") == 0, true); break;
+	case WTWM_ACTION_WARPTOSCREEN:
+		warp_to_screen(server, action->argument); break;
+	case WTWM_ACTION_WARPTOICONMGR:
+		wlr_log(WLR_DEBUG, "%s",
+			"f.warptoiconmgr is inactive until an icon manager exists");
+		break;
+	case WTWM_ACTION_AUTORAISE:
+		if (toplevel != NULL) toplevel->auto_raise = !toplevel->auto_raise;
+		break;
+	case WTWM_ACTION_ICONMGR_UP:
+	case WTWM_ACTION_ICONMGR_DOWN:
+	case WTWM_ACTION_ICONMGR_LEFT:
+	case WTWM_ACTION_ICONMGR_RIGHT:
+	case WTWM_ACTION_ICONMGR_FORWARD:
+	case WTWM_ACTION_ICONMGR_BACKWARD:
+	case WTWM_ACTION_ICONMGR_NEXT:
+	case WTWM_ACTION_ICONMGR_PREVIOUS:
+	case WTWM_ACTION_ICONMGR_SHOW:
+	case WTWM_ACTION_ICONMGR_HIDE:
+	case WTWM_ACTION_ICONMGR_SORT:
+		wlr_log(WLR_DEBUG, "%s",
+			"icon-manager action is inactive until Milestone 7 creates a manager");
+		break;
+	case WTWM_ACTION_IDENTIFY:
+		wlr_log(WLR_INFO, "window: title='%s' type=%s",
+			toplevel_title(toplevel), toplevel->xwayland != NULL ? "X11" : "Wayland");
+		break;
+	case WTWM_ACTION_VERSION:
+		wlr_log(WLR_INFO, "%s", "wtwm 0.1.0 (twm 1.0.13.1 compatibility)");
+		break;
+	case WTWM_ACTION_PRIORITY:
+		wlr_log(WLR_DEBUG, "%s",
+			"f.priority is inactive without the X Sync priority extension");
+		break;
+	case WTWM_ACTION_STARTWM:
+		if (spawn_command(action->argument)) wl_display_terminate(server->display);
+		break;
+	case WTWM_ACTION_SAVEYOURSELF:
+		if (!send_save_yourself(toplevel)) {
+			wlr_log(WLR_DEBUG, "%s",
+				"f.saveyourself requires X11 WM_SAVE_YOURSELF support");
+			(void)ring_bell(server);
+		}
+		break;
+	case WTWM_ACTION_CUT:
+		cut_text(server, action->argument); break;
+	case WTWM_ACTION_CUTFILE: {
+		char *filename = fetch_cut_buffer(server);
+		if (filename != NULL) {
+			filename[strcspn(filename, " \t\r\n")] = '\0';
+			if (filename[0] != '\0') (void)file_to_cut_buffer(server, filename);
+			free(filename);
+		}
+		break;
 	}
+	case WTWM_ACTION_FILE:
+		(void)file_to_cut_buffer(server, action->argument); break;
+	case WTWM_ACTION_COLORMAP:
+		wlr_log(WLR_DEBUG, "%s",
+			"Xwayland owns installed colormaps; f.colormap is a verified no-op");
+		break;
+	case WTWM_ACTION_RESTART:
+		server->restart_requested = true;
+		wl_display_terminate(server->display);
+		break;
+	case WTWM_ACTION_QUIT: wl_display_terminate(server->display); break;
+	case WTWM_ACTION_UNSUPPORTED:
+		wlr_log(WLR_ERROR, "unsupported action escaped parser: %s", action->name);
+		break;
+	}
+}
+
+static void execute_pointer_action(struct server *server,
+		struct toplevel *toplevel, const struct wtwm_action *action,
+		uint32_t context) {
+	if (action->type == WTWM_ACTION_MENU)
+		show_menu(server, action->argument, toplevel);
+	else
+		execute_action(server, toplevel, action, context);
 }
 
 static uint32_t current_modifiers(struct server *server) {
@@ -2562,6 +3128,21 @@ static uint32_t current_modifiers(struct server *server) {
 	if (wlr & WLR_MODIFIER_CTRL) mods |= WTWM_MOD_CONTROL;
 	if (wlr & WLR_MODIFIER_ALT) mods |= WTWM_MOD_META1;
 	if (wlr & WLR_MODIFIER_LOGO) mods |= WTWM_MOD_META4;
+	static const struct {
+		const char *name;
+		uint32_t modifier;
+	} xkb_modifiers[] = {
+		{"Mod1", WTWM_MOD_META1},
+		{"Mod2", WTWM_MOD_META2},
+		{"Mod3", WTWM_MOD_META3},
+		{"Mod4", WTWM_MOD_META4},
+		{"Mod5", WTWM_MOD_META5},
+	};
+	for (size_t i = 0; i < sizeof(xkb_modifiers) / sizeof(xkb_modifiers[0]); ++i) {
+		if (xkb_state_mod_name_is_active(keyboard->xkb_state,
+				xkb_modifiers[i].name, XKB_STATE_MODS_EFFECTIVE) > 0)
+			mods |= xkb_modifiers[i].modifier;
+	}
 	return mods;
 }
 
@@ -2580,22 +3161,81 @@ static const char *binding_context_name(uint32_t context) {
 static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 	unsigned button, const char *key, uint32_t context, struct toplevel *toplevel) {
 	uint32_t modifiers = current_modifiers(server);
-	for (size_t i = 0; i < server->config.binding_count; ++i) {
-		const struct wtwm_binding *binding = &server->config.bindings[i];
-		uint32_t compared_modifiers = modifiers;
-		if ((binding->modifiers & WTWM_MOD_LOCK) == 0)
-			compared_modifiers &= ~WTWM_MOD_LOCK;
-		if (binding->type != type || binding->modifiers != compared_modifiers ||
-			(binding->contexts & context) == 0) continue;
-		if (type == WTWM_BINDING_BUTTON && binding->button != button) continue;
-		if (type == WTWM_BINDING_KEY && strcasecmp(binding->key, key) != 0) continue;
-		if (toplevel != NULL)
-			test_trace_toplevel_event(toplevel, "binding",
-				binding_context_name(context));
-		execute_action(server, toplevel, &binding->action, context);
-		return true;
+	uint32_t used = wtwm_bindings_used_modifiers(server->config.bindings,
+		server->config.binding_count);
+	if (type == WTWM_BINDING_KEY) {
+		/* C_NAME is one independent key/modifier slot.  Its selector is applied
+		 * to every managed client, by title then resource/app-id then class. */
+		const struct wtwm_binding *named = NULL;
+		for (size_t i = server->config.binding_count; i > 0; --i) {
+			const struct wtwm_binding *candidate = &server->config.bindings[i - 1];
+			if (candidate->type == type && candidate->window_name[0] != '\0' &&
+					key != NULL && strcmp(candidate->key, key) == 0 &&
+					candidate->modifiers == (modifiers & used)) {
+				named = candidate;
+				break;
+			}
+		}
+		if (named != NULL) {
+			size_t selector_length = strlen(named->window_name);
+			size_t client_count = 0;
+			struct toplevel *item;
+			wl_list_for_each(item, &server->toplevels, link) ++client_count;
+			struct toplevel **clients = client_count == 0 ? NULL :
+				calloc(client_count, sizeof(*clients));
+			if (client_count != 0 && clients == NULL) return false;
+			size_t client_index = 0;
+			wl_list_for_each(item, &server->toplevels, link)
+				clients[client_index++] = item;
+			for (unsigned category = 0; category < 3; ++category) {
+				bool matched = false;
+				for (client_index = 0; client_index < client_count; ++client_index) {
+					item = clients[client_index];
+					if (!item->mapped || item->placement_pending) continue;
+					struct wtwm_client_identity identity = toplevel_identity(item);
+					const char *value = category == 0 ?
+						(identity.name != NULL ? identity.name : identity.title) :
+						(category == 1 ? (identity.resource_name != NULL ?
+						identity.resource_name : identity.app_id) : identity.resource_class);
+					if (value == NULL || strncmp(value, named->window_name,
+							selector_length) != 0) continue;
+					test_trace_toplevel_event(item, "binding", "frame");
+					bool previous_from_key = server->action_from_key;
+					server->action_from_key = true;
+					execute_action(server, item, &named->action, WTWM_CONTEXT_FRAME);
+					server->action_from_key = previous_from_key;
+					matched = true;
+				}
+				if (matched) {
+					free(clients);
+					return true;
+				}
+			}
+			free(clients);
+		}
 	}
-	return false;
+	struct wtwm_binding_trigger trigger = {
+		.type = type,
+		.button = button,
+		.key = key,
+		.modifiers = modifiers,
+		.context = context,
+		.client = NULL,
+	};
+	const struct wtwm_binding *binding = wtwm_bindings_select(
+		server->config.bindings, server->config.binding_count, &trigger);
+	if (binding == NULL) return false;
+	if (toplevel != NULL)
+		test_trace_toplevel_event(toplevel, "binding",
+			binding_context_name(context));
+	bool previous_from_key = server->action_from_key;
+	server->action_from_key = type == WTWM_BINDING_KEY;
+	if (type == WTWM_BINDING_BUTTON)
+		execute_pointer_action(server, toplevel, &binding->action, context);
+	else
+		execute_action(server, toplevel, &binding->action, context);
+	server->action_from_key = previous_from_key;
+	return true;
 }
 
 static struct hit_result desktop_at(struct server *server, double lx, double ly) {
@@ -2734,10 +3374,15 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		int y = (int)(server->cursor->y - interaction->grab_y);
 		if (interaction->constrained_move) {
 			if (interaction->constrained_axis == WTWM_AXIS_NONE) {
-				struct wtwm_frame_geometry geometry;
-				toplevel_geometry(server->grabbed, &geometry);
+				struct wtwm_frame_geometry geometry = {0};
+				if (!interaction->icon_move)
+					toplevel_geometry(server->grabbed, &geometry);
+				int width = interaction->icon_move ?
+					interaction->original.width : geometry.outer_width;
+				int height = interaction->icon_move ?
+					interaction->original.height : geometry.outer_height;
 				interaction->constrained_axis = wtwm_constrained_move_axis(
-					geometry.outer_width, geometry.outer_height,
+					width, height,
 					(int)server->cursor->x - interaction->original.x,
 					(int)server->cursor->y - interaction->original.y);
 			}
@@ -2747,15 +3392,20 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 			else
 				x = interaction->original.x;
 		}
-		struct wtwm_frame_geometry geometry;
-		toplevel_geometry(server->grabbed, &geometry);
+		struct wtwm_frame_geometry geometry = {0};
+		if (!interaction->icon_move)
+			toplevel_geometry(server->grabbed, &geometry);
+		int width = interaction->icon_move ?
+			interaction->original.width : geometry.outer_width;
+		int height = interaction->icon_move ?
+			interaction->original.height : geometry.outer_height;
 		if (server->config.dont_move_off) {
 			struct wlr_box output_box = {0};
 			wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
 			x -= output_box.x;
 			y -= output_box.y;
 			wtwm_clamp_move(output_box.width, output_box.height,
-				geometry.outer_width, geometry.outer_height,
+				width, height,
 				interaction->force_move, &x, &y);
 			x += output_box.x;
 			y += output_box.y;
@@ -2767,7 +3417,13 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 				raise_toplevel(server->grabbed);
 				interaction->raised = true;
 			}
-			set_toplevel_position(server->grabbed, x, y);
+			if (interaction->icon_move) {
+				server->grabbed->icon_x = x;
+				server->grabbed->icon_y = y;
+				wlr_scene_node_set_position(&server->grabbed->icon_tree->node, x, y);
+			} else {
+				set_toplevel_position(server->grabbed, x, y);
+			}
 		} else {
 			show_interaction_outline(server);
 		}
@@ -2825,6 +3481,11 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		return;
 	}
 	if (server->menu.tree != NULL) {
+		while (!menu_contains(&server->menu, server->cursor->x,
+				server->cursor->y) && server->menu.parent != NULL &&
+				menu_contains(server->menu.parent, server->cursor->x,
+					server->cursor->y))
+			(void)pop_menu(server);
 		update_menu_selection(server);
 		set_cursor_role(server, "Menu");
 		wlr_seat_pointer_clear_focus(server->seat);
@@ -2968,15 +3629,28 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 	if (event->state == WL_POINTER_BUTTON_STATE_PRESSED)
 		server->last_interaction_moved = false;
 	if (server->menu.tree != NULL) {
+		if (event->state == WL_POINTER_BUTTON_STATE_PRESSED) {
+			hide_menu(server);
+			return;
+		}
 		if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
 			int selected = menu_item_at(server);
 			struct wtwm_action action = {0};
 			struct toplevel *target = server->menu.target;
+			bool windows_menu = server->menu.definition == &server->windows_menu;
+			if (windows_menu && selected > 0 &&
+					(size_t)selected < server->windows_menu.item_count)
+				target = server->windows_menu_targets[selected];
 			bool activate = selected >= 0 &&
-				server->menu.definition->items[selected].action.type != WTWM_ACTION_TITLE;
-			if (activate) action = server->menu.definition->items[selected].action;
+				server->menu.definition->items[selected].action.type != WTWM_ACTION_TITLE &&
+				server->menu.definition->items[selected].action.type != WTWM_ACTION_MENU;
+			if (activate) action = windows_menu ? server->config.window_function :
+				server->menu.definition->items[selected].action;
 			hide_menu(server);
-			if (activate && (action.type == WTWM_ACTION_MOVE ||
+			if (activate && windows_menu && action.type == WTWM_ACTION_NOP) {
+				set_toplevel_iconified(target, false);
+				raise_toplevel(target);
+			} else if (activate && (action.type == WTWM_ACTION_MOVE ||
 					action.type == WTWM_ACTION_FORCEMOVE)) {
 				if (target != NULL) {
 					begin_menu_position(target,
@@ -3015,7 +3689,8 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		if (action->type == WTWM_ACTION_RESIZE) {
 			begin_interactive(hit.toplevel, CURSOR_RESIZE, 0, false, true,
 				event->time_msec);
-		} else execute_action(server, hit.toplevel, action, WTWM_CONTEXT_TITLE);
+		} else execute_pointer_action(server, hit.toplevel, action,
+			WTWM_CONTEXT_TITLE);
 		handled = true;
 	}
 	if (!handled) handled = dispatch_binding(server, WTWM_BINDING_BUTTON,
@@ -3023,6 +3698,11 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 	if (!handled && hit.context == WTWM_CONTEXT_TITLE && event->button == BTN_LEFT) {
 		begin_interactive(hit.toplevel, CURSOR_MOVE, 0, false, true,
 			event->time_msec);
+		handled = true;
+	}
+	if (!handled && server->config.default_function.type != WTWM_ACTION_NOP) {
+		execute_pointer_action(server, hit.toplevel, &server->config.default_function,
+			hit.context);
 		handled = true;
 	}
 	if (!handled && hit.surface != NULL)
@@ -3367,7 +4047,9 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	}
 	if (server->continuation.toplevel == toplevel)
 		memset(&server->continuation, 0, sizeof(server->continuation));
-	if (server->menu.target == toplevel) hide_menu(server);
+	if (server->menu.target == toplevel ||
+			server->menu.definition == &server->windows_menu) hide_menu(server);
+	if (server->ring_leader == toplevel) server->ring_leader = NULL;
 	if (server->pointer_toplevel == toplevel) {
 		server->pointer_toplevel = NULL;
 		server->pointer_context = WTWM_CONTEXT_ROOT;
@@ -4951,9 +5633,11 @@ static void test_write_state(struct test_control *control) {
 		test_write(control, "{\"name\":");
 		test_write_json_string(control, server->menu.definition->name);
 		test_write(control,
-			",\"x\":%d,\"y\":%d,\"width\":%d,\"row_height\":%d,\"selected\":%d}",
+			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
+			"\"row_height\":%d,\"depth\":%u,\"selected\":%d}",
 			server->menu.x, server->menu.y, server->menu.width,
-			server->menu.row_height, server->menu.selected);
+			server->menu.height, server->menu.row_height,
+			menu_depth(&server->menu), server->menu.selected);
 	}
 	test_write(control, "}\n");
 }
@@ -5343,6 +6027,10 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	struct server server = {0};
+	server.argc = argc;
+	server.argv = argv;
+	server.config_path = config_path;
+	server.previous_output_index = -1;
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
 		WTWM_COLOR_MODE_MONOCHROME :
 		(strcmp(visual_mode, "grayscale") == 0 ? WTWM_COLOR_MODE_GRAYSCALE :
@@ -5467,7 +6155,7 @@ int main(int argc, char **argv) {
 #endif
 	setenv("WAYLAND_DISPLAY", socket, true);
 	(void)xwayland_start(&server);
-	if (startup != NULL) spawn_shell(startup);
+	if (startup != NULL) spawn_command(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	xwayland_finish(&server);
@@ -5475,6 +6163,9 @@ int main(int argc, char **argv) {
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
 #endif
+	hide_menu(&server);
+	free(server.windows_menu.items);
+	free(server.windows_menu_targets);
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);
@@ -5489,6 +6180,11 @@ int main(int argc, char **argv) {
 	pango_cairo_font_map_set_default(NULL);
 	FcFini();
 #endif
+	if (server.restart_requested) {
+		execvp(server.argv[0], server.argv);
+		wlr_log_errno(WLR_ERROR, "%s", "failed to restart wtwm");
+		return 1;
+	}
 	return 0;
 
 fail_runtime:
@@ -5496,6 +6192,9 @@ fail_runtime:
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
 #endif
+	hide_menu(&server);
+	free(server.windows_menu.items);
+	free(server.windows_menu_targets);
 	wlr_scene_node_destroy(&server.scene->tree.node);
 	wlr_xcursor_manager_destroy(server.cursor_manager);
 	wlr_cursor_destroy(server.cursor);

@@ -31,6 +31,11 @@ INTERACTION_RUNTIME_FEATURES = {
     "directive.noraiseonresize",
     "directive.opaquemove",
 }
+ARGUMENT_ACTIONS = {
+    "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
+    "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
+    "f.warptoiconmgr", "f.warptoscreen",
+}
 
 
 def canonical(value: object) -> str:
@@ -48,7 +53,7 @@ def action_fixture(entry: dict[str, object]) -> str:
         action = 'f.future-action "argument"'
     else:
         action = name
-        if name in {"f.exec", "f.function", "f.menu", "f.warpto"}:
+        if name in ARGUMENT_ACTIONS:
             action += ' "argument"'
     return f"Button1 = : root : {action}\n"
 

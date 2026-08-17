@@ -163,6 +163,59 @@ interaction_test = executable(
 )
 test('twm move and resize interaction model', interaction_test)
 
+actions_lib = static_library(
+  'wtwm-actions-lib',
+  'src/actions.c',
+  include_directories: inc,
+)
+actions_dep = declare_dependency(
+  link_with: actions_lib,
+  include_directories: inc,
+)
+
+actions_test = executable(
+  'actions-test',
+  'tests/actions_test.c',
+  dependencies: actions_dep,
+)
+test('twm built-in action model', actions_test)
+
+command_lib = static_library(
+  'wtwm-command-lib',
+  'src/command.c',
+  include_directories: inc,
+)
+command_dep = declare_dependency(
+  link_with: command_lib,
+  include_directories: inc,
+)
+
+command_test = executable(
+  'command-test',
+  'tests/command_test.c',
+  dependencies: command_dep,
+)
+test('twm command execution planning', command_test)
+
+bindings_lib = static_library(
+  'wtwm-bindings-lib',
+  'src/bindings.c',
+  include_directories: inc,
+  dependencies: config_dep,
+)
+bindings_dep = declare_dependency(
+  link_with: bindings_lib,
+  include_directories: inc,
+  dependencies: config_dep,
+)
+
+bindings_test = executable(
+  'bindings-test',
+  'tests/bindings_test.c',
+  dependencies: bindings_dep,
+)
+test('twm input binding selection', bindings_test)
+
 lifecycle_model_lib = static_library(
   'wtwm-lifecycle-model-lib',
   'src/lifecycle_model.c',
@@ -509,6 +562,26 @@ test(
   ],
 )
 test(
+  'reference action behavior contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_action_contract.py'),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 6 action implementation matrix',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_m6_implementation_matrix.py'),
+    '--source-root', meson.project_source_root(),
+    '--config-tool', config_tool,
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 4 trace differential contract',
   find_program('python3'),
   args: [
@@ -608,14 +681,15 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
-      config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep,
+      config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
+      command_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep,
       pangocairo,
@@ -872,6 +946,17 @@ if wlroots.found()
     integration_runner,
     args: [
       '-B', files('tests/integration/run_focus_stack.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 6 actions and bindings integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m6_actions.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_focus_stack_x11_client,
     ],

@@ -645,7 +645,61 @@ static void accepts_legacy_syntax(void) {
 	assert(wtwm_config_parse(&config, "legacy", source, error, sizeof(error)));
 	assert(config.binding_count == 2 && config.squeeze_entry_count == 1);
 	assert(config.menus[0].items[0].action.type == WTWM_ACTION_EXEC);
-	assert(config.warning_count == 1);
+	assert(config.warning_count == 0);
+	wtwm_config_finish(&config);
+}
+
+static void parses_all_actions_as_runtime_dispatchable(void) {
+	static const char source[] =
+		"Function \"all-actions\" {\n"
+		" f.autoraise f.backiconmgr f.beep f.bottomzoom f.circledown f.circleup\n"
+		" f.colormap \"NEXT\" f.cut \"text\" f.cutfile f.deiconify f.delete\n"
+		" f.deltastop f.destroy f.downiconmgr f.exec \"printf ok\"\n"
+		" f.file \"~/file\" f.focus f.forcemove f.forwiconmgr f.fullzoom\n"
+		" f.function \"nested\" f.hbzoom f.hideiconmgr f.horizoom f.htzoom\n"
+		" f.hzoom f.iconify f.identify f.lefticonmgr f.leftzoom f.lower\n"
+		" f.menu \"menu\" f.move f.nexticonmgr f.nop f.previconmgr\n"
+		" f.priority \"4\" f.quit f.raise f.raiselower f.refresh f.resize\n"
+		" f.restart f.righticonmgr f.rightzoom f.saveyourself f.showiconmgr\n"
+		" f.sorticonmgr f.source \"ignored\" f.startwm \"other-wm\" f.title\n"
+		" f.topzoom f.twmrc f.unfocus f.upiconmgr f.version f.vlzoom f.vrzoom\n"
+		" f.warpnext f.warpprev f.warpring \"PREV\" f.warpto \"term\"\n"
+		" f.warptoiconmgr \"main\" f.warptoscreen \"BACK\" f.winrefresh f.zoom\n"
+		"}\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "actions", source, error, sizeof(error)));
+	assert(config.function_count == 1);
+	assert(config.functions[0].action_count > 60);
+	for (size_t i = 0; i < config.functions[0].action_count; ++i) {
+		const struct wtwm_action *action = &config.functions[0].actions[i];
+		assert(action->type != WTWM_ACTION_UNSUPPORTED);
+		assert(action->compatibility == WTWM_COMPAT_EFFECTIVE ||
+			action->compatibility == WTWM_COMPAT_WAYLAND_TRANSLATED);
+	}
+	assert(strcmp(config.functions[0].actions[6].argument, "next") == 0);
+	assert(strcmp(config.functions[0].actions[60].argument, "prev") == 0);
+	assert(strcmp(config.functions[0].actions[63].argument, "back") == 0);
+	wtwm_config_finish(&config);
+
+	wtwm_config_init(&config);
+	assert(wtwm_config_parse(&config, "invalid-action-arguments",
+		"Function \"invalid\" { f.colormap \"bad\" f.warpring \"bad\" "
+		"f.warptoscreen \"1x\" }\n", error, sizeof(error)));
+	assert(config.warning_count == 3);
+	assert(config.functions[0].action_count == 3);
+	for (size_t i = 0; i < 3; ++i)
+		assert(config.functions[0].actions[i].type == WTWM_ACTION_NOP);
+	wtwm_config_finish(&config);
+
+	wtwm_config_init(&config);
+	assert(wtwm_config_parse(&config, "restart-alias",
+		"Button1 = : root : f.restart\n"
+		"Button2 = : root : f.twmrc\n", error, sizeof(error)));
+	assert(config.binding_count == 2);
+	assert(config.bindings[0].action.type == WTWM_ACTION_RESTART);
+	assert(config.bindings[1].action.type == WTWM_ACTION_RESTART);
 	wtwm_config_finish(&config);
 }
 
@@ -683,6 +737,7 @@ int main(void) {
 	rejects_invalid_binding();
 	classifies_runtime_visual_directives_effective();
 	accepts_legacy_syntax();
+	parses_all_actions_as_runtime_dispatchable();
 	applies_global_and_exception_rules();
 	puts("config tests passed");
 	return 0;

@@ -387,38 +387,38 @@ Exit criteria:
 
 Implementation work:
 
-- [ ] Reproduce exact key and pointer binding behavior for all modifiers and
+- [x] Reproduce exact key and pointer binding behavior for all modifiers and
   contexts.
-- [ ] Match press, drag, threshold, release, cancellation, and submenu interaction.
-- [ ] Implement nested menus and named functions with reference ordering and
+- [x] Match press, drag, threshold, release, cancellation, and submenu interaction.
+- [x] Implement nested menus and named functions with reference ordering and
   interruption behavior.
-- [ ] Complete every built-in function family: raise, lower, move, resize, focus,
+- [x] Complete every built-in function family: raise, lower, move, resize, focus,
   delete, destroy, iconify, circulation, raise-or-lower, all zoom variants and
   aliases, warp-to-window, warp-ring, warp-screen, icon-manager navigation,
   menu, function, title, no-op, delta-stop, execute, priority, quit, restart,
-  reload, start-window-manager, identify, version, beep, refresh,
-  window-refresh, and the legacy cut-buffer, file, colormap, and save-yourself
-  actions.
-- [ ] Reproduce `DefaultFunction` and `WindowFunction`.
-- [ ] Preserve exact command execution and quoting behavior without invoking an
+  the `f.twmrc` restart alias, start-window-manager, identify, version, beep,
+  refresh, window-refresh, and the legacy cut-buffer, file, colormap, and
+  save-yourself actions.
+- [x] Reproduce `DefaultFunction` and `WindowFunction`.
+- [x] Preserve exact command execution and quoting behavior without invoking an
   unnecessary shell.
 
 Testing:
 
-- [ ] Give every function an initial-state, input-sequence, and expected-state test.
-- [ ] Test functions both directly and from nested named functions.
-- [ ] Test all root, window, title, frame, icon, icon-manager, and all-context
+- [x] Give every function an initial-state, input-sequence, and expected-state test.
+- [x] Test functions both directly and from nested named functions.
+- [x] Test all root, window, title, frame, icon, icon-manager, and all-context
   bindings.
-- [ ] Test modifier-lock handling, repeated input, canceled gestures, and
+- [x] Test modifier-lock handling, repeated input, canceled gestures, and
   simultaneous client changes.
-- [ ] Compare function traces with reference `twm`.
+- [x] Compare function traces with reference `twm`.
 
 Exit criteria:
 
-- [ ] Every upstream function is effective, behaviorally equivalent, or a verified
+- [x] Every upstream function is effective, behaviorally equivalent, or a verified
   no-op.
-- [ ] Every binding context and modifier combination has automated coverage.
-- [ ] No function remains in a parser-only state.
+- [x] Every binding context and modifier combination has automated coverage.
+- [x] No function remains in a parser-only state.
 
 ### Milestone 7: Complete icons and icon managers
 
@@ -460,9 +460,8 @@ implementation.
 
 Required mappings:
 
-- [ ] `f.twmrc` becomes an atomic full configuration reload.
-- [ ] `f.restart` reloads compositor state in place so existing clients are not
-  disconnected.
+- [ ] Keep `f.twmrc` as the exact `f.restart` alias; restart compositor state in
+  place so existing clients are not disconnected.
 - [ ] `f.startwm` supports a safe configured handoff where possible, and reports
   unsupported handoffs without destroying the session.
 - [ ] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state

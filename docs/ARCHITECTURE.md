@@ -10,7 +10,8 @@ graphics stack:
 Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
                               │
                               v
-                     interaction.c (portable move/resize decisions)
+       bindings.c / actions.c / command.c / interaction.c
+       (portable trigger, action, launch, and gesture decisions)
                               │
                               v
                      DRM, nested Wayland, or X11 backend
@@ -26,6 +27,14 @@ random-placement state, and outer-frame clamping. The portable tests therefore
 exercise these exact decisions without a graphics stack. `wtwm-config` and
 those tests build on any ordinary Unix host. `src/wtwm.c` is the Linux
 compositor adapter and targets the wlroots 0.18 public API.
+
+`src/bindings.c` owns exact trigger selection, including twm's global
+`mods_used` mask, concrete/all contexts, case-sensitive key names, and named
+client selectors. `src/actions.c` owns zoom toggle/switch geometry and cyclic
+window/output selection. `src/command.c` preserves the complete configured
+command while deciding whether a decoded `execvp` argument vector is safe or
+the unchanged text requires `/bin/sh -c`. The compositor supplies client,
+output, cursor, scene, and process effects around those portable decisions.
 
 Initial Xwayland placement reads `USPosition`/`PPosition` from
 `WM_NORMAL_HINTS`, applies `UsePPosition` exactly, and always preserves a
@@ -44,8 +53,10 @@ rectangles are server-side nodes; Pango-rendered immutable buffers provide
 window and menu text; the client xdg-surface is offset below them. Hit testing
 maps scene nodes back into twm's `root`, `window`, `title`, and
 `frame` binding contexts. Parsed actions are dispatched by the compositor,
-and `f.function` recursively executes the same action records used by menus
-and bindings.
+and `f.function` executes the same action records used by menus and bindings
+through a bounded continuation stack. Menus form a separate bounded parent
+stack so pull-right hover can retain visible ancestors while the active child
+receives selection and release.
 
 The compositor holds at most one interactive session. It saves original and
 preview client geometry, the initiating pointer coordinates, selected resize

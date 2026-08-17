@@ -11,24 +11,24 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `Color` / `Grayscale` / `Monochrome` blocks | Effective | `--visual-mode` selects the active block. X11 hexadecimal and `rgb:` widths, gray percentages, and named colors resolve through exact 16-bit channels before deterministic grayscale or monochrome conversion; base and per-window colors feed frames, titles, menus, icons, the root, and cursors |
 | Frame, border, and title extents | Exact in the canonical profile | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame. Title height, padding, lower border, squeeze placement, text baseline and clipping, button spacing, and focus/tile patterns use the frozen reference formulas. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations |
 | Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
-| `ButtonN` and quoted key bindings | Effective | libinput buttons and xkbcommon key symbols |
-| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all` contexts | Effective except icon-manager UI | Scene hit-test contexts; compositor menus deliberately have no binding context |
-| Shift, Control, Lock, Meta modifiers | Partial | Shift, Control, Lock, Meta/Mod1, and Meta4 have native mappings; other parsed Meta numbers lack audited runtime evidence |
-| `Function` and `f.function` | Effective | Recursive action sequence, depth limited to eight |
+| `ButtonN` and quoted key bindings | Effective | libinput buttons and exact, case-sensitive xkbcommon key-symbol names; later declarations replace the same twm trigger slot |
+| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all`, and named contexts | Effective except icon-manager UI | Scene hit-test contexts; `all` expands to the six concrete contexts. Named keys use case-sensitive title, resource/`app_id`, then class prefixes and execute for every client in the first successful category |
+| Shift, Control, Lock, Meta modifiers | Effective | Shift, Control, Lock, and Mod1 through Mod5 use xkb state. As in twm, Shift, Control, and Mod1 are always significant; configuring any other modifier makes it globally significant, so a configured Lock binding makes Caps Lock distinguish every binding |
+| `Function` and `f.function` | Effective | Nested action sequences preserve reference order and pause across interactive move/resize; `f.deltastop` observes the completed gesture. The continuation stack permits the root function plus eight nested calls |
 | Move, force-move, resize, raise, lower | Effective for move/resize interaction | Non-opaque moves and all resizes use compositor-owned outlines with release commit; `OpaqueMove` updates the live window, while second-button abort restores the original geometry. Raise/lower never imply focus |
-| Focus, unfocus, delete/destroy, exec, quit | Effective | PointerRoot/sloppy focus is distinct from the click-locked `f.focus` toggle; `NoTitleFocus`, X11 input hints, and `WM_TAKE_FOCUS` are applied independently. Direct X input focus also synchronizes wlroots' XWM focus record so its guarded X11/Wayland selection bridge remains available, after which wtwm reasserts the exact core-focus target. `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell |
+| Focus, unfocus, delete/destroy, exec, quit | Effective | PointerRoot/sloppy focus is distinct from the click-locked `f.focus` toggle; `NoTitleFocus`, X11 input hints, and `WM_TAKE_FOCUS` are applied independently. Direct X input focus also synchronizes wlroots' XWM focus record so its guarded X11/Wayland selection bridge remains available, after which wtwm reasserts the exact core-focus target. `destroy` becomes a Wayland close request; clients cannot be killed through xdg-shell. Commands retain the exact configured source text; simple quoted/escaped argument vectors execute directly, while shell syntax alone selects unchanged `/bin/sh -c` text |
 | `f.raiselower`, `f.circleup`, `f.circledown` | Effective | The shared native/Xwayland stack uses actual visible overlap: overlap-dependent `f.raiselower` matches X `Opposite`, while circulation moves the bottommost occluded or topmost occluding item. Parent/transient actions are not grouped |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
-| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
+| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. Pull-right hover opens a bounded nested stack, moving back into a parent pops its descendants, a second press cancels the stack, and release dispatches only an enabled leaf. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
 | Title buttons | Effective | Default and configured left/right buttons retain reference ordering, borders, spacing, XBM/built-in glyphs, and full hit boxes. Reference `twm` has no distinct hover/pressed pixels; the held-pointer captures are therefore identical while the action still fires on press |
 | Icon windows and icon manager | Configured icons effective; manager pending | Wayland has no client icon-window primitive. Compositor-owned configured-XBM and `UnknownIcon` views use the reference icon font, foreground/background/border colors, bitmap/text layout, and icon focus context. Client-supplied icon rendering, regions, and icon managers remain Milestone 7 work |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
-| Zoom/maximize variants | Parsed | Output-aware geometry and saved-state restore are pending |
-| `WarpCursor` and warp actions | Parsed | Requires explicit Wayland-compositor behavior; pending |
+| Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use reference geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
+| Warp actions | Behaviorally equivalent | Window, next/previous, window-ring, and output warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates; X screens translate to ordered Wayland outputs while preserving the cursor's output-relative position |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
-| X11 save-under, backing-store, colormap, grabs | Accepted / parsed-only | No verified-no-op claim is made without runtime and reference evidence |
+| Legacy bell, cut buffer, file, colormap, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell, cut buffer 0, file loading, and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell, global cut-buffer, or save-yourself protocol. wlroots/Xwayland owns installed colormaps and exposes no twm XSync priority control, so those actions are explicit no-ops under their documented missing-capability conditions |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
@@ -155,6 +155,33 @@ Menu-started movement keeps its separate reference intent. A menu invoked for
 a window centers the pointer and commits on the next press; a root menu defers
 target selection to the next press and commits that ordinary drag on release.
 Only an additional press during an ordinary drag takes the abort path.
+
+Unbound pointer presses run `DefaultFunction`; target-requiring root actions
+enter the same select-a-window state used by reference twm. The built-in
+`TwmWindows` menu is assembled from the current managed stack. Selecting one
+of its clients runs `WindowFunction`, or deiconifies and raises the selection
+when no override was configured. Menus, title buttons, direct bindings, and
+nested named functions all feed one action dispatcher, so an action is not
+classified as effective merely because its spelling parsed.
+
+`f.refresh` and `f.winrefresh` schedule compositor redraws instead of creating
+temporary X cover windows. As in reference twm, `f.twmrc` is an exact alias for
+`f.restart`; both perform a normal compositor teardown and re-execute the
+original argument vector. There is no separate upstream reload action.
+`f.startwm` launches its configured command with the same direct-or-shell
+planner and then terminates wtwm. `f.identify` and `f.version` report through
+the compositor log because Wayland has no server-owned X information-window
+primitive.
+
+Milestone 6 verification enumerates all 66 upstream action spellings and 59
+distinct behaviors from the frozen source contract. Each spelling is parsed as
+a direct action and through a two-level named function, checked against its
+runtime dispatch case and expected state/no-op condition, and classified as
+effective, behaviorally equivalent, or a conditional verified no-op. Portable
+tests cross every binding context and modifier bit; Linux headless tests add
+menu cancellation, nested hover/release, client-list mutation during named
+bindings, icon move/resize rules, zoom restore, and function continuation and
+`f.deltastop` traces.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling

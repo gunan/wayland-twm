@@ -142,7 +142,11 @@ INT_DIRECTIVES = {
     "menuborderwidth", "movedelta", "titlebuttonborderwidth", "titlepadding",
 }
 STRING_DIRECTIVES = {"iconfont", "iconmanagerfont", "menufont", "resizefont", "titlefont"}
-ARGUMENT_ACTIONS = {"f.exec", "f.function", "f.menu", "f.warpto"}
+ARGUMENT_ACTIONS = {
+    "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
+    "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
+    "f.warptoiconmgr", "f.warptoscreen",
+}
 
 
 def direct_targets(entry: dict[str, object], keyword_by_name: dict[str, str], identifiers: set[str]) -> set[str]:
