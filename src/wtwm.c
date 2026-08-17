@@ -2524,6 +2524,16 @@ static bool xwayland_supports_delete(struct toplevel *toplevel) {
 	return false;
 }
 
+static bool ring_bell(struct server *server) {
+	if (server->xwayland == NULL) return false;
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return false;
+	xcb_bell(connection, 0);
+	xcb_flush(connection);
+	return true;
+}
+
 static void delete_toplevel(struct toplevel *toplevel) {
 	if (toplevel->xdg != NULL) {
 		wlr_xdg_toplevel_send_close(toplevel->xdg);
@@ -2532,6 +2542,7 @@ static void delete_toplevel(struct toplevel *toplevel) {
 	if (!xwayland_supports_delete(toplevel)) {
 		wlr_log(WLR_INFO, "X11 window 0x%08" PRIx32
 			" does not advertise WM_DELETE_WINDOW", toplevel->xwayland->window_id);
+		(void)ring_bell(toplevel->server);
 		return;
 	}
 	xcb_connection_t *connection =
@@ -2950,16 +2961,8 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_DELTASTOP:
 		break;
 	case WTWM_ACTION_BEEP:
-		if (server->xwayland != NULL) {
-			xcb_connection_t *connection =
-				wlr_xwayland_get_xwm_connection(server->xwayland);
-			if (connection != NULL) {
-				xcb_bell(connection, 0);
-				xcb_flush(connection);
-				break;
-			}
-		}
-		wlr_log(WLR_DEBUG, "%s", "f.beep has no native Wayland bell protocol");
+		if (!ring_bell(server))
+			wlr_log(WLR_DEBUG, "%s", "f.beep has no native Wayland bell protocol");
 		break;
 	case WTWM_ACTION_MOVE: case WTWM_ACTION_FORCEMOVE:
 		begin_interactive(toplevel, CURSOR_MOVE, 0,
@@ -3072,9 +3075,11 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		if (spawn_command(action->argument)) wl_display_terminate(server->display);
 		break;
 	case WTWM_ACTION_SAVEYOURSELF:
-		if (!send_save_yourself(toplevel))
+		if (!send_save_yourself(toplevel)) {
 			wlr_log(WLR_DEBUG, "%s",
 				"f.saveyourself requires X11 WM_SAVE_YOURSELF support");
+			(void)ring_bell(server);
+		}
 		break;
 	case WTWM_ACTION_CUT:
 		cut_text(server, action->argument); break;
