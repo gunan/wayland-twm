@@ -53,6 +53,11 @@ def title_point(item: dict[str, object]) -> tuple[int, int]:
 
 def press_at(control: Control, point: tuple[int, int], button: int = 272) -> None:
     control.command(f"POINTER {point[0]} {point[1]}")
+    # Xwayland metadata and its scene buffer can become visible in adjacent
+    # event-loop turns under sanitizers.  Render before refreshing the hit test
+    # at the same coordinate so the press targets the completed scene.
+    control.command("WAIT 2")
+    control.command(f"POINTER {point[0]} {point[1]}")
     control.command(f"BUTTON {button} press")
 
 
