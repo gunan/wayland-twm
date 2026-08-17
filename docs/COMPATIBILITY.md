@@ -173,6 +173,16 @@ planner and then terminates wtwm. `f.identify` and `f.version` report through
 the compositor log because Wayland has no server-owned X information-window
 primitive.
 
+Milestone 6 verification enumerates all 66 upstream action spellings and 59
+distinct behaviors from the frozen source contract. Each spelling is parsed as
+a direct action and through a two-level named function, checked against its
+runtime dispatch case and expected state/no-op condition, and classified as
+effective, behaviorally equivalent, or a conditional verified no-op. Portable
+tests cross every binding context and modifier bit; Linux headless tests add
+menu cancellation, nested hover/release, client-list mutation during named
+bindings, icon move/resize rules, zoom restore, and function continuation and
+`f.deltastop` traces.
+
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling
 stack, while reference twm maps its own menus raised. wtwm keeps managed native
