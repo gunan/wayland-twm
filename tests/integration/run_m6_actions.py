@@ -247,18 +247,22 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
                 raise RuntimeError(f"named binding did not visit both clients: {named!r}")
 
             # DefaultFunction defers a root action until a window is selected.
+            control.command("TRACE CLEAR")
             control.command("POINTER 10 10")
             control.command("BUTTON 279 press")
             if control.state()["deferred_root_action"] is not True:
                 raise RuntimeError("DefaultFunction did not defer its root action")
-            target = window(control.state(), "focus-b")
+            target = window(control.state(), "focus-a")
             target_point = content_point(target)
             control.command(f"POINTER {target_point[0]} {target_point[1]}")
             control.command("BUTTON 279 press")
             control.command("BUTTON 279 release")
             state = control.state()
-            if state["deferred_root_action"] or stack_index(state, "focus-b") != 0:
-                raise RuntimeError(f"deferred DefaultFunction did not raise focus-b: {state!r}")
+            raised = [event for event in control.trace()["events"]
+                      if event["event"] == "raise" and
+                      event["window"]["title"] == "focus-a"]
+            if state["deferred_root_action"] or not raised:
+                raise RuntimeError(f"deferred DefaultFunction did not raise focus-a: {state!r}")
 
             # WindowFunction is applied by the dynamic TwmWindows menu.
             control.command("POINTER 10 10")
