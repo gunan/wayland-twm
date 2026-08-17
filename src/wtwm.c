@@ -5588,6 +5588,11 @@ static void xwayland_surface_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	map_xwayland_toplevel(toplevel);
+	/* A bufferless StartIconified window is already logically mapped when its
+	 * first Wayland buffer arrives.  Its hidden scene node will not participate
+	 * in output frame delivery, so complete that first callback explicitly. */
+	if (toplevel->mapped && toplevel->iconified)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void xwayland_surface_unmap(struct wl_listener *listener, void *data) {
@@ -5880,6 +5885,9 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 		finish_surface_frame(toplevel->xwayland->surface);
 		map_xwayland_toplevel(toplevel);
 	}
+	if (toplevel->mapped && toplevel->iconified &&
+			toplevel->xwayland->surface->mapped)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void xwayland_dissociate(struct wl_listener *listener, void *data) {
