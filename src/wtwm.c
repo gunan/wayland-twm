@@ -5611,6 +5611,11 @@ static void xwayland_surface_commit(struct wl_listener *listener, void *data) {
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
+	/* Iconified Xwayland content is intentionally absent from output traversal.
+	 * Keep completing its retained frame callbacks so rootless Xwayland can
+	 * finish associating the rest of a batched X11 client set. */
+	if (toplevel->iconified)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void read_xwayland_icon_name(struct toplevel *toplevel) {
