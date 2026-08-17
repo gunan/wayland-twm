@@ -214,6 +214,9 @@ struct toplevel {
 	bool icon_moved;
 	uint64_t icon_identity;
 	uint64_t icon_manager_identity;
+	char *xwayland_direct_name;
+	char *xwayland_direct_instance;
+	char *xwayland_direct_class;
 	struct wlr_buffer *icon_manager_text_buffer;
 	char *icon_manager_text_label;
 	char *icon_manager_text_font;
@@ -669,9 +672,16 @@ static void finish_surface_frame(struct wlr_surface *surface) {
 		wlr_surface_send_frame_done(surface, &now);
 }
 
+static const char *xwayland_identity_value(const char *primary,
+		const char *direct) {
+	return primary != NULL && primary[0] != '\0' ? primary : direct;
+}
+
 static const char *toplevel_title(const struct toplevel *toplevel) {
-	const char *title = toplevel->xdg != NULL ? toplevel->xdg->title :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->title : NULL);
+	const char *title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL;
+	if (toplevel->xwayland != NULL)
+		title = xwayland_identity_value(toplevel->xwayland->title,
+			toplevel->xwayland_direct_name);
 	return title != NULL ? title : "";
 }
 
@@ -699,9 +709,12 @@ static struct wtwm_client_identity toplevel_identity(
 	if (toplevel == NULL) return (struct wtwm_client_identity){0};
 	if (toplevel->xwayland != NULL)
 		return (struct wtwm_client_identity){
-			.name = toplevel->xwayland->title,
-			.resource_name = toplevel->xwayland->instance,
-			.resource_class = toplevel->xwayland->class,
+			.name = xwayland_identity_value(toplevel->xwayland->title,
+				toplevel->xwayland_direct_name),
+			.resource_name = xwayland_identity_value(toplevel->xwayland->instance,
+				toplevel->xwayland_direct_instance),
+			.resource_class = xwayland_identity_value(toplevel->xwayland->class,
+				toplevel->xwayland_direct_class),
 		};
 	return (struct wtwm_client_identity){
 		.title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL,
@@ -762,9 +775,11 @@ static void configured_color(struct server *server, const char *setting,
 
 static bool toplevel_matches(const struct wtwm_string_list *patterns,
 		const struct toplevel *toplevel) {
-	if (toplevel->xwayland != NULL)
-		return wtwm_config_match_x11(patterns, toplevel->xwayland->title,
-			toplevel->xwayland->instance, toplevel->xwayland->class);
+	if (toplevel->xwayland != NULL) {
+		struct wtwm_client_identity identity = toplevel_identity(toplevel);
+		return wtwm_config_match_x11(patterns, identity.name,
+			identity.resource_name, identity.resource_class);
+	}
 	return wtwm_config_match_native(patterns, toplevel->xdg->title,
 		toplevel->xdg->app_id);
 }
@@ -864,14 +879,13 @@ static void test_trace_copy(char destination[TEST_TRACE_IDENTITY_MAX],
 }
 
 static void test_trace_snapshot_identity(struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
 	test_trace_copy(toplevel->test_title, toplevel_title(toplevel));
 	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+		identity.resource_class;
 	test_trace_copy(toplevel->test_app_id, app_id);
-	test_trace_copy(toplevel->test_instance, toplevel->xwayland != NULL ?
-		toplevel->xwayland->instance : NULL);
-	test_trace_copy(toplevel->test_class_name, toplevel->xwayland != NULL ?
-		toplevel->xwayland->class : NULL);
+	test_trace_copy(toplevel->test_instance, identity.resource_name);
+	test_trace_copy(toplevel->test_class_name, identity.resource_class);
 	test_trace_copy(toplevel->test_icon_name, toplevel->icon_name);
 }
 
@@ -1767,6 +1781,16 @@ static void sync_icon_manager_toplevel(struct toplevel *toplevel) {
 	}
 	toplevel->icon_manager_identity = manager_identity;
 	refresh_icon_managers(toplevel->server);
+}
+
+static void reserve_icon_manager_toplevel(struct toplevel *toplevel) {
+	if (toplevel->icon_manager_identity != 0 ||
+			!icon_manager_shows_toplevel(toplevel)) return;
+	uint64_t manager_identity = icon_manager_for_toplevel(toplevel);
+	if (wtwm_icon_manager_entry_add(&toplevel->server->icon_managers,
+			manager_identity, toplevel->icon_identity,
+			icon_manager_label(toplevel)) != WTWM_ICON_MANAGER_APPLIED) return;
+	toplevel->icon_manager_identity = manager_identity;
 }
 
 static bool icon_selector_matches(const struct wtwm_client_identity *identity,
@@ -5937,28 +5961,33 @@ static char *read_xwayland_property_bytes(struct toplevel *toplevel,
 	return value;
 }
 
-static bool bufferless_start_iconified_matches(struct toplevel *toplevel,
-		const struct wtwm_string_list *patterns) {
-	if (toplevel_matches(patterns, toplevel)) return true;
+static void update_bufferless_xwayland_identity(struct toplevel *toplevel) {
 	size_t name_length = 0;
 	char *name = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_NAME,
 		&name_length);
-	(void)name_length;
 	size_t class_length = 0;
 	char *class_data = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_CLASS,
 		&class_length);
-	const char *instance = class_data;
-	const char *resource_class = NULL;
+	char *instance = NULL;
+	char *resource_class = NULL;
 	if (class_data != NULL) {
 		size_t instance_length = strnlen(class_data, class_length);
-		if (instance_length < class_length)
-			resource_class = class_data + instance_length + 1;
+		instance = strndup(class_data, instance_length);
+		if (instance_length < class_length) {
+			const char *class_start = class_data + instance_length + 1;
+			size_t remaining = class_length - instance_length - 1;
+			resource_class = strndup(class_start,
+				strnlen(class_start, remaining));
+		}
 	}
-	bool matched = wtwm_config_match_x11(patterns, name, instance,
-		resource_class);
-	free(name);
+	free(toplevel->xwayland_direct_name);
+	toplevel->xwayland_direct_name = name;
+	free(toplevel->xwayland_direct_instance);
+	toplevel->xwayland_direct_instance = instance;
+	free(toplevel->xwayland_direct_class);
+	toplevel->xwayland_direct_class = resource_class;
 	free(class_data);
-	return matched;
+	(void)name_length;
 }
 
 static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
@@ -5968,7 +5997,7 @@ static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
 	if (!toplevel->xwayland_map_requested || toplevel->mapped ||
 			toplevel->associated ||
 			toplevel->xwayland->override_redirect ||
-			!bufferless_start_iconified_matches(toplevel, start_iconified))
+			!toplevel_matches(start_iconified, toplevel))
 		return;
 	toplevel->start_iconified_match = true;
 	initialize_xwayland_border(toplevel);
@@ -6098,6 +6127,9 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->set_geometry.link);
 	wl_list_remove(&toplevel->xwayland_link);
 	free(toplevel->icon_name);
+	free(toplevel->xwayland_direct_name);
+	free(toplevel->xwayland_direct_instance);
+	free(toplevel->xwayland_direct_class);
 	clear_icon_manager_render_cache(toplevel);
 	free(toplevel->net_wm_icon_pixels);
 	free(toplevel->wm_hints_icon_bits);
@@ -6226,7 +6258,10 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 		struct toplevel *toplevel =
 			xwayland_toplevel_for_window(server, property->window);
 		if (toplevel == NULL) return 0;
-		if (property->atom == server->atom_wm_icon_name)
+		if (property->atom == XCB_ATOM_WM_NAME ||
+				property->atom == XCB_ATOM_WM_CLASS)
+			update_bufferless_xwayland_identity(toplevel);
+		else if (property->atom == server->atom_wm_icon_name)
 			read_xwayland_icon_name(toplevel);
 		else if (property->atom == server->atom_net_wm_icon)
 			read_xwayland_net_wm_icon(toplevel);
@@ -6242,6 +6277,9 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 			xwayland_toplevel_for_window(server, map->window);
 		if (toplevel != NULL) {
 			toplevel->xwayland_map_requested = true;
+			update_bufferless_xwayland_identity(toplevel);
+			read_xwayland_icon_name(toplevel);
+			reserve_icon_manager_toplevel(toplevel);
 			manage_bufferless_start_iconified(toplevel);
 		}
 		return 0;
@@ -6505,8 +6543,9 @@ static void new_decoration(struct wl_listener *listener, void *data) {
 
 #ifdef WTWM_TEST_CONTROL
 static const char *toplevel_app_id(const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
 	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+		identity.resource_class;
 	return app_id != NULL ? app_id : "";
 }
 
@@ -6626,6 +6665,7 @@ static void test_write_state(struct test_control *control) {
 		if (!first) test_write(control, ",");
 		first = false;
 		struct wtwm_frame_geometry geometry;
+		struct wtwm_client_identity identity = toplevel_identity(toplevel);
 		toplevel_geometry(toplevel, &geometry);
 		test_write(control, "{\"id\":%" PRIu64 ",\"title\":",
 			toplevel->test_id);
@@ -6634,11 +6674,9 @@ static void test_write_state(struct test_control *control) {
 		test_write_json_string(control, toplevel_app_id(toplevel));
 		test_write(control, ",\"type\":\"%s\",\"instance\":",
 			toplevel->xwayland != NULL ? "x11" : "wayland");
-		test_write_json_string(control, toplevel->xwayland != NULL ?
-			toplevel->xwayland->instance : "");
+		test_write_json_string(control, identity.resource_name);
 		test_write(control, ",\"class\":");
-		test_write_json_string(control, toplevel->xwayland != NULL ?
-			toplevel->xwayland->class : "");
+		test_write_json_string(control, identity.resource_class);
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
 			"\"border_width\":%d,\"title_bar_height\":%d,\"title_height\":%d,"

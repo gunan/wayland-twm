@@ -15,6 +15,8 @@ REQUIRED = {
         "wtwm_render_argb_icon",
         "read_xwayland_wm_hints_icon",
         "manage_bufferless_start_iconified",
+        "reserve_icon_manager_toplevel",
+        "update_bufferless_xwayland_identity",
         "xwayland_map_requested",
         "start_iconified_match",
         "XCB_MAP_REQUEST",
