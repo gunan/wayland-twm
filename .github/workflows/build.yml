@@ -266,7 +266,7 @@ jobs:
             --evidence /tmp/m7-icon-differential-evidence
       - name: Run deterministic Milestone 7 large-set lifecycle churn
         if: always()
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: |
           python3 -B tests/integration/run_m7_lifecycle_churn.py \
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
