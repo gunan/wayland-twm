@@ -47,6 +47,9 @@ static void insertion_sorting_and_layout(void) {
 	wtwm_icon_manager_state_init(&state);
 	add_manager(&state, 10, "main", 3, false, true);
 	add_entry(&state, 10, 1, "delta");
+	assert(state.active_manager_identity == 0 &&
+		state.active_entry_identity == 0);
+	assert(wtwm_icon_manager_find(&state, 10)->selected_entry_identity == 1);
 	add_entry(&state, 10, 2, "alpha");
 	add_entry(&state, 10, 3, "alpha");
 	add_entry(&state, 10, 4, "bravo");

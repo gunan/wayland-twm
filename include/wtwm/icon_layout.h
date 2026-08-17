@@ -77,6 +77,9 @@ enum wtwm_icon_layout_result wtwm_icon_layout_allocate(
 
 bool wtwm_icon_layout_lookup(const struct wtwm_icon_layout *layout,
 	uint64_t key, struct wtwm_icon_layout_placement *placement);
+/* True when the point is inside any configured region (right/bottom exclusive). */
+bool wtwm_icon_layout_contains_point(const struct wtwm_icon_layout *layout,
+	int x, int y);
 bool wtwm_icon_layout_release(struct wtwm_icon_layout *layout, uint64_t key);
 size_t wtwm_icon_layout_allocation_count(const struct wtwm_icon_layout *layout);
 

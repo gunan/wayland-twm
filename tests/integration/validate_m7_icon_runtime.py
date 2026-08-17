@@ -76,7 +76,7 @@ def main() -> int:
     if arguments.self_test_tamper:
         tampered = dict(files)
         tampered["src/wtwm.c"] = tampered["src/wtwm.c"].replace(
-            "wtwm_icon_layout_allocate", "removed_allocator", 1
+            "wtwm_icon_layout_allocate", "removed_allocator"
         )
         if not validate(tampered):
             errors.append("self-test tamper was accepted")

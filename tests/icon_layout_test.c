@@ -311,6 +311,12 @@ static void test_invalid_operations_and_regions(void) {
 		WTWM_ICON_LAYOUT_NORTH, WTWM_ICON_LAYOUT_WEST, 0, -1);
 	struct wtwm_icon_layout *layout = wtwm_icon_layout_create(&geometry, 1);
 	assert(layout != NULL);
+	assert(wtwm_icon_layout_contains_point(layout, 0, 0));
+	assert(wtwm_icon_layout_contains_point(layout, 9, 9));
+	assert(!wtwm_icon_layout_contains_point(layout, -1, 0));
+	assert(!wtwm_icon_layout_contains_point(layout, 10, 9));
+	assert(!wtwm_icon_layout_contains_point(layout, 9, 10));
+	assert(!wtwm_icon_layout_contains_point(NULL, 0, 0));
 	assert(wtwm_icon_layout_allocate(NULL, 1, 1, 1, NULL) ==
 		WTWM_ICON_LAYOUT_INVALID);
 	assert(wtwm_icon_layout_allocate(layout, 0, 1, 1, NULL) ==

@@ -316,6 +316,21 @@ bool wtwm_icon_layout_lookup(const struct wtwm_icon_layout *layout,
 	return false;
 }
 
+bool wtwm_icon_layout_contains_point(const struct wtwm_icon_layout *layout,
+		int x, int y) {
+	if (layout == NULL) return false;
+	for (size_t i = 0; i < layout->region_count; ++i) {
+		const struct wtwm_icon_layout_region *region =
+			&layout->regions[i].geometry;
+		int64_t right = (int64_t)region->x + region->width;
+		int64_t bottom = (int64_t)region->y + region->height;
+		if ((int64_t)x >= region->x && (int64_t)x < right &&
+				(int64_t)y >= region->y && (int64_t)y < bottom)
+			return true;
+	}
+	return false;
+}
+
 enum wtwm_icon_layout_result wtwm_icon_layout_allocate(
 		struct wtwm_icon_layout *layout, uint64_t key, int width, int height,
 		struct wtwm_icon_layout_placement *placement) {

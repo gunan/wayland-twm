@@ -281,10 +281,6 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_add(
 	(void)snprintf(entry->label, sizeof(entry->label), "%s", label);
 	insert_slot(state, manager, slot);
 	++state->entry_count;
-	if (state->active_entry_identity == 0) {
-		state->active_manager_identity = manager_identity;
-		state->active_entry_identity = entry_identity;
-	}
 	return WTWM_ICON_MANAGER_APPLIED;
 }
 

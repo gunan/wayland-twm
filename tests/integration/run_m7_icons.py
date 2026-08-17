@@ -72,6 +72,17 @@ def click_frame(control: Control, item: dict[str, object]) -> None:
           int(item["y"]) + int(item["outer_height"]) // 2)
 
 
+def drag_icon(control: Control, item: dict[str, object], x: int, y: int) -> None:
+    start_x = int(item["x"]) + int(item["width"]) // 2
+    start_y = int(item["y"]) + int(item["height"]) // 2
+    end_x = x + int(item["width"]) // 2
+    end_y = y + int(item["height"]) // 2
+    control.command(f"POINTER {start_x} {start_y}")
+    control.command("BUTTON 274 press")
+    control.command(f"POINTER {end_x} {end_y}")
+    control.command("BUTTON 274 release")
+
+
 def entry_point(item: dict[str, object], label: str) -> tuple[int, int]:
     entries = [entry for entry in item["entries"] if entry["label"] == label]
     if len(entries) != 1:
@@ -135,6 +146,7 @@ def run(compositor_binary: Path, bridge_binary: Path,
             "IconRegion \"200x200+380+220\" South East 50 50\n"
             "Button1 = : frame : f.iconify\n"
             "Button1 = : icon : f.iconify\n"
+            "Button2 = : icon : f.move\n"
             "Button1 = : iconmgr : f.iconify\n"
             "\"F2\" = : iconmgr : f.forwiconmgr\n"
             "\"F3\" = : iconmgr : f.hideiconmgr\n"
@@ -207,14 +219,46 @@ def run(compositor_binary: Path, bridge_binary: Path,
             state = control.state()
             parent_icons = [item for item in state["icon_views"]
                             if item["title"] == "xwm-parent-initial"]
-            if len(parent_icons) != 1 or parent_icons[0]["source"] != "wm_hints" \
+            if len(parent_icons) != 1 or parent_icons[0]["source"] != "icon_window" \
                     or not parent_icons[0]["region_allocated"]:
-                raise RuntimeError(f"WM_HINTS client icon is wrong: {parent_icons!r}")
+                raise RuntimeError(f"WM_HINTS IconWindow precedence is wrong: {parent_icons!r}")
+            transient = window(state, "xwm-transient")
+            if not transient["iconified"] or any(
+                    item["title"] == "xwm-transient" for item in state["icon_views"]):
+                raise RuntimeError(
+                    f"owner iconification did not suppress its transient icon: {state!r}"
+                )
             bravo_icon = next(item for item in state["icon_views"]
                               if item["title"] == "Reference Bravo")
             occupied = {(item["x"], item["y"]) for item in (parent_icons[0], bravo_icon)}
             if len(occupied) != 2:
                 raise RuntimeError(f"IconRegion collision was not avoided: {occupied!r}")
+
+            drag_icon(control, bravo_icon, 700, 250)
+            moved = next(item for item in control.state()["icon_views"]
+                         if item["title"] == "Reference Bravo")
+            if (int(moved["x"]), int(moved["y"])) != (700, 250) \
+                    or not moved["region_allocated"]:
+                raise RuntimeError(f"moved icon lost its reference reservation: {moved!r}")
+            click(control, int(moved["x"]) + int(moved["width"]) // 2,
+                  int(moved["y"]) + int(moved["height"]) // 2)
+            click_frame(control, window(control.state(), "Reference Bravo"))
+            moved = next(item for item in control.state()["icon_views"]
+                         if item["title"] == "Reference Bravo")
+            if (int(moved["x"]), int(moved["y"])) != (700, 250) \
+                    or moved["region_allocated"]:
+                raise RuntimeError(f"outside-region icon did not remain moved: {moved!r}")
+
+            drag_icon(control, moved, 400, 250)
+            moved = next(item for item in control.state()["icon_views"]
+                         if item["title"] == "Reference Bravo")
+            click(control, int(moved["x"]) + int(moved["width"]) // 2,
+                  int(moved["y"]) + int(moved["height"]) // 2)
+            click_frame(control, window(control.state(), "Reference Bravo"))
+            moved = next(item for item in control.state()["icon_views"]
+                         if item["title"] == "Reference Bravo")
+            if not moved["region_allocated"]:
+                raise RuntimeError(f"inside-region moved icon was not restored: {moved!r}")
 
             alpha = window(state, "Reference Alpha")
             click_frame(control, alpha)

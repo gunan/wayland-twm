@@ -209,6 +209,7 @@ struct toplevel {
 	bool auto_raise;
 	bool iconify_by_unmapping;
 	bool icon_region_allocated;
+	bool icon_moved;
 	uint64_t icon_identity;
 	uint64_t icon_manager_identity;
 	char icon_source[16];
@@ -224,6 +225,8 @@ struct toplevel {
 	unsigned char *wm_hints_icon_bits;
 	unsigned int wm_hints_icon_width;
 	unsigned int wm_hints_icon_height;
+	unsigned int wm_hints_icon_window_width;
+	unsigned int wm_hints_icon_window_height;
 	struct wl_event_source *xwayland_sync_idle;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
@@ -1737,6 +1740,52 @@ static bool create_icon_scene(struct toplevel *toplevel) {
 		has_bitmap = true;
 		strcpy(toplevel->icon_source, "configured");
 	}
+	bool has_client_icon_window = !has_bitmap &&
+		toplevel->wm_hints_icon_window_width > 0 &&
+		toplevel->wm_hints_icon_window_height > 0;
+	if (has_client_icon_window) {
+		strcpy(toplevel->icon_source, "icon_window");
+		toplevel->icon_width = (int)toplevel->wm_hints_icon_window_width;
+		toplevel->icon_height = (int)toplevel->wm_hints_icon_window_height;
+		toplevel->icon_tree = wlr_scene_tree_create(toplevel->server->view_tree);
+		if (toplevel->icon_tree == NULL) {
+			if (text != NULL) wlr_buffer_drop(text);
+			wtwm_xbm_finish(&bitmap);
+			return false;
+		}
+		toplevel->icon_tree->node.data = toplevel;
+		toplevel->icon_background = wlr_scene_rect_create(toplevel->icon_tree,
+			toplevel->icon_width, toplevel->icon_height, background);
+		if (toplevel->icon_background == NULL) {
+			wlr_scene_node_destroy(&toplevel->icon_tree->node);
+			toplevel->icon_tree = NULL;
+			if (text != NULL) wlr_buffer_drop(text);
+			wtwm_xbm_finish(&bitmap);
+			return false;
+		}
+		struct wlr_buffer *image = NULL;
+		if (toplevel->wm_hints_icon_bits != NULL)
+			image = wtwm_render_pattern((int)toplevel->wm_hints_icon_width,
+				(int)toplevel->wm_hints_icon_height,
+				toplevel->wm_hints_icon_bits, toplevel->wm_hints_icon_width,
+				toplevel->wm_hints_icon_height, foreground, background);
+		else if (toplevel->net_wm_icon_pixels != NULL)
+			image = wtwm_render_argb_icon((int)toplevel->net_wm_icon_width,
+				(int)toplevel->net_wm_icon_height,
+				toplevel->net_wm_icon_pixels);
+		if (image != NULL) {
+			toplevel->icon_bitmap = wlr_scene_buffer_create(toplevel->icon_tree,
+				image);
+			if (toplevel->icon_bitmap != NULL)
+				wlr_scene_buffer_set_dest_size(toplevel->icon_bitmap,
+					toplevel->icon_width, toplevel->icon_height);
+			wlr_buffer_drop(image);
+		}
+		if (text != NULL) wlr_buffer_drop(text);
+		wtwm_xbm_finish(&bitmap);
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
+		return true;
+	}
 	if (!has_bitmap && toplevel->wm_hints_icon_bits != NULL) {
 		has_wm_hints_bitmap = true;
 		strcpy(toplevel->icon_source, "wm_hints");
@@ -1847,23 +1896,59 @@ static void destroy_icon_scene(struct toplevel *toplevel) {
 	toplevel->icon_text = NULL;
 }
 
-static void place_toplevel_icon(struct toplevel *toplevel) {
-	toplevel->icon_x = toplevel->tree->node.x;
-	toplevel->icon_y = toplevel->tree->node.y;
+static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
+		int fallback_y, bool use_fallback) {
 	if (toplevel->xwayland != NULL && toplevel->xwayland->hints != NULL &&
 			(toplevel->xwayland->hints->flags &
 			XCB_ICCCM_WM_HINT_ICON_POSITION) != 0) {
 		toplevel->icon_x = toplevel->xwayland->hints->icon_x;
 		toplevel->icon_y = toplevel->xwayland->hints->icon_y;
-	} else if (toplevel->server->icon_layout != NULL) {
-		struct wtwm_icon_layout_placement placement;
-		if (wtwm_icon_layout_allocate(toplevel->server->icon_layout,
-				toplevel->icon_identity, toplevel->icon_width,
-				toplevel->icon_height, &placement) == WTWM_ICON_LAYOUT_OK) {
-			toplevel->icon_region_allocated = true;
-			toplevel->icon_x = placement.x;
-			toplevel->icon_y = placement.y;
+		toplevel->icon_moved = false;
+	} else if (toplevel->icon_moved) {
+		int64_t center_x = (int64_t)toplevel->icon_x + toplevel->icon_width / 2;
+		int64_t center_y = (int64_t)toplevel->icon_y + toplevel->icon_height / 2;
+		bool inside = center_x >= INT_MIN && center_x <= INT_MAX &&
+			center_y >= INT_MIN && center_y <= INT_MAX &&
+			wtwm_icon_layout_contains_point(toplevel->server->icon_layout,
+				(int)center_x, (int)center_y);
+		if (inside) {
+			struct wtwm_icon_layout_placement placement;
+			if (wtwm_icon_layout_allocate(toplevel->server->icon_layout,
+					toplevel->icon_identity, toplevel->icon_width,
+					toplevel->icon_height, &placement) == WTWM_ICON_LAYOUT_OK) {
+				toplevel->icon_region_allocated = true;
+				toplevel->icon_moved = false;
+				toplevel->icon_x = placement.x;
+				toplevel->icon_y = placement.y;
+			}
 		}
+	} else {
+		if (toplevel->server->icon_layout != NULL) {
+			struct wtwm_icon_layout_placement placement;
+			if (wtwm_icon_layout_allocate(toplevel->server->icon_layout,
+					toplevel->icon_identity, toplevel->icon_width,
+					toplevel->icon_height, &placement) == WTWM_ICON_LAYOUT_OK) {
+				toplevel->icon_region_allocated = true;
+				toplevel->icon_x = placement.x;
+				toplevel->icon_y = placement.y;
+			} else if (use_fallback) {
+				toplevel->icon_x = fallback_x;
+				toplevel->icon_y = fallback_y;
+			}
+		} else if (use_fallback) {
+			toplevel->icon_x = fallback_x;
+			toplevel->icon_y = fallback_y;
+		}
+	}
+	struct wlr_box layout = {0};
+	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
+	if (layout.width > 0 && layout.height > 0) {
+		int64_t right = (int64_t)layout.x + layout.width;
+		int64_t bottom = (int64_t)layout.y + layout.height;
+		if ((int64_t)toplevel->icon_x > right)
+			toplevel->icon_x = (int)(right - toplevel->icon_width);
+		if ((int64_t)toplevel->icon_y > bottom)
+			toplevel->icon_y = (int)(bottom - toplevel->icon_height);
 	}
 	wlr_scene_node_set_position(&toplevel->icon_tree->node,
 		toplevel->icon_x, toplevel->icon_y);
@@ -1900,7 +1985,7 @@ static void rebuild_icon_layout(struct server *server) {
 	if (server->icon_layout == NULL) return;
 	wl_list_for_each(toplevel, &server->toplevels, link) {
 		if (!toplevel->iconified || toplevel->icon_tree == NULL) continue;
-		place_toplevel_icon(toplevel);
+		place_toplevel_icon(toplevel, toplevel->icon_x, toplevel->icon_y, false);
 	}
 }
 
@@ -1911,7 +1996,7 @@ static void refresh_toplevel_icon(struct toplevel *toplevel) {
 	if (!recreate && !visible) return;
 	destroy_icon_scene(toplevel);
 	if (!visible || !create_icon_scene(toplevel)) return;
-	place_toplevel_icon(toplevel);
+	place_toplevel_icon(toplevel, toplevel->icon_x, toplevel->icon_y, false);
 	wlr_scene_node_set_enabled(&toplevel->icon_tree->node, true);
 }
 
@@ -2023,13 +2108,21 @@ static void sync_toplevel_scene_stack(struct toplevel *toplevel) {
 	wlr_scene_node_place_below(node, toplevel_visible_node(above));
 }
 
-static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
-	if (toplevel == NULL || !toplevel->mapped || toplevel->iconified == iconified)
+static void set_toplevel_iconified_one(struct toplevel *toplevel, bool iconified,
+		bool group_member, int fallback_x, int fallback_y) {
+	if (toplevel == NULL || !toplevel->mapped) return;
+	if (toplevel->iconified == iconified) {
+		if (group_member && iconified && toplevel->icon_tree != NULL)
+			wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
 		return;
-	if (iconified && !toplevel->iconify_by_unmapping &&
+	}
+	bool show_icon = !group_member && (!toplevel->iconify_by_unmapping ||
+		icon_manager_transient(toplevel));
+	bool had_icon = toplevel->icon_tree != NULL;
+	if (iconified && show_icon &&
 			!create_icon_scene(toplevel)) return;
-	if (iconified && toplevel->icon_tree != NULL)
-		place_toplevel_icon(toplevel);
+	if (iconified && show_icon && toplevel->icon_tree != NULL)
+		place_toplevel_icon(toplevel, fallback_x, fallback_y, !had_icon);
 	if (iconified && toplevel->server->focus == toplevel) {
 		toplevel->server->focus_root = true;
 		clear_keyboard_focus(toplevel->server);
@@ -2048,12 +2141,14 @@ static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
 		.width = toplevel->icon_width,
 		.height = toplevel->icon_height,
 	};
-	start_icon_animation(toplevel, iconified, &window_box,
-		toplevel->icon_tree != NULL ? &icon_box : NULL);
+	if (!group_member)
+		start_icon_animation(toplevel, iconified, &window_box,
+			show_icon && toplevel->icon_tree != NULL ? &icon_box : NULL);
 	toplevel->iconified = iconified;
 	wlr_scene_node_set_enabled(&toplevel->tree->node, !iconified);
 	if (toplevel->icon_tree != NULL)
-		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, iconified);
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node,
+			iconified && show_icon);
 	if (!iconified && toplevel->icon_region_allocated &&
 			toplevel->server->icon_layout != NULL) {
 		(void)wtwm_icon_layout_release(toplevel->server->icon_layout,
@@ -2065,6 +2160,41 @@ static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
 	refresh_icon_managers(toplevel->server);
 	test_trace_toplevel_event(toplevel,
 		iconified ? "iconify" : "deiconify", "icon");
+}
+
+static bool toplevel_is_transient_for(const struct toplevel *child,
+		const struct toplevel *owner) {
+	if (child == owner) return false;
+	if (child->xwayland != NULL && owner->xwayland != NULL)
+		return child->xwayland->parent == owner->xwayland;
+	if (child->xdg != NULL && owner->xdg != NULL)
+		return child->xdg->parent == owner->xdg;
+	return false;
+}
+
+static void set_toplevel_iconified_at(struct toplevel *toplevel, bool iconified,
+		int fallback_x, int fallback_y) {
+	if (toplevel == NULL) return;
+	struct toplevel *child;
+	if (iconified) {
+		wl_list_for_each(child, &toplevel->server->toplevels, link)
+			if (toplevel_is_transient_for(child, toplevel))
+				set_toplevel_iconified_one(child, true, true,
+					fallback_x, fallback_y);
+		set_toplevel_iconified_one(toplevel, true, false,
+			fallback_x, fallback_y);
+	} else {
+		set_toplevel_iconified_one(toplevel, false, false,
+			fallback_x, fallback_y);
+		wl_list_for_each(child, &toplevel->server->toplevels, link)
+			if (toplevel_is_transient_for(child, toplevel))
+				set_toplevel_iconified_one(child, false, true,
+					fallback_x, fallback_y);
+	}
+}
+
+static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
+	set_toplevel_iconified_at(toplevel, iconified, 0, 0);
 }
 
 static void set_focused_marker(struct server *server, struct toplevel *focused) {
@@ -2366,6 +2496,26 @@ static void raise_toplevel(struct toplevel *toplevel) {
 	else test_trace_toplevel_event(toplevel, "raise", "frame");
 }
 
+static void raise_toplevel_group(struct toplevel *toplevel) {
+	if (toplevel == NULL) return;
+	size_t child_count = 0;
+	struct toplevel *child;
+	wl_list_for_each(child, &toplevel->server->toplevels, link)
+		if (toplevel_is_transient_for(child, toplevel)) ++child_count;
+	struct toplevel **children = child_count > 0 ?
+		calloc(child_count, sizeof(*children)) : NULL;
+	if (child_count > 0 && children == NULL) {
+		raise_toplevel(toplevel);
+		return;
+	}
+	size_t index = 0;
+	wl_list_for_each(child, &toplevel->server->toplevels, link)
+		if (toplevel_is_transient_for(child, toplevel)) children[index++] = child;
+	raise_toplevel(toplevel);
+	for (size_t i = 0; i < child_count; ++i) raise_toplevel(children[i]);
+	free(children);
+}
+
 static struct wtwm_stack_box toplevel_stack_box(const struct toplevel *toplevel) {
 	if (toplevel->iconified) return (struct wtwm_stack_box){
 		.x = toplevel->icon_x,
@@ -2551,12 +2701,6 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.intent = INTERACTION_DRAG,
 		.icon_move = toplevel->iconified,
 	};
-	if (server->interaction.icon_move && toplevel->icon_region_allocated &&
-			server->icon_layout != NULL) {
-		(void)wtwm_icon_layout_release(server->icon_layout,
-			toplevel->icon_identity);
-		toplevel->icon_region_allocated = false;
-	}
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
 		if (wtwm_constrained_move_entry(server->config.constrained_move_time,
@@ -2672,6 +2816,8 @@ static void finish_interactive(struct server *server, bool aborted) {
 			}
 			if (!server->config.no_raise_on_move) raise_toplevel(toplevel);
 		}
+		if (interaction.icon_move && interaction.moved)
+			toplevel->icon_moved = true;
 		test_trace_toplevel_event_at(toplevel, "commit", "move",
 			interaction.preview.x, interaction.preview.y,
 			interaction.preview.width, interaction.preview.height);
@@ -3703,15 +3849,18 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_ICONIFY:
 		if (toplevel != NULL && toplevel->iconified) {
 			set_toplevel_iconified(toplevel, false);
-			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+			if (!server->config.no_raise_on_deiconify)
+				raise_toplevel_group(toplevel);
 		} else {
-			set_toplevel_iconified(toplevel, true);
+			set_toplevel_iconified_at(toplevel, true,
+				(int)server->cursor->x - 5, (int)server->cursor->y - 5);
 		}
 		break;
 	case WTWM_ACTION_DEICONIFY:
 		if (toplevel) {
 			set_toplevel_iconified(toplevel, false);
-			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+			if (!server->config.no_raise_on_deiconify)
+				raise_toplevel_group(toplevel);
 		}
 		break;
 	case WTWM_ACTION_FOCUS:
@@ -5420,14 +5569,32 @@ static void read_xwayland_wm_hints_icon(struct toplevel *toplevel) {
 	toplevel->wm_hints_icon_bits = NULL;
 	toplevel->wm_hints_icon_width = 0;
 	toplevel->wm_hints_icon_height = 0;
+	toplevel->wm_hints_icon_window_width = 0;
+	toplevel->wm_hints_icon_window_height = 0;
 	xcb_icccm_wm_hints_t *hints = toplevel->xwayland->hints;
-	if (hints == NULL || hints->icon_pixmap == XCB_PIXMAP_NONE) {
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (hints == NULL || connection == NULL) {
 		refresh_toplevel_icon(toplevel);
 		return;
 	}
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
-	if (connection == NULL) return;
+	if ((hints->flags & XCB_ICCCM_WM_HINT_ICON_WINDOW) != 0 &&
+			hints->icon_window != XCB_WINDOW_NONE) {
+		xcb_get_geometry_reply_t *window_geometry = xcb_get_geometry_reply(
+			connection, xcb_get_geometry(connection, hints->icon_window), NULL);
+		if (window_geometry != NULL && window_geometry->width > 0 &&
+				window_geometry->height > 0 && window_geometry->width <= 256 &&
+				window_geometry->height <= 256) {
+			toplevel->wm_hints_icon_window_width = window_geometry->width;
+			toplevel->wm_hints_icon_window_height = window_geometry->height;
+		}
+		free(window_geometry);
+	}
+	if ((hints->flags & XCB_ICCCM_WM_HINT_ICON_PIXMAP) == 0 ||
+			hints->icon_pixmap == XCB_PIXMAP_NONE) {
+		refresh_toplevel_icon(toplevel);
+		return;
+	}
 	xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(connection,
 		xcb_get_geometry(connection, hints->icon_pixmap), NULL);
 	if (geometry == NULL || geometry->depth != 1 || geometry->width == 0 ||
