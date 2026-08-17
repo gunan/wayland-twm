@@ -29,7 +29,8 @@ static void add_entry(struct wtwm_icon_manager_state *state, uint64_t manager,
 
 static void assert_order(const struct wtwm_icon_manager_state *state,
 		uint64_t manager, const uint64_t *expected, size_t count) {
-	const struct wtwm_icon_manager *found = wtwm_icon_manager_find(state, manager);
+	const struct wtwm_icon_manager_model *found =
+		wtwm_icon_manager_find(state, manager);
 	assert(found != NULL && found->entry_count == count);
 	for (size_t i = 0; i < count; ++i) {
 		const struct wtwm_icon_manager_entry *entry =
@@ -51,7 +52,8 @@ static void insertion_sorting_and_layout(void) {
 	add_entry(&state, 10, 4, "bravo");
 	const uint64_t insertion[] = {1, 2, 3, 4};
 	assert_order(&state, 10, insertion, 4);
-	const struct wtwm_icon_manager *manager = wtwm_icon_manager_find(&state, 10);
+	const struct wtwm_icon_manager_model *manager =
+		wtwm_icon_manager_find(&state, 10);
 	assert(manager->current_rows == 2 && manager->current_columns == 3);
 
 	assert(wtwm_icon_manager_sort(&state, 10) == WTWM_ICON_MANAGER_APPLIED);
@@ -255,7 +257,7 @@ static void large_lifecycle_churn(void) {
 		assert(state.active_manager_identity == 0 &&
 			state.active_entry_identity == 0);
 		for (uint64_t manager = 1; manager <= 3; ++manager) {
-			const struct wtwm_icon_manager *found =
+			const struct wtwm_icon_manager_model *found =
 				wtwm_icon_manager_find(&state, manager);
 			assert(found->entry_count == 0 && found->current_rows == 0 &&
 				found->current_columns == 0 &&

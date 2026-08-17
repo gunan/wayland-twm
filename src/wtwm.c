@@ -1521,7 +1521,7 @@ static void refresh_icon_managers(struct server *server) {
 	int row_height = font_height + 10;
 	if (row_height < 12) row_height = 12;
 	for (size_t index = 0; index < server->icon_managers.manager_count; ++index) {
-		const struct wtwm_icon_manager *manager =
+		const struct wtwm_icon_manager_model *manager =
 			&server->icon_managers.managers[index];
 		struct icon_manager_view *view = &server->icon_manager_views[index];
 		view->identity = manager->identity;
@@ -3378,7 +3378,7 @@ static void activate_icon_manager_entry(struct server *server,
 	(void)wtwm_icon_manager_select(&server->icon_managers, identity);
 	refresh_icon_managers(server);
 	if (!warp) return;
-	const struct wtwm_icon_manager *manager = wtwm_icon_manager_find(
+	const struct wtwm_icon_manager_model *manager = wtwm_icon_manager_find(
 		&server->icon_managers, entry->manager_identity);
 	struct icon_manager_view *view = icon_manager_view_for(server,
 		entry->manager_identity);
@@ -3412,7 +3412,7 @@ static void warp_to_icon_manager(struct server *server,
 		struct toplevel *toplevel, const char *selector) {
 	if (selector != NULL && selector[0] != '\0') {
 		for (size_t i = 0; i < server->icon_managers.manager_count; ++i) {
-			const struct wtwm_icon_manager *manager =
+			const struct wtwm_icon_manager_model *manager =
 				&server->icon_managers.managers[i];
 			if (!manager->visible) continue;
 			for (size_t position = 0; position < manager->entry_count; ++position) {
@@ -3434,7 +3434,7 @@ static void warp_to_icon_manager(struct server *server,
 	}
 	uint64_t identity = server->icon_managers.active_entry_identity;
 	if (identity == 0) {
-		const struct wtwm_icon_manager *manager = wtwm_icon_manager_find(
+		const struct wtwm_icon_manager_model *manager = wtwm_icon_manager_find(
 			&server->icon_managers, 1);
 		if (manager != NULL) identity = manager->selected_entry_identity;
 	}
@@ -6427,7 +6427,8 @@ static void test_write_state(struct test_control *control) {
 	}
 	test_write(control, "],\"icon_managers\":[");
 	for (size_t i = 0; i < server->icon_managers.manager_count; ++i) {
-		const struct wtwm_icon_manager *manager = &server->icon_managers.managers[i];
+		const struct wtwm_icon_manager_model *manager =
+			&server->icon_managers.managers[i];
 		struct icon_manager_view *view = icon_manager_view_for(server,
 			manager->identity);
 		if (i != 0) test_write(control, ",");

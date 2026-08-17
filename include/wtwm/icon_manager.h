@@ -36,7 +36,7 @@ struct wtwm_icon_manager_entry {
 	bool occupied;
 };
 
-struct wtwm_icon_manager {
+struct wtwm_icon_manager_model {
 	uint64_t identity;
 	uint64_t selected_entry_identity;
 	char label[WTWM_ICON_MANAGER_LABEL_SIZE];
@@ -51,7 +51,7 @@ struct wtwm_icon_manager {
 };
 
 struct wtwm_icon_manager_state {
-	struct wtwm_icon_manager managers[WTWM_ICON_MANAGER_MAX_MANAGERS];
+	struct wtwm_icon_manager_model managers[WTWM_ICON_MANAGER_MAX_MANAGERS];
 	struct wtwm_icon_manager_entry entries[WTWM_ICON_MANAGER_MAX_ENTRIES];
 	size_t manager_count;
 	size_t entry_count;
@@ -68,7 +68,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_add(
 enum wtwm_icon_manager_result wtwm_icon_manager_remove(
 	struct wtwm_icon_manager_state *state, uint64_t identity);
 
-const struct wtwm_icon_manager *wtwm_icon_manager_find(
+const struct wtwm_icon_manager_model *wtwm_icon_manager_find(
 	const struct wtwm_icon_manager_state *state, uint64_t identity);
 const struct wtwm_icon_manager_entry *wtwm_icon_manager_entry_find(
 	const struct wtwm_icon_manager_state *state, uint64_t identity);

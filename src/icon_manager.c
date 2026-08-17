@@ -9,7 +9,7 @@ static bool label_valid(const char *label) {
 	return label != NULL && strlen(label) < WTWM_ICON_MANAGER_LABEL_SIZE;
 }
 
-static struct wtwm_icon_manager *find_manager_mutable(
+static struct wtwm_icon_manager_model *find_manager_mutable(
 		struct wtwm_icon_manager_state *state, uint64_t identity) {
 	if (state == NULL || identity == 0) return NULL;
 	for (size_t i = 0; i < state->manager_count; ++i) {
@@ -18,7 +18,7 @@ static struct wtwm_icon_manager *find_manager_mutable(
 	return NULL;
 }
 
-const struct wtwm_icon_manager *wtwm_icon_manager_find(
+const struct wtwm_icon_manager_model *wtwm_icon_manager_find(
 		const struct wtwm_icon_manager_state *state, uint64_t identity) {
 	if (state == NULL || identity == 0) return NULL;
 	for (size_t i = 0; i < state->manager_count; ++i) {
@@ -50,7 +50,7 @@ const struct wtwm_icon_manager_entry *wtwm_icon_manager_entry_find(
 const struct wtwm_icon_manager_entry *wtwm_icon_manager_entry_at(
 		const struct wtwm_icon_manager_state *state, uint64_t manager_identity,
 		size_t position) {
-	const struct wtwm_icon_manager *manager =
+	const struct wtwm_icon_manager_model *manager =
 		wtwm_icon_manager_find(state, manager_identity);
 	if (manager == NULL || position >= manager->entry_count) return NULL;
 	size_t slot = manager->order[position];
@@ -65,7 +65,7 @@ void wtwm_icon_manager_state_init(struct wtwm_icon_manager_state *state) {
 }
 
 static void repack(struct wtwm_icon_manager_state *state,
-		struct wtwm_icon_manager *manager) {
+		struct wtwm_icon_manager_model *manager) {
 	for (size_t i = 0; i < manager->entry_count; ++i) {
 		struct wtwm_icon_manager_entry *entry = &state->entries[manager->order[i]];
 		entry->row = i / manager->columns;
@@ -100,7 +100,7 @@ static int compare_entries(const struct wtwm_icon_manager_entry *left,
 }
 
 static bool sort_order(struct wtwm_icon_manager_state *state,
-		struct wtwm_icon_manager *manager) {
+		struct wtwm_icon_manager_model *manager) {
 	bool changed = false;
 	for (size_t i = 1; i < manager->entry_count; ++i) {
 		size_t slot = manager->order[i];
@@ -128,7 +128,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_add(
 		return WTWM_ICON_MANAGER_INVALID;
 	if (state->manager_count == WTWM_ICON_MANAGER_MAX_MANAGERS)
 		return WTWM_ICON_MANAGER_CAPACITY;
-	struct wtwm_icon_manager *manager = &state->managers[state->manager_count++];
+	struct wtwm_icon_manager_model *manager =
+		&state->managers[state->manager_count++];
 	memset(manager, 0, sizeof(*manager));
 	manager->identity = identity;
 	manager->columns = columns;
@@ -174,7 +175,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_remove(
 
 enum wtwm_icon_manager_result wtwm_icon_manager_set_visible(
 		struct wtwm_icon_manager_state *state, uint64_t identity, bool visible) {
-	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	struct wtwm_icon_manager_model *manager =
+		find_manager_mutable(state, identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	if (manager->visible == visible) return WTWM_ICON_MANAGER_UNCHANGED;
 	manager->visible = visible;
@@ -183,7 +185,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_set_visible(
 
 enum wtwm_icon_manager_result wtwm_icon_manager_set_columns(
 		struct wtwm_icon_manager_state *state, uint64_t identity, size_t columns) {
-	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	struct wtwm_icon_manager_model *manager =
+		find_manager_mutable(state, identity);
 	if (manager == NULL || columns == 0 ||
 			columns > WTWM_ICON_MANAGER_MAX_ENTRIES)
 		return WTWM_ICON_MANAGER_INVALID;
@@ -195,7 +198,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_set_columns(
 
 enum wtwm_icon_manager_result wtwm_icon_manager_sort(
 		struct wtwm_icon_manager_state *state, uint64_t identity) {
-	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	struct wtwm_icon_manager_model *manager =
+		find_manager_mutable(state, identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	return sort_order(state, manager) ? WTWM_ICON_MANAGER_APPLIED :
 		WTWM_ICON_MANAGER_UNCHANGED;
@@ -203,7 +207,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_sort(
 
 enum wtwm_icon_manager_result wtwm_icon_manager_set_sorted(
 		struct wtwm_icon_manager_state *state, uint64_t identity, bool sorted) {
-	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	struct wtwm_icon_manager_model *manager =
+		find_manager_mutable(state, identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	if (manager->sorted == sorted) return WTWM_ICON_MANAGER_UNCHANGED;
 	manager->sorted = sorted;
@@ -214,7 +219,8 @@ enum wtwm_icon_manager_result wtwm_icon_manager_set_sorted(
 enum wtwm_icon_manager_result wtwm_icon_manager_set_case_sensitive(
 		struct wtwm_icon_manager_state *state, uint64_t identity,
 		bool case_sensitive) {
-	struct wtwm_icon_manager *manager = find_manager_mutable(state, identity);
+	struct wtwm_icon_manager_model *manager =
+		find_manager_mutable(state, identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	if (manager->case_sensitive == case_sensitive)
 		return WTWM_ICON_MANAGER_UNCHANGED;
@@ -231,7 +237,7 @@ static size_t free_entry_slot(const struct wtwm_icon_manager_state *state) {
 }
 
 static void insert_slot(struct wtwm_icon_manager_state *state,
-		struct wtwm_icon_manager *manager, size_t slot) {
+		struct wtwm_icon_manager_model *manager, size_t slot) {
 	size_t position = manager->entry_count;
 	if (manager->sorted) {
 		position = 0;
@@ -256,7 +262,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_add(
 		uint64_t entry_identity, const char *label) {
 	if (state == NULL || entry_identity == 0 || !label_valid(label))
 		return WTWM_ICON_MANAGER_INVALID;
-	struct wtwm_icon_manager *manager =
+	struct wtwm_icon_manager_model *manager =
 		find_manager_mutable(state, manager_identity);
 	if (manager == NULL || wtwm_icon_manager_entry_find(state, entry_identity))
 		return WTWM_ICON_MANAGER_INVALID;
@@ -282,7 +288,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_add(
 	return WTWM_ICON_MANAGER_APPLIED;
 }
 
-static size_t order_position(const struct wtwm_icon_manager *manager,
+static size_t order_position(const struct wtwm_icon_manager_model *manager,
 		size_t slot) {
 	for (size_t i = 0; i < manager->entry_count; ++i) {
 		if (manager->order[i] == slot) return i;
@@ -291,7 +297,7 @@ static size_t order_position(const struct wtwm_icon_manager *manager,
 }
 
 static void remove_slot(struct wtwm_icon_manager_state *state,
-		struct wtwm_icon_manager *manager, size_t slot) {
+		struct wtwm_icon_manager_model *manager, size_t slot) {
 	size_t position = order_position(manager, slot);
 	if (position == SIZE_MAX) return;
 	uint64_t removed_identity = state->entries[slot].identity;
@@ -318,7 +324,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_remove(
 	struct wtwm_icon_manager_entry *entry =
 		find_entry_mutable(state, entry_identity);
 	if (entry == NULL) return WTWM_ICON_MANAGER_UNCHANGED;
-	struct wtwm_icon_manager *manager =
+	struct wtwm_icon_manager_model *manager =
 		find_manager_mutable(state, entry->manager_identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	size_t slot = (size_t)(entry - state->entries);
@@ -341,7 +347,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_update(
 		return WTWM_ICON_MANAGER_INVALID;
 	struct wtwm_icon_manager_entry *entry =
 		find_entry_mutable(state, entry_identity);
-	struct wtwm_icon_manager *target =
+	struct wtwm_icon_manager_model *target =
 		find_manager_mutable(state, manager_identity);
 	if (entry == NULL || target == NULL) return WTWM_ICON_MANAGER_INVALID;
 	bool manager_changed = entry->manager_identity != manager_identity;
@@ -349,7 +355,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_entry_update(
 	if (!manager_changed && !label_changed) return WTWM_ICON_MANAGER_UNCHANGED;
 	size_t slot = (size_t)(entry - state->entries);
 	if (manager_changed) {
-		struct wtwm_icon_manager *source =
+		struct wtwm_icon_manager_model *source =
 			find_manager_mutable(state, entry->manager_identity);
 		if (source == NULL) return WTWM_ICON_MANAGER_INVALID;
 		bool source_selected = source->selected_entry_identity == entry_identity;
@@ -378,7 +384,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_select(
 	struct wtwm_icon_manager_entry *entry =
 		find_entry_mutable(state, entry_identity);
 	if (entry == NULL) return WTWM_ICON_MANAGER_INVALID;
-	struct wtwm_icon_manager *manager =
+	struct wtwm_icon_manager_model *manager =
 		find_manager_mutable(state, entry->manager_identity);
 	if (manager == NULL) return WTWM_ICON_MANAGER_INVALID;
 	bool changed = state->active_entry_identity != entry_identity;
@@ -390,7 +396,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_select(
 
 static size_t directional_position(
 		const struct wtwm_icon_manager_state *state,
-		const struct wtwm_icon_manager *manager, size_t position,
+		const struct wtwm_icon_manager_model *manager, size_t position,
 		enum wtwm_icon_manager_direction direction) {
 	if (direction == WTWM_ICON_MANAGER_FORWARD)
 		return (position + 1) % manager->entry_count;
@@ -430,7 +436,7 @@ enum wtwm_icon_manager_result wtwm_icon_manager_move(
 	if (state == NULL || (int)direction < (int)WTWM_ICON_MANAGER_FORWARD ||
 			(int)direction > (int)WTWM_ICON_MANAGER_RIGHT)
 		return WTWM_ICON_MANAGER_INVALID;
-	struct wtwm_icon_manager *manager =
+	struct wtwm_icon_manager_model *manager =
 		find_manager_mutable(state, state->active_manager_identity);
 	struct wtwm_icon_manager_entry *entry =
 		find_entry_mutable(state, state->active_entry_identity);
@@ -459,7 +465,7 @@ static enum wtwm_icon_manager_result jump_manager(
 		size_t index = forward ? (current + offset) % state->manager_count :
 			(current + state->manager_count -
 				(offset % state->manager_count)) % state->manager_count;
-		struct wtwm_icon_manager *manager = &state->managers[index];
+		struct wtwm_icon_manager_model *manager = &state->managers[index];
 		if (!manager->visible || manager->entry_count == 0) continue;
 		uint64_t target = manager->selected_entry_identity;
 		const struct wtwm_icon_manager_entry *selected =
@@ -500,7 +506,7 @@ bool wtwm_icon_manager_validate(const struct wtwm_icon_manager_state *state,
 	bool referenced[WTWM_ICON_MANAGER_MAX_ENTRIES] = {false};
 	size_t references = 0;
 	for (size_t i = 0; i < state->manager_count; ++i) {
-		const struct wtwm_icon_manager *manager = &state->managers[i];
+		const struct wtwm_icon_manager_model *manager = &state->managers[i];
 		if (manager->identity == 0 || manager->columns == 0 ||
 				manager->columns > WTWM_ICON_MANAGER_MAX_ENTRIES ||
 				manager->entry_count > WTWM_ICON_MANAGER_MAX_ENTRIES ||
@@ -562,7 +568,7 @@ bool wtwm_icon_manager_validate(const struct wtwm_icon_manager_state *state,
 	if (state->active_entry_identity != 0) {
 		const struct wtwm_icon_manager_entry *entry =
 			wtwm_icon_manager_entry_find(state, state->active_entry_identity);
-		const struct wtwm_icon_manager *manager =
+		const struct wtwm_icon_manager_model *manager =
 			wtwm_icon_manager_find(state, state->active_manager_identity);
 		if (entry == NULL || manager == NULL ||
 				entry->manager_identity != manager->identity ||
