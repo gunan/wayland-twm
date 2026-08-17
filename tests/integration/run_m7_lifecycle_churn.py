@@ -336,6 +336,37 @@ def wait_final_state(
     raise RuntimeError("compositor did not converge after recreate: " + repr(latest))
 
 
+def rectangle_signature(state: dict[str, object]) -> tuple[tuple[object, ...], ...]:
+    return tuple(sorted(
+        (str(item["title"]), int(item["x"]), int(item["y"]),
+         int(item["width"]), int(item["height"]), bool(item["region_allocated"]))
+        for item in state["icon_views"]
+    ))
+
+
+def wait_initial_geometry(
+    control: Control, titles: list[str], state: dict[str, object],
+    deadline_seconds: float = 120,
+) -> dict[str, object]:
+    """Wait until the large initial Xwayland batch stops resizing icons."""
+    deadline = time.monotonic() + deadline_seconds
+    previous = rectangle_signature(state)
+    repeats = 0
+    latest = state
+    while time.monotonic() < deadline:
+        time.sleep(0.25)
+        latest = wait_final_state(control, titles, 15, 0.1)
+        current = rectangle_signature(latest)
+        if current == previous:
+            repeats += 1
+            if repeats >= 2:
+                return latest
+        else:
+            previous = current
+            repeats = 0
+    raise RuntimeError("initial icon geometry did not reach a stable baseline")
+
+
 def wait_destroyed_state(
     control: Control, titles: list[str], destroyed_title: str,
     deadline_seconds: float = 15,
@@ -440,6 +471,7 @@ def run(arguments: argparse.Namespace) -> None:
             # A full STATE response grows to hundreds of kilobytes.  Polling it
             # continuously can starve the Xwayland association event stream.
             state = wait_final_state(control, titles, 120, 0.25)
+            state = wait_initial_geometry(control, titles, state)
             initial_rectangles, entry_ids = validate_state(
                 state, titles, manager_order, None
             )
