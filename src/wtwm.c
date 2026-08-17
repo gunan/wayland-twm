@@ -6670,6 +6670,11 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, ",\"focus\":");
 	if (focused_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(focused_toplevel));
+	test_write(control, ",\"pointer_context\":");
+	test_write_json_string(control, binding_context_name(server->pointer_context));
+	test_write(control, ",\"pointer_window\":");
+	if (server->pointer_toplevel == NULL) test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(server->pointer_toplevel));
 	test_write(control, ",\"windows\":[");
 	bool first = true;
 	unsigned stack = 0;
