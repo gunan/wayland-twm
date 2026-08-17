@@ -180,6 +180,23 @@ actions_test = executable(
 )
 test('twm built-in action model', actions_test)
 
+command_lib = static_library(
+  'wtwm-command-lib',
+  'src/command.c',
+  include_directories: inc,
+)
+command_dep = declare_dependency(
+  link_with: command_lib,
+  include_directories: inc,
+)
+
+command_test = executable(
+  'command-test',
+  'tests/command_test.c',
+  dependencies: command_dep,
+)
+test('twm command execution planning', command_test)
+
 lifecycle_model_lib = static_library(
   'wtwm-lifecycle-model-lib',
   'src/lifecycle_model.c',
