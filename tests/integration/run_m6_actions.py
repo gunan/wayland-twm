@@ -54,8 +54,8 @@ def frame_point(item: dict[str, object]) -> tuple[int, int]:
     return (int(item["x"]) + 1, int(item["y"]) + int(item["outer_height"]) // 2)
 
 
-def right_content_point(item: dict[str, object]) -> tuple[int, int]:
-    return (int(item["x"]) + int(item["content_x"]) + int(item["width"]) - 1,
+def content_point(item: dict[str, object]) -> tuple[int, int]:
+    return (int(item["x"]) + int(item["content_x"]) + int(item["width"]) // 2,
             int(item["y"]) + int(item["content_y"]) + int(item["height"]) // 2)
 
 
@@ -252,7 +252,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if control.state()["deferred_root_action"] is not True:
                 raise RuntimeError("DefaultFunction did not defer its root action")
             target = window(control.state(), "focus-b")
-            target_point = right_content_point(target)
+            target_point = content_point(target)
             control.command(f"POINTER {target_point[0]} {target_point[1]}")
             control.command("BUTTON 279 press")
             control.command("BUTTON 279 release")
