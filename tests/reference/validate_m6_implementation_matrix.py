@@ -207,6 +207,8 @@ def validate(
         "nested function order is wrong",
         "stationary f.deltastop did not continue",
         "moved f.deltastop did not interrupt",
+        "key f.menu unexpectedly opened a menu",
+        "nested-function f.menu unexpectedly opened a menu",
         "named binding did not visit both clients",
         "f.resize started on an icon",
         "f.move did not move the icon view",

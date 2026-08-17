@@ -87,13 +87,16 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             'Button5 = : root : f.warpto "focus-a"\n'
             'Button6 = : root : f.warpnext\n'
             'Button7 = : frame : f.function "stop-after-move"\n'
+            'Button9 = : root : f.function "menu-from-function"\n'
             '"F2" = : "focus-" : f.lower\n'
-            '"F3" = shift : root : f.menu "root-menu"\n'
+            '"F3" = shift : root : f.raise\n'
             '"F4" = lock : root : f.menu "root-menu"\n'
+            '"F5" = : root : f.menu "root-menu"\n'
             '"F6" = : "focus-" : f.resize\n'
             'Function "inner" { f.raise f.lower }\n'
             'Function "outer" { f.function "inner" f.raise }\n'
             'Function "stop-after-move" { f.move f.deltastop f.lower }\n'
+            'Function "menu-from-function" { f.menu "root-menu" }\n'
             'Menu "root-menu" {\n'
             '  "Actions" f.title\n'
             '  "Nested" f.menu "child-menu"\n'
@@ -131,22 +134,32 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             wait_line(client, "READY")
             state = wait_windows(control)
 
-            # Exact modifier matching is live: F3 alone misses, Shift+F3 opens.
+            # Exact modifier matching is live: F3 alone misses, while Shift+F3
+            # reaches the root raise action and defers window selection.
             control.command("POINTER 10 10")
             control.command("KEY 61 press")
             control.command("KEY 61 release")
-            if control.state()["menu"] is not None:
+            if control.state()["deferred_root_action"]:
                 raise RuntimeError("unmodified F3 matched a Shift binding")
             control.command("KEY 42 press")
             control.command("KEY 61 press")
             control.command("KEY 61 release")
             control.command("KEY 42 release")
-            if control.state()["menu"]["depth"] != 1:
-                raise RuntimeError("Shift+F3 did not open the root menu")
-            control.command("BUTTON 273 press")
+            if not control.state()["deferred_root_action"]:
+                raise RuntimeError("Shift+F3 did not match its root binding")
+            target = window(control.state(), "focus-a")
+            click(control, frame_point(target), 272)
+
+            # A key or named-function f.menu reaches upstream ExecuteFunction and
+            # is deliberately inert; pointer-menu routing remains active below.
+            control.command("POINTER 10 10")
+            control.command("KEY 63 press")
+            control.command("KEY 63 release")
             if control.state()["menu"] is not None:
-                raise RuntimeError("a second button press did not cancel the menu")
-            control.command("BUTTON 273 release")
+                raise RuntimeError("key f.menu unexpectedly opened a menu")
+            click(control, (10, 10), 280)
+            if control.state()["menu"] is not None:
+                raise RuntimeError("nested-function f.menu unexpectedly opened a menu")
 
             # Press/drag/release into the pull-right half opens a child immediately.
             control.command("POINTER 10 10")
@@ -158,6 +171,19 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             child = control.state()["menu"]
             if child["name"] != "child-menu" or child["depth"] != 2:
                 raise RuntimeError(f"submenu did not open on hover: {child!r}")
+            control.command("BUTTON 273 press")
+            if control.state()["menu"] is not None:
+                raise RuntimeError("a second button press did not cancel the menu")
+            control.command("BUTTON 273 release")
+
+            # Open the same path again to exercise release dispatch in the child.
+            control.command("POINTER 10 10")
+            control.command("BUTTON 272 press")
+            menu = control.state()["menu"]
+            pull_x = int(menu["x"]) + int(menu["width"]) * 3 // 4
+            pull_y = int(menu["y"]) + int(menu["row_height"]) * 3 // 2
+            control.command(f"POINTER {pull_x} {pull_y}")
+            child = control.state()["menu"]
             control.command(
                 f"POINTER {int(child['x']) + int(child['width']) // 2} "
                 f"{int(child['y']) + int(child['row_height']) // 2}"

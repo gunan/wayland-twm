@@ -3011,7 +3011,8 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_EXEC:
 		spawn_command(action->argument); break;
 	case WTWM_ACTION_MENU:
-		show_menu(server, action->argument, toplevel); break;
+		/* Pointer routes intercept F_MENU before ExecuteFunction. */
+		break;
 	case WTWM_ACTION_FUNCTION: start_action_function(server, toplevel,
 		find_function(server, action->argument), context); break;
 	case WTWM_ACTION_REFRESH:
@@ -3101,6 +3102,15 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		wlr_log(WLR_ERROR, "unsupported action escaped parser: %s", action->name);
 		break;
 	}
+}
+
+static void execute_pointer_action(struct server *server,
+		struct toplevel *toplevel, const struct wtwm_action *action,
+		uint32_t context) {
+	if (action->type == WTWM_ACTION_MENU)
+		show_menu(server, action->argument, toplevel);
+	else
+		execute_action(server, toplevel, action, context);
 }
 
 static uint32_t current_modifiers(struct server *server) {
@@ -3215,7 +3225,10 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 			binding_context_name(context));
 	bool previous_from_key = server->action_from_key;
 	server->action_from_key = type == WTWM_BINDING_KEY;
-	execute_action(server, toplevel, &binding->action, context);
+	if (type == WTWM_BINDING_BUTTON)
+		execute_pointer_action(server, toplevel, &binding->action, context);
+	else
+		execute_action(server, toplevel, &binding->action, context);
 	server->action_from_key = previous_from_key;
 	return true;
 }
@@ -3671,7 +3684,8 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		if (action->type == WTWM_ACTION_RESIZE) {
 			begin_interactive(hit.toplevel, CURSOR_RESIZE, 0, false, true,
 				event->time_msec);
-		} else execute_action(server, hit.toplevel, action, WTWM_CONTEXT_TITLE);
+		} else execute_pointer_action(server, hit.toplevel, action,
+			WTWM_CONTEXT_TITLE);
 		handled = true;
 	}
 	if (!handled) handled = dispatch_binding(server, WTWM_BINDING_BUTTON,
@@ -3682,7 +3696,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		handled = true;
 	}
 	if (!handled && server->config.default_function.type != WTWM_ACTION_NOP) {
-		execute_action(server, hit.toplevel, &server->config.default_function,
+		execute_pointer_action(server, hit.toplevel, &server->config.default_function,
 			hit.context);
 		handled = true;
 	}
