@@ -8,6 +8,7 @@
 #define WLR_USE_UNSTABLE
 
 #include "wtwm/config.h"
+#include "wtwm/command.h"
 #include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
@@ -2057,31 +2058,43 @@ static void finish_interactive(struct server *server, bool aborted) {
 	resume_action_continuation(server);
 }
 
-static bool spawn_shell(const char *command) {
-	if (command == NULL || command[0] == '\0') return true;
+static bool spawn_command(const char *command) {
+	struct wtwm_command_plan plan;
+	enum wtwm_command_result result = wtwm_command_plan_create(command, &plan);
+	if (result == WTWM_COMMAND_EMPTY) return true;
+	if (result != WTWM_COMMAND_OK) {
+		wlr_log(WLR_ERROR, "cannot execute command: %s",
+			wtwm_command_result_message(result));
+		return false;
+	}
 	pid_t intermediate = fork();
 	if (intermediate < 0) {
-		wlr_log_errno(WLR_ERROR, "%s", "failed to fork shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to fork command launcher");
+		wtwm_command_plan_destroy(&plan);
 		return false;
 	}
 	if (intermediate == 0) {
 		pid_t child = fork();
 		if (child < 0) _exit(EXIT_FAILURE);
 		if (child == 0) {
-			execl("/bin/sh", "/bin/sh", "-c", command, (void *)NULL);
+			if (plan.mode == WTWM_COMMAND_DIRECT)
+				execvp(plan.argv[0], plan.argv);
+			else
+				execl("/bin/sh", "/bin/sh", "-c", plan.command, (void *)NULL);
 			_exit(127);
 		}
 		_exit(EXIT_SUCCESS);
 	}
+	wtwm_command_plan_destroy(&plan);
 
 	int status;
 	while (waitpid(intermediate, &status, 0) < 0) {
 		if (errno == EINTR) continue;
-		wlr_log_errno(WLR_ERROR, "%s", "failed to reap shell launcher");
+		wlr_log_errno(WLR_ERROR, "%s", "failed to reap command launcher");
 		return false;
 	}
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
-		wlr_log(WLR_ERROR, "%s", "failed to launch shell command");
+		wlr_log(WLR_ERROR, "%s", "failed to launch command");
 		return false;
 	}
 	return true;
@@ -2539,7 +2552,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		if (toplevel) destroy_toplevel_client(toplevel);
 		break;
 	case WTWM_ACTION_EXEC:
-		spawn_shell(action->argument); break;
+		spawn_command(action->argument); break;
 	case WTWM_ACTION_MENU:
 		show_menu(server, action->argument, toplevel); break;
 	case WTWM_ACTION_FUNCTION: start_action_function(server, toplevel,
@@ -5467,7 +5480,7 @@ int main(int argc, char **argv) {
 #endif
 	setenv("WAYLAND_DISPLAY", socket, true);
 	(void)xwayland_start(&server);
-	if (startup != NULL) spawn_shell(startup);
+	if (startup != NULL) spawn_command(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	xwayland_finish(&server);
