@@ -3702,7 +3702,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:7128",
+              "location": "src/wtwm.c:7156",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]

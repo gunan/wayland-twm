@@ -5183,7 +5183,10 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xdg->events.set_app_id, &toplevel->set_app_id);
 }
 
-static bool create_xwayland_scene(struct toplevel *toplevel) {
+static void destroy_xwayland_scene(struct toplevel *toplevel);
+
+static bool create_xwayland_frame_scene(struct toplevel *toplevel) {
+	if (toplevel->tree != NULL) return true;
 	struct wlr_scene_tree *parent = toplevel->xwayland->override_redirect ?
 		toplevel->server->overlay_tree : toplevel->server->view_tree;
 	toplevel->tree = wlr_scene_tree_create(parent);
@@ -5203,11 +5206,19 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 		toplevel->title_button_count = 0;
 		return false;
 	}
+	update_toplevel_metadata(toplevel, true);
+	return true;
+}
+
+static bool create_xwayland_scene(struct toplevel *toplevel) {
+	bool created_frame = toplevel->tree == NULL;
+	if (!create_xwayland_frame_scene(toplevel)) return false;
+	if (toplevel->content != NULL) return true;
+	if (toplevel->xwayland->surface == NULL) return true;
 	toplevel->content = wlr_scene_subsurface_tree_create(
 		toplevel->tree, toplevel->xwayland->surface);
 	if (toplevel->content == NULL) {
-		wlr_scene_node_destroy(&toplevel->tree->node);
-		toplevel->tree = NULL;
+		if (created_frame) destroy_xwayland_scene(toplevel);
 		return false;
 	}
 	update_toplevel_metadata(toplevel, true);
@@ -5917,14 +5928,14 @@ static void xwayland_set_override_redirect(struct wl_listener *listener, void *d
 static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, destroy);
+	unmanage_toplevel(toplevel);
+	test_trace_toplevel_event(toplevel, "destroy", "client");
 	if (toplevel->associated) {
-		unmanage_toplevel(toplevel);
-		test_trace_toplevel_event(toplevel, "destroy", "client");
 		wl_list_remove(&toplevel->map.link);
 		wl_list_remove(&toplevel->unmap.link);
 		wl_list_remove(&toplevel->commit.link);
-		destroy_xwayland_scene(toplevel);
-	} else test_trace_toplevel_event(toplevel, "destroy", "client");
+	}
+	if (toplevel->tree != NULL) destroy_xwayland_scene(toplevel);
 	if (toplevel->xwayland_sync_idle != NULL)
 		wl_event_source_remove(toplevel->xwayland_sync_idle);
 	wl_list_remove(&toplevel->associate.link);
@@ -5982,6 +5993,23 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 		&toplevel->set_override_redirect);
 	toplevel->set_geometry.notify = xwayland_set_geometry;
 	wl_signal_add(&xwayland->events.set_geometry, &toplevel->set_geometry);
+	/* twm manages an X MapRequest before the client has painted.  Rootless
+	 * Xwayland may intentionally defer wl_surface buffers for minimized
+	 * windows, so build the logical icon and manager entry directly from X11
+	 * metadata when StartIconified matches.  Association attaches content if
+	 * the window is deiconified later. */
+	const struct wtwm_config *config = &server->config;
+	const struct wtwm_string_list *start_iconified =
+		&config->start_iconified_windows;
+	if (!xwayland->override_redirect &&
+			toplevel_matches(start_iconified, toplevel)) {
+		initialize_xwayland_border(toplevel);
+		read_xwayland_icon_name(toplevel);
+		read_xwayland_net_wm_icon(toplevel);
+		read_xwayland_wm_hints_icon(toplevel);
+		if (create_xwayland_frame_scene(toplevel))
+			map_xwayland_toplevel(toplevel);
+	}
 }
 
 static struct toplevel *xwayland_toplevel_for_window(struct server *server,
