@@ -155,6 +155,15 @@ test(
   ],
 )
 test(
+  'Milestone 7 live icon differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m7_icon_differential.py'),
+    '--self-test',
+  ],
+)
+test(
   'reference twm icon behavior contract',
   find_program('python3'),
   args: [files('tests/reference/validate_reference_icon_contract.py')],

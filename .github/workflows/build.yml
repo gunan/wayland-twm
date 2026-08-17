@@ -188,6 +188,9 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/m5_visual_client.c \
             -o /tmp/m5-visual-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m7_icon_observer.c \
+            -o /tmp/m7-icon-observer $(pkg-config --libs x11)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -244,6 +247,20 @@ jobs:
             --asset "$GITHUB_WORKSPACE/tests/fixtures/xbm/classic_char.xbm" \
             --output /tmp/m5-visual-states.json \
             --evidence /tmp/m5-visual-states
+      - name: Compare Milestone 7 icon structure and navigation live
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m7_icon_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client /tmp/m5-visual-client \
+            --input-driver /tmp/m4-trace-input \
+            --observer /tmp/m7-icon-observer \
+            --config "$GITHUB_WORKSPACE/tests/integration/m7_icon_differential.twmrc" \
+            --output /tmp/m7-icon-differential.json \
+            --evidence /tmp/m7-icon-differential-evidence
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -288,4 +305,13 @@ jobs:
           path: |
             /tmp/m5-visual-states.json
             /tmp/m5-visual-states
+          if-no-files-found: error
+      - name: Upload Milestone 7 live differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m7-icon-differential
+          path: |
+            /tmp/m7-icon-differential.json
+            /tmp/m7-icon-differential-evidence
           if-no-files-found: error
