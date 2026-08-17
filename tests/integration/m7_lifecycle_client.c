@@ -10,6 +10,11 @@
 #include <xcb/xcb.h>
 
 #define WINDOW_COUNT 256U
+#define CLIENT_COLUMNS 32U
+#define CLIENT_CELL_WIDTH 20U
+#define CLIENT_CELL_HEIGHT 16U
+#define CLIENT_WIDTH 16U
+#define CLIENT_HEIGHT 12U
 
 struct client_window {
 	xcb_window_t window;
@@ -66,8 +71,9 @@ static bool create_window(struct client *client, unsigned int index,
 	};
 	if (!checked(client, xcb_create_window_checked(client->connection,
 			XCB_COPY_FROM_PARENT, window, client->screen->root,
-			(int16_t)(16 + index % 32), (int16_t)(16 + index / 32),
-			64, 40, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+			(int16_t)(4 + index % CLIENT_COLUMNS * CLIENT_CELL_WIDTH),
+			(int16_t)(4 + index / CLIENT_COLUMNS * CLIENT_CELL_HEIGHT),
+			CLIENT_WIDTH, CLIENT_HEIGHT, 0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
 			client->screen->root_visual,
 			XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK, values))) return false;
 	set_text(client, window, XCB_ATOM_WM_NAME, title);
