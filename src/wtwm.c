@@ -206,6 +206,7 @@ struct toplevel {
 	bool decorated;
 	bool associated;
 	bool rules_initialized;
+	bool xwayland_map_requested;
 	bool start_iconified_match;
 	bool auto_raise;
 	bool iconify_by_unmapping;
@@ -213,6 +214,15 @@ struct toplevel {
 	bool icon_moved;
 	uint64_t icon_identity;
 	uint64_t icon_manager_identity;
+	struct wlr_buffer *icon_manager_text_buffer;
+	char *icon_manager_text_label;
+	char *icon_manager_text_font;
+	float icon_manager_text_color[4];
+	int icon_manager_text_width;
+	int icon_manager_text_height;
+	struct wlr_buffer *icon_manager_marker_buffer;
+	float icon_manager_marker_color[4];
+	int icon_manager_marker_size;
 	char icon_source[16];
 	struct wtwm_zoom_state zoom;
 	enum wtwm_placement_kind placement_kind;
@@ -1520,6 +1530,69 @@ static void icon_manager_box(const struct server *server, uint64_t identity,
 		layout.y + (int)offset_y;
 }
 
+static void clear_icon_manager_text_cache(struct toplevel *toplevel) {
+	if (toplevel->icon_manager_text_buffer != NULL)
+		wlr_buffer_drop(toplevel->icon_manager_text_buffer);
+	toplevel->icon_manager_text_buffer = NULL;
+	free(toplevel->icon_manager_text_label);
+	toplevel->icon_manager_text_label = NULL;
+	free(toplevel->icon_manager_text_font);
+	toplevel->icon_manager_text_font = NULL;
+	toplevel->icon_manager_text_width = 0;
+	toplevel->icon_manager_text_height = 0;
+}
+
+static void clear_icon_manager_render_cache(struct toplevel *toplevel) {
+	clear_icon_manager_text_cache(toplevel);
+	if (toplevel->icon_manager_marker_buffer != NULL)
+		wlr_buffer_drop(toplevel->icon_manager_marker_buffer);
+	toplevel->icon_manager_marker_buffer = NULL;
+	toplevel->icon_manager_marker_size = 0;
+}
+
+static struct wlr_buffer *cached_icon_manager_text(struct toplevel *toplevel,
+		const char *label, const float color[4], int *width, int *height) {
+	const char *font = toplevel->server->config.icon_manager_font;
+	if (toplevel->icon_manager_text_buffer == NULL ||
+			toplevel->icon_manager_text_label == NULL ||
+			toplevel->icon_manager_text_font == NULL ||
+			strcmp(toplevel->icon_manager_text_label, label) != 0 ||
+			strcmp(toplevel->icon_manager_text_font, font) != 0 ||
+			memcmp(toplevel->icon_manager_text_color, color,
+				sizeof(toplevel->icon_manager_text_color)) != 0) {
+		clear_icon_manager_text_cache(toplevel);
+		toplevel->icon_manager_text_buffer = wtwm_render_text(label, font, color,
+			&toplevel->icon_manager_text_width,
+			&toplevel->icon_manager_text_height);
+		if (toplevel->icon_manager_text_buffer != NULL) {
+			toplevel->icon_manager_text_label = strdup(label);
+			toplevel->icon_manager_text_font = strdup(font);
+			memcpy(toplevel->icon_manager_text_color, color,
+				sizeof(toplevel->icon_manager_text_color));
+		}
+	}
+	*width = toplevel->icon_manager_text_width;
+	*height = toplevel->icon_manager_text_height;
+	return toplevel->icon_manager_text_buffer;
+}
+
+static struct wlr_buffer *cached_icon_manager_marker(struct toplevel *toplevel,
+		int size, const float color[4]) {
+	if (toplevel->icon_manager_marker_buffer == NULL ||
+			toplevel->icon_manager_marker_size != size ||
+			memcmp(toplevel->icon_manager_marker_color, color,
+				sizeof(toplevel->icon_manager_marker_color)) != 0) {
+		if (toplevel->icon_manager_marker_buffer != NULL)
+			wlr_buffer_drop(toplevel->icon_manager_marker_buffer);
+		toplevel->icon_manager_marker_buffer = wtwm_render_builtin_title(
+			":iconify", size, color);
+		toplevel->icon_manager_marker_size = size;
+		memcpy(toplevel->icon_manager_marker_color, color,
+			sizeof(toplevel->icon_manager_marker_color));
+	}
+	return toplevel->icon_manager_marker_buffer;
+}
+
 static void refresh_icon_managers(struct server *server) {
 	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
 		if (server->icon_manager_views[i].tree != NULL)
@@ -1601,20 +1674,19 @@ static void refresh_icon_managers(struct server *server) {
 			int button_size = row_height - 6;
 			if (button_size < 4) button_size = 4;
 			if (toplevel->iconified) {
-				struct wlr_buffer *marker = wtwm_render_builtin_title(":iconify",
+				struct wlr_buffer *marker = cached_icon_manager_marker(toplevel,
 					button_size, row_foreground);
 				if (marker != NULL) {
 					struct wlr_scene_buffer *button = wlr_scene_buffer_create(row,
 						marker);
 					if (button != NULL)
 						wlr_scene_node_set_position(&button->node, 3, 3);
-					wlr_buffer_drop(marker);
 				}
 			}
 			int text_width = 0;
 			int text_height = 0;
-			struct wlr_buffer *text = wtwm_render_text(entry->label,
-				server->config.icon_manager_font, row_foreground,
+			struct wlr_buffer *text = cached_icon_manager_text(toplevel,
+				entry->label, row_foreground,
 				&text_width, &text_height);
 			if (text != NULL) {
 				struct wlr_scene_buffer *node = wlr_scene_buffer_create(row, text);
@@ -1630,7 +1702,6 @@ static void refresh_icon_managers(struct server *server) {
 					wlr_scene_node_set_position(&node->node, text_x,
 						(row_height - font_height) / 2 + font_ascent - font_ascent);
 				}
-				wlr_buffer_drop(text);
 			}
 		}
 		wlr_scene_node_set_position(&view->tree->node, view->x, view->y);
@@ -5061,6 +5132,7 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 		toplevel->xdg->base->data = NULL;
 	wlr_scene_node_destroy(&toplevel->tree->node);
 	destroy_icon_scene(toplevel);
+	clear_icon_manager_render_cache(toplevel);
 	free(toplevel->title_buttons);
 	free(toplevel->net_wm_icon_pixels);
 	free(toplevel->wm_hints_icon_bits);
@@ -5893,7 +5965,8 @@ static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
 	const struct wtwm_config *config = &toplevel->server->config;
 	const struct wtwm_string_list *start_iconified =
 		&config->start_iconified_windows;
-	if (toplevel->mapped || toplevel->associated ||
+	if (!toplevel->xwayland_map_requested || toplevel->mapped ||
+			toplevel->associated ||
 			toplevel->xwayland->override_redirect ||
 			!bufferless_start_iconified_matches(toplevel, start_iconified))
 		return;
@@ -6025,6 +6098,7 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->set_geometry.link);
 	wl_list_remove(&toplevel->xwayland_link);
 	free(toplevel->icon_name);
+	clear_icon_manager_render_cache(toplevel);
 	free(toplevel->net_wm_icon_pixels);
 	free(toplevel->wm_hints_icon_bits);
 	toplevel->xwayland->data = NULL;
@@ -6070,9 +6144,9 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xwayland->events.set_geometry, &toplevel->set_geometry);
 	/* twm manages an X MapRequest before the client has painted.  Rootless
 	 * Xwayland may intentionally defer wl_surface buffers for minimized
-	 * windows, so build the logical icon and manager entry directly from X11
-	 * metadata when StartIconified matches.  Association attaches content if
-	 * the window is deiconified later. */
+	 * windows, so the user event hook below builds the logical icon and manager
+	 * entry directly from X11 metadata when StartIconified matches.  Association
+	 * attaches content if the window is deiconified later. */
 	manage_bufferless_start_iconified(toplevel);
 	schedule_xwayland_sync(toplevel);
 }
@@ -6160,6 +6234,16 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
 			schedule_xwayland_sync(toplevel);
+		return 0;
+	}
+	if (type == XCB_MAP_REQUEST) {
+		xcb_map_request_event_t *map = (xcb_map_request_event_t *)event;
+		struct toplevel *toplevel =
+			xwayland_toplevel_for_window(server, map->window);
+		if (toplevel != NULL) {
+			toplevel->xwayland_map_requested = true;
+			manage_bufferless_start_iconified(toplevel);
+		}
 		return 0;
 	}
 	if (type != XCB_CONFIGURE_REQUEST) return 0;
