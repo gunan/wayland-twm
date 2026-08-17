@@ -1,0 +1,3 @@
+#define dimension_overflow_width 999999999999999999999999999
+#define dimension_overflow_height 1
+static unsigned char dimension_overflow_bits[] = { 0x00 };

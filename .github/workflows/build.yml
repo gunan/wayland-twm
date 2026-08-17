@@ -185,6 +185,9 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11 xtst) tests/integration/m4_trace_input.c \
             -o /tmp/m4-trace-input $(pkg-config --libs x11 xtst)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m5_visual_client.c \
+            -o /tmp/m5-visual-client $(pkg-config --libs x11)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -222,6 +225,25 @@ jobs:
             --wtwm-client "$GITHUB_WORKSPACE/build-differential/wtwm-xwayland-geometry-matrix-client" \
             --output /tmp/m4-geometry-differential.json \
             --evidence-dir /tmp/m4-geometry-differential-evidence
+      - name: Compare canonical Milestone 5 pixels with reference twm
+        if: always()
+        run: |
+          python3 -B tests/integration/run_m5_visual_differential.py \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client /tmp/m5-visual-client \
+            --config "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/scenario.twmrc" \
+            --baseline "$GITHUB_WORKSPACE/reference/captures/twm-1.0.13.1/baseline" \
+            --output /tmp/m5-visual-differential.json \
+            --evidence /tmp/m5-visual-evidence
+      - name: Capture every Milestone 5 visual state and color mode
+        if: always()
+        run: |
+          python3 -B tests/integration/run_m5_visual_states.py \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --client /tmp/m5-visual-client \
+            --asset "$GITHUB_WORKSPACE/tests/fixtures/xbm/classic_char.xbm" \
+            --output /tmp/m5-visual-states.json \
+            --evidence /tmp/m5-visual-states
       - name: Upload normalized X11 differential
         if: always()
         uses: actions/upload-artifact@v4
@@ -248,4 +270,22 @@ jobs:
           path: |
             /tmp/m4-geometry-differential.json
             /tmp/m4-geometry-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 5 visual differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m5-visual-differential
+          path: |
+            /tmp/m5-visual-differential.json
+            /tmp/m5-visual-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 5 visual state captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m5-visual-states
+          path: |
+            /tmp/m5-visual-states.json
+            /tmp/m5-visual-states
           if-no-files-found: error

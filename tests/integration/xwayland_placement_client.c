@@ -21,6 +21,9 @@ struct client {
 	xcb_atom_t wm_size_hints;
 	xcb_atom_t wm_transient_for;
 	xcb_window_t remap;
+	xcb_window_t pending[3];
+	size_t pending_count;
+	size_t pending_index;
 };
 
 static void die(const char *message) {
@@ -73,6 +76,13 @@ static void map(struct client *client, xcb_window_t window) {
 	xcb_map_window(client->connection, window);
 }
 
+static bool map_next(struct client *client) {
+	if (client->pending_index >= client->pending_count) return false;
+	map(client, client->pending[client->pending_index++]);
+	xcb_flush(client->connection);
+	return true;
+}
+
 static void create_scenario(struct client *client, const char *scenario) {
 	if (strcmp(scenario, "us") == 0) {
 		map(client, create_window(client, "placement-us", 11, 13, 100, 80,
@@ -99,14 +109,17 @@ static void create_scenario(struct client *client, const char *scenario) {
 		map(client, transient);
 	} else if (strcmp(scenario, "random") == 0 ||
 			strcmp(scenario, "edge") == 0) {
-		map(client, create_window(client, "placement-random-1", 0, 0, 100, 80, 0));
-		map(client, create_window(client, "placement-random-2", 0, 0, 100, 80, 0));
+		client->pending[client->pending_count++] = create_window(client,
+			"placement-random-1", 0, 0, 100, 80, 0);
+		client->pending[client->pending_count++] = create_window(client,
+			"placement-random-2", 0, 0, 100, 80, 0);
 		if (strcmp(scenario, "random") == 0)
-			map(client, create_window(client, "placement-random-3", 0, 0,
-				100, 80, 0));
+			client->pending[client->pending_count++] = create_window(client,
+				"placement-random-3", 0, 0, 100, 80, 0);
 		else
-			map(client, create_window(client, "placement-random-oversized", 0, 0,
-				200, 180, 0));
+			client->pending[client->pending_count++] = create_window(client,
+				"placement-random-oversized", 0, 0, 200, 180, 0);
+		map_next(client);
 	} else if (strcmp(scenario, "max") == 0) {
 		map(client, create_window(client, "placement-max", 10, 12, 900, 700,
 			HINT_US_POSITION));
@@ -144,7 +157,11 @@ int main(int argc, char **argv) {
 	fflush(stdout);
 	char command[64];
 	while (fgets(command, sizeof(command), stdin) != NULL) {
-		if (strcmp(command, "UNMAP\n") == 0 && client.remap != XCB_WINDOW_NONE) {
+		if (strcmp(command, "NEXT\n") == 0 && map_next(&client)) {
+			puts("MAPPED");
+			fflush(stdout);
+		} else if (strcmp(command, "UNMAP\n") == 0 &&
+				client.remap != XCB_WINDOW_NONE) {
 			xcb_unmap_window(client.connection, client.remap);
 			xcb_flush(client.connection);
 			puts("UNMAPPED");

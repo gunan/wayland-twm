@@ -31,6 +31,44 @@ font_test = executable(
 )
 test('X core bitmap font metrics', font_test)
 
+color_lib = static_library(
+  'wtwm-color-lib',
+  'src/color.c',
+  include_directories: inc,
+)
+color_dep = declare_dependency(
+  link_with: color_lib,
+  include_directories: inc,
+)
+
+color_test = executable(
+  'color-test',
+  'tests/color_test.c',
+  dependencies: color_dep,
+)
+test('X11 color conversion', color_test)
+
+xbm_lib = static_library(
+  'wtwm-xbm-lib',
+  'src/xbm.c',
+  include_directories: inc,
+)
+xbm_dep = declare_dependency(
+  link_with: xbm_lib,
+  include_directories: inc,
+)
+
+xbm_test = executable(
+  'xbm-test',
+  'tests/xbm_test.c',
+  dependencies: xbm_dep,
+)
+test(
+  'XBM loader',
+  xbm_test,
+  env: ['WTWM_SOURCE_ROOT=' + meson.project_source_root()],
+)
+
 placement_lib = static_library(
   'wtwm-placement-lib',
   'src/placement.c',
@@ -79,6 +117,33 @@ geometry_lib = static_library(
 geometry_dep = declare_dependency(
   link_with: geometry_lib,
   include_directories: inc,
+)
+
+visual_lib = static_library(
+  'wtwm-visual-lib',
+  'src/visual.c',
+  include_directories: inc,
+)
+visual_dep = declare_dependency(
+  link_with: visual_lib,
+  include_directories: inc,
+)
+
+visual_test = executable(
+  'visual-test',
+  'tests/visual_test.c',
+  dependencies: visual_dep,
+)
+test('twm visual layout', visual_test)
+test(
+  'Milestone 5 visual contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m5_visual.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
 )
 
 interaction_lib = static_library(
@@ -543,7 +608,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -551,6 +616,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, font_dep,
+      color_dep, visual_dep, xbm_dep,
       focus_stack_dep,
       pangocairo,
       dependency('fontconfig'),

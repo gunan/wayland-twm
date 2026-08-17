@@ -1,0 +1,3 @@
+#define first_width 8
+#define second_height 1
+static unsigned char first_bits[] = { 0x00 };

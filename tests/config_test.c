@@ -118,6 +118,8 @@ static void parses_every_construct_family(void) {
 	assert(wtwm_config_parse(&config, "families.twmrc", source, error, sizeof(error)));
 	assert(config.border_width == 4);
 	assert(config.color_count == 22);
+	assert(config.colors[0].mode == WTWM_COLOR_MODE_COLOR);
+	assert(config.colors[21].mode == WTWM_COLOR_MODE_MONOCHROME);
 	assert(config.colors[0].override_count == 1);
 	assert(config.saved_colors.count == 3);
 	assert(config.cursor_count == 3);
@@ -155,6 +157,72 @@ static void parses_every_construct_family(void) {
 		}
 	}
 	assert(saw_effective && saw_translated && saw_parsed && saw_unsupported);
+	wtwm_config_finish(&config);
+}
+
+static void resolves_display_mode_and_window_colors(void) {
+	static const char source[] =
+		"Color { BorderColor \"black\" { \"xterm\" \"red\" } }\n"
+		"Monochrome { BorderColor \"white\" { \"xterm\" \"black\" } }\n"
+		"Color { BorderColor \"blue\" { \"XTerm\" \"green\" } }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "colors", source, error, sizeof(error)));
+	struct wtwm_client_identity lower = {
+		.name = "xterm",
+		.resource_name = "xterm",
+		.resource_class = "lower",
+	};
+	struct wtwm_client_identity upper = {.name = "XTerm"};
+	struct wtwm_client_identity plain = {.name = "clock"};
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &lower), "red") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &upper), "green") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &plain), "blue") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_MONOCHROME, &lower), "black") == 0);
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_MONOCHROME, &plain), "white") == 0);
+	assert(wtwm_config_color_value(&config, "MenuForeground",
+		WTWM_COLOR_MODE_GRAYSCALE, &plain) == NULL);
+	wtwm_config_finish(&config);
+}
+
+static void resolves_visual_window_rules(void) {
+	static const char source[] =
+		"SqueezeTitle\n"
+		"SqueezeTitle { \"Class\" right -1 4 \"named\" center 1 2 }\n"
+		"DontSqueezeTitle { \"fixed\" }\n"
+		"NoHighlight { \"plain\" }\n"
+		"Color { BorderColor \"black\" { \"Class\" \"blue\" \"named\" \"red\" } }\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "visual-rules", source, error,
+		sizeof(error)));
+	assert(config.squeeze_title);
+	struct wtwm_client_identity identity = {
+		.name = "named",
+		.resource_name = "fixed",
+		.resource_class = "Class",
+	};
+	struct wtwm_squeeze_rule rule;
+	assert(!wtwm_config_squeeze_rule(&config, &identity, &rule));
+	identity.resource_name = "other";
+	assert(wtwm_config_squeeze_rule(&config, &identity, &rule));
+	assert(rule.justification == WTWM_SQUEEZE_CENTER);
+	assert(rule.numerator == 1 && rule.denominator == 2);
+	/* Name matches have reference priority over a later class match. */
+	assert(strcmp(wtwm_config_color_value(&config, "BorderColor",
+		WTWM_COLOR_MODE_COLOR, &identity), "red") == 0);
+	identity.name = "plain";
+	identity.resource_class = "other";
+	assert(wtwm_config_window_list_matches(&config, "NoHighlight", &identity));
+	assert(wtwm_config_squeeze_rule(&config, &identity, &rule));
+	assert(rule.justification == WTWM_SQUEEZE_LEFT);
 	wtwm_config_finish(&config);
 }
 
@@ -530,6 +598,40 @@ static void rejects_invalid_binding(void) {
 	wtwm_config_finish(&config);
 }
 
+static void classifies_runtime_visual_directives_effective(void) {
+	static const char source[] =
+		"Cursors { Frame \"left_ptr\" }\n"
+		"Pixmaps { TitleHighlight \"highlight.xbm\" }\n"
+		"Icons { \"xterm\" \"xterm.xbm\" }\n"
+		"IconBorderWidth 2\n"
+		"InterpolateMenuColors\n"
+		"NoDefaults\n"
+		"NoHighlight\n"
+		"NoTitleHighlight\n"
+		"SqueezeTitle\n"
+		"DontSqueezeTitle { \"fixed\" }\n"
+		"IconDirectory \"/tmp/icons\"\n"
+		"UnknownIcon \"unknown.xbm\"\n";
+	static const char *const names[] = {
+		"Cursors", "Pixmaps", "Icons", "IconBorderWidth",
+		"InterpolateMenuColors", "NoDefaults", "NoHighlight",
+		"NoTitleHighlight", "SqueezeTitle", "DontSqueezeTitle",
+		"IconDirectory", "UnknownIcon",
+	};
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "visual-compatibility", source, error,
+		sizeof(error)));
+	assert(config.directive_count == sizeof(names) / sizeof(names[0]));
+	assert(config.warning_count == 0);
+	for (size_t i = 0; i < config.directive_count; ++i) {
+		assert(strcmp(config.directives[i].name, names[i]) == 0);
+		assert(config.directives[i].compatibility == WTWM_COMPAT_EFFECTIVE);
+	}
+	wtwm_config_finish(&config);
+}
+
 static void accepts_legacy_syntax(void) {
 	static const char source[] =
 		"SqueezeTitle { \"xterm\" Center 0 0 }\n"
@@ -543,7 +645,7 @@ static void accepts_legacy_syntax(void) {
 	assert(wtwm_config_parse(&config, "legacy", source, error, sizeof(error)));
 	assert(config.binding_count == 2 && config.squeeze_entry_count == 1);
 	assert(config.menus[0].items[0].action.type == WTWM_ACTION_EXEC);
-	assert(config.warning_count == 3);
+	assert(config.warning_count == 1);
 	wtwm_config_finish(&config);
 }
 
@@ -564,6 +666,8 @@ int main(void) {
 	parse_lexical_reference_forms();
 	rejects_reference_lexical_errors();
 	parses_every_construct_family();
+	resolves_display_mode_and_window_colors();
+	resolves_visual_window_rules();
 	preserves_order_and_replacement_rules();
 	uses_reference_intrinsic_defaults_and_aliases();
 	failed_parse_is_atomic_and_leak_safe();
@@ -577,6 +681,7 @@ int main(void) {
 	parses_placement_options();
 	parse_rules_and_title_buttons();
 	rejects_invalid_binding();
+	classifies_runtime_visual_directives_effective();
 	accepts_legacy_syntax();
 	applies_global_and_exception_rules();
 	puts("config tests passed");

@@ -249,7 +249,7 @@ RUNTIME_CONTRACT_FRAGMENTS = {
     ],
     "runtime_dispatch.start-iconified-rule-dispatch": ["server->config.start_iconified_windows"],
     "runtime_dispatch.title-button-action-dispatch": [
-        "if (configured != NULL) execute_action(server, hit.toplevel, configured,"
+        "&hit.toplevel->title_buttons[hit.title_button_index].action;"
     ],
     "runtime_dispatch.title-decoration-rule-dispatch": [
         "set_decorated(toplevel, should_decorate(toplevel));"
@@ -261,41 +261,63 @@ DIRECTIVE_CONTRACT_FRAGMENTS = {
         "toplevel->auto_raise = toplevel->server->config.auto_raise ||",
         "&toplevel->server->config.auto_raise_windows,",
     ],
-    "directive.bordercolor": ["color_value(server->config.border_color, border);"],
+    "directive.bordercolor": [
+        'configured_color(server, "BorderColor", "black", toplevel, border);'
+    ],
     "directive.borderwidth": ["return server->config.border_width;"],
     "directive.buttonn-binding": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
-    "directive.color": ["color_value(server->config.border_color, border);"],
+    "directive.color": [
+        'configured_color(server, "BorderColor", "black", toplevel, border);'
+    ],
     "directive.function": [
         "static bool push_action_frame(",
         "struct action_frame *frame =",
     ],
     "directive.lefttitlebutton": [
-        "server->config.title_buttons[i].right_side == hit.right_button"
+        "if (configured->right_side != (side != 0)) continue;"
     ],
     "directive.maketitle": ["&toplevel->server->config.make_title_windows,"],
     "directive.menu": ["strcmp(server->config.menus[i].name, name)"],
-    "directive.menubackground": ["color_value(server->config.menu_background, background);"],
-    "directive.menubordercolor": ["color_value(server->config.menu_border_color, border);"],
-    "directive.menuborderwidth": ["int border_width = server->config.menu_border_width;"],
-    "directive.menufont": ["server->config.menu_font, color, &widths[i], &heights[i]);"],
-    "directive.menuforeground": ["color_value(server->config.menu_foreground, highlight);"],
-    "directive.menutitlebackground": ["server->config.menu_title_background, row_color);"],
-    "directive.menutitleforeground": ["server->config.menu_title_foreground : server->config.menu_foreground);"],
+    "directive.menubackground": [
+        '"MenuBackground", "white", NULL);'
+    ],
+    "directive.menubordercolor": [
+        'configured_color(server, "MenuBorderColor", "black", NULL, border);'
+    ],
+    "directive.menuborderwidth": [
+        "visual.menu_border_width = server->config.menu_border_width;"
+    ],
+    "directive.menufont": [
+        "server->config.menu_font, normal_foreground, &widths[i], &heights[i]);"
+    ],
+    "directive.menuforeground": [
+        '"MenuForeground", "black", NULL);'
+    ],
+    "directive.menutitlebackground": [
+        '"MenuTitleBackground", "white", NULL);'
+    ],
+    "directive.menutitleforeground": [
+        '"MenuTitleForeground", "black", NULL);'
+    ],
     "directive.notitle": [
         "return wtwm_window_has_title(toplevel->server->config.no_title,",
         "&toplevel->server->config.no_title_windows,",
     ],
     "directive.righttitlebutton": [
-        "server->config.title_buttons[i].right_side == hit.right_button"
+        "if (configured->right_side != (side != 0)) continue;"
     ],
     "directive.quoted-key-binding": ["dispatch_binding(server, WTWM_BINDING_KEY,"],
     "directive.starticonified": [
         "&toplevel->server->config.start_iconified_windows,"
     ],
-    "directive.titlebackground": ["color_value(server->config.title_background, title);"],
+    "directive.titlebackground": [
+        "wlr_scene_rect_set_color(toplevel->title, title_color);"
+    ],
     "directive.titlefont": ["toplevel->server->config.title_font, foreground, &width, &height);"],
-    "directive.titleforeground": ["color_value(server->config.title_foreground, foreground);"],
-    "directive.titlepadding": ["int title_padding = toplevel->server->config.title_padding;"],
+    "directive.titleforeground": [
+        "wlr_scene_rect_set_color(button->border, foreground);"
+    ],
+    "directive.titlepadding": ["visual.title_padding = config->title_padding;"],
 }
 
 

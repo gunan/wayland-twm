@@ -1,0 +1,3 @@
+#define dimension_limit_width 32769
+#define dimension_limit_height 1
+static unsigned char dimension_limit_bits[] = { 0x00 };

@@ -1,0 +1,3 @@
+#define excessive_width 8
+#define excessive_height 1
+static unsigned char excessive_bits[] = { 0x01, 0x02 };

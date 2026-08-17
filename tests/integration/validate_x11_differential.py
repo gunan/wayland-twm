@@ -123,6 +123,8 @@ def validate_text(
         'Role("xclock", "WTWM Real XClock", "wtwm-real-xclock", "XClock")',
         'Role("xload", "WTWM Real XLoad", "wtwm-real-xload", "XLoad")',
         'Role("emacs", "WTWM Real Emacs", "wtwm-real-emacs", "Emacs-gtk")',
+        "(setq frame-inhibit-implied-resize t)",
+        "(menu-bar-mode -1) (tool-bar-mode -1) (scroll-bar-mode -1)",
         '"terminal-dialog"',
         '"icccm-normal"',
         '"icccm-transient"',
@@ -185,7 +187,7 @@ def validate_text(
         "A 21-event trace",
         "48-case Cartesian product",
         "no numeric tolerances or geometry exclusions",
-        "Pixel rendering and native/cross-protocol equivalence remain",
+        "Milestone 5 pixel comparison",
     ):
         if marker not in compatibility:
             errors.append(f"compatibility boundary lacks {marker!r}")
@@ -312,7 +314,7 @@ def self_test_tamper(source_root: Path) -> list[str]:
             runner,
             probe,
             compatibility.replace(
-                "Pixel rendering and native/cross-protocol equivalence remain",
+                "Milestone 5 pixel comparison",
                 "Later work remains",
                 1,
             ),

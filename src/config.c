@@ -376,18 +376,20 @@ static enum wtwm_compatibility directive_compatibility(const char *name) {
 	};
 	static const char *const effective[] = {
 		"BorderWidth", "ButtonIndent", "ClientBorderWidth", "Color",
-		"Button", "Key",
-		"DecorateTransients", "FramePadding", "Function", "Grayscale",
-		"Greyscale", "IconFont", "IconManagerFont", "LeftTitleButton",
-		"MakeTitle", "Menu", "MenuBackground", "MenuBorderColor",
+		"Button", "Cursors", "Key",
+		"DecorateTransients", "DontSqueezeTitle", "FramePadding", "Function",
+		"Grayscale", "Greyscale", "IconBorderWidth", "IconDirectory",
+		"IconFont", "IconManagerFont", "Icons", "InterpolateMenuColors",
+		"LeftTitleButton", "MakeTitle", "Menu", "MenuBackground", "MenuBorderColor",
 		"MenuBorderWidth", "MenuFont", "MenuForeground", "MenuTitleBackground",
-		"MenuTitleForeground", "Monochrome", "MoveDelta", "NoMenuShadows",
-		"NoRaiseOnDeiconify", "NoRaiseOnMove", "NoRaiseOnResize", "NoTitle",
-		"NoTitleFocus", "OpaqueMove", "RandomPlacement", "ResizeFont",
-		"RightTitleButton", "StartIconified", "TitleBackground",
+		"MenuTitleForeground", "Monochrome", "MoveDelta", "NoDefaults",
+		"NoHighlight", "NoMenuShadows", "NoRaiseOnDeiconify", "NoRaiseOnMove",
+		"NoRaiseOnResize", "NoTitle", "NoTitleFocus", "NoTitleHighlight",
+		"OpaqueMove", "Pixmaps", "RandomPlacement", "ResizeFont",
+		"RightTitleButton", "SqueezeTitle", "StartIconified", "TitleBackground",
 		"TitleButtonBorderWidth", "TitleFont", "TitleForeground", "TitlePadding",
-		"AutoRaise", "AutoRelativeResize", "ConstrainedMoveTime", "DontMoveOff",
-		"MaxWindowSize", "UsePPosition",
+		"UnknownIcon", "AutoRaise", "AutoRelativeResize", "ConstrainedMoveTime",
+		"DontMoveOff", "MaxWindowSize", "UsePPosition",
 	};
 	static const char *const translated[] = {
 		"ClientBorderWidth", "DecorateTransients", "IconFont", "IconManagerFont",
@@ -716,6 +718,8 @@ static bool parse_window_list(struct parser *parser, const char *name,
 		if (!optional) return fail(parser, "expected '{' after %s", name);
 		list->bare = true;
 		if (bare_sets_no_title) parser->config->no_title = true;
+		if (equal_ci(name, "DontSqueezeTitle"))
+			parser->config->squeeze_title = false;
 		return true;
 	}
 	if (!next_token(parser)) return false;
@@ -814,7 +818,7 @@ static const struct color_option *find_color_option(const char *name) {
 	return NULL;
 }
 
-static bool parse_color_block(struct parser *parser) {
+static bool parse_color_block(struct parser *parser, enum wtwm_color_mode mode) {
 	if (!expect(parser, TOK_LBRACE, "'{'")) return false;
 	while (parser->token.type != TOK_RBRACE) {
 		if (parser->token.type == TOK_EOF) return fail(parser, "unterminated color block");
@@ -828,6 +832,7 @@ static bool parse_color_block(struct parser *parser) {
 		struct wtwm_color_setting *setting = &items[parser->config->color_count++];
 		memset(setting, 0, sizeof(*setting));
 		copy_text(setting->name, sizeof(setting->name), option->name);
+		setting->mode = mode;
 		if (!next_token(parser) || !take_string(parser, setting->value,
 			sizeof(setting->value))) return false;
 		char *slot = (char *)parser->config + option->offset;
@@ -1016,7 +1021,10 @@ static bool take_signed_number(struct parser *parser, int *value) {
 }
 
 static bool parse_squeeze_title(struct parser *parser) {
-	if (parser->token.type != TOK_LBRACE) return true;
+	if (parser->token.type != TOK_LBRACE) {
+		parser->config->squeeze_title = true;
+		return true;
+	}
 	if (!next_token(parser)) return false;
 	while (parser->token.type != TOK_RBRACE) {
 		if (parser->token.type == TOK_EOF) return fail(parser, "unterminated SqueezeTitle block");
@@ -1060,9 +1068,12 @@ static bool parse_statement_body(struct parser *parser, const char *keyword,
 	enum token_type keyword_type) {
 	if (keyword_type == TOK_STRING) return parse_key(parser, keyword);
 	if (equal_ci(keyword, "Button")) return parse_button(parser);
-	if (equal_ci(keyword, "Color") || equal_ci(keyword, "Grayscale") ||
-		equal_ci(keyword, "Greyscale") || equal_ci(keyword, "Monochrome"))
-		return parse_color_block(parser);
+	if (equal_ci(keyword, "Color"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_COLOR);
+	if (equal_ci(keyword, "Grayscale") || equal_ci(keyword, "Greyscale"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_GRAYSCALE);
+	if (equal_ci(keyword, "Monochrome"))
+		return parse_color_block(parser, WTWM_COLOR_MODE_MONOCHROME);
 	if (equal_ci(keyword, "SaveColor")) return parse_save_color(parser);
 	if (equal_ci(keyword, "Menu")) return parse_menu(parser);
 	if (equal_ci(keyword, "Function")) return parse_function(parser);
@@ -1416,6 +1427,94 @@ bool wtwm_config_match_client(const struct wtwm_string_list *list,
 		return wtwm_config_match_x11(list, identity->name, identity->resource_name,
 			identity->resource_class);
 	return wtwm_config_match_native(list, identity->title, identity->app_id);
+}
+
+bool wtwm_config_window_list_matches(const struct wtwm_config *config,
+		const char *directive, const struct wtwm_client_identity *identity) {
+	if (config == NULL || directive == NULL) return false;
+	for (size_t i = config->window_list_count; i > 0; --i) {
+		const struct wtwm_window_list *list = &config->window_lists[i - 1];
+		if (!equal_ci(list->directive, directive)) continue;
+		if (list->bare || wtwm_config_match_client(&list->names, identity))
+			return true;
+	}
+	return false;
+}
+
+static bool identity_value_matches(const struct wtwm_client_identity *identity,
+		const char *selector, unsigned pass) {
+	if (identity == NULL || selector == NULL) return false;
+	const char *value = NULL;
+	bool x11 = identity->name != NULL || identity->resource_name != NULL ||
+		identity->resource_class != NULL;
+	if (x11) {
+		if (pass == 0) value = identity->name;
+		else if (pass == 1) value = identity->resource_name;
+		else if (pass == 2) value = identity->resource_class;
+	} else {
+		if (pass == 0) value = identity->title;
+		else if (pass == 1) value = identity->app_id;
+	}
+	return value != NULL && strcmp(selector, value) == 0;
+}
+
+static const struct wtwm_squeeze_entry *matching_squeeze_entry(
+		const struct wtwm_config *config,
+		const struct wtwm_client_identity *identity) {
+	for (unsigned pass = 0; pass < 3; ++pass) {
+		for (size_t i = config->squeeze_entry_count; i > 0; --i) {
+			const struct wtwm_squeeze_entry *entry = &config->squeeze_entries[i - 1];
+			if (identity_value_matches(identity, entry->window_name, pass))
+				return entry;
+		}
+	}
+	return NULL;
+}
+
+bool wtwm_config_squeeze_rule(const struct wtwm_config *config,
+		const struct wtwm_client_identity *identity,
+		struct wtwm_squeeze_rule *rule) {
+	if (config == NULL || rule == NULL) return false;
+	for (size_t i = config->window_list_count; i > 0; --i) {
+		const struct wtwm_window_list *list = &config->window_lists[i - 1];
+		if (equal_ci(list->directive, "DontSqueezeTitle") && !list->bare &&
+			wtwm_config_match_client(&list->names, identity)) return false;
+	}
+	const struct wtwm_squeeze_entry *entry =
+		matching_squeeze_entry(config, identity);
+	if (entry == NULL && !config->squeeze_title) return false;
+	*rule = (struct wtwm_squeeze_rule){WTWM_SQUEEZE_LEFT, 0, 0};
+	if (entry == NULL) return true;
+	if (equal_ci(entry->justification, "center"))
+		rule->justification = WTWM_SQUEEZE_CENTER;
+	else if (equal_ci(entry->justification, "right"))
+		rule->justification = WTWM_SQUEEZE_RIGHT;
+	rule->numerator = entry->numerator;
+	rule->denominator = entry->denominator;
+	return true;
+}
+
+const char *wtwm_config_color_value(const struct wtwm_config *config,
+		const char *name, enum wtwm_color_mode mode,
+		const struct wtwm_client_identity *identity) {
+	if (config == NULL || name == NULL) return NULL;
+	const char *base = NULL;
+	for (size_t i = config->color_count; i > 0; --i) {
+		const struct wtwm_color_setting *setting = &config->colors[i - 1];
+		if (setting->mode != mode || !equal_ci(setting->name, name)) continue;
+		if (base == NULL) base = setting->value;
+	}
+	if (identity == NULL) return base;
+	for (unsigned pass = 0; pass < 3; ++pass)
+		for (size_t i = config->color_count; i > 0; --i) {
+			const struct wtwm_color_setting *setting = &config->colors[i - 1];
+			if (setting->mode != mode || !equal_ci(setting->name, name)) continue;
+			for (size_t j = 0; j < setting->override_count; ++j)
+				if (identity_value_matches(identity,
+						setting->overrides[j].name, pass))
+					return setting->overrides[j].value;
+		}
+	return base;
 }
 
 static bool prefix_match(const char *selector, const char *value) {
