@@ -69,6 +69,12 @@ OUTPUT_PLACEMENT_RUNTIME_FEATURES = {
     "directive.randomplacement",
     "runtime_dispatch.execute-configured-action",
 }
+OUTPUT_RESTORATION_RUNTIME_PATH = "tests/integration/run_m8_output_restoration.py"
+OUTPUT_RESTORATION_RUNTIME_TEST = "Milestone 8 output disappearance restoration"
+OUTPUT_RESTORATION_RUNTIME_ID = "test.current-feature.m8-output-restoration-runtime"
+OUTPUT_RESTORATION_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
 STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
 STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
 STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
@@ -600,6 +606,27 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in OUTPUT_RESTORATION_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_RESTORATION_RUNTIME_ID,
+                "path": OUTPUT_RESTORATION_RUNTIME_PATH,
+                "meson_test": OUTPUT_RESTORATION_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner keeps {feature_id} available "
+                    "while output disable and destroy repair managed scenes.",
+                    "Exact native and Xwayland frame, icon, zoom, transient, "
+                    "focus, stack, pending, visibility, and trace assertions "
+                    "cover survivor repair, zero outputs, and ordered resume.",
+                    "A portable model fixes positive-intersection preservation, "
+                    "canonical destination selection, relative translation, "
+                    "overflow-safe clamp, family delta, and repeated churn.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in STARTWM_RUNTIME_FEATURES:
             tests.append({
                 "test_id": STARTWM_RUNTIME_ID,
@@ -745,6 +772,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "dimension": "runtime",
             },
             {
+                "test_id": OUTPUT_RESTORATION_RUNTIME_ID,
+                "path": OUTPUT_RESTORATION_RUNTIME_PATH,
+                "meson_test": OUTPUT_RESTORATION_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
                 "test_id": OUTPUT_TOPOLOGY_RUNTIME_ID,
                 "path": OUTPUT_TOPOLOGY_RUNTIME_PATH,
                 "meson_test": OUTPUT_TOPOLOGY_RUNTIME_TEST,
@@ -866,9 +899,9 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
         "  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`",
         "  through configured-action dispatch.",
-        "- The output-placement runtime mapping covers the steady-state spatial/root",
-        "  translation only. Warp history, topology mutation, removed-output repair,",
-        "  input hotplug, and session lifecycle remain separate Milestone 8 work.",
+        "- The output-placement, topology, and restoration runtime mappings separate",
+        "  steady-state spatial selection, atomic output mutation, and managed-scene",
+        "  repair. Input hotplug and session lifecycle remain separate Milestone 8 work.",
         "",
     ]
     return result, "\n".join(lines)

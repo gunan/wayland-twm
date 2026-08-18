@@ -297,10 +297,38 @@ position, mode, fractional scale, all transform repair paths, disable/reenable,
 automatic layout, canonical renumbering, repeated destruction, zero active and
 zero managed states, and a new post-destruction output. Exact `STATE`, rollback,
 pointer/history, protocol-roundtrip, and trace assertions distinguish topology
-repair from the following Roadmap task: relocating already managed windows,
-icons, and transient families when their owner output disappears. Persistent
-topology reassociation, input hotplug/multiple seats, and session lifecycle are
-also still separate Milestone 8 work.
+repair from presentation restoration. Persistent topology reassociation, input
+hotplug/multiple seats, and session lifecycle are still separate Milestone 8
+work.
+
+After a successful output transaction, a managed outer frame that retains any
+positive intersection with an enabled output remains byte-exact. A stranded
+frame keeps its pre-change source output when that immutable identity survives;
+otherwise the canonical-nearest enabled output to the old frame center wins.
+wtwm preserves the unscaled source-relative top-left and then clamps each axis
+to the destination: fitting windows are fully contained, while an oversized
+window retains its size and pins to the near edge. Returning an output never
+repatriates a presentation that is already visible. A failed reversible
+topology mutation publishes no restoration state.
+
+Transient families retain their managed parent relation and stack order. A
+stranded root selects the family destination and its actual post-clamp delta is
+applied to every descendant before an individual safety clamp; when the root
+remains visible, only individually stranded descendants are repaired.
+Iconified windows retain iconified and icon-region state while their underlying
+frame and visible manual icon are repaired independently. Zoomed windows retain
+their mode, recompute the displayed zoom against the destination, and repair
+the saved unzoom frame origin without changing the saved client size. No repair
+raises a window or changes focus or stacking.
+
+Removing the last output keeps native Wayland and Xwayland clients protocol-
+mapped but hides their selected frame/icon scene and marks restoration pending;
+geometry, focus, stack, icon, and zoom state remain exact. New maps are kept
+hidden in the distinct initial-placement wait queue. The first returning output
+restores existing pending families before resuming those new maps. The dedicated
+headless runner covers disable and destroy, native and Xwayland normal,
+iconified, zoomed, and transient windows, exact `STATE`/`TRACE` ordering,
+protocol roundtrips, failure rollback, no repatriation, and repeated churn.
 
 Reference `f.startwm` replaces twm by passing its decoded argument to
 `/bin/sh -c`. Wayland has no generic transfer for an existing compositor's

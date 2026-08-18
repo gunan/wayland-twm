@@ -30,6 +30,8 @@ from generate_feature_test_map import (
     NOOP_OPTIONS_RUNTIME_ID,
     OUTPUT_PLACEMENT_RUNTIME_FEATURES,
     OUTPUT_PLACEMENT_RUNTIME_ID,
+    OUTPUT_RESTORATION_RUNTIME_FEATURES,
+    OUTPUT_RESTORATION_RUNTIME_ID,
     OUTPUT_TOPOLOGY_RUNTIME_FEATURES,
     OUTPUT_TOPOLOGY_RUNTIME_ID,
     RESTART_RUNTIME_FEATURES,
@@ -201,8 +203,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 13:
-        errors.append("feature_map.test_catalog must contain the thirteen registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 14:
+        errors.append("feature_map.test_catalog must contain the fourteen registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -322,6 +324,8 @@ def validate_feature_map(
         if feature.get("id") in WARP_SCREEN_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in OUTPUT_RESTORATION_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in OUTPUT_TOPOLOGY_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
@@ -484,6 +488,23 @@ def tamper_self_test(
     )
     placement_catalog["path"] = "tests/integration/run_m8_screen_output.py"
     mutations.append(("wrong-output-placement-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    restoration_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in OUTPUT_RESTORATION_RUNTIME_FEATURES
+    )
+    restoration_entry["tests"] = [
+        item for item in restoration_entry["tests"]
+        if item["test_id"] != OUTPUT_RESTORATION_RUNTIME_ID
+    ]
+    mutations.append(("missing-output-restoration-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    restoration_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == OUTPUT_RESTORATION_RUNTIME_ID
+    )
+    restoration_catalog["path"] = "tests/integration/run_m8_screen_output.py"
+    mutations.append(("wrong-output-restoration-catalog-path", changed))
     changed = copy.deepcopy(feature_map)
     topology_entry = next(
         item for item in changed["entries"]  # type: ignore[union-attr]

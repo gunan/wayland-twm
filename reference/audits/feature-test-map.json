@@ -52,6 +52,12 @@
       "dimension": "runtime"
     },
     {
+      "test_id": "test.current-feature.m8-output-restoration-runtime",
+      "path": "tests/integration/run_m8_output_restoration.py",
+      "meson_test": "Milestone 8 output disappearance restoration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.m8-output-topology-runtime",
       "path": "tests/integration/run_m8_output_topology.py",
       "meson_test": "Milestone 8 output topology transactions",
@@ -4006,6 +4012,21 @@
             "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
             "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
             "The Linux two-output runner exercises runtime_dispatch.execute-configured-action through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-output-restoration-runtime",
+          "path": "tests/integration/run_m8_output_restoration.py",
+          "meson_test": "Milestone 8 output disappearance restoration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model fixes positive-intersection preservation, canonical destination selection, relative translation, overflow-safe clamp, family delta, and repeated churn.",
+            "Exact native and Xwayland frame, icon, zoom, transient, focus, stack, pending, visibility, and trace assertions cover survivor repair, zero outputs, and ordered resume.",
+            "The Linux headless runner keeps runtime_dispatch.execute-configured-action available while output disable and destroy repair managed scenes."
           ],
           "fixture": "",
           "checks": []

@@ -16,6 +16,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
                 output_order.c / output_topology.c
         (portable identity ordering and topology transaction plans)
                               │
+                       output_restore.c
+          (portable family and presentation repair plans)
+                              │
                        session_state.c
           (portable atomic persistence and identity matching)
                               │
@@ -80,8 +83,19 @@ transform, and normalized logical box is valid. The compositor adapter performs
 the wlroots state commit, then publishes roots/backgrounds and repairs cursor,
 warp history, active operations, and deferred placement in one serialized
 post-layout boundary. Disabled outputs stay in the managed identity set but are
-absent from the spatial layout. Output-loss window relocation deliberately
-belongs to the next layer of policy rather than this transaction model.
+absent from the spatial layout.
+
+`src/output_restore.c` consumes complete pre/post canonical output snapshots
+after a topology transaction publishes. It identifies stranded outer frames,
+manual icons, and saved zoom geometry by positive intersection, retains a
+surviving source-output identity when possible, and otherwise chooses the
+canonical-nearest survivor. The portable plan preserves source-relative
+origins, clamps safely without resizing, and applies a transient root's actual
+post-clamp delta to its descendants. The compositor adapter owns scene
+visibility, zoom-mode recomputation, focus/stack preservation, and ordered
+restore trace publication. With no outputs it hides presentations and retains
+the exact plan as pending; the first returning output restores those existing
+families before releasing newly mapped placement waiters.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide
