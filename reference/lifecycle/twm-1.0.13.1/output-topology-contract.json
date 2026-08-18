@@ -1,0 +1,590 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 fixed X-screen lifecycle and the wtwm atomic Wayland output-topology translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/screen.h": "f238b482ee38fd1d75f410574d36b47e2dafec50808518b7ca374924785e48b0",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "startup.randr-query": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 334,
+      "text": "    HasXrandr = XRRQueryExtension(dpy, &XrandrEventBase, &XrandrErrorBase);"
+    },
+    "startup.screen-count": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 348,
+      "text": "    NumScreens = ScreenCount(dpy);"
+    },
+    "startup.multi-range": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 352,
+      "text": "        lastscrn = NumScreens - 1;"
+    },
+    "startup.single-range": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 355,
+      "text": "        firstscrn = lastscrn = DefaultScreen(dpy);"
+    },
+    "startup.fixed-array": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 361,
+      "text": "    ScreenList = (ScreenInfo **)"
+    },
+    "startup.per-screen-loop": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 368,
+      "text": "    for (scrnum = firstscrn; scrnum <= lastscrn; scrnum++) {"
+    },
+    "startup.unmanaged-hole": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 391,
+      "text": "            continue;"
+    },
+    "startup.screen-info": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 397,
+      "text": "        Scr = ScreenList[scrnum] = (ScreenInfo *) calloc(1, sizeof(ScreenInfo));"
+    },
+    "startup.screen-number": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 438,
+      "text": "        Scr->screen = scrnum;"
+    },
+    "startup.root": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 441,
+      "text": "        Scr->Root = RootWindow(dpy, scrnum);"
+    },
+    "startup.root-context": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 442,
+      "text": "        XSaveContext(dpy, Scr->Root, ScreenContext, (XPointer) Scr);"
+    },
+    "startup.width": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 469,
+      "text": "        Scr->MyDisplayWidth = DisplayWidth(dpy, scrnum);"
+    },
+    "startup.height": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 470,
+      "text": "        Scr->MyDisplayHeight = DisplayHeight(dpy, scrnum);"
+    },
+    "startup.max-width": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 471,
+      "text": "        Scr->MaxWindowWidth = 32767 - Scr->MyDisplayWidth;"
+    },
+    "screen.width-field": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 67,
+      "text": "    int MyDisplayWidth;         /* my copy of DisplayWidth(dpy, screen) */"
+    },
+    "screen.height-field": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 68,
+      "text": "    int MyDisplayHeight;        /* my copy of DisplayHeight(dpy, screen) */"
+    },
+    "screen.root-field": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 74,
+      "text": "    Window Root;                /* the root window */"
+    },
+    "randr.handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 176,
+      "text": "        EventHandler[XrandrEventBase + RRScreenChangeNotify] ="
+    },
+    "randr.select-root": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 179,
+      "text": "            XRRSelectInput(dpy, ScreenList[scrnum]->Root,"
+    },
+    "randr.match-root": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2409,
+      "text": "        if (ScreenList[scrnum]->Root == xev->root) {"
+    },
+    "randr.update-width": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2410,
+      "text": "            ScreenList[scrnum]->MyDisplayWidth = xev->width;"
+    },
+    "randr.update-height": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2411,
+      "text": "            ScreenList[scrnum]->MyDisplayHeight = xev->height;"
+    },
+    "randr.update-xlib": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2415,
+      "text": "    XRRUpdateConfiguration(&Event);"
+    },
+    "shutdown.screen-loop": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 897,
+      "text": "    for (scrnum = 0; scrnum < NumScreens; scrnum++) {"
+    },
+    "shutdown.reborder": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 903,
+      "text": "            RestoreWithdrawnLocation(tmp);"
+    },
+    "shutdown.fonts": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 926,
+      "text": "        DestroyFonts();"
+    },
+    "shutdown.display": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 927,
+      "text": "        XCloseDisplay(dpy);"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "runtime.output-record": {
+        "path": "src/wtwm.c",
+        "text": "struct output {"
+      },
+      "runtime.state-listener": {
+        "path": "src/wtwm.c",
+        "text": "struct wl_listener request_state;"
+      },
+      "runtime.ordinal-counter": {
+        "path": "src/wtwm.c",
+        "text": "uint64_t next_output_announcement_ordinal;"
+      },
+      "runtime.state-entry": {
+        "path": "src/wtwm.c",
+        "text": "static void output_request_state(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.destroy-entry": {
+        "path": "src/wtwm.c",
+        "text": "static void output_destroy(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.ordinal-entry": {
+        "path": "src/wtwm.c",
+        "text": "static bool next_output_announcement_ordinal(struct server *server,"
+      },
+      "runtime.ordinal-exhaustion": {
+        "path": "src/wtwm.c",
+        "text": "server->output_announcement_ordinal_exhausted = true;"
+      },
+      "runtime.add-entry": {
+        "path": "src/wtwm.c",
+        "text": "static void new_output(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.identity-copy": {
+        "path": "src/wtwm.c",
+        "text": "if (!wtwm_output_identity_init(&output->identity, wlr_output->name,"
+      },
+      "runtime.render-init": {
+        "path": "src/wtwm.c",
+        "text": "if (!wlr_output_init_render(wlr_output, server->allocator,"
+      },
+      "runtime.preferred-mode": {
+        "path": "src/wtwm.c",
+        "text": "struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);"
+      },
+      "runtime.layout-add": {
+        "path": "src/wtwm.c",
+        "text": "wlr_output_layout_add_auto(server->output_layout, wlr_output);"
+      },
+      "runtime.background-create": {
+        "path": "src/wtwm.c",
+        "text": "output->background = wlr_scene_rect_create(&server->scene->tree,"
+      },
+      "runtime.resume-waiters": {
+        "path": "src/wtwm.c",
+        "text": "resume_output_waiting_toplevels(server);"
+      },
+      "runtime.icon-layout": {
+        "path": "src/wtwm.c",
+        "text": "resume_output_waiting_toplevels(server);\n\trebuild_icon_layout(server);\n\trefresh_icon_managers(server);"
+      },
+      "runtime.enabled-snapshot": {
+        "path": "src/wtwm.c",
+        "text": "if (!output->wlr->enabled) continue;"
+      },
+      "runtime.warp-state": {
+        "path": "src/wtwm.c",
+        "text": "struct wtwm_screen_warp_state screen_warp;"
+      },
+      "order.identity-compare": {
+        "path": "src/output_order.c",
+        "text": "if (result == 0) result = compare_bytes(a->serial, b->serial);"
+      },
+      "order.ordinal-tie": {
+        "path": "src/output_order.c",
+        "text": "return a->announcement_ordinal < b->announcement_ordinal ? -1 :"
+      }
+    },
+    "observed": [
+      "The compositor already owns output identity, frame/request-state/destroy listeners, a never-reused ordinal counter, a canonical enabled-output snapshot, output-layout and scene-output wiring, per-output backgrounds, zero-output placement waiters, and screen-warp history.",
+      "New outputs currently copy identity, initialize rendering, choose an enabled preferred-mode state, publish an auto-layout/scene/background, resume placement waiters, and rebuild icon UI.",
+      "State requests currently commit directly and destroy currently tears down the wrapper, so this contract supplies the missing transaction, rollback, dependent-state repair, and churn-safety rules.",
+      "The implementation and live topology tests must prove the complete contract rather than treating a successful wlr_output state commit alone as completion."
+    ]
+  },
+  "reference_behavior": {
+    "screen_membership": {
+      "rule": "twm reads ScreenCount once, allocates one fixed-size ScreenList, and attempts the selected X-screen-number range only during startup. Managed roots have stable numeric slots; a startup ownership failure leaves an unmanaged null hole. There is no runtime X-screen/root add, removal, disable, re-enable, reorder, or dense renumber operation.",
+      "evidence": [
+        "startup.screen-count",
+        "startup.multi-range",
+        "startup.single-range",
+        "startup.fixed-array",
+        "startup.per-screen-loop",
+        "startup.unmanaged-hole",
+        "startup.screen-info",
+        "startup.screen-number",
+        "startup.root",
+        "startup.root-context",
+        "screen.root-field"
+      ]
+    },
+    "screen_geometry": {
+      "startup": "Each managed ScreenInfo caches DisplayWidth and DisplayHeight and computes maximum-window fields at startup.",
+      "randr": "When built with XRandR and the extension is present, twm iterates the fixed ScreenList slots and assumes their roots are nonnull while subscribing. RRScreenChangeNotify likewise assumes ScreenList entries are nonnull, matches the existing root, and replaces only MyDisplayWidth and MyDisplayHeight before XRRUpdateConfiguration.",
+      "non_actions": "The handler does not create or destroy ScreenInfo/root state, renumber screens, recompute MaxWindowWidth/MaxWindowHeight, repair PreviousScreen, relocate windows, rebuild menus, or roll back the already-reported X server change.",
+      "evidence": [
+        "startup.randr-query",
+        "startup.width",
+        "startup.height",
+        "startup.max-width",
+        "screen.width-field",
+        "screen.height-field",
+        "randr.handler",
+        "randr.select-root",
+        "randr.match-root",
+        "randr.update-width",
+        "randr.update-height",
+        "randr.update-xlib"
+      ]
+    },
+    "lifecycle_end": {
+      "rule": "Per-screen roots and ScreenInfo live until whole-process shutdown. Done restores client borders/locations across the fixed ScreenList, destroys fonts, and closes the X display rather than hot-removing one screen namespace.",
+      "evidence": [
+        "shutdown.screen-loop",
+        "shutdown.reborder",
+        "shutdown.fonts",
+        "shutdown.display"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "behaviorally-equivalent dynamic-output translation with stronger atomicity and resource-safety guarantees than frozen twm's post-change XRandR cache update",
+    "transaction_model": {
+      "events": "Treat backend announcement, destroy, enable, disable, mode, scale, transform, and compositor layout-position changes as serialized topology transactions on the compositor event loop.",
+      "snapshot": "Before mutation, capture the active canonical identity/index view, every enabled output's logical box, screen-warp previous reference, pointer coordinates/context, and every operation pinned to an output.",
+      "prepare": "Validate positive effective logical dimensions and requested state, reserve all fallible wrapper/identity/scene/background/plan resources, and determine the complete post-transaction active set, canonical order, boxes, and dependent repairs before publishing it.",
+      "commit_publish": "For non-destroy events, commit the backend output state only after preparation succeeds. Then publish output membership, enabled state, layout, scene-output mapping, backgrounds, indices, and repairs as one event-loop critical section with no client dispatch observing a half-old/half-new topology.",
+      "failure": "Validation, allocation, render initialization, backend test/commit, scene preparation, or ordinal-exhaustion failure rejects the candidate, releases staged resources once, and preserves the prior active topology, layout, backgrounds, pointer, history, clients, and interactions exactly. Log the failure; do not retry in an unbounded loop.",
+      "destroy_exception": "Backend destroy is irreversible and cannot roll back the device. It must atomically publish a post-destroy topology and complete all dependent cleanup/repair before returning from the destroy listener."
+    },
+    "event_semantics": {
+      "add": "A successfully admitted output receives its immutable identity tuple and one never-reused announcement ordinal, initializes rendering, enables a valid preferred mode when available, joins layout/scene, receives one exact logical-box background, then becomes visible in the active snapshot. Only after publication may zero-output placement waiters resume oldest-first.",
+      "add_failure": "A rejected announcement never joins the active list/layout/scene and does not resume waiters. Once an ordinal has been assigned to a candidate it is consumed even if later admission fails; gaps are valid and ordinals are never reused.",
+      "disable": "A successful disable removes the output from the active canonical snapshot, scene-output mapping, spatial root/background set, and pointer target domain but retains the managed wrapper, immutable identity, ordinal, and listeners for re-enable.",
+      "enable": "Re-enable uses the same wrapper identity and ordinal, validates a positive effective mode, republishes layout/scene/background state, and recomputes dense indices; it is not a new announcement and consumes no ordinal.",
+      "mode_scale_transform": "A successful mode, scale, or transform change recomputes the affected output's logical size and may move auto-layout neighbors. Refresh every changed logical box, scene-output mapping, root/background rectangle, pointer validity, and affected pinned operation from the complete post-state.",
+      "layout": "An explicit or automatic layout-position change is a transaction even without a backend mode commit. It preserves identities but refreshes all boxes whose position changes and rejects invalid/overflowing logical geometry without partial scene movement.",
+      "destroy": "Destroy removes the output from active and managed membership, layout, scene-output mapping, background, listeners, and history resolution; finishes identity and wrapper resources exactly once after no server state can reference them. Its ordinal is retired forever."
+    },
+    "canonical_order": {
+      "active_domain": "Only successfully committed, enabled, compositor-managed outputs with valid positive logical boxes appear in the dense zero-based canonical snapshot.",
+      "identity": "The immutable (name, make, model, serial, announcement ordinal) record persists across mode, scale, transform, layout, disable, and re-enable for one managed output object.",
+      "ordering": "Sort active outputs by unsigned-byte identity strings then ordinal exactly as the screen-output contract requires. Geometry, enable time, list insertion, focus, and state-change order never break ties.",
+      "dense_recompute": "After successful add/enable/disable/destroy, recompute 0..count-1 from the post-state. Addition/removal may renumber surviving outputs; a rejected transaction cannot.",
+      "ordinal": "Allocate monotonically without reuse. UINT64_MAX may be the final assigned ordinal and sets exhaustion; every later announcement is rejected without disturbing existing outputs."
+    },
+    "spatial_refresh": {
+      "backgrounds": "After publication, each active output has exactly one DefaultBackground rectangle at its current logical x/y with its current positive width/height, lowered behind content. Disabled, destroyed, uncommitted, and failed outputs have no root/background hit target.",
+      "root_hits": "Recompute output-root hit testing from the post-state. Gaps and outside space remain non-root; stale pre-change rectangles cannot receive bindings.",
+      "global_ui": "Rebuild the global icon-region and icon-manager layout once after a successful topology publication. Do not duplicate their global Milestone 7 state per output.",
+      "waiters": "If the post-state changes zero active outputs to one or more, resume output-waiting native and Xwayland maps oldest-first only after backgrounds, layout, pointer, and interaction repair are complete. Other changes do not consume placement/random state merely because topology changed."
+    },
+    "pointer_repair": {
+      "preserve": "If the existing pointer remains inside any post-state output under half-open bounds, preserve its exact global coordinates and process no synthetic warp.",
+      "repair": "Otherwise, when at least one output remains, move the pointer once to the nearest point inside the union of post-state output boxes, using canonical order for equal-distance ties, then process cursor motion once so surface/root focus and cursor role cannot reference removed scene state.",
+      "zero": "With zero active outputs, do not invent root geometry or warp to a synthetic coordinate. Clear pointer surface/root hit context and any removed-output cursor association while retaining the seat and keyboard-focused client connection.",
+      "ordering": "Pointer repair runs after post-state layout/background publication and before placement waiters or new input dispatch, so hit testing uses only committed geometry."
+    },
+    "operation_barrier": {
+      "pin_identity": "Interactive initial placement, menu/submenu, move, resize, and any deferred spatial action pin the owning output reference plus logical box at start. A topology transaction resolves that reference before freeing any output.",
+      "unaffected": "If the pinned output survives active with an identical logical box, the operation continues unchanged even when another output changes; it does not switch bounds because the pointer or canonical index moved.",
+      "move_resize": "If a move or resize pin disappears or its box changes, cancel the operation before publication completes, remove outlines/grabs, and restore pre-operation geometry for opaque changes. Do not commit the preview or choose a replacement output; forcemove follows the same cancellation barrier.",
+      "menu": "If any visible menu chain's pinned output disappears or changes box, close the entire chain without executing a row or continuation. An unaffected pinned menu remains visible at exact coordinates.",
+      "placement": "If interactive initial placement loses or changes its pinned box, cancel only the interaction UI, keep the client pending/hidden, consume no placement/random state, and requeue it oldest-first against the post-state. A placement already waiting because there were zero outputs remains queued.",
+      "warp": "f.warptoscreen is synchronous and uses one immutable snapshot, so a topology transaction cannot interleave with a warp plan. A later transaction repairs the stored previous-output reference; it does not retroactively cancel a completed warp."
+    },
+    "warp_history": {
+      "surviving_reference": "Before dense indices change, resolve the abstract previous-output reference to its pre-state output identity. If that identity remains active post-state, remap history to its new canonical index/reference without treating topology as a visit.",
+      "missing_reference": "If previous history is unset or its output is disabled/destroyed/failed in the post-state, clear history. Never let an old dense integer silently select a different output.",
+      "pointer_repair": "Topology-driven pointer repair does not update previous history. The next successful different-output f.warptoscreen establishes it again after a clear.",
+      "failure": "A rejected/rolled-back transaction preserves history byte-for-byte because canonical membership did not change."
+    },
+    "configuration_lifecycle": {
+      "global_config": "Topology changes never select, merge, or reload another .twmrc.N. The one active global configuration applies to zero, added, re-enabled, changed, and surviving outputs and to native/Xwayland clients alike.",
+      "reload": "A successful or rejected configuration reload is not a topology transaction and preserves output identities, ordinals, active boxes, and repaired warp history; a successful reload may separately refresh configured colors/UI atomically.",
+      "restart": "Successful in-place f.restart/f.twmrc preserves managed output objects, identities, ordinals, enabled states, modes, scale, transform, and layout, while applying the warp contract's history clear and normal restart cancellation of menus/interactions. A rejected replacement preserves all of them.",
+      "no_disconnect": "No successful or failed topology transaction disconnects the Wayland display, Xwayland server, native clients, or managed X11 clients. Xwayland retains one compatibility X screen; Wayland outputs do not become X screen numbers."
+    },
+    "protocol_invariance": {
+      "rule": "The same committed output set, spatial boxes, pointer repair, operation cancellation, and history repair apply independent of native Wayland versus Xwayland client protocol, titles/app_id, WM_NAME/WM_CLASS, focus, stacking, mapping order, or iconification.",
+      "client_geometry_boundary": "This transaction keeps mapped and pending clients alive and makes all compositor references safe. It does not relocate an already managed frame, icon, transient, or saved session geometry merely because its owner output disappeared or shrank."
+    },
+    "resource_safety": {
+      "teardown_order": "Detach frame/state/destroy/background listeners and remove layout/scene/list membership before destroying scene/background nodes, finishing identity strings, and freeing the wrapper. Null or initialize links so reentrant node-destroy notification cannot double-remove them.",
+      "references": "Before free, clear or repair screen-warp history, pinned interactions, menu references, pointer scene focus, and every server-side output pointer. No callback, snapshot, or deferred action may retain the destroyed wrapper.",
+      "bounded": "Each transaction performs bounded work proportional to managed outputs plus affected compositor-owned UI/operations, allocates with overflow checks, finishes every temporary output state/snapshot exactly once, and has no recursive retry or unbounded wait.",
+      "churn": "Repeated add/fail/enable/disable/mode/scale/transform/layout/destroy cycles must not leak identities, backgrounds, scene outputs, listeners, layout entries, snapshots, or pending transaction state and must not double free or use after free."
+    }
+  },
+  "scope_boundaries": {
+    "this_slice_requires": [
+      "atomic add/destroy/enable/disable/mode/scale/transform/layout transactions with rollback where the backend event is reversible",
+      "canonical identity/ordinal continuity, dense-index recomputation, and previous-screen history repair",
+      "post-state output roots/backgrounds, pointer validity, zero-output waiting, and global icon UI refresh",
+      "deterministic pin-or-cancel barriers for placement, menus, moves, resizes, and screen warps",
+      "native/Xwayland-invariant client continuity with bounded leak-free listener/scene/layout/identity teardown"
+    ],
+    "explicitly_deferred": [
+      "relocation or restoration of managed windows, icons, and transients stranded by a disappeared or shrunken output",
+      "persistent session-record geometry reassociation after output identity/topology changes",
+      "input hotplug and multiple keyboards, pointers, seats, or independent seat focus",
+      "session startup, logout, failure recovery, and persistent state-file lifecycle"
+    ],
+    "restoration_handoff": "Before returning, a successful topology transaction must leave a coherent post-state with no dead output references and enough surviving canonical boxes/identities for the next Roadmap task to select relocation destinations. Existing client/icon geometry remains unchanged even if invisible; the next task, not this one, must make it visible safely.",
+    "non_claim": "Passing topology transactions does not complete disappeared-output window restoration, input hotplug, session lifecycle, later Milestone 8 testing, or exit criteria."
+  },
+  "requirements": [
+    {
+      "id": "topology.reference-boundary",
+      "rule": "Preserve evidence that twm fixes screen/root membership at startup, mutates only cached width/height on XRandR change, and tears screen state down only with the process.",
+      "evidence": [
+        "startup.screen-count",
+        "startup.fixed-array",
+        "startup.root",
+        "randr.update-width",
+        "randr.update-height",
+        "shutdown.display"
+      ]
+    },
+    {
+      "id": "topology.atomic-transaction",
+      "rule": "Prepare, validate, commit, and publish each reversible topology change atomically; failure rolls back observable topology and dependent state, while irreversible destroy publishes complete safe cleanup.",
+      "evidence": [
+        "randr.match-root",
+        "randr.update-xlib"
+      ]
+    },
+    {
+      "id": "topology.canonical-order",
+      "rule": "Preserve immutable output identity/announcement ordinal across state changes, recompute dense canonical indices only after success, never reuse ordinals, and reject exhaustion safely.",
+      "evidence": [
+        "startup.screen-number",
+        "startup.root-context"
+      ]
+    },
+    {
+      "id": "topology.spatial-refresh",
+      "rule": "After success, refresh every changed logical output box, scene mapping, exact root/background, global icon UI, and zero-output placement waiter from one post-state.",
+      "evidence": [
+        "startup.width",
+        "startup.height",
+        "randr.update-width",
+        "randr.update-height"
+      ]
+    },
+    {
+      "id": "topology.pointer-repair",
+      "rule": "Preserve a still-valid pointer, otherwise repair it once to canonical-nearest surviving output or clear output/root context at zero outputs before new dispatch.",
+      "evidence": [
+        "startup.root",
+        "randr.match-root"
+      ]
+    },
+    {
+      "id": "topology.operation-barrier",
+      "rule": "Continue placement/menu/move/resize only on an unchanged pinned output box; otherwise cancel or requeue deterministically without committing stale geometry, while warp stays snapshot-atomic.",
+      "evidence": [
+        "screen.root-field",
+        "randr.update-width",
+        "randr.update-height"
+      ]
+    },
+    {
+      "id": "topology.warp-history",
+      "rule": "Repair previous-screen history by surviving output identity across dense renumber, clear it when absent, never treat pointer repair as a visit, and preserve it on transaction failure.",
+      "evidence": [
+        "startup.screen-number",
+        "startup.root"
+      ]
+    },
+    {
+      "id": "topology.lifecycle-invariance",
+      "rule": "Keep one global config and all native/Xwayland clients connected across zero/add/change/remove, reload, restart, and transaction rejection.",
+      "evidence": [
+        "startup.per-screen-loop",
+        "randr.update-xlib",
+        "shutdown.display"
+      ]
+    },
+    {
+      "id": "topology.resource-safety",
+      "rule": "Detach every listener/layout/scene/reference before bounded exactly-once identity/wrapper cleanup and prove repeated topology churn has no leak, stale callback, double free, or use after free.",
+      "evidence": [
+        "shutdown.screen-loop",
+        "shutdown.fonts",
+        "shutdown.display"
+      ]
+    },
+    {
+      "id": "topology.restoration-boundary",
+      "rule": "Publish a dead-reference-free post-state for later destination selection, but leave relocation/restoration of stranded windows/icons/transients and session geometry to the next Roadmap task.",
+      "evidence": [
+        "randr.update-width",
+        "randr.update-height",
+        "shutdown.reborder"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-fixed-membership",
+      "kind": "reference-membership",
+      "oracle": "ScreenCount and ScreenList membership are fixed at startup; runtime source contains no X-screen add/remove/reindex path."
+    },
+    {
+      "id": "reference-randr-dimensions-only",
+      "kind": "reference-geometry",
+      "oracle": "RRScreenChangeNotify replaces the matched root's cached width/height and performs no membership, history, UI, or relocation repair."
+    },
+    {
+      "id": "add-success",
+      "kind": "runtime-add",
+      "oracle": "A valid announcement becomes active only with committed mode, layout/scene mapping, exact background, identity/ordinal, pointer repair, and post-publication waiter resume."
+    },
+    {
+      "id": "add-failure-rollback",
+      "kind": "runtime-rollback",
+      "oracle": "Injected allocation/render/backend/scene admission failures publish nothing, preserve old topology/interactions/history, and free staged resources exactly once."
+    },
+    {
+      "id": "ordinal-continuity-exhaustion",
+      "kind": "runtime-ordering",
+      "oracle": "Failed candidates may leave ordinal gaps, re-enable consumes none, destroy never permits reuse, and post-UINT64_MAX announcements fail without changing existing indices."
+    },
+    {
+      "id": "disable-enable-identity",
+      "kind": "runtime-enable",
+      "oracle": "Disable removes the output from active spatial/index state while retaining wrapper identity/ordinal; re-enable restores that same record with fresh dense indices."
+    },
+    {
+      "id": "mode-change",
+      "kind": "runtime-geometry",
+      "oracle": "A committed mode change refreshes logical box, affected auto-layout neighbors, background/root hits, pointer, and affected operations atomically."
+    },
+    {
+      "id": "scale-transform-change",
+      "kind": "runtime-geometry",
+      "oracle": "Scale and transform produce the correct positive logical dimensions and scene/background coordinates without changing identity order."
+    },
+    {
+      "id": "layout-rearrangement",
+      "kind": "runtime-layout",
+      "oracle": "Explicit/automatic position changes update every moved box and root/background together while canonical identity order remains geometry-independent."
+    },
+    {
+      "id": "state-commit-failure",
+      "kind": "runtime-rollback",
+      "oracle": "Rejected mode/scale/transform/enable/disable commit leaves active set, boxes, pixels, pointer, history, and interactions byte-for-byte unchanged."
+    },
+    {
+      "id": "destroy-active-output",
+      "kind": "runtime-destroy",
+      "oracle": "Destroy removes all membership/listeners/layout/scene/background/references before one identity/wrapper free and publishes repaired surviving state."
+    },
+    {
+      "id": "zero-output-transition",
+      "kind": "runtime-zero-output",
+      "oracle": "Removing/disabling the last output clears root/pointer target context without disconnecting clients and keeps new maps hidden/queued without consuming placement state."
+    },
+    {
+      "id": "zero-to-active-resume",
+      "kind": "runtime-zero-output",
+      "oracle": "The first successful active output publishes background/layout and pointer state before native/Xwayland waiters resume oldest-first."
+    },
+    {
+      "id": "pointer-preserve",
+      "kind": "runtime-pointer",
+      "oracle": "Topology change preserves exact cursor coordinates when they remain inside a post-state output and emits no synthetic motion."
+    },
+    {
+      "id": "pointer-canonical-repair",
+      "kind": "runtime-pointer",
+      "oracle": "An invalidated cursor moves once to the nearest in-output point with canonical tie-break and immediately loses all removed scene focus references."
+    },
+    {
+      "id": "unaffected-operation-continues",
+      "kind": "runtime-operation",
+      "oracle": "Menu/move/resize/placement pinned to an unchanged surviving box continues at exact geometry when another output changes."
+    },
+    {
+      "id": "affected-move-resize-cancel",
+      "kind": "runtime-operation",
+      "oracle": "Changed/removed pinned box cancels move/resize/forcemove, removes grab/outline, restores pre-operation geometry, and never commits preview geometry."
+    },
+    {
+      "id": "affected-menu-close",
+      "kind": "runtime-operation",
+      "oracle": "Changed/removed pinned box closes the complete menu chain without executing a row or continuation."
+    },
+    {
+      "id": "affected-placement-requeue",
+      "kind": "runtime-placement",
+      "oracle": "Changed/removed initial-placement pin keeps the client pending/hidden, consumes no placement/random state, and requeues against post-state oldest-first."
+    },
+    {
+      "id": "warp-history-renumber",
+      "kind": "runtime-history",
+      "oracle": "Adding/removing another output may change the previous output's dense index, but back still selects the same surviving identity and pointer repair is not a visit."
+    },
+    {
+      "id": "warp-history-disappears",
+      "kind": "runtime-history",
+      "oracle": "Disable/destroy of the previous output clears history so back cannot select another output that inherited its integer index."
+    },
+    {
+      "id": "reload-restart-topology",
+      "kind": "runtime-lifecycle",
+      "oracle": "Reload and in-place restart preserve output identities/ordinals/state/layout and connected clients; restart alone clears ephemeral warp history and interactions."
+    },
+    {
+      "id": "native-xwayland-invariant",
+      "kind": "runtime-protocol",
+      "oracle": "Native and Xwayland clients remain connected and observe the same output/root/pointer/operation transaction regardless of identity or focus metadata."
+    },
+    {
+      "id": "bounded-churn",
+      "kind": "runtime-resource",
+      "oracle": "Long repeated success/failure topology cycles retain bounded wrapper/listener/scene/layout/background/snapshot counts with no stale callback, double free, or use after free."
+    },
+    {
+      "id": "restoration-deferred",
+      "kind": "contract-scope",
+      "oracle": "Topology success leaves no dead output reference but does not claim relocated/restored windows, icons, transients, or session geometry from a disappeared output."
+    }
+  ]
+}
