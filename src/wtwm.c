@@ -3964,6 +3964,12 @@ static bool output_area_snapshot(struct server *server,
 	return true;
 }
 
+static int runtime_saturate_int(int64_t value) {
+	if (value < INT_MIN) return INT_MIN;
+	if (value > INT_MAX) return INT_MAX;
+	return (int)value;
+}
+
 static bool output_area_for_point(struct server *server, int x, int y,
 		struct wtwm_placement_area *area) {
 	struct wtwm_output_order *snapshot = NULL;
@@ -5428,10 +5434,17 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 			interaction->original.width : geometry.outer_width;
 		int height = interaction->icon_move ?
 			interaction->original.height : geometry.outer_height;
-		if (server->config.dont_move_off && interaction->output_area_valid &&
-				!interaction->force_move)
-			wtwm_clamp_outer_position(&interaction->output_area,
-				width, height, &x, &y);
+		if (server->config.dont_move_off && interaction->output_area_valid) {
+			int local_x = runtime_saturate_int((int64_t)x -
+				interaction->output_area.x);
+			int local_y = runtime_saturate_int((int64_t)y -
+				interaction->output_area.y);
+			wtwm_clamp_move(interaction->output_area.width,
+				interaction->output_area.height, width, height,
+				interaction->force_move, &local_x, &local_y);
+			x = runtime_saturate_int((int64_t)interaction->output_area.x + local_x);
+			y = runtime_saturate_int((int64_t)interaction->output_area.y + local_y);
+		}
 		interaction->preview.x = x;
 		interaction->preview.y = y;
 		if (interaction->opaque_move) {
