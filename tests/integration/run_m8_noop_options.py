@@ -36,6 +36,27 @@ DYNAMIC_FIELDS = {
     "first_seq",
     "next_seq",
 }
+PORTABLE_UNIX_SOCKET_PATH_BYTES = 103
+
+
+def session_socket_names(
+    socket_root: Path, label: str,
+) -> tuple[Path, Path, str]:
+    token = hashlib.sha256(label.encode("utf-8")).hexdigest()[:12]
+    runtime = socket_root / f"r-{token}"
+    control = socket_root / f"c-{token}"
+    display = f"w-{token}"
+    for purpose, path in (
+        ("test control", control),
+        ("Wayland display", runtime / display),
+    ):
+        path_bytes = len(os.fsencode(path))
+        if path_bytes > PORTABLE_UNIX_SOCKET_PATH_BYTES:
+            raise RuntimeError(
+                f"{label} {purpose} socket path is not portable: "
+                f"{path_bytes} bytes ({path})"
+            )
+    return runtime, control, display
 
 
 def config_text(option_mask: int, *, opaque: bool) -> str:
@@ -91,17 +112,18 @@ class Session:
     def __init__(
         self,
         root: Path,
+        socket_root: Path,
         label: str,
         compositor: Path,
         config: Path,
         wayland_client: Path,
         x11_client: Path,
     ) -> None:
-        runtime = root / f"runtime-{label}"
+        runtime, control_path, display_name = session_socket_names(
+            socket_root, label,
+        )
         runtime.mkdir(mode=0o700)
-        control_path = root / f"control-{label}.sock"
         display_marker = root / f"display-{label}"
-        display_name = f"wtwm-m8-noop-{label}-{os.getpid()}"
         environment = os.environ.copy()
         environment.update({
             "XDG_RUNTIME_DIR": str(runtime),
@@ -123,7 +145,15 @@ class Session:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        self.control = Control(control_path, self.process)
+        try:
+            self.control = Control(control_path, self.process)
+        except RuntimeError as error:
+            if self.process.poll() is not None:
+                stderr = self.process.stderr.read() if self.process.stderr else ""
+                raise RuntimeError(
+                    f"{label} compositor startup failed: {error}\n{stderr}"
+                ) from error
+            raise
         self.control.socket.settimeout(10)
         self.control.command("SET ANIMATION_MS 0")
         self.control.command("SET PLACEMENT_SEED 0")
@@ -308,6 +338,7 @@ class Session:
 
 def run_variant(
     root: Path,
+    socket_root: Path,
     label: str,
     compositor: Path,
     wayland_client: Path,
@@ -320,7 +351,8 @@ def run_variant(
     config = variant_root / "options.twmrc"
     config.write_text(config_text(option_mask, opaque=opaque), encoding="utf-8")
     session = Session(
-        variant_root, label, compositor, config, wayland_client, x11_client,
+        variant_root, socket_root, label, compositor, config,
+        wayland_client, x11_client,
     )
     try:
         session.observe(variant_root, "ready")
@@ -363,12 +395,17 @@ def compare_variants(
 
 
 def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
-    with tempfile.TemporaryDirectory(prefix="wtwm-m8-noop-options-") as directory:
+    with (
+        tempfile.TemporaryDirectory(prefix="wtwm-m8-noop-options-") as directory,
+        tempfile.TemporaryDirectory(prefix="wm8-", dir="/tmp") as socket_directory,
+    ):
         root = Path(directory)
+        socket_root = Path(socket_directory)
         for opaque in (False, True):
             mode = "opaque" if opaque else "outlined"
             baseline = run_variant(
                 root,
+                socket_root,
                 f"{mode}-subset-000",
                 compositor,
                 wayland_client,
@@ -379,6 +416,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
             for option_mask in range(1, 1 << len(OPTION_SPELLINGS)):
                 options = run_variant(
                     root,
+                    socket_root,
                     f"{mode}-subset-{option_mask:03b}",
                     compositor,
                     wayland_client,
