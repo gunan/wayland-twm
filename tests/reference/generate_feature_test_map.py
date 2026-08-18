@@ -56,6 +56,18 @@ COLORMAP_RUNTIME_FEATURES = {
     "runtime_dispatch.execute-configured-action",
 }
 COLORMAP_LEDGER_FEATURES = ("keyword.f.colormap",)
+CUT_BUFFER_RUNTIME_PATH = "tests/integration/run_m8_cut_buffer.py"
+CUT_BUFFER_RUNTIME_TEST = "Milestone 8 Wayland and Xwayland cut-buffer integration"
+CUT_BUFFER_RUNTIME_ID = "test.current-feature.m8-cut-buffer-runtime"
+CUT_BUFFER_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+CUT_BUFFER_LEDGER_FEATURES = (
+    "keyword.f.cut",
+    "keyword.f.cutfile",
+    "keyword.f.file",
+    "lexical.cut-shorthand",
+)
 NOOP_OPTIONS_RUNTIME_PATH = "tests/integration/run_m8_noop_options.py"
 NOOP_OPTIONS_RUNTIME_TEST = "Milestone 8 X11 server resource no-op integration"
 NOOP_OPTIONS_RUNTIME_ID = "test.current-feature.m8-noop-options-runtime"
@@ -523,6 +535,28 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in CUT_BUFFER_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": CUT_BUFFER_RUNTIME_ID,
+                "path": CUT_BUFFER_RUNTIME_PATH,
+                "meson_test": CUT_BUFFER_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner invokes {feature_id} bindings "
+                    "on managed Xwayland and native Wayland targets.",
+                    "The catalog ledger_features separately map the exact "
+                    "keyword.f.cut, keyword.f.cutfile, keyword.f.file, and "
+                    "lexical.cut-shorthand frozen upstream ledger entries.",
+                    "Byte-exact native and X11 CLIPBOARD plus CUT_BUFFER0 "
+                    "STRING observations cover the newline rule, embedded NUL "
+                    "data, 4095-byte limit, first filename token, atomic failure, "
+                    "PRIMARY independence, replacement, restart, and liveness.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in NOOP_OPTIONS_RUNTIME_FEATURES:
             tests.append({
                 "test_id": NOOP_OPTIONS_RUNTIME_ID,
@@ -568,6 +602,13 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "meson_test": COLORMAP_RUNTIME_TEST,
                 "dimension": "runtime",
                 "ledger_features": list(COLORMAP_LEDGER_FEATURES),
+            },
+            {
+                "test_id": CUT_BUFFER_RUNTIME_ID,
+                "path": CUT_BUFFER_RUNTIME_PATH,
+                "meson_test": CUT_BUFFER_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(CUT_BUFFER_LEDGER_FEATURES),
             },
             {
                 "test_id": NOOP_OPTIONS_RUNTIME_ID,
@@ -676,8 +717,9 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  map is the authoritative current test-coverage layer for the Milestone 0 gate.",
         "- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately",
         "  from honest current-audit runtime mappings: the no-op option runner maps three",
-        "  X-resource keywords, while the colormap runner maps `keyword.f.colormap` through",
-        "  configured-action dispatch.",
+        "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
+        "  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`",
+        "  through configured-action dispatch.",
         "",
     ]
     return result, "\n".join(lines)

@@ -29,8 +29,9 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Warp actions | Behaviorally equivalent | Window, next/previous, window-ring, and output warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates; X screens translate to ordered Wayland outputs while preserving the cursor's output-relative position |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
-| Legacy bell, cut buffer, file, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell, cut buffer 0, file loading, and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell, global cut-buffer, or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
+| Legacy bell, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
 | `f.colormap` | Exact for relevant Xwayland clients; verified native no-op | Managed X11 targets retain the bounded `WM_COLORMAP_WINDOWS` order, including the top-level fallback, and `next`, `prev`, and `default` perform the reference circular selection and checked installed-colormap requests. Native true-color Wayland has no global installed-colormap mechanism, so the same configured action issues no X request and leaves Xwayland's installed set unchanged |
+| `f.cut`, `f.cutfile`, `f.file` | Exact X cut-buffer result; Wayland clipboard translation | Successful actions replace a persistent compositor-owned byte buffer, publish it as ordinary Wayland `CLIPBOARD` text, and mirror the same bytes to Xwayland root `CUT_BUFFER0` with `STRING` type and 8-bit format. Native clients observe `CLIPBOARD`, not a nonexistent native global cut-buffer protocol; `PRIMARY` remains independent |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
@@ -263,6 +264,35 @@ stable invalid-entry removal and reset before checking the native no-op against
 an unchanged root installed-colormap snapshot. Both client protocol
 connections and the compositor control connection must remain responsive.
 
+Reference `f.cut` stores its configured argument followed by exactly one
+newline. `f.file` reads at most 4095 bytes from its configured filename, while
+`f.cutfile` takes the first whitespace-delimited filename from Xwayland root
+`CUT_BUFFER0` when that property is available and otherwise from wtwm's
+persistent legacy buffer. A successful nonempty read replaces that buffer;
+an empty file, missing file, or other read failure leaves the previous bytes
+and selection ownership intact. Embedded NUL bytes are retained rather than
+being mistaken for a string terminator.
+
+Every successful replacement is exposed through the ordinary Wayland
+`CLIPBOARD` selection with UTF-8/plain-text MIME targets and, while Xwayland is
+available, mirrored byte-for-byte to root `CUT_BUFFER0` as `STRING` with 8-bit
+format. If an action runs before Xwayland is ready, the internal buffer and
+native clipboard publication still succeed and the buffer is mirrored when
+Xwayland later becomes ready. External `CLIPBOARD` ownership can cancel the
+current offer but does not rewrite the persistent legacy buffer, and none of
+these actions changes `PRIMARY`. In-place restart retains the buffer and its
+selection source. This is exact for the observable X cut-buffer result; native
+Wayland has no literal global cut-buffer protocol, so native clients receive
+the same bytes through the compositor-owned clipboard translation instead.
+
+The Milestone 8 headless runner dispatches the direct actions and `^` shorthand
+on native and managed Xwayland targets. It checks exact hexadecimal data from
+both clipboard paths and the root property's type, format, length, and bytes,
+including the newline rule, a 4095-byte embedded-NUL file, first-token filename
+selection, successive replacement, empty/error preservation, foreign
+clipboard independence, unchanged PRIMARY, restart persistence, and client
+liveness.
+
 Milestone 6 verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as
 a direct action and through a two-level named function, checked against its
@@ -358,11 +388,14 @@ cancels the prior source, and disconnecting either a native or X11 owner clears
 the corresponding proxy ownership instead of leaving stale `CLIPBOARD` or
 `PRIMARY` contents.
 
-Clipboard-manager persistence after the owning client exits is not provided.
+General clipboard-manager persistence after an arbitrary owning client exits is
+not provided; the compositor-owned legacy cut-buffer translation above is the
+deliberate exception. Its byte cache is independent of external selection
+owners.
 Native PRIMARY support requires clients to implement the standard unstable-v1
-primary-selection protocol. Legacy X cut buffers and the twm cut-buffer actions
-remain separate later-roadmap work; they are not silently treated as these
-selections.
+primary-selection protocol. X cut buffers remain distinct from selection
+ownership even though successful twm cut-buffer actions additionally publish
+their bytes through `CLIPBOARD` for native interoperability.
 
 For X11 clients, `f.delete` follows `twm`: it sends `WM_DELETE_WINDOW` only
 when the client advertises that protocol and never falls back to killing a

@@ -693,7 +693,7 @@ static void set_primary(struct client *client, const char *payload) {
 }
 
 static bool read_transfer(struct client *client, int fd, char *buffer,
-	size_t buffer_size) {
+	size_t buffer_size, size_t *length_out) {
 	size_t used = 0;
 	bool complete = false;
 	while (!complete) {
@@ -722,10 +722,23 @@ static bool read_transfer(struct client *client, int fd, char *buffer,
 		}
 	}
 	buffer[used] = '\0';
+	*length_out = used;
 	return true;
 }
 
-static void receive_clipboard(struct client *client) {
+static void print_data(const char *name, const char *payload, size_t length,
+	bool hex) {
+	if (!hex) {
+		printf("DATA %s %.*s\n", name, (int)length, payload);
+		return;
+	}
+	printf("DATAHEX %s len=%zu hex=", name, length);
+	for (size_t i = 0; i < length; ++i)
+		printf("%02x", (unsigned char)payload[i]);
+	putchar('\n');
+}
+
+static void receive_clipboard(struct client *client, bool hex) {
 	if (client->clipboard_offer == NULL || !client->clipboard_offer->utf8) {
 		printf("ERROR CLIPBOARD offer\n");
 		return;
@@ -739,14 +752,16 @@ static void receive_clipboard(struct client *client) {
 		descriptors[1]);
 	close(descriptors[1]);
 	wl_display_flush(client->display);
-	char payload[1024];
-	bool ok = read_transfer(client, descriptors[0], payload, sizeof(payload));
+	char payload[8192];
+	size_t length = 0;
+	bool ok = read_transfer(client, descriptors[0], payload, sizeof(payload),
+		&length);
 	close(descriptors[0]);
-	if (ok) printf("DATA CLIPBOARD %s\n", payload);
+	if (ok) print_data("CLIPBOARD", payload, length, hex);
 	else printf("ERROR CLIPBOARD transfer\n");
 }
 
-static void receive_primary(struct client *client) {
+static void receive_primary(struct client *client, bool hex) {
 	if (client->primary_offer == NULL || !client->primary_offer->utf8) {
 		printf("ERROR PRIMARY offer\n");
 		return;
@@ -760,10 +775,12 @@ static void receive_primary(struct client *client) {
 		MIME_UTF8, descriptors[1]);
 	close(descriptors[1]);
 	wl_display_flush(client->display);
-	char payload[1024];
-	bool ok = read_transfer(client, descriptors[0], payload, sizeof(payload));
+	char payload[8192];
+	size_t length = 0;
+	bool ok = read_transfer(client, descriptors[0], payload, sizeof(payload),
+		&length);
 	close(descriptors[0]);
-	if (ok) printf("DATA PRIMARY %s\n", payload);
+	if (ok) print_data("PRIMARY", payload, length, hex);
 	else printf("ERROR PRIMARY transfer\n");
 }
 
@@ -818,9 +835,13 @@ static void handle_command(struct client *client, char *command) {
 			client->clipboard_offer == NULL, client->primary_offer == NULL);
 		if (!ok) client->running = false;
 	} else if (strcmp(command, "GET CLIPBOARD") == 0) {
-		receive_clipboard(client);
+		receive_clipboard(client, false);
 	} else if (strcmp(command, "GET PRIMARY") == 0) {
-		receive_primary(client);
+		receive_primary(client, false);
+	} else if (strcmp(command, "GETHEX CLIPBOARD") == 0) {
+		receive_clipboard(client, true);
+	} else if (strcmp(command, "GETHEX PRIMARY") == 0) {
+		receive_primary(client, true);
 	} else if (strcmp(command, "CANCELS") == 0) {
 		(void)wl_display_roundtrip(client->display);
 		printf("CANCELS clipboard=%u primary=%u\n",

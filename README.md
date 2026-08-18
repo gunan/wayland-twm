@@ -472,7 +472,7 @@ Required mappings:
   unless they have a visible compatibility effect.
 - [x] Colormap actions operate for relevant Xwayland clients and become a documented
   no-op for native true-color Wayland clients.
-- [ ] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
+- [x] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
   mechanism.
 - [ ] X screen-specific configuration maps predictably to Wayland outputs.
 

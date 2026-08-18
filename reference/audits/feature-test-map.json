@@ -23,6 +23,18 @@
       ]
     },
     {
+      "test_id": "test.current-feature.m8-cut-buffer-runtime",
+      "path": "tests/integration/run_m8_cut_buffer.py",
+      "meson_test": "Milestone 8 Wayland and Xwayland cut-buffer integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.f.cut",
+        "keyword.f.cutfile",
+        "keyword.f.file",
+        "lexical.cut-shorthand"
+      ]
+    },
+    {
       "test_id": "test.current-feature.m8-noop-options-runtime",
       "path": "tests/integration/run_m8_noop_options.py",
       "meson_test": "Milestone 8 X11 server resource no-op integration",
@@ -3832,6 +3844,21 @@
             "Checked XCB installed-colormap observations prove exact next/prev/default rotation and property reset while native dispatch preserves the installed set and both clients remain live.",
             "The Linux headless runner invokes runtime_dispatch.execute-configured-action bindings on managed Xwayland and native Wayland targets.",
             "The catalog ledger_features separately maps the exact keyword.f.colormap frozen upstream ledger entry."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-cut-buffer-runtime",
+          "path": "tests/integration/run_m8_cut_buffer.py",
+          "meson_test": "Milestone 8 Wayland and Xwayland cut-buffer integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Byte-exact native and X11 CLIPBOARD plus CUT_BUFFER0 STRING observations cover the newline rule, embedded NUL data, 4095-byte limit, first filename token, atomic failure, PRIMARY independence, replacement, restart, and liveness.",
+            "The Linux headless runner invokes runtime_dispatch.execute-configured-action bindings on managed Xwayland and native Wayland targets.",
+            "The catalog ledger_features separately map the exact keyword.f.cut, keyword.f.cutfile, keyword.f.file, and lexical.cut-shorthand frozen upstream ledger entries."
           ],
           "fixture": "",
           "checks": []

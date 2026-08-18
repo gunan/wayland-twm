@@ -31,7 +31,9 @@ struct client {
 	xcb_atom_t utf8;
 	xcb_atom_t text;
 	xcb_atom_t result_property;
+	xcb_atom_t cut_buffer0;
 	enum pending_request pending;
+	bool pending_hex;
 	bool owns_clipboard;
 	bool owns_primary;
 	bool running;
@@ -59,6 +61,11 @@ static const char *selection_payload(struct client *client,
 	xcb_atom_t selection) {
 	(void)client;
 	return selection == client->clipboard ? "x11-clipboard" : "x11-primary";
+}
+
+static void print_hex(const void *value, size_t length) {
+	const unsigned char *bytes = value;
+	for (size_t i = 0; i < length; ++i) printf("%02x", bytes[i]);
 }
 
 static void send_selection_notify(struct client *client,
@@ -114,6 +121,8 @@ static void print_selection_data(struct client *client,
 	if (notify->property == XCB_ATOM_NONE) {
 		printf("ERROR %s conversion\n", name);
 		client->pending = PENDING_NONE;
+		client->pending_hex = false;
+		fflush(stdout);
 		return;
 	}
 	xcb_get_property_cookie_t cookie = xcb_get_property(client->connection, true,
@@ -123,6 +132,8 @@ static void print_selection_data(struct client *client,
 	if (reply == NULL) {
 		printf("ERROR %s property\n", name);
 		client->pending = PENDING_NONE;
+		client->pending_hex = false;
+		fflush(stdout);
 		return;
 	}
 	if (client->pending == PENDING_CLIPBOARD_TARGETS ||
@@ -137,6 +148,11 @@ static void print_selection_data(struct client *client,
 			}
 		}
 		printf("TARGETS %s utf8=%d text=%d\n", name, has_utf8, has_text);
+	} else if (reply->format == 8 && client->pending_hex) {
+		int length = xcb_get_property_value_length(reply);
+		printf("DATAHEX %s len=%d hex=", name, length);
+		print_hex(xcb_get_property_value(reply), (size_t)length);
+		putchar('\n');
 	} else if (reply->format == 8) {
 		int length = xcb_get_property_value_length(reply);
 		printf("DATA %s %.*s\n", name, length,
@@ -146,6 +162,7 @@ static void print_selection_data(struct client *client,
 	}
 	free(reply);
 	client->pending = PENDING_NONE;
+	client->pending_hex = false;
 	fflush(stdout);
 }
 
@@ -277,11 +294,12 @@ static bool wait_for_bridge_ready(struct client *client) {
 }
 
 static void request_selection(struct client *client, xcb_atom_t selection,
-	bool request_targets) {
+	bool request_targets, bool hex) {
 	if (client->pending != PENDING_NONE) {
 		printf("ERROR pending\n");
 		return;
 	}
+	client->pending_hex = hex;
 	if (selection == client->clipboard) {
 		client->pending = request_targets ? PENDING_CLIPBOARD_TARGETS :
 			PENDING_CLIPBOARD_DATA;
@@ -295,6 +313,61 @@ static void request_selection(struct client *client, xcb_atom_t selection,
 	xcb_flush(client->connection);
 }
 
+static int hex_value(char character) {
+	if (character >= '0' && character <= '9') return character - '0';
+	if (character >= 'a' && character <= 'f') return character - 'a' + 10;
+	if (character >= 'A' && character <= 'F') return character - 'A' + 10;
+	return -1;
+}
+
+static bool decode_hex(const char *text, unsigned char *bytes,
+	size_t capacity, size_t *length_out) {
+	size_t length = strlen(text);
+	if ((length & 1) != 0 || length / 2 > capacity) return false;
+	for (size_t i = 0; i < length / 2; ++i) {
+		int high = hex_value(text[i * 2]);
+		int low = hex_value(text[i * 2 + 1]);
+		if (high < 0 || low < 0) return false;
+		bytes[i] = (unsigned char)((high << 4) | low);
+	}
+	*length_out = length / 2;
+	return true;
+}
+
+static void set_cut_buffer(struct client *client, const char *hex) {
+	unsigned char bytes[4096];
+	size_t length = 0;
+	if (!decode_hex(hex, bytes, sizeof(bytes), &length)) {
+		printf("ERROR CUTBUFFER hex\n");
+		return;
+	}
+	xcb_change_property(client->connection, XCB_PROP_MODE_REPLACE,
+		client->screen->root, client->cut_buffer0, XCB_ATOM_STRING, 8,
+		(uint32_t)length, bytes);
+	xcb_flush(client->connection);
+	printf("CUTBUFFER SET len=%zu\n", length);
+}
+
+static void get_cut_buffer(struct client *client) {
+	xcb_get_property_cookie_t cookie = xcb_get_property(client->connection,
+		false, client->screen->root, client->cut_buffer0,
+		XCB_GET_PROPERTY_TYPE_ANY, 0, 4096);
+	xcb_get_property_reply_t *reply =
+		xcb_get_property_reply(client->connection, cookie, NULL);
+	if (reply == NULL) {
+		printf("ERROR CUTBUFFER property\n");
+		return;
+	}
+	int length = xcb_get_property_value_length(reply);
+	const char *type = reply->type == XCB_ATOM_STRING ? "STRING" :
+		(reply->type == XCB_ATOM_NONE ? "NONE" : "OTHER");
+	printf("CUTBUFFER type=%s format=%u len=%d hex=", type, reply->format,
+		length);
+	print_hex(xcb_get_property_value(reply), (size_t)length);
+	putchar('\n');
+	free(reply);
+}
+
 static void handle_command(struct client *client, char *command) {
 	command[strcspn(command, "\r\n")] = '\0';
 	if (strcmp(command, "OWN CLIPBOARD") == 0) {
@@ -302,13 +375,21 @@ static void handle_command(struct client *client, char *command) {
 	} else if (strcmp(command, "OWN PRIMARY") == 0) {
 		own_selection(client, client->primary);
 	} else if (strcmp(command, "GET CLIPBOARD") == 0) {
-		request_selection(client, client->clipboard, false);
+		request_selection(client, client->clipboard, false, false);
 	} else if (strcmp(command, "GET PRIMARY") == 0) {
-		request_selection(client, client->primary, false);
+		request_selection(client, client->primary, false, false);
+	} else if (strcmp(command, "GETHEX CLIPBOARD") == 0) {
+		request_selection(client, client->clipboard, false, true);
+	} else if (strcmp(command, "GETHEX PRIMARY") == 0) {
+		request_selection(client, client->primary, false, true);
 	} else if (strcmp(command, "TARGETS CLIPBOARD") == 0) {
-		request_selection(client, client->clipboard, true);
+		request_selection(client, client->clipboard, true, false);
 	} else if (strcmp(command, "TARGETS PRIMARY") == 0) {
-		request_selection(client, client->primary, true);
+		request_selection(client, client->primary, true, false);
+	} else if (strncmp(command, "SET CUTBUFFER ", 14) == 0) {
+		set_cut_buffer(client, command + 14);
+	} else if (strcmp(command, "GET CUTBUFFER") == 0) {
+		get_cut_buffer(client);
 	} else if (strcmp(command, "STATUS") == 0) {
 		const char *clipboard = owner_status(client, client->clipboard);
 		const char *primary = owner_status(client, client->primary);
@@ -346,10 +427,12 @@ static bool initialize(struct client *client) {
 	client->targets = atom(client, "TARGETS");
 	client->utf8 = atom(client, "UTF8_STRING");
 	client->text = atom(client, "TEXT");
+	client->cut_buffer0 = atom(client, "CUT_BUFFER0");
 	client->result_property = atom(client, "_WTWM_SELECTION_RESULT");
 	if (client->clipboard == XCB_ATOM_NONE || client->targets == XCB_ATOM_NONE ||
 			client->utf8 == XCB_ATOM_NONE || client->text == XCB_ATOM_NONE ||
-			client->result_property == XCB_ATOM_NONE) return false;
+			client->result_property == XCB_ATOM_NONE ||
+			client->cut_buffer0 == XCB_ATOM_NONE) return false;
 	client->window = xcb_generate_id(client->connection);
 	uint32_t values[] = {
 		UINT32_C(0x806020),
@@ -408,7 +491,7 @@ int main(void) {
 			free(event);
 		}
 		if ((descriptors[1].revents & POLLIN) != 0) {
-			char command[128];
+			char command[16384];
 			if (fgets(command, sizeof(command), stdin) == NULL) break;
 			handle_command(&client, command);
 		}

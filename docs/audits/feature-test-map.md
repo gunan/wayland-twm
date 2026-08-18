@@ -10,7 +10,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 
 **Features mapped:** 134 of 134
 
-**Automated case mappings:** 191
+**Automated case mappings:** 192
 
 ## Mapping counts
 
@@ -18,14 +18,14 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 | --- | ---: |
 | `syntax` | 122 |
 | `source_contract` | 54 |
-| `runtime` | 15 |
+| `runtime` | 16 |
 
 | Category | Features | Syntax | Source contract | Runtime |
 | --- | ---: | ---: | ---: | ---: |
 | `action` | 38 | 38 | 18 | 6 |
 | `construct` | 19 | 19 | 0 | 1 |
 | `directive` | 65 | 65 | 24 | 7 |
-| `runtime_dispatch` | 12 | 0 | 12 | 1 |
+| `runtime_dispatch` | 12 | 0 | 12 | 2 |
 
 | Implementation status | Features |
 | --- | ---: |
@@ -46,5 +46,6 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
   map is the authoritative current test-coverage layer for the Milestone 0 gate.
 - Runtime catalog `ledger_features` name frozen upstream ledger IDs separately
   from honest current-audit runtime mappings: the no-op option runner maps three
-  X-resource keywords, while the colormap runner maps `keyword.f.colormap` through
-  configured-action dispatch.
+  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and
+  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`
+  through configured-action dispatch.
