@@ -8357,7 +8357,7 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, "OK STATE {\"frame\":%" PRIu64
 		",\"animation_ms\":%u,\"placement_seed\":%u,"
 		"\"random_placement\":{\"next_x\":%d,\"next_y\":%d},"
-		"\"cursor\":{\"x\":%.3f,\"y\":%.3f},\"focus_root\":%s,"
+		"\"cursor\":{\"x\":%.17g,\"y\":%.17g},\"focus_root\":%s,"
 		"\"active\":",
 		server->frame_sequence, control->animation_ms, server->placement_index,
 		server->random_placement.next_x, server->random_placement.next_y,

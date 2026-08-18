@@ -13,7 +13,9 @@ containing focus, client geometry, exact frame/title/border extents,
 advertised size constraints,
 top-to-bottom stacking order, iconified clients, menu state, cursor position,
 the per-window placement decision, next random-placement coordinate, and
-deterministic-control values. `CAPTURE` writes the first output as a binary
+deterministic-control values. Cursor coordinates use round-trip-safe double
+precision so a valid point just inside a half-open output edge is never rounded
+outside it. `CAPTURE` writes the first output as a binary
 PPM. The host-native `geometry runtime wiring contract` additionally guards
 that only compositor-driven resize paths call the portable constraint model;
 ordinary X11 configure requests and hint-property changes remain unsnapped as
