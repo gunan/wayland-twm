@@ -10,7 +10,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 
 **Features mapped:** 134 of 134
 
-**Automated case mappings:** 190
+**Automated case mappings:** 191
 
 ## Mapping counts
 
@@ -18,14 +18,14 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 | --- | ---: |
 | `syntax` | 122 |
 | `source_contract` | 54 |
-| `runtime` | 14 |
+| `runtime` | 15 |
 
 | Category | Features | Syntax | Source contract | Runtime |
 | --- | ---: | ---: | ---: | ---: |
 | `action` | 38 | 38 | 18 | 6 |
 | `construct` | 19 | 19 | 0 | 1 |
 | `directive` | 65 | 65 | 24 | 7 |
-| `runtime_dispatch` | 12 | 0 | 12 | 0 |
+| `runtime_dispatch` | 12 | 0 | 12 | 1 |
 
 | Implementation status | Features |
 | --- | ---: |
@@ -44,6 +44,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
   prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.
 - The immutable current audit retains the tests visible at its audited commit; this
   map is the authoritative current test-coverage layer for the Milestone 0 gate.
-- The no-op option runtime catalog entry uses `ledger_features` to name the three
-  frozen upstream keyword IDs separately from its current-audit case-insensitive
-  parser/dispatch mapping.
+- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately
+  from honest current-audit runtime mappings: the no-op option runner maps three
+  X-resource keywords, while the colormap runner maps `keyword.f.colormap` through
+  configured-action dispatch.

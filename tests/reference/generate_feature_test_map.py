@@ -49,6 +49,13 @@ SESSION_STATE_RUNTIME_FEATURES = {
     "action.f-saveyourself",
     "directive.restartpreviousstate",
 }
+COLORMAP_RUNTIME_PATH = "tests/integration/run_m8_colormap.py"
+COLORMAP_RUNTIME_TEST = "Milestone 8 Xwayland and native colormap integration"
+COLORMAP_RUNTIME_ID = "test.current-feature.m8-colormap-runtime"
+COLORMAP_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+COLORMAP_LEDGER_FEATURES = ("keyword.f.colormap",)
 NOOP_OPTIONS_RUNTIME_PATH = "tests/integration/run_m8_noop_options.py"
 NOOP_OPTIONS_RUNTIME_TEST = "Milestone 8 X11 server resource no-op integration"
 NOOP_OPTIONS_RUNTIME_ID = "test.current-feature.m8-noop-options-runtime"
@@ -496,6 +503,26 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in COLORMAP_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": COLORMAP_RUNTIME_ID,
+                "path": COLORMAP_RUNTIME_PATH,
+                "meson_test": COLORMAP_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner invokes {feature_id} bindings "
+                    "on managed Xwayland and native Wayland targets.",
+                    "The catalog ledger_features separately maps the exact "
+                    "keyword.f.colormap frozen upstream ledger entry.",
+                    "Checked XCB installed-colormap observations prove exact "
+                    "next/prev/default rotation and property reset while native "
+                    "dispatch preserves the installed set and both clients remain live.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in NOOP_OPTIONS_RUNTIME_FEATURES:
             tests.append({
                 "test_id": NOOP_OPTIONS_RUNTIME_ID,
@@ -535,6 +562,13 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
             "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0.",
         },
         "test_catalog": [
+            {
+                "test_id": COLORMAP_RUNTIME_ID,
+                "path": COLORMAP_RUNTIME_PATH,
+                "meson_test": COLORMAP_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(COLORMAP_LEDGER_FEATURES),
+            },
             {
                 "test_id": NOOP_OPTIONS_RUNTIME_ID,
                 "path": NOOP_OPTIONS_RUNTIME_PATH,
@@ -640,9 +674,10 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.",
         "- The immutable current audit retains the tests visible at its audited commit; this",
         "  map is the authoritative current test-coverage layer for the Milestone 0 gate.",
-        "- The no-op option runtime catalog entry uses `ledger_features` to name the three",
-        "  frozen upstream keyword IDs separately from its current-audit case-insensitive",
-        "  parser/dispatch mapping.",
+        "- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately",
+        "  from honest current-audit runtime mappings: the no-op option runner maps three",
+        "  X-resource keywords, while the colormap runner maps `keyword.f.colormap` through",
+        "  configured-action dispatch.",
         "",
     ]
     return result, "\n".join(lines)

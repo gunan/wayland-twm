@@ -18,6 +18,9 @@ from generate_feature_test_map import (
     MESON_TEST,
     SUMMARY_PATH,
     TEST_PATH,
+    COLORMAP_LEDGER_FEATURES,
+    COLORMAP_RUNTIME_FEATURES,
+    COLORMAP_RUNTIME_ID,
     INTERACTION_RUNTIME_FEATURES,
     NOOP_OPTIONS_LEDGER_FEATURES,
     NOOP_OPTIONS_RUNTIME_FEATURES,
@@ -186,15 +189,16 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 7:
-        errors.append("feature_map.test_catalog must contain the seven registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 8:
+        errors.append("feature_map.test_catalog must contain the eight registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
     for index, item in enumerate(catalog_values):
         expected_fields = catalog_fields + (["ledger_features"] if
-            isinstance(item, dict) and item.get("test_id") == NOOP_OPTIONS_RUNTIME_ID
-            else [])
+            isinstance(item, dict) and item.get("test_id") in {
+                COLORMAP_RUNTIME_ID, NOOP_OPTIONS_RUNTIME_ID,
+            } else [])
         if not fields(item, expected_fields,
                 f"feature_map.test_catalog[{index}]", errors):
             continue
@@ -213,6 +217,18 @@ def validate_feature_map(
                     "no-op option runtime ledger_features must exactly map "
                     "keyword.nobackingstore, keyword.nograbserver, and "
                     "keyword.nosaveunders"
+                )
+        elif item["test_id"] == COLORMAP_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(COLORMAP_LEDGER_FEATURES):
+                errors.append(
+                    "colormap runtime ledger_features must exactly map "
+                    "keyword.f.colormap"
                 )
     if [item.get("test_id") for item in catalog_values if isinstance(item, dict)] != sorted(catalog):
         errors.append("feature_map.test_catalog is not ordered by test ID")
@@ -268,6 +284,8 @@ def validate_feature_map(
         if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in NOOP_OPTIONS_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in COLORMAP_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:
@@ -374,6 +392,20 @@ def tamper_self_test(
     )
     noop_catalog["ledger_features"][0] = "keyword.not-the-frozen-option"
     mutations.append(("wrong-noop-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    colormap_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == COLORMAP_RUNTIME_ID
+    )
+    colormap_catalog["ledger_features"].clear()
+    mutations.append(("missing-colormap-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    colormap_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == COLORMAP_RUNTIME_ID
+    )
+    colormap_catalog["ledger_features"][0] = "keyword.f.not-colormap"
+    mutations.append(("wrong-colormap-ledger-feature", changed))
     failures = [
         name for name, changed in mutations
         if not validate_feature_map(changed, audit, expected, source_root)

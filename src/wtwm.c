@@ -246,6 +246,10 @@ struct toplevel {
 	unsigned int wm_hints_icon_height;
 	unsigned int wm_hints_icon_window_width;
 	unsigned int wm_hints_icon_window_height;
+	xcb_window_t *colormap_windows;
+	xcb_colormap_t *colormaps;
+	size_t colormap_count;
+	size_t colormap_rotation;
 	struct wl_event_source *xwayland_sync_idle;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
@@ -491,6 +495,7 @@ struct server {
 	xcb_atom_t atom_wm_transient_for;
 	xcb_atom_t atom_wm_icon_name;
 	xcb_atom_t atom_net_wm_icon;
+	xcb_atom_t atom_wm_colormap_windows;
 	char *previous_display;
 	bool had_previous_display;
 	bool xwayland_display_exported;
@@ -575,6 +580,8 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
+		server->atom_wm_colormap_windows = xwayland_atom(connection,
+			"WM_COLORMAP_WINDOWS");
 		set_xwayland_input_focus(server, NULL);
 		struct toplevel *toplevel;
 		wl_list_for_each(toplevel, &server->toplevels, link) {
@@ -3607,6 +3614,7 @@ static bool action_needs_toplevel(enum wtwm_action_type type) {
 	case WTWM_ACTION_AUTORAISE:
 	case WTWM_ACTION_IDENTIFY:
 	case WTWM_ACTION_SAVEYOURSELF:
+	case WTWM_ACTION_COLORMAP:
 		return true;
 	default:
 		return false;
@@ -3969,6 +3977,277 @@ static bool send_save_yourself(struct toplevel *toplevel) {
 		XCB_EVENT_MASK_NO_EVENT, (const char *)&event);
 	xcb_flush(connection);
 	return true;
+}
+
+enum { WTWM_X11_COLORMAP_LIMIT = 4096 };
+
+static void reset_xwayland_colormap_cache(struct toplevel *toplevel) {
+	free(toplevel->colormap_windows);
+	free(toplevel->colormaps);
+	toplevel->colormap_windows = NULL;
+	toplevel->colormaps = NULL;
+	toplevel->colormap_count = 0;
+	toplevel->colormap_rotation = 0;
+}
+
+static xcb_screen_t *xwayland_screen(xcb_connection_t *connection) {
+	if (connection == NULL) return NULL;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(connection));
+	return screens.rem == 0 ? NULL : screens.data;
+}
+
+static void log_xcb_request_error(const char *operation,
+		xcb_window_t window, xcb_colormap_t colormap,
+		xcb_generic_error_t *error) {
+	wlr_log(WLR_ERROR,
+		"%s failed for X11 window 0x%08" PRIx32
+		" colormap 0x%08" PRIx32 ": X error %u request %u.%u",
+		operation, window, colormap, error->error_code,
+		error->major_code, error->minor_code);
+}
+
+static bool same_xwayland_colormap_cache(const struct toplevel *toplevel,
+		const xcb_window_t *windows, const xcb_colormap_t *colormaps,
+		size_t count) {
+	return count == toplevel->colormap_count &&
+		(count == 0 ||
+		(memcmp(windows, toplevel->colormap_windows,
+			count * sizeof(*windows)) == 0 &&
+		memcmp(colormaps, toplevel->colormaps,
+			count * sizeof(*colormaps)) == 0));
+}
+
+static bool read_xwayland_colormap_windows(struct toplevel *toplevel,
+		xcb_connection_t *connection, xcb_window_t **windows_out,
+		xcb_colormap_t **colormaps_out, size_t *count_out) {
+	xcb_window_t toplevel_window = toplevel->xwayland->window_id;
+	xcb_window_t property_windows[WTWM_X11_COLORMAP_LIMIT];
+	size_t property_count = 0;
+	bool exact_property = false;
+
+	if (toplevel->server->atom_wm_colormap_windows != XCB_ATOM_NONE) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+			xcb_get_property(connection, false, toplevel_window,
+				toplevel->server->atom_wm_colormap_windows, XCB_ATOM_WINDOW,
+				0, WTWM_X11_COLORMAP_LIMIT), &error);
+		if (error != NULL) {
+			log_xcb_request_error("read WM_COLORMAP_WINDOWS", toplevel_window,
+				XCB_COLORMAP_NONE, error);
+			free(error);
+		} else if (reply != NULL && reply->type == XCB_ATOM_WINDOW &&
+				reply->format == 32 && reply->bytes_after == 0 &&
+				xcb_get_property_value_length(reply) >= 0 &&
+				xcb_get_property_value_length(reply) %
+					(int)sizeof(xcb_window_t) == 0) {
+			property_count = (size_t)xcb_get_property_value_length(reply) /
+				sizeof(xcb_window_t);
+			if (property_count <= WTWM_X11_COLORMAP_LIMIT) {
+				if (property_count != 0)
+					memcpy(property_windows, xcb_get_property_value(reply),
+						property_count * sizeof(*property_windows));
+				exact_property = true;
+			}
+		} else if (reply != NULL && reply->bytes_after != 0) {
+			wlr_log(WLR_ERROR,
+				"WM_COLORMAP_WINDOWS on 0x%08" PRIx32
+				" exceeds the bounded %u-window compatibility limit",
+				toplevel_window, WTWM_X11_COLORMAP_LIMIT);
+		}
+		free(reply);
+	}
+
+	bool contains_toplevel = false;
+	if (exact_property) {
+		for (size_t i = 0; i < property_count; ++i) {
+			if (property_windows[i] == toplevel_window) {
+				contains_toplevel = true;
+				break;
+			}
+		}
+	}
+	if (!exact_property || property_count == 0 ||
+			(!contains_toplevel && property_count == WTWM_X11_COLORMAP_LIMIT)) {
+		property_count = 0;
+		contains_toplevel = false;
+	}
+	size_t count = property_count + (contains_toplevel ? 0 : 1);
+	xcb_window_t *windows = calloc(count, sizeof(*windows));
+	xcb_colormap_t *colormaps = calloc(count, sizeof(*colormaps));
+	if (windows == NULL || colormaps == NULL) {
+		free(windows);
+		free(colormaps);
+		return false;
+	}
+	size_t offset = contains_toplevel ? 0 : 1;
+	if (!contains_toplevel) windows[0] = toplevel_window;
+	if (property_count != 0)
+		memcpy(windows + offset, property_windows,
+			property_count * sizeof(*windows));
+
+	size_t valid_count = 0;
+	for (size_t i = 0; i < count; ++i) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_window_attributes_reply_t *attributes =
+			xcb_get_window_attributes_reply(connection,
+				xcb_get_window_attributes(connection, windows[i]), &error);
+		if (error != NULL) {
+			log_xcb_request_error("query colormap window", windows[i],
+				XCB_COLORMAP_NONE, error);
+			free(error);
+		}
+		if (attributes != NULL && attributes->colormap != XCB_COLORMAP_NONE) {
+			windows[valid_count] = windows[i];
+			colormaps[valid_count] = attributes->colormap;
+			++valid_count;
+		}
+		free(attributes);
+	}
+	/* FetchWmColormapWindows retains valid entries in property order and falls
+	 * back to the managed top-level when the supplied list yields none. */
+	if (valid_count == 0 &&
+			(count != 1 || windows[0] != toplevel_window)) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_window_attributes_reply_t *attributes =
+			xcb_get_window_attributes_reply(connection,
+				xcb_get_window_attributes(connection, toplevel_window), &error);
+		if (error != NULL) {
+			log_xcb_request_error("query fallback colormap window",
+				toplevel_window, XCB_COLORMAP_NONE, error);
+			free(error);
+		}
+		if (attributes != NULL && attributes->colormap != XCB_COLORMAP_NONE) {
+			windows[0] = toplevel_window;
+			colormaps[0] = attributes->colormap;
+			valid_count = 1;
+		}
+		free(attributes);
+	}
+	if (valid_count == 0) {
+		free(windows);
+		free(colormaps);
+		return false;
+	}
+	*windows_out = windows;
+	*colormaps_out = colormaps;
+	*count_out = valid_count;
+	return true;
+}
+
+static bool refresh_xwayland_colormap_cache(struct toplevel *toplevel,
+		xcb_connection_t *connection, bool force_reset) {
+	xcb_window_t *windows = NULL;
+	xcb_colormap_t *colormaps = NULL;
+	size_t count = 0;
+	if (!read_xwayland_colormap_windows(toplevel, connection, &windows,
+			&colormaps, &count)) return false;
+	if (same_xwayland_colormap_cache(toplevel, windows, colormaps, count)) {
+		free(windows);
+		free(colormaps);
+		if (force_reset) toplevel->colormap_rotation = 0;
+		return true;
+	}
+	reset_xwayland_colormap_cache(toplevel);
+	toplevel->colormap_windows = windows;
+	toplevel->colormaps = colormaps;
+	toplevel->colormap_count = count;
+	return true;
+}
+
+static bool install_xwayland_colormaps(struct toplevel *toplevel,
+		xcb_connection_t *connection) {
+	xcb_screen_t *screen = xwayland_screen(connection);
+	if (screen == NULL || toplevel->colormap_count == 0 ||
+			screen->max_installed_maps == 0) return false;
+	xcb_colormap_t installed[WTWM_X11_COLORMAP_LIMIT];
+	xcb_window_t installed_windows[WTWM_X11_COLORMAP_LIMIT];
+	size_t selected_count = 0;
+	for (size_t offset = 0; offset < toplevel->colormap_count &&
+			selected_count < screen->max_installed_maps; ++offset) {
+		size_t index = (toplevel->colormap_rotation + offset) %
+			toplevel->colormap_count;
+		xcb_colormap_t colormap = toplevel->colormaps[index];
+		if (colormap == XCB_COLORMAP_NONE) continue;
+		bool duplicate = false;
+		for (size_t i = 0; i < selected_count; ++i)
+			if (installed[i] == colormap) duplicate = true;
+		if (duplicate) continue;
+		installed[selected_count] = colormap;
+		installed_windows[selected_count] = toplevel->colormap_windows[index];
+		++selected_count;
+	}
+	size_t installed_count = 0;
+	/* Reference InstallWindowColormaps walks the selected list in reverse
+	 * index order, leaving the first rotated entry as the last request. */
+	for (size_t i = selected_count; i > 0; --i) {
+		xcb_colormap_t colormap = installed[i - 1];
+		xcb_generic_error_t *error = xcb_request_check(connection,
+			xcb_install_colormap_checked(connection, colormap));
+		if (error != NULL) {
+			log_xcb_request_error("install colormap",
+				installed_windows[i - 1], colormap, error);
+			free(error);
+			continue;
+		}
+		++installed_count;
+	}
+	xcb_flush(connection);
+	if (xcb_connection_has_error(connection) != 0) {
+		wlr_log(WLR_ERROR, "%s",
+			"f.colormap lost the XWM connection while installing colormaps");
+		return false;
+	}
+	return installed_count != 0;
+}
+
+static void apply_colormap_action(struct server *server,
+		struct toplevel *toplevel, const char *argument) {
+	if (toplevel == NULL) {
+		wlr_log(WLR_DEBUG, "f.colormap %s has no selected target",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (toplevel->xwayland == NULL) {
+		test_trace_toplevel_event(toplevel, "colormap", "native-noop");
+		wlr_log(WLR_DEBUG,
+			"f.colormap %s is a no-op for native true-color Wayland; no X11 request issued",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (argument == NULL || (strcmp(argument, "next") != 0 &&
+			strcmp(argument, "prev") != 0 &&
+			strcmp(argument, "default") != 0)) {
+		wlr_log(WLR_ERROR, "invalid f.colormap argument escaped parser: %s",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (server->xwayland == NULL ||
+			server->atom_wm_colormap_windows == XCB_ATOM_NONE) return;
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return;
+	bool reset = strcmp(argument, "default") == 0;
+	if (!refresh_xwayland_colormap_cache(toplevel, connection, reset) ||
+			toplevel->colormap_count == 0) return;
+	if (strcmp(argument, "next") == 0) {
+		toplevel->colormap_rotation = (toplevel->colormap_rotation + 1) %
+			toplevel->colormap_count;
+	} else if (strcmp(argument, "prev") == 0) {
+		toplevel->colormap_rotation = (toplevel->colormap_rotation +
+			toplevel->colormap_count - 1) % toplevel->colormap_count;
+	}
+	char trace_context[16];
+	(void)snprintf(trace_context, sizeof(trace_context), "x11-%s", argument);
+	test_trace_toplevel_event(toplevel, "colormap", trace_context);
+	if (install_xwayland_colormaps(toplevel, connection)) {
+		xcb_colormap_t selected =
+			toplevel->colormaps[toplevel->colormap_rotation];
+		wlr_log(WLR_DEBUG,
+			"f.colormap %s selected X11 colormap 0x%08" PRIx32
+			" for window 0x%08" PRIx32,
+			argument, selected, toplevel->xwayland->window_id);
+	}
 }
 
 static bool xwayland_root(struct server *server,
@@ -4431,8 +4710,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_FILE:
 		(void)file_to_cut_buffer(server, action->argument); break;
 	case WTWM_ACTION_COLORMAP:
-		wlr_log(WLR_DEBUG, "%s",
-			"Xwayland owns installed colormaps; f.colormap is a verified no-op");
+		apply_colormap_action(server, toplevel, action->argument);
 		break;
 	case WTWM_ACTION_RESTART:
 		request_compositor_restart(server);
@@ -6656,6 +6934,7 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->set_override_redirect.link);
 	wl_list_remove(&toplevel->set_geometry.link);
 	wl_list_remove(&toplevel->xwayland_link);
+	reset_xwayland_colormap_cache(toplevel);
 	free(toplevel->icon_name);
 	free(toplevel->xwayland_direct_name);
 	free(toplevel->xwayland_direct_instance);
@@ -6795,6 +7074,8 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 			read_xwayland_icon_name(toplevel);
 		else if (property->atom == server->atom_net_wm_icon)
 			read_xwayland_net_wm_icon(toplevel);
+		else if (property->atom == server->atom_wm_colormap_windows)
+			reset_xwayland_colormap_cache(toplevel);
 		else if (property->atom == server->atom_wm_normal_hints ||
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)

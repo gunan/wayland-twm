@@ -29,7 +29,8 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Warp actions | Behaviorally equivalent | Window, next/previous, window-ring, and output warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates; X screens translate to ordered Wayland outputs while preserving the cursor's output-relative position |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
-| Legacy bell, cut buffer, file, colormap, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell, cut buffer 0, file loading, and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell, global cut-buffer, or save-yourself protocol. wlroots/Xwayland owns installed colormaps and exposes no twm XSync priority control, so those actions are explicit no-ops under their documented missing-capability conditions |
+| Legacy bell, cut buffer, file, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell, cut buffer 0, file loading, and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell, global cut-buffer, or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
+| `f.colormap` | Exact for relevant Xwayland clients; verified native no-op | Managed X11 targets retain the bounded `WM_COLORMAP_WINDOWS` order, including the top-level fallback, and `next`, `prev`, and `default` perform the reference circular selection and checked installed-colormap requests. Native true-color Wayland has no global installed-colormap mechanism, so the same configured action issues no X request and leaves Xwayland's installed set unchanged |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
@@ -237,6 +238,30 @@ menus, and compares full-output PPM bytes plus normalized `STATE` and `TRACE`
 at the same stable frame barriers. Both clients must also complete protocol
 control roundtrips afterward. The comparison has no pixel masks or tolerated
 state/trace differences.
+
+For a managed Xwayland target, `f.colormap` reads up to 4096
+`WM_COLORMAP_WINDOWS` entries, inserts the top-level first when the property
+omits it, removes invalid windows without reordering the valid survivors, and
+falls back to the top-level when the property supplies no usable entry. The
+cached window/colormap identity and rotation belong to that managed toplevel;
+`PropertyNotify` discards them. `next` rotates left, `prev` rotates right, and
+`default` refetches and restores index zero. wtwm selects at most the X screen's
+advertised `max_installed_maps`, then sends checked `InstallColormap` requests
+in the same reverse list-index order as reference `twm`, leaving the first
+rotated entry as the final request. X errors are reported without corrupting
+the cache or terminating the XWM connection.
+
+Native xdg-shell surfaces are true-color buffers and expose neither
+`WM_COLORMAP_WINDOWS` nor an installed-colormap protocol. Dispatch therefore
+returns before obtaining the XWM XCB connection, records a `native-noop`
+colormap trace, and logs that no X11 request was issued. The Milestone 8
+headless runner creates an X11 top-level and three child windows with private
+colormaps, deliberately omits the top-level from the property, and exercises
+`next`, `prev`, and `default` through configured pointer bindings. It then
+replaces the property with an invalid XID followed by a new order, proving
+stable invalid-entry removal and reset before checking the native no-op against
+an unchanged root installed-colormap snapshot. Both client protocol
+connections and the compositor control connection must remain responsive.
 
 Milestone 6 verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as

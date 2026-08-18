@@ -470,7 +470,7 @@ Required mappings:
   that can be restored safely.
 - [x] Backing-store, save-under, and server-grab options become verified no-ops
   unless they have a visible compatibility effect.
-- [ ] Colormap actions operate for relevant Xwayland clients and become a documented
+- [x] Colormap actions operate for relevant Xwayland clients and become a documented
   no-op for native true-color Wayland clients.
 - [ ] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
   mechanism.

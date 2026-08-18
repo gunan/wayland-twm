@@ -198,3 +198,14 @@ requires both clients and the compositor control socket to answer roundtrips.
 This proves the options do not leak an unexplained visible or interaction
 consequence into wtwm-owned Wayland scene behavior; independent resource
 requests made by X11 clients are outside that contract.
+
+`run_m8_colormap.py` drives configured `f.colormap` bindings against one
+managed Xwayland client and one native xdg-shell client. Its dedicated XCB
+fixture owns a top-level plus child windows with distinct private colormaps,
+publishes `WM_COLORMAP_WINDOWS` without the top-level, and observes the root's
+installed-colormap set after exact `next`, `prev`, and `default` sequences. A
+replacement property contains an invalid XID and reordered valid survivors,
+covering cache reset, stable compaction, and fallback. A portable model check
+also fixes the multi-map reverse request order. Native dispatch must retain an
+identical installed-colormap snapshot and emit three `native-noop` traces;
+both clients and test control then prove connection liveness.
