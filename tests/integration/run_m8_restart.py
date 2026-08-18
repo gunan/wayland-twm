@@ -25,11 +25,11 @@ def config_text(*, no_title: bool) -> str:
         + ("NoTitle\n" if no_title else "")
         + "Button1 = : root : f.restart\n"
         + "Button2 = : root : f.twmrc\n"
+        + "Button3 = : window : f.focus\n"
     )
 
 
 def restart(control: Control, button: int) -> None:
-    control.command("POINTER 790 590")
     control.command(f"BUTTON {button} press")
     control.command(f"BUTTON {button} release")
     control.command("WAIT 2")
@@ -179,12 +179,40 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
 
             initial = wait_state(control, mapped_pair, "initial restart clients")
             identities = snapshot(initial)
-            session = session_snapshot(initial)
             if identities[NATIVE_TITLE][1] != "wayland" or \
                     identities[X11_TITLE][1] != "x11":
                 raise RuntimeError(f"restart fixtures used wrong protocols: {initial!r}")
             if not all(item["decorated"] for item in initial["windows"]):
                 raise RuntimeError(f"initial configuration was not active: {initial!r}")
+
+            # Lock direct keyboard focus before moving to the root binding so
+            # restart must preserve both logical activation and protocol focus.
+            x11_window = next(
+                item for item in initial["windows"] if item["title"] == X11_TITLE
+            )
+            control.command(
+                f"POINTER {int(x11_window['x']) + int(x11_window['content_x']) + 10} "
+                f"{int(x11_window['y']) + int(x11_window['content_y']) + 10}"
+            )
+            control.command("BUTTON 274 press")
+            control.command("BUTTON 274 release")
+            wait_state(
+                control,
+                lambda state: not state["focus_root"]
+                and state["active"] == X11_TITLE
+                and state["focus"] == X11_TITLE,
+                "locked Xwayland focus before restart",
+            )
+            control.command("POINTER 790 590")
+            initial = wait_state(
+                control,
+                lambda state: not state["focus_root"]
+                and state["active"] == X11_TITLE
+                and state["focus"] == X11_TITLE
+                and state["pointer_context"] == "root",
+                "locked focus at restart root binding",
+            )
+            session = session_snapshot(initial)
 
             # f.restart reparses and applies the valid replacement in-process.
             config.write_text(config_text(no_title=True), encoding="utf-8")
