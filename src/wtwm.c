@@ -8776,6 +8776,30 @@ static void test_pointer(struct server *server, double x, double y) {
 	process_cursor_motion(server, ++server->test_control.input_time_ms);
 }
 
+static struct output *test_output_by_name(struct server *server,
+		const char *name) {
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (strcmp(output->identity.name, name) == 0) return output;
+	}
+	return NULL;
+}
+
+static enum wl_output_transform test_output_transform(
+		enum wtwm_test_output_transform transform) {
+	switch (transform) {
+	case WTWM_TEST_TRANSFORM_NORMAL: return WL_OUTPUT_TRANSFORM_NORMAL;
+	case WTWM_TEST_TRANSFORM_90: return WL_OUTPUT_TRANSFORM_90;
+	case WTWM_TEST_TRANSFORM_180: return WL_OUTPUT_TRANSFORM_180;
+	case WTWM_TEST_TRANSFORM_270: return WL_OUTPUT_TRANSFORM_270;
+	case WTWM_TEST_TRANSFORM_FLIPPED: return WL_OUTPUT_TRANSFORM_FLIPPED;
+	case WTWM_TEST_TRANSFORM_FLIPPED_90: return WL_OUTPUT_TRANSFORM_FLIPPED_90;
+	case WTWM_TEST_TRANSFORM_FLIPPED_180: return WL_OUTPUT_TRANSFORM_FLIPPED_180;
+	case WTWM_TEST_TRANSFORM_FLIPPED_270: return WL_OUTPUT_TRANSFORM_FLIPPED_270;
+	}
+	return WL_OUTPUT_TRANSFORM_NORMAL;
+}
+
 static void test_execute(struct test_control *control,
 	const struct wtwm_test_command *command) {
 	struct server *server = control->server;
@@ -8788,11 +8812,135 @@ static void test_execute(struct test_control *control,
 			test_write(control, "ERROR OUTPUT requires the headless backend\n");
 			break;
 		}
-		struct wlr_output *output = wlr_headless_add_output(server->backend,
-			(unsigned)command->first, (unsigned)command->second);
-		if (output == NULL) test_write(control, "ERROR unable to create output\n");
-		else test_write(control, "OK OUTPUT %s %d %d\n", output->name,
-			command->first, command->second);
+		if (command->output_operation == WTWM_TEST_OUTPUT_ADD) {
+			struct wlr_output *wlr_output = wlr_headless_add_output(server->backend,
+				(unsigned)command->first, (unsigned)command->second);
+			struct output *output = wlr_output != NULL ?
+				test_output_by_name(server, wlr_output->name) : NULL;
+			if (output == NULL)
+				test_write(control, "ERROR unable to create output\n");
+			else
+				test_write(control, "OK OUTPUT %s %d %d\n", wlr_output->name,
+					command->first, command->second);
+			break;
+		}
+		struct output *output = test_output_by_name(server, command->output_name);
+		if (output == NULL) {
+			test_write(control, "ERROR OUTPUT unknown output: %s\n",
+				command->output_name);
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_DESTROY) {
+			wlr_output_destroy(output->wlr);
+			test_write(control, "OK OUTPUT DESTROY %s\n", command->output_name);
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_ENABLE ||
+				command->output_operation == WTWM_TEST_OUTPUT_DISABLE) {
+			bool enable = command->output_operation == WTWM_TEST_OUTPUT_ENABLE;
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_enabled(&state, enable);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT %s failed: %s\n",
+					enable ? "ENABLE" : "DISABLE", command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT %s %s\n",
+					enable ? "ENABLE" : "DISABLE", command->output_name);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_MODE) {
+			if (!output->wlr->enabled) {
+				test_write(control,
+					"ERROR OUTPUT MODE requires enabled output: %s\n",
+					command->output_name);
+				break;
+			}
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_custom_mode(&state, command->first,
+				command->second, command->third);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT MODE failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT MODE %s %d %d %d\n",
+					command->output_name, command->first, command->second,
+					command->third);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_SCALE) {
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_scale(&state, (float)command->x);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT SCALE failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT SCALE %s %.3f\n",
+					command->output_name, command->x);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_TRANSFORM) {
+			enum wl_output_transform transform =
+				test_output_transform(command->output_transform);
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_transform(&state, transform);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT TRANSFORM failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT TRANSFORM %s %s\n",
+					command->output_name,
+					test_output_transform_name(transform));
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_POSITION) {
+			if (!output->wlr->enabled || !output->in_layout) {
+				test_write(control,
+					"ERROR OUTPUT POSITION requires enabled output: %s\n",
+					command->output_name);
+				break;
+			}
+			struct wlr_output_layout_output *before =
+				wlr_output_layout_get(server->output_layout, output->wlr);
+			int old_x = before->x, old_y = before->y;
+			bool old_auto = before->auto_configured;
+			begin_output_topology_mutation(server);
+			struct wlr_output_layout_output *positioned = command->output_auto ?
+				wlr_output_layout_add_auto(server->output_layout, output->wlr) :
+				wlr_output_layout_add(server->output_layout, output->wlr,
+					command->first, command->second);
+			bool changed = positioned != NULL &&
+				(positioned->x != old_x || positioned->y != old_y ||
+				positioned->auto_configured != old_auto);
+			finish_output_topology_mutation(server, changed);
+			if (positioned == NULL) {
+				test_write(control, "ERROR OUTPUT POSITION failed: %s\n",
+					command->output_name);
+			} else if (command->output_auto) {
+				test_write(control, "OK OUTPUT POSITION %s AUTO\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT POSITION %s %d %d\n",
+					command->output_name, command->first, command->second);
+			}
+			break;
+		}
+		test_write(control, "ERROR unsupported OUTPUT operation\n");
 		break;
 	}
 	case WTWM_TEST_COMMAND_POINTER:

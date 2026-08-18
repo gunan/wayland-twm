@@ -18,7 +18,7 @@ CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/output-topology-contract.json"
 )
 EXPECTED_CANONICAL_SHA256 = (
-    "12dcd8fc95a0ad57450b669d5478316d03462ad27371117d7abe83e7aeb78bb8"
+    "db2d8475300fb074b04ea9e35182ba5dee8bc4606aad6ae00fcb2b822fb361a7"
 )
 EXPECTED_UPSTREAM = {
     "name": "X.Org twm",
@@ -700,8 +700,12 @@ def run_tamper_tests(
         (
             "enabled snapshot",
             "src/wtwm.c",
-            "if (!output->wlr->enabled) continue;",
-            "if (false) continue;",
+            "if (!output->wlr->enabled || !output->in_layout) continue;\n"
+            "\t\tif (!wtwm_output_order_set(*snapshot, index, "
+            "&output->identity, output)) {",
+            "if (false) continue;\n"
+            "\t\tif (!wtwm_output_order_set(*snapshot, index, "
+            "&output->identity, output)) {",
         ),
         (
             "identity comparison",

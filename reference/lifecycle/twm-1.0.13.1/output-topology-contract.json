@@ -196,9 +196,9 @@
         "path": "src/wtwm.c",
         "text": "struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);"
       },
-      "runtime.layout-add": {
-        "path": "src/wtwm.c",
-        "text": "wlr_output_layout_add_auto(server->output_layout, wlr_output);"
+    "runtime.layout-add": {
+      "path": "src/wtwm.c",
+      "text": "wlr_output_layout_add_auto(output->server->output_layout, output->wlr);"
       },
       "runtime.background-create": {
         "path": "src/wtwm.c",
@@ -208,13 +208,13 @@
         "path": "src/wtwm.c",
         "text": "resume_output_waiting_toplevels(server);"
       },
-      "runtime.icon-layout": {
-        "path": "src/wtwm.c",
-        "text": "resume_output_waiting_toplevels(server);\n\trebuild_icon_layout(server);\n\trefresh_icon_managers(server);"
+    "runtime.icon-layout": {
+      "path": "src/wtwm.c",
+      "text": "refresh_output_configuration(server);\n\trebuild_icon_layout(server);\n\trefresh_icon_managers(server);"
       },
-      "runtime.enabled-snapshot": {
-        "path": "src/wtwm.c",
-        "text": "if (!output->wlr->enabled) continue;"
+    "runtime.enabled-snapshot": {
+      "path": "src/wtwm.c",
+      "text": "if (!output->wlr->enabled || !output->in_layout) continue;\n\t\tif (!wtwm_output_order_set(*snapshot, index, &output->identity, output)) {"
       },
       "runtime.warp-state": {
         "path": "src/wtwm.c",
