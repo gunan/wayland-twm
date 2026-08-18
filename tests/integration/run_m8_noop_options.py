@@ -37,6 +37,9 @@ DYNAMIC_FIELDS = {
     "next_seq",
 }
 PORTABLE_UNIX_SOCKET_PATH_BYTES = 103
+FULL_OUTPUT_HEADER = b"P6\n640 480\n255\n"
+FULL_OUTPUT_CAPTURE_BYTES = len(FULL_OUTPUT_HEADER) + 640 * 480 * 3
+READINESS_CAPTURE_ATTEMPTS = 12
 
 
 def session_socket_names(
@@ -106,6 +109,45 @@ def normalized(value: Any) -> Any:
     if isinstance(value, list):
         return [normalized(item) for item in value]
     return value
+
+
+def read_full_output_capture(capture: Path, label: str) -> bytes:
+    pixels = capture.read_bytes()
+    if (
+        not pixels.startswith(FULL_OUTPUT_HEADER)
+        or len(pixels) != FULL_OUTPUT_CAPTURE_BYTES
+    ):
+        raise RuntimeError(
+            f"invalid full-output capture for {label}: {len(pixels)} bytes"
+        )
+    return pixels
+
+
+def wait_for_stable_full_output(
+    control: Control,
+    root: Path,
+    label: str,
+    *,
+    max_attempts: int = READINESS_CAPTURE_ATTEMPTS,
+) -> None:
+    previous: bytes | None = None
+    previous_digest = "none"
+    for attempt in range(1, max_attempts + 1):
+        control.command("WAIT 3")
+        capture = root / f"readiness-{attempt:02d}.ppm"
+        control.command(f"CAPTURE {capture}")
+        pixels = read_full_output_capture(
+            capture, f"{label} readiness attempt {attempt}"
+        )
+        digest = hashlib.sha256(pixels).hexdigest()
+        if pixels == previous:
+            return
+        previous = pixels
+        previous_digest = digest
+    raise RuntimeError(
+        f"{label} full output did not stabilize after {max_attempts} "
+        f"readiness captures; last capture sha256={previous_digest}"
+    )
 
 
 class Session:
@@ -189,7 +231,7 @@ class Session:
             X11_TITLE: x11_process,
         }
         wait_state(self.control, mapped_pair, f"{label} mixed client pair")
-        self.control.command("WAIT 3")
+        wait_for_stable_full_output(self.control, root, label)
         self.control.command("TRACE CLEAR")
         self.observations: dict[str, dict[str, object]] = {}
 
@@ -199,10 +241,7 @@ class Session:
         trace = normalized(self.control.trace())
         capture = root / f"{phase}.ppm"
         self.control.command(f"CAPTURE {capture}")
-        pixels = capture.read_bytes()
-        expected_size = len(b"P6\n640 480\n255\n") + 640 * 480 * 3
-        if not pixels.startswith(b"P6\n640 480\n255\n") or len(pixels) != expected_size:
-            raise RuntimeError(f"invalid full-output capture for {phase}: {len(pixels)} bytes")
+        pixels = read_full_output_capture(capture, phase)
         self.observations[phase] = {
             "state": state,
             "trace": trace,
