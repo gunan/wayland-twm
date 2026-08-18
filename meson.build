@@ -697,6 +697,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 legacy cut-buffer translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_cut_buffer_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 8 f.colormap translation contract',
   find_program('python3'),
   args: [
