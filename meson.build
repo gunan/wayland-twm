@@ -687,6 +687,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 X11 server resource no-op contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_x11_resource_noop_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -1138,6 +1148,18 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 X11 server resource no-op integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_noop_options.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 360,
     is_parallel: false,
   )
   test(
