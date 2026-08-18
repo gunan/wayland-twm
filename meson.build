@@ -283,6 +283,25 @@ output_topology_test = executable(
 )
 test('Wayland output topology transaction model', output_topology_test)
 
+output_restore_lib = static_library(
+  'wtwm-output-restore-lib',
+  'src/output_restore.c',
+  include_directories: inc,
+  dependencies: placement_dep,
+)
+output_restore_dep = declare_dependency(
+  link_with: output_restore_lib,
+  include_directories: inc,
+  dependencies: placement_dep,
+)
+
+output_restore_test = executable(
+  'output-restore-test',
+  'tests/output_restore_test.c',
+  dependencies: output_restore_dep,
+)
+test('Wayland disappeared-output restoration model', output_restore_test)
+
 command_lib = static_library(
   'wtwm-command-lib',
   'src/command.c',
@@ -771,6 +790,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 output restoration contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_output_restoration_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 8 output placement and root contract',
   find_program('python3'),
   args: [
@@ -955,7 +984,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -963,7 +992,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
-      output_order_dep,
+      output_order_dep, output_restore_dep,
       command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,

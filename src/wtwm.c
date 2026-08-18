@@ -18,6 +18,7 @@
 #include "wtwm/icon_manager.h"
 #include "wtwm/interaction.h"
 #include "wtwm/output_order.h"
+#include "wtwm/output_restore.h"
 #include "wtwm/placement.h"
 #include "wtwm/session_state.h"
 #include "wtwm/visual.h"
@@ -213,6 +214,9 @@ struct toplevel {
 	bool placement_waiting_output;
 	bool placement_initial_rules;
 	bool placement_start_iconified;
+	bool restoration_pending;
+	bool restoration_frame_visible;
+	bool restoration_icon_visible;
 	uint64_t placement_order;
 	struct wtwm_placement_area placement_area;
 	struct output *placement_output;
@@ -456,6 +460,21 @@ struct action_continuation {
 	bool active;
 };
 
+struct restoration_output_snapshot {
+	struct wtwm_output_identity *identities;
+	struct wtwm_output_restore_output *outputs;
+	size_t count;
+};
+
+struct restoration_transaction {
+	struct restoration_output_snapshot before;
+	struct wtwm_output_restore_client *clients;
+	struct toplevel **toplevels;
+	size_t client_count;
+	bool prepared;
+	bool pending_only;
+};
+
 struct server {
 	struct wtwm_config config;
 	enum wtwm_color_mode color_mode;
@@ -477,6 +496,8 @@ struct server {
 	bool topology_refresh_pending;
 	bool shutting_down;
 	uint64_t topology_epoch;
+	struct restoration_transaction restoration;
+	struct restoration_output_snapshot restoration_pending_source;
 	uint64_t next_output_announcement_ordinal;
 	bool output_announcement_ordinal_exhausted;
 	struct wl_listener new_output;
@@ -4020,6 +4041,218 @@ static bool output_area_snapshot(struct server *server,
 	return true;
 }
 
+static void restoration_output_snapshot_finish(
+		struct restoration_output_snapshot *snapshot) {
+	if (snapshot == NULL) return;
+	for (size_t index = 0; index < snapshot->count; ++index)
+		wtwm_output_identity_finish(&snapshot->identities[index]);
+	free(snapshot->identities);
+	free(snapshot->outputs);
+	*snapshot = (struct restoration_output_snapshot){0};
+}
+
+static bool restoration_output_snapshot_copy(
+		struct restoration_output_snapshot *destination,
+		const struct restoration_output_snapshot *source) {
+	*destination = (struct restoration_output_snapshot){0};
+	if (source->count == 0) return true;
+	destination->identities = calloc(source->count,
+		sizeof(destination->identities[0]));
+	destination->outputs = calloc(source->count,
+		sizeof(destination->outputs[0]));
+	if (destination->identities == NULL || destination->outputs == NULL) {
+		restoration_output_snapshot_finish(destination);
+		return false;
+	}
+	for (size_t index = 0; index < source->count; ++index) {
+		const struct wtwm_output_identity *identity =
+			source->outputs[index].identity;
+		if (!wtwm_output_identity_init(&destination->identities[index],
+				identity->name, identity->make, identity->model,
+				identity->serial, identity->announcement_ordinal)) {
+			destination->count = index;
+			restoration_output_snapshot_finish(destination);
+			return false;
+		}
+		destination->count = index + 1;
+		destination->outputs[index] = source->outputs[index];
+		destination->outputs[index].identity =
+			&destination->identities[index];
+	}
+	return true;
+}
+
+static bool restoration_output_snapshot_capture(struct server *server,
+		struct restoration_output_snapshot *result) {
+	*result = (struct restoration_output_snapshot){0};
+	struct wtwm_output_order *order = NULL;
+	if (!output_order_snapshot(server, &order)) return false;
+	size_t count = wtwm_output_order_count(order);
+	if (count == 0) {
+		wtwm_output_order_destroy(order);
+		return true;
+	}
+	result->identities = calloc(count, sizeof(result->identities[0]));
+	result->outputs = calloc(count, sizeof(result->outputs[0]));
+	if (result->identities == NULL || result->outputs == NULL) {
+		wtwm_output_order_destroy(order);
+		restoration_output_snapshot_finish(result);
+		return false;
+	}
+	for (size_t index = 0; index < count; ++index) {
+		struct output *output = wtwm_output_order_at(order, index);
+		struct wlr_box box = {0};
+		if (output == NULL || !wtwm_output_identity_init(
+				&result->identities[index], output->identity.name,
+				output->identity.make, output->identity.model,
+				output->identity.serial,
+				output->identity.announcement_ordinal)) {
+			result->count = index;
+			wtwm_output_order_destroy(order);
+			restoration_output_snapshot_finish(result);
+			return false;
+		}
+		result->count = index + 1;
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (box.width <= 0 || box.height <= 0) {
+			wtwm_output_order_destroy(order);
+			restoration_output_snapshot_finish(result);
+			return false;
+		}
+		result->outputs[index] = (struct wtwm_output_restore_output){
+			.identity = &result->identities[index],
+			.box = {box.x, box.y, box.width, box.height},
+		};
+	}
+	wtwm_output_order_destroy(order);
+	return true;
+}
+
+static void restoration_transaction_finish(
+		struct restoration_transaction *transaction) {
+	if (transaction == NULL) return;
+	restoration_output_snapshot_finish(&transaction->before);
+	free(transaction->clients);
+	free(transaction->toplevels);
+	*transaction = (struct restoration_transaction){0};
+}
+
+static bool restoration_client_eligible(const struct toplevel *toplevel,
+		bool pending_only) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->tree == NULL ||
+			toplevel->placement_pending || toplevel->placement_waiting_output ||
+			(toplevel->xwayland != NULL &&
+			toplevel->xwayland->override_redirect)) return false;
+	return !pending_only || toplevel->restoration_pending;
+}
+
+static bool restoration_outer_box(const struct toplevel *toplevel,
+		struct wtwm_restore_box *box) {
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	if (geometry.outer_width <= 0 || geometry.outer_height <= 0) return false;
+	*box = (struct wtwm_restore_box){
+		.x = toplevel->tree->node.x,
+		.y = toplevel->tree->node.y,
+		.width = geometry.outer_width,
+		.height = geometry.outer_height,
+	};
+	return true;
+}
+
+static bool restoration_zoom_saved_outer(const struct toplevel *toplevel,
+		struct wtwm_restore_box *box) {
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int64_t width = (int64_t)toplevel->zoom.saved.width +
+		geometry.outer_width - toplevel->width;
+	int64_t height = (int64_t)toplevel->zoom.saved.height +
+		geometry.outer_height - toplevel->height;
+	if (width <= 0 || width > INT_MAX || height <= 0 || height > INT_MAX)
+		return false;
+	*box = (struct wtwm_restore_box){
+		.x = toplevel->zoom.saved.x,
+		.y = toplevel->zoom.saved.y,
+		.width = (int)width,
+		.height = (int)height,
+	};
+	return true;
+}
+
+static int restoration_parent_index(
+		const struct restoration_transaction *transaction, size_t child) {
+	for (size_t index = 0; index < transaction->client_count; ++index) {
+		if (index != child && toplevel_is_transient_for(
+				transaction->toplevels[child], transaction->toplevels[index]))
+			return (int)index;
+	}
+	return -1;
+}
+
+static bool restoration_clients_capture(struct server *server,
+		struct restoration_transaction *transaction, bool pending_only) {
+	size_t count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		if (restoration_client_eligible(toplevel, pending_only)) ++count;
+	if (count == 0) return true;
+	transaction->clients = calloc(count, sizeof(transaction->clients[0]));
+	transaction->toplevels = calloc(count, sizeof(transaction->toplevels[0]));
+	if (transaction->clients == NULL || transaction->toplevels == NULL)
+		return false;
+	size_t index = 0;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!restoration_client_eligible(toplevel, pending_only)) continue;
+		struct wtwm_output_restore_client *client =
+			&transaction->clients[index];
+		if (!restoration_outer_box(toplevel, &client->frame)) return false;
+		client->zoomed = wtwm_action_is_zoom(toplevel->zoom.mode);
+		client->zoom_restore_valid = client->zoomed;
+		if (client->zoom_restore_valid &&
+				!restoration_zoom_saved_outer(toplevel,
+				&client->zoom_restore)) return false;
+		bool icon_visible = pending_only ?
+			toplevel->restoration_icon_visible :
+			(toplevel->icon_tree != NULL &&
+			toplevel->icon_tree->node.enabled);
+		client->icon_visible = icon_visible && toplevel->icon_width > 0 &&
+			toplevel->icon_height > 0;
+		if (client->icon_visible) {
+			client->icon = (struct wtwm_restore_box){
+				.x = toplevel->icon_x,
+				.y = toplevel->icon_y,
+				.width = toplevel->icon_width,
+				.height = toplevel->icon_height,
+			};
+		}
+		transaction->toplevels[index++] = toplevel;
+	}
+	transaction->client_count = count;
+	for (index = 0; index < count; ++index)
+		transaction->clients[index].parent =
+			restoration_parent_index(transaction, index);
+	return true;
+}
+
+static bool prepare_restoration_transaction(struct server *server) {
+	struct restoration_transaction *transaction = &server->restoration;
+	if (transaction->prepared) return true;
+	restoration_transaction_finish(transaction);
+	transaction->pending_only =
+		server->restoration_pending_source.count > 0;
+	bool captured = transaction->pending_only ?
+		restoration_output_snapshot_copy(&transaction->before,
+			&server->restoration_pending_source) :
+		restoration_output_snapshot_capture(server, &transaction->before);
+	if (!captured || !restoration_clients_capture(server, transaction,
+			transaction->pending_only)) {
+		restoration_transaction_finish(transaction);
+		return false;
+	}
+	transaction->prepared = true;
+	return true;
+}
+
 static int runtime_saturate_int(int64_t value) {
 	if (value < INT_MIN) return INT_MIN;
 	if (value > INT_MAX) return INT_MAX;
@@ -4869,6 +5102,165 @@ static bool placement_area_equal(const struct wtwm_placement_area *left,
 		left->width == right->width && left->height == right->height;
 }
 
+static void mark_toplevel_restoration_pending(struct toplevel *toplevel) {
+	if (!toplevel->restoration_pending) {
+		toplevel->restoration_frame_visible = toplevel->tree != NULL &&
+			toplevel->tree->node.enabled;
+		toplevel->restoration_icon_visible = toplevel->icon_tree != NULL &&
+			toplevel->icon_tree->node.enabled;
+	}
+	toplevel->restoration_pending = true;
+	if (toplevel->tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
+}
+
+static void restore_toplevel_scene_visibility(struct toplevel *toplevel) {
+	if (!toplevel->restoration_pending) return;
+	if (toplevel->tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->tree->node,
+			toplevel->restoration_frame_visible);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node,
+			toplevel->restoration_icon_visible);
+	toplevel->restoration_pending = false;
+	toplevel->restoration_frame_visible = false;
+	toplevel->restoration_icon_visible = false;
+}
+
+static bool restoration_icon_is_manual(const struct toplevel *toplevel) {
+	if (toplevel->icon_moved) return true;
+	return toplevel->xwayland != NULL && toplevel->xwayland->hints != NULL &&
+		(toplevel->xwayland->hints->flags &
+		XCB_ICCCM_WM_HINT_ICON_POSITION) != 0;
+}
+
+static bool apply_restored_zoom(struct toplevel *toplevel,
+		const struct wtwm_output_restore_record *record,
+		const struct restoration_output_snapshot *after) {
+	if (record->target_output < 0 ||
+			(size_t)record->target_output >= after->count) return false;
+	enum wtwm_action_type mode = toplevel->zoom.mode;
+	struct wtwm_interaction_box saved = toplevel->zoom.saved;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	struct wtwm_restore_box target =
+		after->outputs[record->target_output].box;
+	struct wtwm_interaction_box output = {
+		.x = target.x,
+		.y = target.y,
+		.width = target.width,
+		.height = target.height,
+	};
+	struct wtwm_interaction_box current = {
+		.x = record->frame.x,
+		.y = record->frame.y,
+		.width = toplevel->width,
+		.height = toplevel->height,
+	};
+	struct wtwm_zoom_state temporary = {0};
+	struct wtwm_interaction_box next = wtwm_action_zoom(mode, &output,
+		geometry.outer_width - toplevel->width,
+		geometry.outer_height - toplevel->height, &current, &temporary);
+	constrain_toplevel_size(toplevel, &next.width, &next.height);
+	set_toplevel_box(toplevel, next.x, next.y, next.width, next.height);
+	toplevel->zoom.mode = mode;
+	toplevel->zoom.saved = saved;
+	return true;
+}
+
+static void preserve_pending_source(struct server *server,
+		struct restoration_transaction *transaction) {
+	if (server->restoration_pending_source.count != 0) return;
+	restoration_output_snapshot_finish(&server->restoration_pending_source);
+	server->restoration_pending_source = transaction->before;
+	transaction->before = (struct restoration_output_snapshot){0};
+}
+
+static void restoration_emergency_hide(struct server *server) {
+	preserve_pending_source(server, &server->restoration);
+	if (server->restoration.client_count != 0) {
+		for (size_t index = 0;
+				index < server->restoration.client_count; ++index)
+			mark_toplevel_restoration_pending(
+				server->restoration.toplevels[index]);
+		return;
+	}
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		if (restoration_client_eligible(toplevel, false))
+			mark_toplevel_restoration_pending(toplevel);
+}
+
+static bool apply_output_restoration(struct server *server) {
+	struct restoration_transaction *transaction = &server->restoration;
+	if (!transaction->prepared && !prepare_restoration_transaction(server)) {
+		restoration_emergency_hide(server);
+		return false;
+	}
+	struct restoration_output_snapshot after = {0};
+	if (!restoration_output_snapshot_capture(server, &after)) {
+		restoration_emergency_hide(server);
+		return false;
+	}
+	struct wtwm_output_restore_snapshot before_snapshot = {
+		.outputs = transaction->before.outputs,
+		.count = transaction->before.count,
+	};
+	struct wtwm_output_restore_snapshot after_snapshot = {
+		.outputs = after.outputs,
+		.count = after.count,
+	};
+	struct wtwm_output_restore_plan plan;
+	wtwm_output_restore_plan_init(&plan);
+	if (!wtwm_output_restore_plan_build(&before_snapshot, &after_snapshot,
+			transaction->clients, transaction->client_count, &plan)) {
+		restoration_output_snapshot_finish(&after);
+		restoration_emergency_hide(server);
+		return false;
+	}
+	if (after.count == 0)
+		preserve_pending_source(server, transaction);
+
+	for (size_t index = 0; index < plan.count; ++index) {
+		struct toplevel *toplevel = transaction->toplevels[index];
+		const struct wtwm_output_restore_record *record =
+			&plan.records[index];
+		if (record->pending) {
+			mark_toplevel_restoration_pending(toplevel);
+			continue;
+		}
+		bool was_pending = toplevel->restoration_pending;
+		if (record->zoom_restore_changed) {
+			toplevel->zoom.saved.x = record->zoom_restore.x;
+			toplevel->zoom.saved.y = record->zoom_restore.y;
+		}
+		bool zoom_applied = record->recompute_zoom &&
+			apply_restored_zoom(toplevel, record, &after);
+		if (!record->recompute_zoom && record->frame_changed)
+			set_toplevel_position(toplevel, record->frame.x, record->frame.y);
+		if (record->icon_changed && restoration_icon_is_manual(toplevel)) {
+			toplevel->icon_x = record->icon.x;
+			toplevel->icon_y = record->icon.y;
+			if (toplevel->icon_tree != NULL)
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+		}
+		if (was_pending) restore_toplevel_scene_visibility(toplevel);
+		if (record->frame_changed || record->icon_changed ||
+				record->zoom_restore_changed || zoom_applied || was_pending)
+			test_trace_toplevel_event(toplevel, "restore", "topology");
+	}
+
+	if (after.count > 0)
+		restoration_output_snapshot_finish(
+			&server->restoration_pending_source);
+	wtwm_output_restore_plan_finish(&plan);
+	restoration_output_snapshot_finish(&after);
+	return true;
+}
+
 static void repair_topology_operations(struct server *server) {
 	if (server->menu.tree != NULL) {
 		struct wtwm_placement_area current;
@@ -4909,6 +5301,7 @@ static void refresh_output_topology(struct server *server) {
 	refresh_output_configuration(server);
 	rebuild_icon_layout(server);
 	refresh_icon_managers(server);
+	bool restoration_ok = apply_output_restoration(server);
 
 	if (enabled_output_count(server) == 0) {
 		server->pointer_toplevel = NULL;
@@ -4949,12 +5342,15 @@ static void refresh_output_topology(struct server *server) {
 		wtwm_output_order_destroy(snapshot);
 		if (server->seat != NULL) refresh_pointer_after_restart(server);
 	}
-	resume_output_waiting_toplevels(server);
+	if (restoration_ok) resume_output_waiting_toplevels(server);
 	schedule_refresh(server);
 }
 
-static void begin_output_topology_mutation(struct server *server) {
+static bool begin_output_topology_mutation(struct server *server) {
+	bool prepared = server->topology_mutation_depth != 0 ||
+		prepare_restoration_transaction(server);
 	++server->topology_mutation_depth;
+	return prepared;
 }
 
 static void finish_output_topology_mutation(struct server *server,
@@ -4962,10 +5358,12 @@ static void finish_output_topology_mutation(struct server *server,
 	if (server->topology_mutation_depth == 0) return;
 	server->topology_refresh_pending |= changed;
 	--server->topology_mutation_depth;
-	if (server->topology_mutation_depth == 0 &&
-			server->topology_refresh_pending) {
-		server->topology_refresh_pending = false;
-		refresh_output_topology(server);
+	if (server->topology_mutation_depth == 0) {
+		if (server->topology_refresh_pending) {
+			server->topology_refresh_pending = false;
+			refresh_output_topology(server);
+		}
+		restoration_transaction_finish(&server->restoration);
 	}
 }
 
@@ -4977,7 +5375,13 @@ static void output_layout_change(struct wl_listener *listener, void *data) {
 		server->topology_refresh_pending = true;
 		return;
 	}
+	if (!prepare_restoration_transaction(server)) {
+		wlr_log(WLR_ERROR, "%s",
+			"unable to prepare output-layout restoration");
+		return;
+	}
 	refresh_output_topology(server);
+	restoration_transaction_finish(&server->restoration);
 }
 
 static bool rebuild_toplevel_title(struct toplevel *toplevel) {
@@ -6198,7 +6602,10 @@ static bool commit_output_state(struct output *output,
 	float old_scale = output->wlr->scale;
 	enum wl_output_transform old_transform = output->wlr->transform;
 
-	begin_output_topology_mutation(server);
+	if (!begin_output_topology_mutation(server)) {
+		finish_output_topology_mutation(server, false);
+		return false;
+	}
 	if (!wlr_output_commit_state(output->wlr, state)) {
 		finish_output_topology_mutation(server, false);
 		return false;
@@ -6251,7 +6658,7 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct output *output = wl_container_of(listener, output, destroy);
 	struct server *server = output->server;
-	begin_output_topology_mutation(server);
+	(void)begin_output_topology_mutation(server);
 	detach_output_layout(output);
 	wl_list_remove(&output->frame.link);
 	wl_list_remove(&output->request_state.link);
@@ -6339,8 +6746,8 @@ static void new_output(struct wl_listener *listener, void *data) {
 	output->destroy.notify = output_destroy;
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 	wl_list_insert(&server->outputs, &output->link);
-	begin_output_topology_mutation(server);
-	if (!attach_output_layout(output)) {
+	bool restoration_prepared = begin_output_topology_mutation(server);
+	if (!restoration_prepared || !attach_output_layout(output)) {
 		wlr_log(WLR_ERROR, "%s", "unable to add announced output to layout");
 		wl_list_remove(&output->frame.link);
 		wl_list_remove(&output->request_state.link);
@@ -8368,6 +8775,32 @@ static const char *test_output_transform_name(enum wl_output_transform transform
 	return "invalid";
 }
 
+static const char *test_zoom_name(enum wtwm_action_type mode) {
+	switch (mode) {
+	case WTWM_ACTION_ZOOM: return "vertical";
+	case WTWM_ACTION_HORIZOOM: return "horizontal";
+	case WTWM_ACTION_FULLZOOM: return "full";
+	case WTWM_ACTION_LEFTZOOM: return "left";
+	case WTWM_ACTION_RIGHTZOOM: return "right";
+	case WTWM_ACTION_TOPZOOM: return "top";
+	case WTWM_ACTION_BOTTOMZOOM: return "bottom";
+	default: return "none";
+	}
+}
+
+static struct toplevel *test_managed_parent(struct server *server,
+		const struct toplevel *child) {
+	struct toplevel *candidate;
+	wl_list_for_each(candidate, &server->toplevels, link)
+		if (toplevel_is_transient_for(child, candidate)) return candidate;
+	return NULL;
+}
+
+static bool test_toplevel_visible(const struct toplevel *toplevel) {
+	return (toplevel->tree != NULL && toplevel->tree->node.enabled) ||
+		(toplevel->icon_tree != NULL && toplevel->icon_tree->node.enabled);
+}
+
 static void test_write_state(struct test_control *control) {
 	struct server *server = control->server;
 	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
@@ -8448,6 +8881,7 @@ static void test_write_state(struct test_control *control) {
 		first = false;
 		struct wtwm_frame_geometry geometry;
 		struct wtwm_client_identity identity = toplevel_identity(toplevel);
+		struct toplevel *parent = test_managed_parent(server, toplevel);
 		toplevel_geometry(toplevel, &geometry);
 		test_write(control, "{\"id\":%" PRIu64 ",\"title\":",
 			toplevel->test_id);
@@ -8483,6 +8917,23 @@ static void test_write_state(struct test_control *control) {
 			server->focus == toplevel ? "true" : "false");
 		test_write_json_string(control,
 			wtwm_placement_kind_name(toplevel->placement_kind));
+		test_write(control,
+			",\"restoration_pending\":%s,\"visible\":%s,\"parent_id\":",
+			toplevel->restoration_pending ? "true" : "false",
+			test_toplevel_visible(toplevel) ? "true" : "false");
+		if (parent == NULL) test_write(control, "null");
+		else test_write(control, "%" PRIu64, parent->test_id);
+		test_write(control, ",\"zoom\":");
+		test_write_json_string(control, test_zoom_name(toplevel->zoom.mode));
+		test_write(control, ",\"zoom_saved\":");
+		if (!wtwm_action_is_zoom(toplevel->zoom.mode)) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				toplevel->zoom.saved.x, toplevel->zoom.saved.y,
+				toplevel->zoom.saved.width, toplevel->zoom.saved.height);
+		}
 		if (toplevel->xwayland != NULL) {
 			struct wlr_xwayland_surface *xsurface = toplevel->xwayland;
 			xcb_icccm_wm_hints_t *hints = xsurface->hints;
@@ -8963,7 +9414,13 @@ static void test_execute(struct test_control *control,
 				wlr_output_layout_get(server->output_layout, output->wlr);
 			int old_x = before->x, old_y = before->y;
 			bool old_auto = before->auto_configured;
-			begin_output_topology_mutation(server);
+			if (!begin_output_topology_mutation(server)) {
+				finish_output_topology_mutation(server, false);
+				test_write(control,
+					"ERROR OUTPUT POSITION failed: %s\n",
+					command->output_name);
+				break;
+			}
 			struct wlr_output_layout_output *positioned = command->output_auto ?
 				wlr_output_layout_add_auto(server->output_layout, output->wlr) :
 				wlr_output_layout_add(server->output_layout, output->wlr,
@@ -9467,6 +9924,8 @@ int main(int argc, char **argv) {
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
 	wl_display_destroy(server.display);
+	restoration_transaction_finish(&server.restoration);
+	restoration_output_snapshot_finish(&server.restoration_pending_source);
 	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 #ifdef WTWM_TEST_CONTROL
@@ -9500,6 +9959,8 @@ fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
 	wl_display_destroy(server.display);
+	restoration_transaction_finish(&server.restoration);
+	restoration_output_snapshot_finish(&server.restoration_pending_source);
 	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 	return 1;
