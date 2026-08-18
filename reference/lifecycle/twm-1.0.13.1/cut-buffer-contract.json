@@ -1,0 +1,632 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 legacy cut-buffer actions and the wtwm Wayland/Xwayland clipboard translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/gram.y": "7b7c66abb6280891ffc265c25c7989b206e16d883008db44a94dd057f39e8a52",
+    "twm-1.0.13.1/src/lex.l": "7602b84882e6a2714295997ccc8e29db99ced98f3607f71cc5b2f422ee46fbc7",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/menus.h": "2ac660c04c2df65c7c2ee6fac5fc2e812cf06b518eedba37705aa68c2a13b572",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/util.c": "50f520eff663c8e5b7d735d46bc244e00f79898044a94a031767e97b02265318"
+  },
+  "evidence": {
+    "manual.shorthand": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1189,
+      "text": ".\\\".IP \"\\fB^\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.shorthand-equivalence": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1190,
+      "text": ".\\\"This is an abbreviation for \\fBf.cut\\fP \\fIstring\\fP."
+    },
+    "manual.cut": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1221,
+      "text": ".\\\".IP \"\\fBf.cut\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.cut-newline": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1222,
+      "text": ".\\\"This function places the specified \\fIstring\\fP (followed by a newline"
+    },
+    "manual.cut-property": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1223,
+      "text": ".\\\"character) into the root window property CUT_BUFFER0."
+    },
+    "manual.cutfile": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1224,
+      "text": ".\\\".IP \"\\fBf.cutfile\\fP\" 8"
+    },
+    "manual.cutfile-source": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1225,
+      "text": ".\\\"This function reads the file indicated by the contents of the CUT_BUFFER0"
+    },
+    "manual.cutfile-replace": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1226,
+      "text": ".\\\"window property and replaces the cut buffer."
+    },
+    "manual.file": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1263,
+      "text": ".\\\".IP \"\\fBf.file\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.file-read": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1264,
+      "text": ".\\\"This function assumes \\fIstring\\fP is a file name.  This file is read into"
+    },
+    "manual.file-destination": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1265,
+      "text": ".\\\"the window server's cut buffer."
+    },
+    "parse.cut": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 426,
+      "text": "    { \"f.cut\",                  FSKEYWORD, F_CUT },"
+    },
+    "parse.cutfile": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 427,
+      "text": "    { \"f.cutfile\",              FKEYWORD, F_CUTFILE },"
+    },
+    "parse.file": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 434,
+      "text": "    { \"f.file\",                 FSKEYWORD, F_FILE },"
+    },
+    "lexer.cut-shorthand": {
+      "member": "twm-1.0.13.1/src/lex.l",
+      "line": 125,
+      "text": "\"^\"                             { yylval.num = F_CUT; return FSKEYWORD; }"
+    },
+    "parser.string-action": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 592,
+      "text": "                | FSKEYWORD string {"
+    },
+    "parser.action-copy": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 594,
+      "text": "                                Action = $2;"
+    },
+    "limit.max-file-size": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 68,
+      "text": "#define MAX_FILE_SIZE 4096      /* max chars to read from file for cut */"
+    },
+    "dispatch.buffer": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1216,
+      "text": "    char buff[MAX_FILE_SIZE];"
+    },
+    "dispatch.cut": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1915,
+      "text": "    case F_CUT:"
+    },
+    "cut.copy": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1916,
+      "text": "        strcpy(tmp, action);"
+    },
+    "cut.newline": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1917,
+      "text": "        strcat(tmp, \"\\n\");"
+    },
+    "cut.store": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1918,
+      "text": "        XStoreBytes(dpy, tmp, (int) strlen(tmp));"
+    },
+    "dispatch.cutfile": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1921,
+      "text": "    case F_CUTFILE:"
+    },
+    "cutfile.fetch": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1922,
+      "text": "        ptr = XFetchBytes(dpy, &count);"
+    },
+    "cutfile.token": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1924,
+      "text": "            if (sscanf(ptr, \"%s\", tmp) == 1) {"
+    },
+    "cutfile.expand": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1926,
+      "text": "                ptr = ExpandFilename(tmp);"
+    },
+    "cutfile.open": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1928,
+      "text": "                    fd = open(ptr, O_RDONLY);"
+    },
+    "cutfile.read": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1930,
+      "text": "                        count = (int) read(fd, buff, MAX_FILE_SIZE - 1);"
+    },
+    "cutfile.nonempty": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1931,
+      "text": "                        if (count > 0)"
+    },
+    "cutfile.store": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1932,
+      "text": "                            XStoreBytes(dpy, buff, count);"
+    },
+    "cutfile.empty-warning": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1946,
+      "text": "            twmWarning(\"cut buffer is empty\");"
+    },
+    "dispatch.file": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2113,
+      "text": "    case F_FILE:"
+    },
+    "file.expand": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2114,
+      "text": "        ptr = ExpandFilename(action);"
+    },
+    "file.open": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2116,
+      "text": "            fd = open(ptr, O_RDONLY);"
+    },
+    "file.read": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2118,
+      "text": "                count = (int) read(fd, buff, MAX_FILE_SIZE - 1);"
+    },
+    "file.nonempty": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2119,
+      "text": "                if (count > 0)"
+    },
+    "file.store": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2120,
+      "text": "                    XStoreBytes(dpy, buff, count);"
+    },
+    "file.expand-warning": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2130,
+      "text": "            twmWarning(\"error expanding filename\");"
+    },
+    "expand.leading-tilde": {
+      "member": "twm-1.0.13.1/src/util.c",
+      "line": 259,
+      "text": "    if (name[0] != '~')"
+    },
+    "expand.plain-copy": {
+      "member": "twm-1.0.13.1/src/util.c",
+      "line": 260,
+      "text": "        return strdup(name);"
+    },
+    "expand.allocation": {
+      "member": "twm-1.0.13.1/src/util.c",
+      "line": 262,
+      "text": "    newname = (char *) malloc((size_t) HomeLen + strlen(name) + 2);"
+    },
+    "expand.join": {
+      "member": "twm-1.0.13.1/src/util.c",
+      "line": 269,
+      "text": "        (void) sprintf(newname, \"%s/%s\", Home, &name[1]);"
+    }
+  },
+  "reference_behavior": {
+    "action_identity": [
+      {
+        "name": "f.cut",
+        "inventory_id": "keyword.f.cut",
+        "parser_token": "FSKEYWORD",
+        "parser_value": "F_CUT",
+        "argument_count": 1,
+        "evidence": [
+          "parse.cut",
+          "parser.string-action",
+          "parser.action-copy"
+        ]
+      },
+      {
+        "name": "f.cutfile",
+        "inventory_id": "keyword.f.cutfile",
+        "parser_token": "FKEYWORD",
+        "parser_value": "F_CUTFILE",
+        "argument_count": 0,
+        "evidence": [
+          "parse.cutfile"
+        ]
+      },
+      {
+        "name": "f.file",
+        "inventory_id": "keyword.f.file",
+        "parser_token": "FSKEYWORD",
+        "parser_value": "F_FILE",
+        "argument_count": 1,
+        "evidence": [
+          "parse.file",
+          "parser.string-action",
+          "parser.action-copy"
+        ]
+      }
+    ],
+    "cut_shorthand": {
+      "inventory_id": "lexical.cut-shorthand",
+      "spelling": "^",
+      "equivalent_action": "f.cut",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_CUT",
+      "evidence": [
+        "manual.shorthand",
+        "manual.shorthand-equivalence",
+        "lexer.cut-shorthand"
+      ]
+    },
+    "storage": {
+      "destination": "X server cut buffer zero, exposed as the root window CUT_BUFFER0 property",
+      "property_type": "STRING",
+      "replacement": "XStoreBytes replaces the prior cut-buffer bytes",
+      "evidence": [
+        "manual.cut-property",
+        "manual.file-destination",
+        "cut.store",
+        "cutfile.store",
+        "file.store"
+      ]
+    },
+    "f_cut": {
+      "input": "the parsed action string",
+      "output": "the action string bytes followed by exactly one newline byte",
+      "empty_argument_output": "one newline byte",
+      "evidence": [
+        "manual.cut",
+        "manual.cut-newline",
+        "cut.copy",
+        "cut.newline",
+        "cut.store",
+        "dispatch.cut"
+      ]
+    },
+    "f_file": {
+      "filename_source": "the parsed action string",
+      "read_operation": "one read of at most MAX_FILE_SIZE minus one bytes",
+      "maximum_replacement_bytes": 4095,
+      "replacement_condition": "replace only when the read returns more than zero bytes",
+      "preserve_conditions": [
+        "filename expansion failure",
+        "open failure",
+        "read error",
+        "empty file"
+      ],
+      "evidence": [
+        "manual.file",
+        "manual.file-read",
+        "file.expand",
+        "file.open",
+        "file.read",
+        "file.nonempty",
+        "file.store",
+        "file.expand-warning",
+        "limit.max-file-size",
+        "dispatch.buffer",
+        "dispatch.file"
+      ]
+    },
+    "f_cutfile": {
+      "filename_source": "XFetchBytes from cut buffer zero",
+      "filename_decoding": "the first nonempty sequence of non-whitespace bytes parsed by percent-s; remaining bytes are ignored",
+      "read_operation": "one read of at most MAX_FILE_SIZE minus one bytes",
+      "maximum_replacement_bytes": 4095,
+      "replacement_condition": "replace only when a filename token exists and the read returns more than zero bytes",
+      "preserve_conditions": [
+        "empty cut buffer",
+        "whitespace-only cut buffer",
+        "filename expansion failure",
+        "open failure",
+        "read error",
+        "empty file"
+      ],
+      "evidence": [
+        "manual.cutfile",
+        "manual.cutfile-source",
+        "manual.cutfile-replace",
+        "cutfile.fetch",
+        "cutfile.token",
+        "cutfile.expand",
+        "cutfile.open",
+        "cutfile.read",
+        "cutfile.nonempty",
+        "cutfile.store",
+        "cutfile.empty-warning",
+        "limit.max-file-size",
+        "dispatch.cutfile"
+      ]
+    },
+    "filename_expansion": {
+      "plain": "a name not beginning with tilde is duplicated unchanged",
+      "leading_tilde": "any leading tilde is removed and HOME, a slash, and the entire remainder are concatenated",
+      "tilde_user_lookup": false,
+      "examples": {
+        "file": "file",
+        "~/file": "HOME//file",
+        "~user/file": "HOME/user/file"
+      },
+      "evidence": [
+        "expand.leading-tilde",
+        "expand.plain-copy",
+        "expand.allocation",
+        "expand.join"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": {
+      "f.cut": "behaviorally-equivalent",
+      "cut-shorthand": "behaviorally-equivalent",
+      "f.file": "behaviorally-equivalent",
+      "f.cutfile": "behaviorally-equivalent"
+    },
+    "legacy_buffer": {
+      "owner": "the compositor",
+      "representation": "an explicit byte array and byte length; embedded zero bytes are preserved",
+      "initial_state": "empty and unpublished",
+      "replacement_rule": "construct or read a complete nonempty successful replacement before atomically replacing the prior bytes",
+      "persistence_rule": "foreign clipboard owners and in-process configuration restart do not mutate the legacy bytes",
+      "maximum_file_bytes": 4095
+    },
+    "successful_publish": {
+      "order": [
+        "atomically replace the compositor legacy bytes",
+        "replace the ordinary Wayland CLIPBOARD selection with a compositor-owned source",
+        "mirror the exact bytes to Xwayland root CUT_BUFFER0 type STRING when Xwayland is ready"
+      ],
+      "failure_isolation": "an unavailable or failed Xwayland mirror never rolls back the legacy bytes or Wayland CLIPBOARD publication",
+      "primary_selection": "never read, replace, clear, or otherwise mutate PRIMARY"
+    },
+    "wayland_clipboard": {
+      "seat_channel": "ordinary CLIPBOARD via wlr_seat_set_selection",
+      "mime_types": [
+        "text/plain;charset=utf-8",
+        "text/plain"
+      ],
+      "serial": "wl_display_next_serial on the compositor display for every compositor-owned publication",
+      "send": "write the exact stored byte length, retry partial writes and EINTR, stop on permanent write failure, and close the requested file descriptor exactly once",
+      "cancellation": "when replaced by any owner, the compositor source is canceled and destroyed without freeing or changing the persistent legacy bytes",
+      "destruction": "source destroy frees each advertised MIME string, the MIME array, source payload snapshot, and source allocation exactly once"
+    },
+    "xwayland_cut_buffer": {
+      "property": "CUT_BUFFER0 on the Xwayland root window",
+      "type": "STRING",
+      "format": 8,
+      "mode": "replace",
+      "payload": "the exact legacy byte array and byte length",
+      "readiness": "actions work before Xwayland exists; once Xwayland and its atoms are ready, any nonempty persistent legacy bytes are mirrored before later actions rely on CUT_BUFFER0",
+      "connection_loss": "preserve the legacy bytes and Wayland CLIPBOARD source for a later Xwayland readiness mirror"
+    },
+    "cutfile_source_precedence": {
+      "xwayland_ready": "fetch CUT_BUFFER0 and use its first whitespace-delimited filename token; an empty, whitespace-only, unreadable, or invalid property preserves the prior legacy bytes",
+      "xwayland_unavailable": "use the first whitespace-delimited filename token from the persistent internal legacy bytes",
+      "clipboard_independence": "never obtain the filename from the current ordinary CLIPBOARD owner"
+    },
+    "action_outputs": {
+      "f.cut": "argument bytes followed by exactly one newline byte, including a lone newline for an empty argument",
+      "f.file": "the first 4095 bytes returned by one successful nonempty file read",
+      "f.cutfile": "the first 4095 bytes returned by one successful nonempty read of the resolved file"
+    },
+    "lifecycle": {
+      "restart": "an in-process configuration restart retains the legacy bytes, active compositor-owned clipboard source, seat, Wayland clients, and Xwayland connection",
+      "shutdown": "destroy any active compositor-owned source, free persistent legacy bytes exactly once, remove listeners, and issue no use-after-free callbacks",
+      "ownership_replacement": "a newer f.cut, f.file, or f.cutfile publication cancels and destroys the previous source after the seat adopts the new source"
+    }
+  },
+  "requirements": [
+    {
+      "id": "cut.parser-identity",
+      "level": "MUST",
+      "rule": "Recognize f.cut and f.file with one string, f.cutfile with none, and caret as the exact f.cut shorthand.",
+      "evidence": [
+        "parse.cut",
+        "parse.cutfile",
+        "parse.file",
+        "lexer.cut-shorthand",
+        "parser.string-action"
+      ]
+    },
+    {
+      "id": "cut.reference-bytes",
+      "level": "MUST",
+      "rule": "Preserve the exact reference newline, tokenization, leading-tilde, one-read, 4095-byte, and nonempty-success semantics.",
+      "evidence": [
+        "cut.newline",
+        "cutfile.token",
+        "cutfile.read",
+        "cutfile.nonempty",
+        "file.read",
+        "file.nonempty",
+        "limit.max-file-size",
+        "expand.leading-tilde",
+        "expand.join"
+      ]
+    },
+    {
+      "id": "cut.persistent-buffer",
+      "level": "MUST",
+      "rule": "Keep compositor-owned length-delimited legacy bytes independent of transient clipboard ownership and preserve them on every failed or empty file action.",
+      "evidence": [
+        "cutfile.nonempty",
+        "file.nonempty"
+      ]
+    },
+    {
+      "id": "cut.clipboard-publication",
+      "level": "MUST",
+      "rule": "Every successful action publishes exact bytes to ordinary Wayland CLIPBOARD with a compositor serial and never changes PRIMARY.",
+      "evidence": [
+        "manual.cut-property",
+        "manual.file-destination"
+      ]
+    },
+    {
+      "id": "cut.xwayland-mirror",
+      "level": "MUST",
+      "rule": "Mirror successful bytes to root CUT_BUFFER0 as format-8 STRING when possible, preserve native success while unavailable, and synchronize persistent bytes when Xwayland becomes ready.",
+      "evidence": [
+        "manual.cut-property",
+        "cut.store",
+        "cutfile.store",
+        "file.store"
+      ]
+    },
+    {
+      "id": "cut.cutfile-source",
+      "level": "MUST",
+      "rule": "Resolve f.cutfile from Xwayland CUT_BUFFER0 when ready and otherwise from internal legacy bytes, using the first whitespace token and never the clipboard owner.",
+      "evidence": [
+        "manual.cutfile-source",
+        "cutfile.fetch",
+        "cutfile.token"
+      ]
+    },
+    {
+      "id": "cut.source-io-safety",
+      "level": "MUST",
+      "rule": "The compositor data source handles partial writes, EINTR, permanent failure, fd closure, cancellation, and destruction without leaks, double frees, or stale callbacks.",
+      "evidence": [
+        "cut.store",
+        "file.store"
+      ]
+    },
+    {
+      "id": "cut.lifecycle",
+      "level": "MUST",
+      "rule": "Configuration restart preserves clients, seat, selections, connection, and legacy bytes; shutdown destroys the source and bytes safely.",
+      "evidence": [
+        "manual.cut-property",
+        "manual.file-destination"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "parser-three-actions-and-shorthand",
+      "kind": "parser-positive-negative-pair",
+      "oracle": "The three action signatures and caret alias parse exactly; missing or extra action strings are rejected."
+    },
+    {
+      "id": "reference-cut-newline",
+      "kind": "reference-positive",
+      "oracle": "f.cut stores argument plus one newline and an empty argument stores a lone newline."
+    },
+    {
+      "id": "reference-file-capacity",
+      "kind": "reference-boundary",
+      "oracle": "f.file replaces with exactly the first 4095 available bytes and performs no second read."
+    },
+    {
+      "id": "reference-cutfile-token",
+      "kind": "reference-boundary",
+      "oracle": "f.cutfile skips leading whitespace, uses the first token only, expands a leading tilde, and ignores trailing tokens."
+    },
+    {
+      "id": "native-before-xwayland",
+      "kind": "runtime-readiness",
+      "oracle": "f.cut and file actions publish a native CLIPBOARD and persistent bytes while Xwayland is unavailable."
+    },
+    {
+      "id": "late-xwayland-mirror",
+      "kind": "runtime-readiness",
+      "oracle": "When Xwayland becomes ready, its root CUT_BUFFER0 is format-8 STRING containing the exact preexisting legacy bytes."
+    },
+    {
+      "id": "dual-publish-xwayland-ready",
+      "kind": "runtime-cross-client",
+      "oracle": "One action produces identical length-delimited bytes through native CLIPBOARD, X11 CLIPBOARD conversion, and root CUT_BUFFER0."
+    },
+    {
+      "id": "native-to-x11-clipboard",
+      "kind": "runtime-cross-client",
+      "oracle": "An X11 clipboard requestor receives the exact compositor source bytes after a native-target action."
+    },
+    {
+      "id": "xwayland-to-native-clipboard",
+      "kind": "runtime-cross-client",
+      "oracle": "A native Wayland requestor receives the exact compositor source bytes after an Xwayland-target action."
+    },
+    {
+      "id": "cutfile-external-x-property",
+      "kind": "runtime-xwayland",
+      "oracle": "A foreign X client can place a filename and trailing tokens in CUT_BUFFER0; f.cutfile reads the first token and dual-publishes the file bytes."
+    },
+    {
+      "id": "cutfile-internal-fallback",
+      "kind": "runtime-native",
+      "oracle": "Without Xwayland, f.cutfile resolves the first filename token from persistent legacy bytes rather than requiring X."
+    },
+    {
+      "id": "foreign-clipboard-independence",
+      "kind": "runtime-state-machine",
+      "oracle": "A foreign CLIPBOARD owner cancels the source but neither alters persistent bytes nor becomes the f.cutfile filename source."
+    },
+    {
+      "id": "primary-invariance",
+      "kind": "runtime-negative",
+      "oracle": "An existing PRIMARY owner and payload remain unchanged across every cut-buffer action and error."
+    },
+    {
+      "id": "empty-and-error-preserve",
+      "kind": "runtime-negative",
+      "oracle": "Missing, unreadable, empty, and read-error files plus empty or whitespace-only filename sources preserve bytes and selections."
+    },
+    {
+      "id": "file-exact-capacity",
+      "kind": "runtime-boundary",
+      "oracle": "A file larger than 4095 bytes publishes only its first 4095 bytes with no terminator or second read."
+    },
+    {
+      "id": "binary-byte-length",
+      "kind": "runtime-boundary",
+      "oracle": "A file containing embedded zero bytes is served and mirrored using the explicit byte length without truncation."
+    },
+    {
+      "id": "successive-source-replacement",
+      "kind": "runtime-state-machine",
+      "oracle": "Each successful action replaces the clipboard source; old sources are canceled and destroyed and the newest bytes remain readable."
+    },
+    {
+      "id": "restart-preserves-source",
+      "kind": "runtime-lifecycle",
+      "oracle": "After in-process restart, existing native and Xwayland clients read the same bytes and no selection ownership is lost."
+    },
+    {
+      "id": "send-io-boundaries",
+      "kind": "runtime-resource-safety",
+      "oracle": "Short writes and EINTR complete, permanent errors stop, and each requested fd and source allocation is released exactly once."
+    },
+    {
+      "id": "shutdown-destruction",
+      "kind": "runtime-resource-safety",
+      "oracle": "Shutdown with an active source releases listeners, source resources, and legacy bytes without a callback into freed memory."
+    }
+  ]
+}
