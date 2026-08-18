@@ -707,6 +707,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 X screen output mapping contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_screen_output_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 8 f.colormap translation contract',
   find_program('python3'),
   args: [
