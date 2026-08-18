@@ -124,6 +124,14 @@ static void selects_canonical_output_geometry(void) {
 	assert(selected == 1); /* equal-distance gap tie */
 	assert(wtwm_placement_output_for_point(areas, 3, -500, -500, &selected));
 	assert(selected == 0);
+	int nearest_x = 0;
+	int nearest_y = 0;
+	assert(wtwm_placement_nearest_point(areas, 3, 201, 100,
+		&nearest_x, &nearest_y));
+	assert(nearest_x == 200 && nearest_y == 99);
+	assert(wtwm_placement_nearest_point(areas, 3, 110, 20,
+		&nearest_x, &nearest_y));
+	assert(nearest_x == 110 && nearest_y == 20);
 	assert(wtwm_placement_output_for_outer(areas, 3, 80, 0, 80, 100,
 		&selected));
 	assert(selected == 1);
@@ -142,6 +150,8 @@ static void selects_canonical_output_geometry(void) {
 	assert(selected == 0); /* equal intersection keeps canonical order */
 	assert(!wtwm_placement_output_for_point(NULL, 0, 0, 0, &selected));
 	assert(!wtwm_placement_output_for_point(areas, 0, 0, 0, &selected));
+	assert(!wtwm_placement_nearest_point(areas, 0, 0, 0,
+		&nearest_x, &nearest_y));
 	struct wtwm_placement_area invalid[] = {{.width = 0, .height = 20}};
 	assert(!wtwm_placement_output_for_outer(invalid, 1, 0, 0, 10, 10,
 		&selected));

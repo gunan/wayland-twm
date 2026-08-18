@@ -103,6 +103,22 @@ bool wtwm_placement_output_for_point(const struct wtwm_placement_area *areas,
 	return found;
 }
 
+bool wtwm_placement_nearest_point(const struct wtwm_placement_area *areas,
+		size_t count, int point_x, int point_y, int *nearest_x, int *nearest_y) {
+	if (nearest_x == NULL || nearest_y == NULL) return false;
+	size_t selected = 0;
+	if (!wtwm_placement_output_for_point(areas, count, point_x, point_y,
+			&selected)) return false;
+	const struct wtwm_placement_area *area = &areas[selected];
+	int64_t right = (int64_t)area->x + area->width - 1;
+	int64_t bottom = (int64_t)area->y + area->height - 1;
+	*nearest_x = point_x < area->x ? area->x :
+		((int64_t)point_x > right ? saturate_int(right) : point_x);
+	*nearest_y = point_y < area->y ? area->y :
+		((int64_t)point_y > bottom ? saturate_int(bottom) : point_y);
+	return true;
+}
+
 static uint64_t intersection_area(const struct wtwm_placement_area *area,
 		int x, int y, int width, int height) {
 	if (!valid_area(area) || width <= 0 || height <= 0) return 0;

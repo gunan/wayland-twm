@@ -4913,10 +4913,36 @@ static void refresh_output_topology(struct server *server) {
 		return;
 	}
 	if (server->cursor != NULL) {
-		double x = server->cursor->x, y = server->cursor->y;
-		wlr_output_layout_closest_point(server->output_layout, NULL,
-			x, y, &x, &y);
-		wlr_cursor_warp_closest(server->cursor, NULL, x, y);
+		struct wtwm_output_order *snapshot = NULL;
+		struct wtwm_placement_area *areas = NULL;
+		size_t count = 0;
+		double cursor_x = server->cursor->x;
+		double cursor_y = server->cursor->y;
+		bool inside = false;
+		if (output_area_snapshot(server, &snapshot, &areas, &count)) {
+			for (size_t index = 0; index < count; ++index) {
+				int64_t right = (int64_t)areas[index].x + areas[index].width;
+				int64_t bottom = (int64_t)areas[index].y + areas[index].height;
+				if (cursor_x >= areas[index].x && cursor_x < (double)right &&
+						cursor_y >= areas[index].y && cursor_y < (double)bottom) {
+					inside = true;
+					break;
+				}
+			}
+			if (!inside) {
+				int point_x = cursor_x <= INT_MIN ? INT_MIN :
+					(cursor_x >= INT_MAX ? INT_MAX : (int)cursor_x);
+				int point_y = cursor_y <= INT_MIN ? INT_MIN :
+					(cursor_y >= INT_MAX ? INT_MAX : (int)cursor_y);
+				int nearest_x = 0, nearest_y = 0;
+				if (wtwm_placement_nearest_point(areas, count, point_x, point_y,
+						&nearest_x, &nearest_y))
+					wlr_cursor_warp_closest(server->cursor, NULL,
+						nearest_x, nearest_y);
+			}
+		}
+		free(areas);
+		wtwm_output_order_destroy(snapshot);
 		if (server->seat != NULL) refresh_pointer_after_restart(server);
 	}
 	resume_output_waiting_toplevels(server);

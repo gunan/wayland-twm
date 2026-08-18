@@ -44,6 +44,9 @@ struct wtwm_placement_area {
  */
 bool wtwm_placement_output_for_point(const struct wtwm_placement_area *areas,
 	size_t count, int point_x, int point_y, size_t *selected);
+/* Return the selected output's nearest integer point inside half-open bounds. */
+bool wtwm_placement_nearest_point(const struct wtwm_placement_area *areas,
+	size_t count, int point_x, int point_y, int *nearest_x, int *nearest_y);
 bool wtwm_placement_output_for_outer(const struct wtwm_placement_area *areas,
 	size_t count, int outer_x, int outer_y, int outer_width, int outer_height,
 	size_t *selected);
