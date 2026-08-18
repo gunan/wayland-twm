@@ -5,6 +5,7 @@
 #include <wtwm/xbm.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <wlr/types/wlr_buffer.h>
 #include <xcb/xcb.h>
 
@@ -24,6 +25,9 @@ struct wlr_buffer *wtwm_render_pattern(int width, int height,
 	const unsigned char *bits, unsigned int pattern_width,
 	unsigned int pattern_height, const float foreground[static 4],
 	const float background[static 4]);
+/* EWMH _NET_WM_ICON pixels are unpremultiplied AARRGGBB values. */
+struct wlr_buffer *wtwm_render_argb_icon(int width, int height,
+	const uint32_t *pixels);
 struct wlr_buffer *wtwm_render_xbm_cursor(const struct wtwm_xbm *source,
 	const struct wtwm_xbm *mask, const float foreground[static 4],
 	const float background[static 4]);

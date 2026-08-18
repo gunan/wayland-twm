@@ -20,7 +20,7 @@ EVENT_MINIMUMS = {
     '"restack", "frame"': 2,
     '"title", "title"': 1,
     '"icon_name", "icon"': 1,
-    '"destroy", "client"': 3,
+    '"destroy", "client"': 2,
 }
 
 SCHEMA_FRAGMENTS = (

@@ -51,9 +51,22 @@ def title_point(item: dict[str, object]) -> tuple[int, int]:
     )
 
 
-def press_at(control: Control, point: tuple[int, int], button: int = 272) -> None:
-    control.command(f"POINTER {point[0]} {point[1]}")
-    control.command(f"BUTTON {button} press")
+def press_at(control: Control, point: tuple[int, int], button: int = 272,
+             context: str = "title") -> None:
+    deadline = time.monotonic() + 10
+    latest: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        control.command(f"POINTER {point[0]} {point[1]}")
+        control.command("WAIT 2")
+        latest = control.state()
+        if (latest["pointer_window"] == "interaction-primary" and
+                latest["pointer_context"] == context):
+            control.command(f"BUTTON {button} press")
+            return
+        time.sleep(0.01)
+    raise RuntimeError(
+        f"pointer did not reach {context!r} context before press: {latest!r}"
+    )
 
 
 def release(control: Control, button: int = 272) -> None:
@@ -161,7 +174,7 @@ def resize_scenario(control: Control) -> None:
     }
     top_left = (original["x"] + original["content_x"] + 10,
                 original["y"] + original["content_y"] + 5)
-    press_at(control, top_left, 273)
+    press_at(control, top_left, 273, "window")
     edges = int(interaction(control)["edges"])
     if edges != 5:
         raise RuntimeError(f"AutoRelativeResize did not select top-left: {interaction(control)!r}")
@@ -191,7 +204,7 @@ def resize_scenario(control: Control) -> None:
         original["x"] + original["content_x"] + original["width"] * 5 // 6,
         original["y"] + original["content_y"] + original["height"] * 5 // 6,
     )
-    press_at(control, bottom_right, 273)
+    press_at(control, bottom_right, 273, "window")
     if int(interaction(control)["edges"]) != 10:
         raise RuntimeError(f"AutoRelativeResize did not select bottom-right: {interaction(control)!r}")
     control.command(f"POINTER {bottom_right[0] + 31} {bottom_right[1] + 21}")
@@ -235,7 +248,7 @@ def opaque_and_no_raise_scenario(control: Control) -> None:
     item = state_window(control)
     point = (int(item["x"]) + int(item["content_x"]) + int(item["width"]) - 4,
              int(item["y"]) + int(item["content_y"]) + int(item["height"]) - 4)
-    press_at(control, point, 274)
+    press_at(control, point, 274, "window")
     control.command(f"POINTER {point[0] + 20} {point[1] + 10}")
     release(control, 274)
     if int(state_window(control)["stack"]) != 1:
@@ -348,6 +361,9 @@ def run_session(compositor: Path, client_binary: Path, config_text: str,
             wait_line(client, "READY")
             state_window(control)
             state_window(control, "interaction-secondary")
+            # Mapping metadata can precede the first fully hittable Xwayland
+            # scene buffer under debug and sanitizer instrumentation.
+            control.command("WAIT 2")
             control.command("TRACE CLEAR")
             scenario(control)
             assert client.stdin is not None

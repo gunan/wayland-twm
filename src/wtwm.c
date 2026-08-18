@@ -14,6 +14,8 @@
 #include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
+#include "wtwm/icon_layout.h"
+#include "wtwm/icon_manager.h"
 #include "wtwm/interaction.h"
 #include "wtwm/placement.h"
 #include "wtwm/visual.h"
@@ -23,6 +25,7 @@
 #endif
 
 #include <errno.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -203,7 +206,27 @@ struct toplevel {
 	bool decorated;
 	bool associated;
 	bool rules_initialized;
+	bool xwayland_map_requested;
+	bool start_iconified_match;
 	bool auto_raise;
+	bool iconify_by_unmapping;
+	bool icon_region_allocated;
+	bool icon_moved;
+	uint64_t icon_identity;
+	uint64_t icon_manager_identity;
+	char *xwayland_direct_name;
+	char *xwayland_direct_instance;
+	char *xwayland_direct_class;
+	struct wlr_buffer *icon_manager_text_buffer;
+	char *icon_manager_text_label;
+	char *icon_manager_text_font;
+	float icon_manager_text_color[4];
+	int icon_manager_text_width;
+	int icon_manager_text_height;
+	struct wlr_buffer *icon_manager_marker_buffer;
+	float icon_manager_marker_color[4];
+	int icon_manager_marker_size;
+	char icon_source[16];
 	struct wtwm_zoom_state zoom;
 	enum wtwm_placement_kind placement_kind;
 	char *icon_name;
@@ -212,6 +235,12 @@ struct toplevel {
 	uint32_t net_wm_icon_count;
 	uint32_t net_wm_icon_checksum;
 	bool net_wm_icon_truncated;
+	uint32_t *net_wm_icon_pixels;
+	unsigned char *wm_hints_icon_bits;
+	unsigned int wm_hints_icon_width;
+	unsigned int wm_hints_icon_height;
+	unsigned int wm_hints_icon_window_width;
+	unsigned int wm_hints_icon_window_height;
 	struct wl_event_source *xwayland_sync_idle;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
@@ -327,6 +356,30 @@ struct menu_row_palette {
 	bool user_colors;
 };
 
+struct icon_manager_view {
+	uint64_t identity;
+	struct wlr_scene_tree *tree;
+	int x;
+	int y;
+	int width;
+	int height;
+	int row_height;
+};
+
+struct icon_animation {
+	struct wlr_scene_tree *tree;
+	struct wlr_scene_rect *top;
+	struct wlr_scene_rect *bottom;
+	struct wlr_scene_rect *left;
+	struct wlr_scene_rect *right;
+	struct wl_event_source *timer;
+	struct wtwm_interaction_box from;
+	struct wtwm_interaction_box to;
+	unsigned step;
+	unsigned steps;
+	unsigned interval_ms;
+};
+
 struct interaction_session {
 	struct wtwm_interaction_box original;
 	struct wtwm_interaction_box preview;
@@ -381,6 +434,7 @@ struct server {
 	struct wlr_scene_tree *view_tree;
 	struct wlr_scene_tree *overlay_tree;
 	struct wlr_scene_tree *menu_tree;
+	struct wlr_scene_tree *icon_manager_tree;
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
@@ -397,6 +451,12 @@ struct server {
 	uint64_t placement_order_next;
 	struct wtwm_random_placement random_placement;
 	struct menu_view menu;
+	struct wtwm_icon_layout *icon_layout;
+	struct wtwm_icon_manager_state icon_managers;
+	struct icon_manager_view icon_manager_views[WTWM_ICON_MANAGER_MAX_MANAGERS];
+	size_t icon_manager_view_count;
+	struct icon_animation icon_animation;
+	uint64_t next_icon_identity;
 	struct wtwm_menu windows_menu;
 	struct toplevel **windows_menu_targets;
 	struct wlr_cursor *cursor;
@@ -444,6 +504,7 @@ struct server {
 	struct toplevel *xwayland_input_focus;
 	struct toplevel *pointer_toplevel;
 	uint32_t pointer_context;
+	uint64_t icon_manager_down_identity;
 	bool focus_root;
 	const char *config_path;
 	int argc;
@@ -469,6 +530,13 @@ static void cancel_initial_placement(struct toplevel *toplevel);
 static void start_next_initial_placement(struct server *server);
 static void update_title_text(struct toplevel *toplevel);
 static void update_decoration(struct toplevel *toplevel);
+static void refresh_icon_managers(struct server *server);
+static void sync_icon_manager_toplevel(struct toplevel *toplevel);
+static void rebuild_icon_layout(struct server *server);
+static void finish_icon_animation(struct server *server);
+static void manage_bufferless_start_iconified(struct toplevel *toplevel);
+static bool icon_selector_matches(const struct wtwm_client_identity *identity,
+	const char *selector, unsigned int pass);
 static struct server *xwayland_event_server;
 
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
@@ -597,9 +665,23 @@ static struct wlr_surface *toplevel_surface(const struct toplevel *toplevel) {
 	return toplevel->xwayland != NULL ? toplevel->xwayland->surface : NULL;
 }
 
+static void finish_surface_frame(struct wlr_surface *surface) {
+	if (surface == NULL || !wlr_surface_has_buffer(surface)) return;
+	struct timespec now;
+	if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
+		wlr_surface_send_frame_done(surface, &now);
+}
+
+static const char *xwayland_identity_value(const char *primary,
+		const char *direct) {
+	return primary != NULL && primary[0] != '\0' ? primary : direct;
+}
+
 static const char *toplevel_title(const struct toplevel *toplevel) {
-	const char *title = toplevel->xdg != NULL ? toplevel->xdg->title :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->title : NULL);
+	const char *title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL;
+	if (toplevel->xwayland != NULL)
+		title = xwayland_identity_value(toplevel->xwayland->title,
+			toplevel->xwayland_direct_name);
 	return title != NULL ? title : "";
 }
 
@@ -627,9 +709,12 @@ static struct wtwm_client_identity toplevel_identity(
 	if (toplevel == NULL) return (struct wtwm_client_identity){0};
 	if (toplevel->xwayland != NULL)
 		return (struct wtwm_client_identity){
-			.name = toplevel->xwayland->title,
-			.resource_name = toplevel->xwayland->instance,
-			.resource_class = toplevel->xwayland->class,
+			.name = xwayland_identity_value(toplevel->xwayland->title,
+				toplevel->xwayland_direct_name),
+			.resource_name = xwayland_identity_value(toplevel->xwayland->instance,
+				toplevel->xwayland_direct_instance),
+			.resource_class = xwayland_identity_value(toplevel->xwayland->class,
+				toplevel->xwayland_direct_class),
 		};
 	return (struct wtwm_client_identity){
 		.title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL,
@@ -690,9 +775,11 @@ static void configured_color(struct server *server, const char *setting,
 
 static bool toplevel_matches(const struct wtwm_string_list *patterns,
 		const struct toplevel *toplevel) {
-	if (toplevel->xwayland != NULL)
-		return wtwm_config_match_x11(patterns, toplevel->xwayland->title,
-			toplevel->xwayland->instance, toplevel->xwayland->class);
+	if (toplevel->xwayland != NULL) {
+		struct wtwm_client_identity identity = toplevel_identity(toplevel);
+		return wtwm_config_match_x11(patterns, identity.name,
+			identity.resource_name, identity.resource_class);
+	}
 	return wtwm_config_match_native(patterns, toplevel->xdg->title,
 		toplevel->xdg->app_id);
 }
@@ -708,19 +795,57 @@ static bool should_decorate(const struct toplevel *toplevel) {
 		transient, toplevel->server->config.decorate_transients);
 }
 
+static bool window_list_rule(const struct wtwm_config *config,
+		const char *directive, const struct wtwm_client_identity *identity,
+		bool *bare) {
+	bool matched = false;
+	if (bare != NULL) *bare = false;
+	for (size_t i = 0; i < config->window_list_count; ++i) {
+		const struct wtwm_window_list *list = &config->window_lists[i];
+		if (strcasecmp(list->directive, directive) != 0) continue;
+		if (list->bare) {
+			if (bare != NULL) *bare = true;
+			matched = true;
+		} else if (wtwm_config_match_client(&list->names, identity)) {
+			matched = true;
+		}
+	}
+	return matched;
+}
+
+static bool should_iconify_by_unmapping(const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	bool bare = false;
+	bool named = false;
+	for (size_t i = 0; i < toplevel->server->config.window_list_count; ++i) {
+		const struct wtwm_window_list *list =
+			&toplevel->server->config.window_lists[i];
+		if (strcasecmp(list->directive, "IconifyByUnmapping") != 0) continue;
+		if (list->bare) bare = true;
+		else if (wtwm_config_match_client(&list->names, &identity)) named = true;
+	}
+	if (named) return true;
+	if (!bare) return false;
+	bool excluded = window_list_rule(&toplevel->server->config,
+		"DontIconifyByUnmapping", &identity, NULL);
+	return !excluded;
+}
+
 static bool initialize_toplevel_rules(struct toplevel *toplevel) {
 	if (toplevel->rules_initialized || (toplevel->xwayland != NULL &&
 			toplevel->xwayland->override_redirect)) return false;
 	toplevel->auto_raise = toplevel->server->config.auto_raise ||
 		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	toplevel->iconify_by_unmapping = should_iconify_by_unmapping(toplevel);
 	toplevel->rules_initialized = true;
 	return true;
 }
 
 static bool should_start_iconified(const struct toplevel *toplevel,
 		bool initial_rules) {
-	return initial_rules && toplevel_matches(
-		&toplevel->server->config.start_iconified_windows, toplevel);
+	return initial_rules && (toplevel->start_iconified_match ||
+		toplevel_matches(&toplevel->server->config.start_iconified_windows,
+			toplevel));
 }
 
 static void sync_toplevel_popups(struct toplevel *toplevel);
@@ -754,14 +879,13 @@ static void test_trace_copy(char destination[TEST_TRACE_IDENTITY_MAX],
 }
 
 static void test_trace_snapshot_identity(struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
 	test_trace_copy(toplevel->test_title, toplevel_title(toplevel));
 	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+		identity.resource_class;
 	test_trace_copy(toplevel->test_app_id, app_id);
-	test_trace_copy(toplevel->test_instance, toplevel->xwayland != NULL ?
-		toplevel->xwayland->instance : NULL);
-	test_trace_copy(toplevel->test_class_name, toplevel->xwayland != NULL ?
-		toplevel->xwayland->class : NULL);
+	test_trace_copy(toplevel->test_instance, identity.resource_name);
+	test_trace_copy(toplevel->test_class_name, identity.resource_class);
 	test_trace_copy(toplevel->test_icon_name, toplevel->icon_name);
 }
 
@@ -1305,8 +1429,9 @@ static void update_decoration(struct toplevel *toplevel) {
 		toplevel->decorated && clipped_text_width > 0);
 	wlr_scene_node_set_position(&toplevel->title_text->node,
 		layout.text.x, layout.text.y);
-	wlr_scene_node_set_position(&toplevel->content->node,
-		geometry.content_x, geometry.content_y);
+	if (toplevel->content != NULL)
+		wlr_scene_node_set_position(&toplevel->content->node,
+			geometry.content_x, geometry.content_y);
 	sync_toplevel_popups(toplevel);
 }
 
@@ -1317,6 +1442,355 @@ static void set_decorated(struct toplevel *toplevel, bool enabled) {
 	wlr_scene_node_set_enabled(&toplevel->title_tree->node, enabled);
 	wlr_scene_node_set_enabled(&toplevel->focus_mark->node, false);
 	update_decoration(toplevel);
+}
+
+static struct toplevel *icon_manager_toplevel(struct server *server,
+		uint64_t identity) {
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		if (toplevel->icon_identity == identity) return toplevel;
+	return NULL;
+}
+
+static const char *icon_manager_label(const struct toplevel *toplevel) {
+	return toplevel->icon_name != NULL && toplevel->icon_name[0] != '\0' ?
+		toplevel->icon_name : toplevel_title(toplevel);
+}
+
+static bool icon_manager_transient(const struct toplevel *toplevel) {
+	return toplevel->xwayland != NULL ? toplevel->xwayland->parent != NULL :
+		(toplevel->xdg != NULL && toplevel->xdg->parent != NULL);
+}
+
+static bool icon_manager_shows_toplevel(const struct toplevel *toplevel) {
+	struct server *server = toplevel->server;
+	if (server->config.no_icon_managers || icon_manager_transient(toplevel) ||
+			(toplevel->xwayland != NULL &&
+			toplevel->xwayland->override_redirect)) return false;
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	bool hidden = window_list_rule(&server->config,
+		"IconManagerDontShow", &identity, NULL);
+	bool shown = window_list_rule(&server->config,
+		"IconManagerShow", &identity, NULL);
+	return !hidden || shown;
+}
+
+static uint64_t icon_manager_for_toplevel(const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	for (unsigned pass = 0; pass < 3; ++pass)
+		for (size_t i = 0; i < toplevel->server->config.icon_manager_count; ++i)
+			if (icon_selector_matches(&identity,
+					toplevel->server->config.icon_managers[i].window_name, pass)) {
+				uint64_t candidate = (uint64_t)i + 2;
+				if (wtwm_icon_manager_find(&toplevel->server->icon_managers,
+						candidate) != NULL) return candidate;
+			}
+	return 1;
+}
+
+static const char *icon_manager_geometry(const struct server *server,
+		uint64_t identity) {
+	if (identity == 1) return server->config.icon_manager_geometry;
+	size_t index = (size_t)(identity - 2);
+	return index < server->config.icon_manager_count ?
+		server->config.icon_managers[index].geometry : "";
+}
+
+static bool parse_manager_number(const char **cursor, long *value) {
+	if (!isdigit((unsigned char)**cursor)) return false;
+	errno = 0;
+	char *end = NULL;
+	long result = strtol(*cursor, &end, 10);
+	if (errno != 0 || end == *cursor) return false;
+	*cursor = end;
+	*value = result;
+	return true;
+}
+
+static void icon_manager_box(const struct server *server, uint64_t identity,
+		int packed_width, int packed_height, int *x, int *y, int *width) {
+	const char *cursor = icon_manager_geometry(server, identity);
+	int requested_width = 150;
+	long geometry_width = 0;
+	long ignored_height = 0;
+	long offset_x = 0;
+	long offset_y = 0;
+	bool negative_x = false;
+	bool negative_y = false;
+	if (cursor != NULL && *cursor == '=') ++cursor;
+	if (cursor != NULL && parse_manager_number(&cursor, &geometry_width) &&
+			(*cursor == 'x' || *cursor == 'X')) {
+		++cursor;
+		if (!parse_manager_number(&cursor, &ignored_height)) cursor = "";
+		else if (geometry_width > 0 && geometry_width <= INT_MAX)
+			requested_width = (int)geometry_width;
+	}
+	if (cursor != NULL && (*cursor == '+' || *cursor == '-')) {
+		negative_x = *cursor++ == '-';
+		if (!parse_manager_number(&cursor, &offset_x)) offset_x = 0;
+		if (*cursor == '+' || *cursor == '-') {
+			negative_y = *cursor++ == '-';
+			if (!parse_manager_number(&cursor, &offset_y)) offset_y = 0;
+		}
+	}
+	struct wlr_box layout = {0};
+	wlr_output_layout_get_box(server->output_layout, NULL, &layout);
+	if (layout.width <= 0) layout.width = 800;
+	if (layout.height <= 0) layout.height = 600;
+	*width = packed_width > 0 ? packed_width : requested_width;
+	*x = negative_x ? layout.x + layout.width - *width - (int)offset_x :
+		layout.x + (int)offset_x;
+	*y = negative_y ? layout.y + layout.height - packed_height - (int)offset_y :
+		layout.y + (int)offset_y;
+}
+
+static void clear_icon_manager_text_cache(struct toplevel *toplevel) {
+	if (toplevel->icon_manager_text_buffer != NULL)
+		wlr_buffer_drop(toplevel->icon_manager_text_buffer);
+	toplevel->icon_manager_text_buffer = NULL;
+	free(toplevel->icon_manager_text_label);
+	toplevel->icon_manager_text_label = NULL;
+	free(toplevel->icon_manager_text_font);
+	toplevel->icon_manager_text_font = NULL;
+	toplevel->icon_manager_text_width = 0;
+	toplevel->icon_manager_text_height = 0;
+}
+
+static void clear_icon_manager_render_cache(struct toplevel *toplevel) {
+	clear_icon_manager_text_cache(toplevel);
+	if (toplevel->icon_manager_marker_buffer != NULL)
+		wlr_buffer_drop(toplevel->icon_manager_marker_buffer);
+	toplevel->icon_manager_marker_buffer = NULL;
+	toplevel->icon_manager_marker_size = 0;
+}
+
+static struct wlr_buffer *cached_icon_manager_text(struct toplevel *toplevel,
+		const char *label, const float color[4], int *width, int *height) {
+	const char *font = toplevel->server->config.icon_manager_font;
+	if (toplevel->icon_manager_text_buffer == NULL ||
+			toplevel->icon_manager_text_label == NULL ||
+			toplevel->icon_manager_text_font == NULL ||
+			strcmp(toplevel->icon_manager_text_label, label) != 0 ||
+			strcmp(toplevel->icon_manager_text_font, font) != 0 ||
+			memcmp(toplevel->icon_manager_text_color, color,
+				sizeof(toplevel->icon_manager_text_color)) != 0) {
+		clear_icon_manager_text_cache(toplevel);
+		toplevel->icon_manager_text_buffer = wtwm_render_text(label, font, color,
+			&toplevel->icon_manager_text_width,
+			&toplevel->icon_manager_text_height);
+		if (toplevel->icon_manager_text_buffer != NULL) {
+			toplevel->icon_manager_text_label = strdup(label);
+			toplevel->icon_manager_text_font = strdup(font);
+			memcpy(toplevel->icon_manager_text_color, color,
+				sizeof(toplevel->icon_manager_text_color));
+		}
+	}
+	*width = toplevel->icon_manager_text_width;
+	*height = toplevel->icon_manager_text_height;
+	return toplevel->icon_manager_text_buffer;
+}
+
+static struct wlr_buffer *cached_icon_manager_marker(struct toplevel *toplevel,
+		int size, const float color[4]) {
+	if (toplevel->icon_manager_marker_buffer == NULL ||
+			toplevel->icon_manager_marker_size != size ||
+			memcmp(toplevel->icon_manager_marker_color, color,
+				sizeof(toplevel->icon_manager_marker_color)) != 0) {
+		if (toplevel->icon_manager_marker_buffer != NULL)
+			wlr_buffer_drop(toplevel->icon_manager_marker_buffer);
+		toplevel->icon_manager_marker_buffer = wtwm_render_builtin_title(
+			":iconify", size, color);
+		toplevel->icon_manager_marker_size = size;
+		memcpy(toplevel->icon_manager_marker_color, color,
+			sizeof(toplevel->icon_manager_marker_color));
+	}
+	return toplevel->icon_manager_marker_buffer;
+}
+
+static void refresh_icon_managers(struct server *server) {
+	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
+		if (server->icon_manager_views[i].tree != NULL)
+			wlr_scene_node_destroy(&server->icon_manager_views[i].tree->node);
+	}
+	memset(server->icon_manager_views, 0, sizeof(server->icon_manager_views));
+	server->icon_manager_view_count = server->icon_managers.manager_count;
+	if (server->icon_manager_tree == NULL) return;
+	int font_height = 1;
+	int font_ascent = 1;
+	(void)wtwm_measure_font_metrics(server->config.icon_manager_font,
+		&font_height, &font_ascent);
+	int row_height = font_height + 10;
+	if (row_height < 12) row_height = 12;
+	for (size_t index = 0; index < server->icon_managers.manager_count; ++index) {
+		const struct wtwm_icon_manager_model *manager =
+			&server->icon_managers.managers[index];
+		struct icon_manager_view *view = &server->icon_manager_views[index];
+		view->identity = manager->identity;
+		view->row_height = row_height;
+		int requested_width = 150;
+		int ignored_x = 0;
+		int ignored_y = 0;
+		icon_manager_box(server, manager->identity, 0, row_height,
+			&ignored_x, &ignored_y, &requested_width);
+		size_t columns = manager->current_columns > 0 ?
+			manager->current_columns : 1;
+		int packed_width = requested_width;
+		if (manager->entry_count > 0 && columns < manager->columns)
+			packed_width = requested_width * (int)columns / (int)manager->columns;
+		if (packed_width < (int)columns) packed_width = (int)columns;
+		view->height = (int)(manager->current_rows > 0 ? manager->current_rows : 1) *
+			row_height;
+		icon_manager_box(server, manager->identity, packed_width, view->height,
+			&view->x, &view->y, &view->width);
+		view->tree = wlr_scene_tree_create(server->icon_manager_tree);
+		if (view->tree == NULL) continue;
+		float foreground[4], background[4];
+		configured_color(server, "IconManagerForeground", "black", NULL,
+			foreground);
+		configured_color(server, "IconManagerBackground", "white", NULL,
+			background);
+		wlr_scene_rect_create(view->tree, view->width, view->height, foreground);
+		struct wlr_scene_rect *inside = wlr_scene_rect_create(view->tree,
+			view->width > 2 ? view->width - 2 : 1,
+			view->height > 2 ? view->height - 2 : 1, background);
+		if (inside != NULL) wlr_scene_node_set_position(&inside->node, 1, 1);
+		int cell_width = view->width / (int)columns;
+		if (cell_width < 1) cell_width = 1;
+		for (size_t position = 0; position < manager->entry_count; ++position) {
+			const struct wtwm_icon_manager_entry *entry = wtwm_icon_manager_entry_at(
+				&server->icon_managers, manager->identity, position);
+			struct toplevel *toplevel = entry != NULL ?
+				icon_manager_toplevel(server, entry->identity) : NULL;
+			if (entry == NULL || toplevel == NULL) continue;
+			struct wlr_scene_tree *row = wlr_scene_tree_create(view->tree);
+			if (row == NULL) continue;
+			row->node.data = toplevel;
+			wlr_scene_node_set_position(&row->node,
+				(int)entry->column * cell_width,
+				(int)entry->row * row_height);
+			float row_background[4], row_border[4], row_foreground[4];
+			configured_color(server, "IconManagerBackground", "white", toplevel,
+				row_background);
+			configured_color(server, "IconManagerForeground", "black", toplevel,
+				row_foreground);
+			if (server->icon_managers.active_entry_identity == entry->identity)
+				configured_color(server, "IconManagerHighlight", "black", toplevel,
+					row_border);
+			else memcpy(row_border, row_foreground, sizeof(row_border));
+			wlr_scene_rect_create(row, cell_width, row_height, row_border);
+			int inset = server->icon_manager_down_identity == entry->identity ? 2 : 1;
+			struct wlr_scene_rect *row_inside = wlr_scene_rect_create(row,
+				cell_width > 2 * inset ? cell_width - 2 * inset : 1,
+				row_height > 2 * inset ? row_height - 2 * inset : 1,
+				row_background);
+			if (row_inside != NULL)
+				wlr_scene_node_set_position(&row_inside->node, inset, inset);
+			int button_size = row_height - 6;
+			if (button_size < 4) button_size = 4;
+			if (toplevel->iconified) {
+				struct wlr_buffer *marker = cached_icon_manager_marker(toplevel,
+					button_size, row_foreground);
+				if (marker != NULL) {
+					struct wlr_scene_buffer *button = wlr_scene_buffer_create(row,
+						marker);
+					if (button != NULL)
+						wlr_scene_node_set_position(&button->node, 3, 3);
+				}
+			}
+			int text_width = 0;
+			int text_height = 0;
+			struct wlr_buffer *text = cached_icon_manager_text(toplevel,
+				entry->label, row_foreground,
+				&text_width, &text_height);
+			if (text != NULL) {
+				struct wlr_scene_buffer *node = wlr_scene_buffer_create(row, text);
+				if (node != NULL) {
+					int text_x = button_size + 6;
+					int available = cell_width - text_x - 2;
+					if (available > 0 && available < text_width) {
+						struct wlr_fbox source = {.width = available,
+							.height = text_height};
+						wlr_scene_buffer_set_source_box(node, &source);
+						wlr_scene_buffer_set_dest_size(node, available, text_height);
+					}
+					wlr_scene_node_set_position(&node->node, text_x,
+						(row_height - font_height) / 2 + font_ascent - font_ascent);
+				}
+			}
+		}
+		wlr_scene_node_set_position(&view->tree->node, view->x, view->y);
+		wlr_scene_node_set_enabled(&view->tree->node,
+			manager->visible && manager->entry_count > 0);
+		if (manager->visible) wlr_scene_node_raise_to_top(&view->tree->node);
+	}
+}
+
+static void initialize_icon_managers(struct server *server) {
+	wtwm_icon_manager_state_init(&server->icon_managers);
+	if (server->config.no_icon_managers) return;
+	size_t columns = server->config.icon_manager_columns > 0 ?
+		(size_t)server->config.icon_manager_columns : 1;
+	if (columns > WTWM_ICON_MANAGER_MAX_ENTRIES)
+		columns = WTWM_ICON_MANAGER_MAX_ENTRIES;
+	(void)wtwm_icon_manager_add(&server->icon_managers, 1, "TWM Icons",
+		columns, server->config.sort_icon_manager,
+		server->config.show_icon_manager);
+	(void)wtwm_icon_manager_set_case_sensitive(&server->icon_managers, 1,
+		server->config.case_sensitive);
+	for (size_t i = 0; i < server->config.icon_manager_count &&
+			server->icon_managers.manager_count < WTWM_ICON_MANAGER_MAX_MANAGERS;
+			++i) {
+		columns = server->config.icon_managers[i].columns > 0 ?
+			(size_t)server->config.icon_managers[i].columns : 1;
+		if (columns > WTWM_ICON_MANAGER_MAX_ENTRIES)
+			columns = WTWM_ICON_MANAGER_MAX_ENTRIES;
+		uint64_t identity = (uint64_t)i + 2;
+		(void)wtwm_icon_manager_add(&server->icon_managers, identity,
+			server->config.icon_managers[i].window_name, columns,
+			server->config.sort_icon_manager, true);
+		(void)wtwm_icon_manager_set_case_sensitive(&server->icon_managers,
+			identity, server->config.case_sensitive);
+	}
+	refresh_icon_managers(server);
+}
+
+static void remove_icon_manager_toplevel(struct toplevel *toplevel) {
+	if (toplevel->icon_manager_identity == 0) return;
+	(void)wtwm_icon_manager_entry_remove(&toplevel->server->icon_managers,
+		toplevel->icon_identity);
+	toplevel->icon_manager_identity = 0;
+	refresh_icon_managers(toplevel->server);
+}
+
+static void sync_icon_manager_toplevel(struct toplevel *toplevel) {
+	if (!toplevel->mapped || !icon_manager_shows_toplevel(toplevel)) {
+		remove_icon_manager_toplevel(toplevel);
+		return;
+	}
+	uint64_t manager_identity = icon_manager_for_toplevel(toplevel);
+	const char *label = icon_manager_label(toplevel);
+	const struct wtwm_icon_manager_entry *entry = wtwm_icon_manager_entry_find(
+		&toplevel->server->icon_managers, toplevel->icon_identity);
+	if (entry == NULL) {
+		if (wtwm_icon_manager_entry_add(&toplevel->server->icon_managers,
+				manager_identity, toplevel->icon_identity, label) !=
+				WTWM_ICON_MANAGER_APPLIED) return;
+	} else {
+		(void)wtwm_icon_manager_entry_update(&toplevel->server->icon_managers,
+			toplevel->icon_identity, manager_identity, label);
+	}
+	toplevel->icon_manager_identity = manager_identity;
+	refresh_icon_managers(toplevel->server);
+}
+
+static void reserve_icon_manager_toplevel(struct toplevel *toplevel) {
+	if (toplevel->icon_manager_identity != 0 ||
+			!icon_manager_shows_toplevel(toplevel)) return;
+	uint64_t manager_identity = icon_manager_for_toplevel(toplevel);
+	if (wtwm_icon_manager_entry_add(&toplevel->server->icon_managers,
+			manager_identity, toplevel->icon_identity,
+			icon_manager_label(toplevel)) != WTWM_ICON_MANAGER_APPLIED) return;
+	toplevel->icon_manager_identity = manager_identity;
 }
 
 static bool icon_selector_matches(const struct wtwm_client_identity *identity,
@@ -1341,8 +1815,7 @@ static const char *configured_icon_bitmap(const struct toplevel *toplevel) {
 			if (icon_selector_matches(&identity,
 					toplevel->server->config.icons[i].window_name, pass))
 				return toplevel->server->config.icons[i].bitmap;
-	return toplevel->server->config.unknown_icon[0] != '\0' ?
-		toplevel->server->config.unknown_icon : NULL;
+	return NULL;
 }
 
 static bool create_icon_scene(struct toplevel *toplevel) {
@@ -1364,10 +1837,91 @@ static bool create_icon_scene(struct toplevel *toplevel) {
 	struct wtwm_xbm bitmap;
 	wtwm_xbm_init(&bitmap);
 	const char *bitmap_name = configured_icon_bitmap(toplevel);
-	bool has_bitmap = bitmap_name != NULL &&
-		load_visual_xbm(toplevel->server, bitmap_name, &bitmap);
-	int bitmap_width = has_bitmap ? (int)bitmap.width : 0;
-	int bitmap_height = has_bitmap ? (int)bitmap.height : 0;
+	bool has_bitmap = false;
+	bool has_client_bitmap = false;
+	bool has_wm_hints_bitmap = false;
+	strcpy(toplevel->icon_source, "none");
+	if (toplevel->server->config.force_icons && bitmap_name != NULL &&
+			load_visual_xbm(toplevel->server, bitmap_name, &bitmap)) {
+		has_bitmap = true;
+		strcpy(toplevel->icon_source, "configured");
+	}
+	bool has_client_icon_window = !has_bitmap &&
+		toplevel->wm_hints_icon_window_width > 0 &&
+		toplevel->wm_hints_icon_window_height > 0;
+	if (has_client_icon_window) {
+		strcpy(toplevel->icon_source, "icon_window");
+		toplevel->icon_width = (int)toplevel->wm_hints_icon_window_width;
+		toplevel->icon_height = (int)toplevel->wm_hints_icon_window_height;
+		toplevel->icon_tree = wlr_scene_tree_create(toplevel->server->view_tree);
+		if (toplevel->icon_tree == NULL) {
+			if (text != NULL) wlr_buffer_drop(text);
+			wtwm_xbm_finish(&bitmap);
+			return false;
+		}
+		toplevel->icon_tree->node.data = toplevel;
+		toplevel->icon_background = wlr_scene_rect_create(toplevel->icon_tree,
+			toplevel->icon_width, toplevel->icon_height, background);
+		if (toplevel->icon_background == NULL) {
+			wlr_scene_node_destroy(&toplevel->icon_tree->node);
+			toplevel->icon_tree = NULL;
+			if (text != NULL) wlr_buffer_drop(text);
+			wtwm_xbm_finish(&bitmap);
+			return false;
+		}
+		struct wlr_buffer *image = NULL;
+		if (toplevel->wm_hints_icon_bits != NULL)
+			image = wtwm_render_pattern((int)toplevel->wm_hints_icon_width,
+				(int)toplevel->wm_hints_icon_height,
+				toplevel->wm_hints_icon_bits, toplevel->wm_hints_icon_width,
+				toplevel->wm_hints_icon_height, foreground, background);
+		else if (toplevel->net_wm_icon_pixels != NULL)
+			image = wtwm_render_argb_icon((int)toplevel->net_wm_icon_width,
+				(int)toplevel->net_wm_icon_height,
+				toplevel->net_wm_icon_pixels);
+		if (image != NULL) {
+			toplevel->icon_bitmap = wlr_scene_buffer_create(toplevel->icon_tree,
+				image);
+			if (toplevel->icon_bitmap != NULL)
+				wlr_scene_buffer_set_dest_size(toplevel->icon_bitmap,
+					toplevel->icon_width, toplevel->icon_height);
+			wlr_buffer_drop(image);
+		}
+		if (text != NULL) wlr_buffer_drop(text);
+		wtwm_xbm_finish(&bitmap);
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
+		return true;
+	}
+	if (!has_bitmap && toplevel->wm_hints_icon_bits != NULL) {
+		has_wm_hints_bitmap = true;
+		strcpy(toplevel->icon_source, "wm_hints");
+	}
+	if (!has_bitmap && !has_wm_hints_bitmap &&
+			toplevel->net_wm_icon_pixels != NULL) {
+		has_client_bitmap = true;
+		strcpy(toplevel->icon_source, "client");
+	}
+	if (!has_bitmap && !has_wm_hints_bitmap && !has_client_bitmap &&
+			bitmap_name != NULL &&
+			load_visual_xbm(toplevel->server, bitmap_name, &bitmap)) {
+		has_bitmap = true;
+		strcpy(toplevel->icon_source, "configured");
+	}
+	if (!has_bitmap && !has_wm_hints_bitmap && !has_client_bitmap &&
+			toplevel->server->config.unknown_icon[0] != '\0' &&
+			load_visual_xbm(toplevel->server,
+				toplevel->server->config.unknown_icon, &bitmap)) {
+		has_bitmap = true;
+		strcpy(toplevel->icon_source, "unknown");
+	}
+	int bitmap_width = has_wm_hints_bitmap ?
+		(int)toplevel->wm_hints_icon_width :
+		(has_client_bitmap ? (int)toplevel->net_wm_icon_width :
+		(has_bitmap ? (int)bitmap.width : 0));
+	int bitmap_height = has_wm_hints_bitmap ?
+		(int)toplevel->wm_hints_icon_height :
+		(has_client_bitmap ? (int)toplevel->net_wm_icon_height :
+		(has_bitmap ? (int)bitmap.height : 0));
 	int inner_width = text_width + 6;
 	if (inner_width < bitmap_width) inner_width = bitmap_width;
 	if (inner_width < 1) inner_width = 1;
@@ -1401,9 +1955,17 @@ static bool create_icon_scene(struct toplevel *toplevel) {
 	}
 	wlr_scene_node_set_position(&toplevel->icon_background->node, border_width,
 		border_width);
-	if (has_bitmap) {
-		struct wlr_buffer *image = wtwm_render_pattern(bitmap_width, bitmap_height,
-			bitmap.data, bitmap.width, bitmap.height, foreground, background);
+	if (has_bitmap || has_wm_hints_bitmap || has_client_bitmap) {
+		struct wlr_buffer *image = has_wm_hints_bitmap ?
+			wtwm_render_pattern(bitmap_width, bitmap_height,
+				toplevel->wm_hints_icon_bits,
+				toplevel->wm_hints_icon_width,
+				toplevel->wm_hints_icon_height, foreground, background) :
+			(has_client_bitmap ?
+			wtwm_render_argb_icon(bitmap_width, bitmap_height,
+				toplevel->net_wm_icon_pixels) :
+			wtwm_render_pattern(bitmap_width, bitmap_height,
+				bitmap.data, bitmap.width, bitmap.height, foreground, background));
 		if (image != NULL) {
 			toplevel->icon_bitmap = wlr_scene_buffer_create(toplevel->icon_tree,
 				image);
@@ -1427,6 +1989,10 @@ static bool create_icon_scene(struct toplevel *toplevel) {
 }
 
 static void destroy_icon_scene(struct toplevel *toplevel) {
+	if (toplevel->icon_region_allocated && toplevel->server->icon_layout != NULL)
+		(void)wtwm_icon_layout_release(toplevel->server->icon_layout,
+			toplevel->icon_identity);
+	toplevel->icon_region_allocated = false;
 	if (toplevel->icon_tree != NULL)
 		wlr_scene_node_destroy(&toplevel->icon_tree->node);
 	toplevel->icon_tree = NULL;
@@ -1434,6 +2000,203 @@ static void destroy_icon_scene(struct toplevel *toplevel) {
 	toplevel->icon_background = NULL;
 	toplevel->icon_bitmap = NULL;
 	toplevel->icon_text = NULL;
+}
+
+static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
+		int fallback_y, bool use_fallback) {
+	if (toplevel->xwayland != NULL && toplevel->xwayland->hints != NULL &&
+			(toplevel->xwayland->hints->flags &
+			XCB_ICCCM_WM_HINT_ICON_POSITION) != 0) {
+		toplevel->icon_x = toplevel->xwayland->hints->icon_x;
+		toplevel->icon_y = toplevel->xwayland->hints->icon_y;
+		toplevel->icon_moved = false;
+	} else if (toplevel->icon_moved) {
+		int64_t center_x = (int64_t)toplevel->icon_x + toplevel->icon_width / 2;
+		int64_t center_y = (int64_t)toplevel->icon_y + toplevel->icon_height / 2;
+		bool inside = center_x >= INT_MIN && center_x <= INT_MAX &&
+			center_y >= INT_MIN && center_y <= INT_MAX &&
+			wtwm_icon_layout_contains_point(toplevel->server->icon_layout,
+				(int)center_x, (int)center_y);
+		if (inside) {
+			struct wtwm_icon_layout_placement placement;
+			if (wtwm_icon_layout_allocate(toplevel->server->icon_layout,
+					toplevel->icon_identity, toplevel->icon_width,
+					toplevel->icon_height, &placement) == WTWM_ICON_LAYOUT_OK) {
+				toplevel->icon_region_allocated = true;
+				toplevel->icon_moved = false;
+				toplevel->icon_x = placement.x;
+				toplevel->icon_y = placement.y;
+			}
+		}
+	} else {
+		if (toplevel->server->icon_layout != NULL) {
+			struct wtwm_icon_layout_placement placement;
+			if (wtwm_icon_layout_allocate(toplevel->server->icon_layout,
+					toplevel->icon_identity, toplevel->icon_width,
+					toplevel->icon_height, &placement) == WTWM_ICON_LAYOUT_OK) {
+				toplevel->icon_region_allocated = true;
+				toplevel->icon_x = placement.x;
+				toplevel->icon_y = placement.y;
+			} else if (use_fallback) {
+				toplevel->icon_x = fallback_x;
+				toplevel->icon_y = fallback_y;
+			}
+		} else if (use_fallback) {
+			toplevel->icon_x = fallback_x;
+			toplevel->icon_y = fallback_y;
+		}
+	}
+	struct wlr_box layout = {0};
+	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
+	if (layout.width > 0 && layout.height > 0) {
+		int64_t right = (int64_t)layout.x + layout.width;
+		int64_t bottom = (int64_t)layout.y + layout.height;
+		if ((int64_t)toplevel->icon_x > right)
+			toplevel->icon_x = (int)(right - toplevel->icon_width);
+		if ((int64_t)toplevel->icon_y > bottom)
+			toplevel->icon_y = (int)(bottom - toplevel->icon_height);
+	}
+	wlr_scene_node_set_position(&toplevel->icon_tree->node,
+		toplevel->icon_x, toplevel->icon_y);
+}
+
+static void rebuild_icon_layout(struct server *server) {
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		toplevel->icon_region_allocated = false;
+	wtwm_icon_layout_destroy(server->icon_layout);
+	server->icon_layout = NULL;
+	if (server->config.icon_region_count == 0) return;
+	struct wlr_box layout = {0};
+	wlr_output_layout_get_box(server->output_layout, NULL, &layout);
+	if (layout.width <= 0 || layout.height <= 0) return;
+	struct wtwm_icon_layout_region *regions = calloc(
+		server->config.icon_region_count, sizeof(*regions));
+	if (regions == NULL) return;
+	size_t count = 0;
+	for (size_t i = 0; i < server->config.icon_region_count; ++i) {
+		struct wtwm_icon_layout_region region;
+		if (!wtwm_icon_layout_region_from_config(&server->config.icon_regions[i],
+				layout.width, layout.height, &region)) {
+			wlr_log(WLR_ERROR, "invalid IconRegion geometry '%s'",
+				server->config.icon_regions[i].geometry);
+			continue;
+		}
+		region.x += layout.x;
+		region.y += layout.y;
+		regions[count++] = region;
+	}
+	server->icon_layout = wtwm_icon_layout_create(regions, count);
+	free(regions);
+	if (server->icon_layout == NULL) return;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!toplevel->iconified || toplevel->icon_tree == NULL) continue;
+		place_toplevel_icon(toplevel, toplevel->icon_x, toplevel->icon_y, false);
+	}
+}
+
+static void refresh_toplevel_icon(struct toplevel *toplevel) {
+	bool recreate = toplevel->icon_tree != NULL;
+	bool visible = toplevel->mapped && toplevel->tree != NULL &&
+		toplevel->iconified && !toplevel->iconify_by_unmapping;
+	if (!recreate && !visible) return;
+	destroy_icon_scene(toplevel);
+	if (!visible || !create_icon_scene(toplevel)) return;
+	place_toplevel_icon(toplevel, toplevel->icon_x, toplevel->icon_y, false);
+	wlr_scene_node_set_enabled(&toplevel->icon_tree->node, true);
+}
+
+static void icon_animation_outline(struct icon_animation *animation,
+		const struct wtwm_interaction_box *box) {
+	int width = box->width > 0 ? box->width : 1;
+	int height = box->height > 0 ? box->height : 1;
+	wlr_scene_rect_set_size(animation->top, width, 1);
+	wlr_scene_rect_set_size(animation->bottom, width, 1);
+	wlr_scene_rect_set_size(animation->left, 1, height);
+	wlr_scene_rect_set_size(animation->right, 1, height);
+	wlr_scene_node_set_position(&animation->top->node, box->x, box->y);
+	wlr_scene_node_set_position(&animation->bottom->node,
+		box->x, box->y + height - 1);
+	wlr_scene_node_set_position(&animation->left->node, box->x, box->y);
+	wlr_scene_node_set_position(&animation->right->node,
+		box->x + width - 1, box->y);
+}
+
+static void finish_icon_animation(struct server *server) {
+	if (server->icon_animation.timer != NULL)
+		wl_event_source_remove(server->icon_animation.timer);
+	if (server->icon_animation.tree != NULL)
+		wlr_scene_node_destroy(&server->icon_animation.tree->node);
+	memset(&server->icon_animation, 0, sizeof(server->icon_animation));
+}
+
+static int icon_animation_tick(void *data) {
+	struct server *server = data;
+	struct icon_animation *animation = &server->icon_animation;
+	if (animation->tree == NULL || animation->steps == 0) return 0;
+	if (animation->step < animation->steps) ++animation->step;
+	int numerator = (int)animation->step;
+	int denominator = (int)animation->steps;
+	struct wtwm_interaction_box box = {
+		.x = animation->from.x +
+			(animation->to.x - animation->from.x) * numerator / denominator,
+		.y = animation->from.y +
+			(animation->to.y - animation->from.y) * numerator / denominator,
+		.width = animation->from.width +
+			(animation->to.width - animation->from.width) * numerator / denominator,
+		.height = animation->from.height +
+			(animation->to.height - animation->from.height) * numerator / denominator,
+	};
+	icon_animation_outline(animation, &box);
+	if (animation->step == animation->steps) {
+		finish_icon_animation(server);
+		return 0;
+	}
+	wl_event_source_timer_update(animation->timer, (int)animation->interval_ms);
+	return 0;
+}
+
+static void start_icon_animation(struct toplevel *toplevel, bool iconifying,
+		const struct wtwm_interaction_box *window_box,
+		const struct wtwm_interaction_box *icon_box) {
+	struct server *server = toplevel->server;
+	if (!server->config.zoom || server->config.zoom_count <= 0 ||
+			icon_box == NULL) return;
+	finish_icon_animation(server);
+	struct icon_animation *animation = &server->icon_animation;
+	animation->steps = (unsigned)server->config.zoom_count;
+	animation->from = iconifying ? *window_box : *icon_box;
+	animation->to = iconifying ? *icon_box : *window_box;
+	animation->interval_ms = 16;
+#ifdef WTWM_TEST_CONTROL
+	if (server->test_control.animation_ms > 0) {
+		animation->interval_ms = server->test_control.animation_ms /
+			animation->steps;
+		if (animation->interval_ms == 0) animation->interval_ms = 1;
+	}
+#endif
+	animation->tree = wlr_scene_tree_create(server->overlay_tree);
+	if (animation->tree == NULL) return;
+	float color[4];
+	configured_color(server, "DefaultForeground", "black", NULL, color);
+	animation->top = wlr_scene_rect_create(animation->tree, 1, 1, color);
+	animation->bottom = wlr_scene_rect_create(animation->tree, 1, 1, color);
+	animation->left = wlr_scene_rect_create(animation->tree, 1, 1, color);
+	animation->right = wlr_scene_rect_create(animation->tree, 1, 1, color);
+	if (animation->top == NULL || animation->bottom == NULL ||
+			animation->left == NULL || animation->right == NULL) {
+		finish_icon_animation(server);
+		return;
+	}
+	icon_animation_outline(animation, &animation->from);
+	animation->timer = wl_event_loop_add_timer(
+		wl_display_get_event_loop(server->display), icon_animation_tick, server);
+	if (animation->timer == NULL) {
+		finish_icon_animation(server);
+		return;
+	}
+	wl_event_source_timer_update(animation->timer, (int)animation->interval_ms);
+	test_trace_toplevel_event(toplevel, "animation", "icon");
 }
 
 static struct wlr_scene_node *toplevel_visible_node(struct toplevel *toplevel) {
@@ -1451,28 +2214,98 @@ static void sync_toplevel_scene_stack(struct toplevel *toplevel) {
 	wlr_scene_node_place_below(node, toplevel_visible_node(above));
 }
 
-static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
-	if (toplevel == NULL || !toplevel->mapped || toplevel->iconified == iconified)
+static void set_toplevel_iconified_one(struct toplevel *toplevel, bool iconified,
+		bool group_member, int fallback_x, int fallback_y) {
+	if (toplevel == NULL || !toplevel->mapped) return;
+	if (toplevel->iconified == iconified) {
+		if (group_member && iconified && toplevel->icon_tree != NULL)
+			wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
 		return;
-	if (iconified && !create_icon_scene(toplevel)) return;
+	}
+	bool show_icon = !group_member && (!toplevel->iconify_by_unmapping ||
+		icon_manager_transient(toplevel));
+	bool had_icon = toplevel->icon_tree != NULL;
+	if (iconified && show_icon &&
+			!create_icon_scene(toplevel)) return;
+	if (iconified && show_icon && toplevel->icon_tree != NULL)
+		place_toplevel_icon(toplevel, fallback_x, fallback_y, !had_icon);
 	if (iconified && toplevel->server->focus == toplevel) {
 		toplevel->server->focus_root = true;
 		clear_keyboard_focus(toplevel->server);
 	}
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	struct wtwm_interaction_box window_box = {
+		.x = toplevel->tree->node.x,
+		.y = toplevel->tree->node.y,
+		.width = geometry.outer_width,
+		.height = geometry.outer_height,
+	};
+	struct wtwm_interaction_box icon_box = {
+		.x = toplevel->icon_x,
+		.y = toplevel->icon_y,
+		.width = toplevel->icon_width,
+		.height = toplevel->icon_height,
+	};
+	if (!group_member)
+		start_icon_animation(toplevel, iconified, &window_box,
+			show_icon && toplevel->icon_tree != NULL ? &icon_box : NULL);
 	toplevel->iconified = iconified;
-	if (iconified) {
-		toplevel->icon_x = toplevel->tree->node.x;
-		toplevel->icon_y = toplevel->tree->node.y;
-		wlr_scene_node_set_position(&toplevel->icon_tree->node,
-			toplevel->icon_x, toplevel->icon_y);
-	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, !iconified);
 	if (toplevel->icon_tree != NULL)
-		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, iconified);
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node,
+			iconified && show_icon);
+	if (!iconified && toplevel->icon_region_allocated &&
+			toplevel->server->icon_layout != NULL) {
+		(void)wtwm_icon_layout_release(toplevel->server->icon_layout,
+			toplevel->icon_identity);
+		toplevel->icon_region_allocated = false;
+	}
 	sync_toplevel_scene_stack(toplevel);
 	suspend_toplevel(toplevel, iconified);
+	/* Hidden scene nodes do not receive output frame callbacks.  Complete the
+	 * pending Xwayland callback when minimizing so one iconified client cannot
+	 * stall surface creation and updates for unrelated X11 windows. */
+	if (iconified && toplevel->xwayland != NULL)
+		finish_surface_frame(toplevel->xwayland->surface);
+	refresh_icon_managers(toplevel->server);
 	test_trace_toplevel_event(toplevel,
 		iconified ? "iconify" : "deiconify", "icon");
+}
+
+static bool toplevel_is_transient_for(const struct toplevel *child,
+		const struct toplevel *owner) {
+	if (child == owner) return false;
+	if (child->xwayland != NULL && owner->xwayland != NULL)
+		return child->xwayland->parent == owner->xwayland;
+	if (child->xdg != NULL && owner->xdg != NULL)
+		return child->xdg->parent == owner->xdg;
+	return false;
+}
+
+static void set_toplevel_iconified_at(struct toplevel *toplevel, bool iconified,
+		int fallback_x, int fallback_y) {
+	if (toplevel == NULL) return;
+	struct toplevel *child;
+	if (iconified) {
+		wl_list_for_each(child, &toplevel->server->toplevels, link)
+			if (toplevel_is_transient_for(child, toplevel))
+				set_toplevel_iconified_one(child, true, true,
+					fallback_x, fallback_y);
+		set_toplevel_iconified_one(toplevel, true, false,
+			fallback_x, fallback_y);
+	} else {
+		set_toplevel_iconified_one(toplevel, false, false,
+			fallback_x, fallback_y);
+		wl_list_for_each(child, &toplevel->server->toplevels, link)
+			if (toplevel_is_transient_for(child, toplevel))
+				set_toplevel_iconified_one(child, false, true,
+					fallback_x, fallback_y);
+	}
+}
+
+static void set_toplevel_iconified(struct toplevel *toplevel, bool iconified) {
+	set_toplevel_iconified_at(toplevel, iconified, 0, 0);
 }
 
 static void set_focused_marker(struct server *server, struct toplevel *focused) {
@@ -1772,6 +2605,26 @@ static void raise_toplevel(struct toplevel *toplevel) {
 	if (toplevel->iconified)
 		test_trace_toplevel_event(toplevel, "raise", "icon");
 	else test_trace_toplevel_event(toplevel, "raise", "frame");
+}
+
+static void raise_toplevel_group(struct toplevel *toplevel) {
+	if (toplevel == NULL) return;
+	size_t child_count = 0;
+	struct toplevel *child;
+	wl_list_for_each(child, &toplevel->server->toplevels, link)
+		if (toplevel_is_transient_for(child, toplevel)) ++child_count;
+	struct toplevel **children = child_count > 0 ?
+		calloc(child_count, sizeof(*children)) : NULL;
+	if (child_count > 0 && children == NULL) {
+		raise_toplevel(toplevel);
+		return;
+	}
+	size_t index = 0;
+	wl_list_for_each(child, &toplevel->server->toplevels, link)
+		if (toplevel_is_transient_for(child, toplevel)) children[index++] = child;
+	raise_toplevel(toplevel);
+	for (size_t i = 0; i < child_count; ++i) raise_toplevel(children[i]);
+	free(children);
 }
 
 static struct wtwm_stack_box toplevel_stack_box(const struct toplevel *toplevel) {
@@ -2074,6 +2927,8 @@ static void finish_interactive(struct server *server, bool aborted) {
 			}
 			if (!server->config.no_raise_on_move) raise_toplevel(toplevel);
 		}
+		if (interaction.icon_move && interaction.moved)
+			toplevel->icon_moved = true;
 		test_trace_toplevel_event_at(toplevel, "commit", "move",
 			interaction.preview.x, interaction.preview.y,
 			interaction.preview.width, interaction.preview.height);
@@ -2765,6 +3620,123 @@ static void warp_to_name(struct server *server, const char *selector) {
 	}
 }
 
+static struct icon_manager_view *icon_manager_view_for(struct server *server,
+		uint64_t identity) {
+	for (size_t i = 0; i < server->icon_manager_view_count; ++i)
+		if (server->icon_manager_views[i].identity == identity)
+			return &server->icon_manager_views[i];
+	return NULL;
+}
+
+static void activate_icon_manager_entry(struct server *server,
+		uint64_t identity, bool warp) {
+	const struct wtwm_icon_manager_entry *entry = wtwm_icon_manager_entry_find(
+		&server->icon_managers, identity);
+	if (entry == NULL) return;
+	(void)wtwm_icon_manager_select(&server->icon_managers, identity);
+	refresh_icon_managers(server);
+	if (!warp) return;
+	const struct wtwm_icon_manager_model *manager = wtwm_icon_manager_find(
+		&server->icon_managers, entry->manager_identity);
+	struct icon_manager_view *view = icon_manager_view_for(server,
+		entry->manager_identity);
+	if (manager == NULL) return;
+	if (view == NULL || !manager->visible || manager->current_columns == 0) {
+		struct toplevel *toplevel = icon_manager_toplevel(server, identity);
+		if (toplevel == NULL) return;
+		if (toplevel->iconified && toplevel->icon_tree != NULL)
+			wlr_cursor_warp_closest(server->cursor, NULL,
+				toplevel->icon_x + toplevel->icon_width / 2.0,
+				toplevel->icon_y + toplevel->icon_height / 2.0);
+		else {
+			struct wtwm_frame_geometry geometry;
+			toplevel_geometry(toplevel, &geometry);
+			wlr_cursor_warp_closest(server->cursor, NULL,
+				toplevel->frame_x + geometry.outer_width / 2.0,
+				toplevel->frame_y + geometry.border_width +
+					geometry.title_extent / 2.0);
+		}
+		process_cursor_motion(server, server->current_input_time_ms);
+		return;
+	}
+	int cell_width = view->width / (int)manager->current_columns;
+	wlr_cursor_warp_closest(server->cursor, NULL,
+		view->x + (int)entry->column * cell_width + cell_width / 2.0,
+		view->y + (int)entry->row * view->row_height + view->row_height / 2.0);
+	process_cursor_motion(server, server->current_input_time_ms);
+}
+
+static void warp_to_icon_manager(struct server *server,
+		struct toplevel *toplevel, const char *selector) {
+	if (selector != NULL && selector[0] != '\0') {
+		for (size_t i = 0; i < server->icon_managers.manager_count; ++i) {
+			const struct wtwm_icon_manager_model *manager =
+				&server->icon_managers.managers[i];
+			if (!manager->visible) continue;
+			for (size_t position = 0; position < manager->entry_count; ++position) {
+				const struct wtwm_icon_manager_entry *entry =
+					wtwm_icon_manager_entry_at(&server->icon_managers,
+						manager->identity, position);
+				if (entry != NULL && strncmp(entry->label, selector,
+						strlen(selector)) == 0) {
+					activate_icon_manager_entry(server, entry->identity, true);
+					return;
+				}
+			}
+		}
+		return;
+	}
+	if (toplevel != NULL) {
+		activate_icon_manager_entry(server, toplevel->icon_identity, true);
+		return;
+	}
+	uint64_t identity = server->icon_managers.active_entry_identity;
+	if (identity == 0) {
+		const struct wtwm_icon_manager_model *manager = wtwm_icon_manager_find(
+			&server->icon_managers, 1);
+		if (manager != NULL) identity = manager->selected_entry_identity;
+	}
+	if (identity != 0) activate_icon_manager_entry(server, identity, true);
+}
+
+static uint64_t action_icon_manager_identity(struct server *server,
+		const struct toplevel *toplevel) {
+	if (toplevel != NULL && toplevel->icon_manager_identity != 0)
+		return toplevel->icon_manager_identity;
+	if (server->icon_managers.active_manager_identity != 0)
+		return server->icon_managers.active_manager_identity;
+	return 1;
+}
+
+static void move_icon_manager_selection(struct server *server,
+		enum wtwm_action_type action) {
+	uint64_t identity = 0;
+	enum wtwm_icon_manager_result result = WTWM_ICON_MANAGER_INVALID;
+	if (action == WTWM_ACTION_ICONMGR_NEXT)
+		result = wtwm_icon_manager_next(&server->icon_managers, &identity);
+	else if (action == WTWM_ACTION_ICONMGR_PREVIOUS)
+		result = wtwm_icon_manager_previous(&server->icon_managers, &identity);
+	else {
+		enum wtwm_icon_manager_direction direction = WTWM_ICON_MANAGER_FORWARD;
+		switch (action) {
+		case WTWM_ACTION_ICONMGR_UP: direction = WTWM_ICON_MANAGER_UP; break;
+		case WTWM_ACTION_ICONMGR_DOWN: direction = WTWM_ICON_MANAGER_DOWN; break;
+		case WTWM_ACTION_ICONMGR_LEFT: direction = WTWM_ICON_MANAGER_LEFT; break;
+		case WTWM_ACTION_ICONMGR_RIGHT: direction = WTWM_ICON_MANAGER_RIGHT; break;
+		case WTWM_ACTION_ICONMGR_BACKWARD:
+			direction = WTWM_ICON_MANAGER_BACKWARD; break;
+		default: direction = WTWM_ICON_MANAGER_FORWARD; break;
+		}
+		result = wtwm_icon_manager_move(&server->icon_managers, direction,
+			&identity);
+	}
+	if (result != WTWM_ICON_MANAGER_INVALID && identity != 0)
+		activate_icon_manager_entry(server, identity, true);
+	else if (action == WTWM_ACTION_ICONMGR_NEXT ||
+			action == WTWM_ACTION_ICONMGR_PREVIOUS)
+		(void)ring_bell(server);
+}
+
 static void warp_cycle(struct server *server, bool forward, bool ring_only) {
 	size_t count = 0;
 	struct toplevel *item;
@@ -2988,15 +3960,18 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_ICONIFY:
 		if (toplevel != NULL && toplevel->iconified) {
 			set_toplevel_iconified(toplevel, false);
-			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+			if (!server->config.no_raise_on_deiconify)
+				raise_toplevel_group(toplevel);
 		} else {
-			set_toplevel_iconified(toplevel, true);
+			set_toplevel_iconified_at(toplevel, true,
+				(int)server->cursor->x - 5, (int)server->cursor->y - 5);
 		}
 		break;
 	case WTWM_ACTION_DEICONIFY:
 		if (toplevel) {
 			set_toplevel_iconified(toplevel, false);
-			if (!server->config.no_raise_on_deiconify) raise_toplevel(toplevel);
+			if (!server->config.no_raise_on_deiconify)
+				raise_toplevel_group(toplevel);
 		}
 		break;
 	case WTWM_ACTION_FOCUS:
@@ -3040,9 +4015,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_WARPTOSCREEN:
 		warp_to_screen(server, action->argument); break;
 	case WTWM_ACTION_WARPTOICONMGR:
-		wlr_log(WLR_DEBUG, "%s",
-			"f.warptoiconmgr is inactive until an icon manager exists");
-		break;
+		warp_to_icon_manager(server, toplevel, action->argument); break;
 	case WTWM_ACTION_AUTORAISE:
 		if (toplevel != NULL) toplevel->auto_raise = !toplevel->auto_raise;
 		break;
@@ -3054,12 +4027,19 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 	case WTWM_ACTION_ICONMGR_BACKWARD:
 	case WTWM_ACTION_ICONMGR_NEXT:
 	case WTWM_ACTION_ICONMGR_PREVIOUS:
+		move_icon_manager_selection(server, action->type); break;
 	case WTWM_ACTION_ICONMGR_SHOW:
+		(void)wtwm_icon_manager_set_visible(&server->icon_managers,
+			action_icon_manager_identity(server, toplevel), true);
+		refresh_icon_managers(server); break;
 	case WTWM_ACTION_ICONMGR_HIDE:
+		(void)wtwm_icon_manager_set_visible(&server->icon_managers,
+			action_icon_manager_identity(server, toplevel), false);
+		refresh_icon_managers(server); break;
 	case WTWM_ACTION_ICONMGR_SORT:
-		wlr_log(WLR_DEBUG, "%s",
-			"icon-manager action is inactive until Milestone 7 creates a manager");
-		break;
+		(void)wtwm_icon_manager_sort(&server->icon_managers,
+			action_icon_manager_identity(server, toplevel));
+		refresh_icon_managers(server); break;
 	case WTWM_ACTION_IDENTIFY:
 		wlr_log(WLR_INFO, "window: title='%s' type=%s",
 			toplevel_title(toplevel), toplevel->xwayland != NULL ? "X11" : "Wayland");
@@ -3238,6 +4218,16 @@ static bool dispatch_binding(struct server *server, enum wtwm_binding_type type,
 	return true;
 }
 
+static bool scene_node_descends_from(struct wlr_scene_node *node,
+		struct wlr_scene_tree *ancestor) {
+	while (node != NULL) {
+		if (node == &ancestor->node) return true;
+		struct wlr_scene_tree *parent = node->parent;
+		node = parent != NULL ? &parent->node : NULL;
+	}
+	return false;
+}
+
 static struct hit_result desktop_at(struct server *server, double lx, double ly) {
 	struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};
 	double sx = 0, sy = 0;
@@ -3246,6 +4236,14 @@ static struct hit_result desktop_at(struct server *server, double lx, double ly)
 	if (node == NULL) return hit;
 	struct wlr_scene_node *leaf = node;
 	struct wlr_scene_tree *tree = node->parent;
+	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
+		struct icon_manager_view *view = &server->icon_manager_views[i];
+		if (view->tree == NULL ||
+				!scene_node_descends_from(leaf, view->tree)) continue;
+		hit.toplevel = toplevel_from_scene_tree(tree);
+		hit.context = WTWM_CONTEXT_ICONMGR;
+		return hit;
+	}
 	hit.toplevel = toplevel_from_scene_tree(tree);
 	if (hit.toplevel == NULL) return hit;
 	hit.context = WTWM_CONTEXT_FRAME;
@@ -3294,13 +4292,32 @@ static bool toplevel_supports_take_focus(const struct toplevel *toplevel) {
 static void update_pointer_toplevel(struct server *server,
 		const struct hit_result *hit) {
 	struct toplevel *entered = hit->toplevel;
+	uint32_t previous_context = server->pointer_context;
 	if (entered == server->pointer_toplevel) {
+		if (entered != NULL && hit->context == WTWM_CONTEXT_ICONMGR &&
+				previous_context != WTWM_CONTEXT_ICONMGR) {
+			activate_icon_manager_entry(server, entered->icon_identity, false);
+			if (server->focus_root && !entered->iconified)
+				focus_toplevel(entered, entered->xwayland == NULL ||
+					xwayland_accepts_input(entered), false, "iconmgr");
+		}
+		else if (previous_context == WTWM_CONTEXT_ICONMGR &&
+				hit->context != WTWM_CONTEXT_ICONMGR) {
+			server->icon_managers.active_manager_identity = 0;
+			server->icon_managers.active_entry_identity = 0;
+			refresh_icon_managers(server);
+		}
 		server->pointer_context = hit->context;
 		return;
 	}
 	struct toplevel *left = server->pointer_toplevel;
 	server->pointer_toplevel = entered;
 	server->pointer_context = hit->context;
+	if (previous_context == WTWM_CONTEXT_ICONMGR) {
+		server->icon_managers.active_manager_identity = 0;
+		server->icon_managers.active_entry_identity = 0;
+		refresh_icon_managers(server);
+	}
 	if (server->focus_root && left != NULL && server->focus == left) {
 		struct wtwm_focus_leave_result result = wtwm_focus_leave(
 			&(struct wtwm_focus_leave_input){
@@ -3313,6 +4330,9 @@ static void update_pointer_toplevel(struct server *server,
 			clear_focus(server, result.set_pointer_root);
 	}
 	if (entered == NULL) return;
+	if (hit->context == WTWM_CONTEXT_ICONMGR) {
+		activate_icon_manager_entry(server, entered->icon_identity, false);
+	}
 	if (server->focus_root && !entered->iconified) {
 		struct wtwm_focus_enter_input input = {
 			.focus_root = true,
@@ -3669,10 +4689,18 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 	}
 	struct hit_result hit = desktop_at(server, server->cursor->x, server->cursor->y);
 	if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
+		if (server->icon_manager_down_identity != 0) {
+			server->icon_manager_down_identity = 0;
+			refresh_icon_managers(server);
+		}
 		if (hit.surface != NULL)
 			wlr_seat_pointer_notify_button(server->seat, event->time_msec,
 				event->button, event->state);
 		return;
+	}
+	if (hit.context == WTWM_CONTEXT_ICONMGR && hit.toplevel != NULL) {
+		server->icon_manager_down_identity = hit.toplevel->icon_identity;
+		refresh_icon_managers(server);
 	}
 	if (server->deferred_root_action_active) {
 		struct wtwm_action action = server->deferred_root_action;
@@ -3743,6 +4771,11 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 		struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
 		struct toplevel *toplevel = toplevel_for_surface(focused);
 		uint32_t context = toplevel ? WTWM_CONTEXT_WINDOW : WTWM_CONTEXT_ROOT;
+		if (server->pointer_context == WTWM_CONTEXT_ICONMGR &&
+				server->pointer_toplevel != NULL) {
+			toplevel = server->pointer_toplevel;
+			context = WTWM_CONTEXT_ICONMGR;
+		}
 		for (int i = 0; i < count && !handled; ++i) {
 			char name[128];
 			xkb_keysym_get_name(symbols[i], name, sizeof(name));
@@ -3910,6 +4943,8 @@ static void new_output(struct wl_listener *listener, void *data) {
 		wl_signal_add(&output->background->node.events.destroy,
 			&output->background_destroy);
 	}
+	rebuild_icon_layout(server);
+	refresh_icon_managers(server);
 }
 
 static void update_toplevel_metadata(struct toplevel *toplevel,
@@ -4001,6 +5036,7 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
 	sync_toplevel_scene_stack(toplevel);
+	sync_icon_manager_toplevel(toplevel);
 	place_native_toplevel(toplevel);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
@@ -4057,6 +5093,12 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	if (had_pointer_focus) wlr_seat_pointer_clear_focus(server->seat);
 	dismiss_toplevel_popups(toplevel);
 	if (!toplevel->mapped) return;
+	remove_icon_manager_toplevel(toplevel);
+	if (toplevel->icon_region_allocated && server->icon_layout != NULL) {
+		(void)wtwm_icon_layout_release(server->icon_layout,
+			toplevel->icon_identity);
+		toplevel->icon_region_allocated = false;
+	}
 	toplevel->mapped = false;
 	wl_list_remove(&toplevel->link);
 	wl_list_init(&toplevel->link);
@@ -4114,7 +5156,10 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 		toplevel->xdg->base->data = NULL;
 	wlr_scene_node_destroy(&toplevel->tree->node);
 	destroy_icon_scene(toplevel);
+	clear_icon_manager_render_cache(toplevel);
 	free(toplevel->title_buttons);
+	free(toplevel->net_wm_icon_pixels);
+	free(toplevel->wm_hints_icon_bits);
 	free(toplevel);
 }
 
@@ -4160,6 +5205,8 @@ static void update_toplevel_metadata(struct toplevel *toplevel, bool title_chang
 		configure_xwayland_client(toplevel, toplevel->xwayland->x,
 			toplevel->xwayland->y, toplevel->xwayland->width,
 			toplevel->xwayland->height);
+	if (toplevel->mapped) sync_icon_manager_toplevel(toplevel);
+	if (title_changed) refresh_toplevel_icon(toplevel);
 	if (title_changed) test_trace_toplevel_event(toplevel, "title", "title");
 }
 
@@ -4182,6 +5229,7 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	if (toplevel == NULL) return;
 	toplevel->server = server;
 	toplevel->xdg = xdg;
+	toplevel->icon_identity = ++server->next_icon_identity;
 	test_trace_assign_id(toplevel);
 	wl_list_init(&toplevel->link);
 	toplevel->width = 640;
@@ -4235,7 +5283,10 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xdg->events.set_app_id, &toplevel->set_app_id);
 }
 
-static bool create_xwayland_scene(struct toplevel *toplevel) {
+static void destroy_xwayland_scene(struct toplevel *toplevel);
+
+static bool create_xwayland_frame_scene(struct toplevel *toplevel) {
+	if (toplevel->tree != NULL) return true;
 	struct wlr_scene_tree *parent = toplevel->xwayland->override_redirect ?
 		toplevel->server->overlay_tree : toplevel->server->view_tree;
 	toplevel->tree = wlr_scene_tree_create(parent);
@@ -4255,11 +5306,19 @@ static bool create_xwayland_scene(struct toplevel *toplevel) {
 		toplevel->title_button_count = 0;
 		return false;
 	}
+	update_toplevel_metadata(toplevel, true);
+	return true;
+}
+
+static bool create_xwayland_scene(struct toplevel *toplevel) {
+	bool created_frame = toplevel->tree == NULL;
+	if (!create_xwayland_frame_scene(toplevel)) return false;
+	if (toplevel->content != NULL) return true;
+	if (toplevel->xwayland->surface == NULL) return true;
 	toplevel->content = wlr_scene_subsurface_tree_create(
 		toplevel->tree, toplevel->xwayland->surface);
 	if (toplevel->content == NULL) {
-		wlr_scene_node_destroy(&toplevel->tree->node);
-		toplevel->tree = NULL;
+		if (created_frame) destroy_xwayland_scene(toplevel);
 		return false;
 	}
 	update_toplevel_metadata(toplevel, true);
@@ -4368,6 +5427,7 @@ static void expose_managed_xwayland(struct toplevel *toplevel,
 		bool start_iconified) {
 	update_decoration(toplevel);
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
+	sync_icon_manager_toplevel(toplevel);
 	test_trace_toplevel_event(toplevel, "map", "client");
 	position_xwayland_transient(toplevel);
 	position_xwayland_transient_children(toplevel);
@@ -4528,6 +5588,11 @@ static void xwayland_surface_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	map_xwayland_toplevel(toplevel);
+	/* A bufferless StartIconified window is already logically mapped when its
+	 * first Wayland buffer arrives.  Its hidden scene node will not participate
+	 * in output frame delivery, so complete that first callback explicitly. */
+	if (toplevel->mapped && toplevel->iconified)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void xwayland_surface_unmap(struct wl_listener *listener, void *data) {
@@ -4546,6 +5611,11 @@ static void xwayland_surface_commit(struct wl_listener *listener, void *data) {
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
+	/* Iconified Xwayland content is intentionally absent from output traversal.
+	 * Keep completing its retained frame callbacks so rootless Xwayland can
+	 * finish associating the rest of a batched X11 client set. */
+	if (toplevel->iconified)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void read_xwayland_icon_name(struct toplevel *toplevel) {
@@ -4568,10 +5638,16 @@ static void read_xwayland_icon_name(struct toplevel *toplevel) {
 	bool changed = strcmp(previous != NULL ? previous : "",
 		toplevel->icon_name != NULL ? toplevel->icon_name : "") != 0;
 	free(previous);
-	if (changed) test_trace_toplevel_event(toplevel, "icon_name", "icon");
+	if (changed) {
+		test_trace_toplevel_event(toplevel, "icon_name", "icon");
+		sync_icon_manager_toplevel(toplevel);
+		refresh_toplevel_icon(toplevel);
+	}
 }
 
 static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
+	free(toplevel->net_wm_icon_pixels);
+	toplevel->net_wm_icon_pixels = NULL;
 	toplevel->net_wm_icon_width = 0;
 	toplevel->net_wm_icon_height = 0;
 	toplevel->net_wm_icon_count = 0;
@@ -4589,6 +5665,7 @@ static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
 	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
 	if (reply == NULL || reply->format != 32) {
 		free(reply);
+		refresh_toplevel_icon(toplevel);
 		return;
 	}
 	const uint32_t *values = xcb_get_property_value(reply);
@@ -4602,9 +5679,15 @@ static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
 		if (width == 0 || height == 0 || width > 4096 || height > 4096 ||
 				(uint64_t)width * height > length - index) break;
 		size_t pixels = (size_t)width * height;
-		if (toplevel->net_wm_icon_count == 0) {
-			toplevel->net_wm_icon_width = width;
-			toplevel->net_wm_icon_height = height;
+		if (toplevel->net_wm_icon_pixels == NULL && width <= 256 && height <= 256) {
+			toplevel->net_wm_icon_pixels = malloc(pixels *
+				sizeof(*toplevel->net_wm_icon_pixels));
+			if (toplevel->net_wm_icon_pixels != NULL) {
+				memcpy(toplevel->net_wm_icon_pixels, &values[index],
+					pixels * sizeof(*toplevel->net_wm_icon_pixels));
+				toplevel->net_wm_icon_width = width;
+				toplevel->net_wm_icon_height = height;
+			}
 		}
 		++toplevel->net_wm_icon_count;
 		for (size_t i = 0; i < pixels; ++i) {
@@ -4616,6 +5699,82 @@ static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
 	if (toplevel->net_wm_icon_count != 0)
 		toplevel->net_wm_icon_checksum = checksum;
 	free(reply);
+	refresh_toplevel_icon(toplevel);
+}
+
+static void read_xwayland_wm_hints_icon(struct toplevel *toplevel) {
+	free(toplevel->wm_hints_icon_bits);
+	toplevel->wm_hints_icon_bits = NULL;
+	toplevel->wm_hints_icon_width = 0;
+	toplevel->wm_hints_icon_height = 0;
+	toplevel->wm_hints_icon_window_width = 0;
+	toplevel->wm_hints_icon_window_height = 0;
+	xcb_icccm_wm_hints_t *hints = toplevel->xwayland->hints;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (hints == NULL || connection == NULL) {
+		refresh_toplevel_icon(toplevel);
+		return;
+	}
+	if ((hints->flags & XCB_ICCCM_WM_HINT_ICON_WINDOW) != 0 &&
+			hints->icon_window != XCB_WINDOW_NONE) {
+		xcb_get_geometry_reply_t *window_geometry = xcb_get_geometry_reply(
+			connection, xcb_get_geometry(connection, hints->icon_window), NULL);
+		if (window_geometry != NULL && window_geometry->width > 0 &&
+				window_geometry->height > 0 && window_geometry->width <= 256 &&
+				window_geometry->height <= 256) {
+			toplevel->wm_hints_icon_window_width = window_geometry->width;
+			toplevel->wm_hints_icon_window_height = window_geometry->height;
+		}
+		free(window_geometry);
+	}
+	if ((hints->flags & XCB_ICCCM_WM_HINT_ICON_PIXMAP) == 0 ||
+			hints->icon_pixmap == XCB_PIXMAP_NONE) {
+		refresh_toplevel_icon(toplevel);
+		return;
+	}
+	xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(connection,
+		xcb_get_geometry(connection, hints->icon_pixmap), NULL);
+	if (geometry == NULL || geometry->depth != 1 || geometry->width == 0 ||
+			geometry->height == 0 || geometry->width > 256 ||
+			geometry->height > 256) {
+		free(geometry);
+		refresh_toplevel_icon(toplevel);
+		return;
+	}
+	xcb_get_image_reply_t *image = xcb_get_image_reply(connection,
+		xcb_get_image(connection, XCB_IMAGE_FORMAT_Z_PIXMAP,
+			hints->icon_pixmap, 0, 0, geometry->width, geometry->height,
+			UINT32_MAX), NULL);
+	if (image == NULL) {
+		free(geometry);
+		refresh_toplevel_icon(toplevel);
+		return;
+	}
+	const unsigned char *source = xcb_get_image_data(image);
+	size_t source_length = (size_t)xcb_get_image_data_length(image);
+	size_t source_stride = source_length / geometry->height;
+	size_t stride = ((size_t)geometry->width + 7u) / 8u;
+	unsigned char *bits = calloc(geometry->height, stride);
+	if (bits != NULL) {
+		bool lsb = xcb_get_setup(connection)->bitmap_format_bit_order ==
+			XCB_IMAGE_ORDER_LSB_FIRST;
+		for (unsigned y = 0; y < geometry->height; ++y)
+			for (unsigned x = 0; x < geometry->width; ++x) {
+				size_t source_byte = (size_t)y * source_stride + x / 8u;
+				unsigned source_bit = lsb ? x & 7u : 7u - (x & 7u);
+				if (source_byte < source_length &&
+						(source[source_byte] & (1u << source_bit)) != 0)
+					bits[(size_t)y * stride + x / 8u] |=
+						(unsigned char)(1u << (x & 7u));
+			}
+		toplevel->wm_hints_icon_bits = bits;
+		toplevel->wm_hints_icon_width = geometry->width;
+		toplevel->wm_hints_icon_height = geometry->height;
+	}
+	free(image);
+	free(geometry);
+	refresh_toplevel_icon(toplevel);
 }
 
 static void xwayland_deferred_sync(void *data) {
@@ -4665,6 +5824,7 @@ static void xwayland_deferred_sync(void *data) {
 		free(reply);
 	}
 	if (parent_cleared) update_toplevel_metadata(toplevel, false);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void schedule_xwayland_sync(struct toplevel *toplevel) {
@@ -4712,6 +5872,7 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	toplevel->associated = true;
 	read_xwayland_icon_name(toplevel);
 	read_xwayland_net_wm_icon(toplevel);
+	read_xwayland_wm_hints_icon(toplevel);
 	toplevel->map.notify = xwayland_surface_map;
 	wl_signal_add(&toplevel->xwayland->surface->events.map, &toplevel->map);
 	toplevel->unmap.notify = xwayland_surface_unmap;
@@ -4723,13 +5884,15 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	} else if (wlr_surface_has_buffer(toplevel->xwayland->surface)) {
 		/* Xwayland may commit its buffer and queue a frame callback before
 		 * wlroots pairs WL_SURFACE_ID with this X window. The Xwayland role
-		 * then misses that commit and remains unmapped while waiting for the
-		 * callback. Complete it only after our association listeners exist so
-		 * Xwayland produces a post-association commit for the role to map. */
-		struct timespec now;
-		if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
-			wlr_surface_send_frame_done(toplevel->xwayland->surface, &now);
+		 * then misses that commit. Complete any pending callback after our
+		 * listeners exist, and manage the retained buffer without depending on
+		 * Xwayland producing another commit. */
+		finish_surface_frame(toplevel->xwayland->surface);
+		map_xwayland_toplevel(toplevel);
 	}
+	if (toplevel->mapped && toplevel->iconified &&
+			toplevel->xwayland->surface->mapped)
+		finish_surface_frame(toplevel->xwayland->surface);
 }
 
 static void xwayland_dissociate(struct wl_listener *listener, void *data) {
@@ -4783,16 +5946,92 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 		width, height);
 }
 
+static char *read_xwayland_property_bytes(struct toplevel *toplevel,
+		xcb_atom_t atom, size_t *length) {
+	*length = 0;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (connection == NULL) return NULL;
+	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+		xcb_get_property(connection, false, toplevel->xwayland->window_id,
+			atom, XCB_ATOM_ANY, 0, 1024), NULL);
+	if (reply == NULL || reply->format != 8) {
+		free(reply);
+		return NULL;
+	}
+	int byte_count = xcb_get_property_value_length(reply);
+	if (byte_count <= 0) {
+		free(reply);
+		return NULL;
+	}
+	char *value = malloc((size_t)byte_count + 1);
+	if (value != NULL) {
+		memcpy(value, xcb_get_property_value(reply), (size_t)byte_count);
+		value[byte_count] = '\0';
+		*length = (size_t)byte_count;
+	}
+	free(reply);
+	return value;
+}
+
+static void update_bufferless_xwayland_identity(struct toplevel *toplevel) {
+	size_t name_length = 0;
+	char *name = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_NAME,
+		&name_length);
+	size_t class_length = 0;
+	char *class_data = read_xwayland_property_bytes(toplevel, XCB_ATOM_WM_CLASS,
+		&class_length);
+	char *instance = NULL;
+	char *resource_class = NULL;
+	if (class_data != NULL) {
+		size_t instance_length = strnlen(class_data, class_length);
+		instance = strndup(class_data, instance_length);
+		if (instance_length < class_length) {
+			const char *class_start = class_data + instance_length + 1;
+			size_t remaining = class_length - instance_length - 1;
+			resource_class = strndup(class_start,
+				strnlen(class_start, remaining));
+		}
+	}
+	free(toplevel->xwayland_direct_name);
+	toplevel->xwayland_direct_name = name;
+	free(toplevel->xwayland_direct_instance);
+	toplevel->xwayland_direct_instance = instance;
+	free(toplevel->xwayland_direct_class);
+	toplevel->xwayland_direct_class = resource_class;
+	free(class_data);
+	(void)name_length;
+}
+
+static void manage_bufferless_start_iconified(struct toplevel *toplevel) {
+	const struct wtwm_config *config = &toplevel->server->config;
+	const struct wtwm_string_list *start_iconified =
+		&config->start_iconified_windows;
+	if (!toplevel->xwayland_map_requested || toplevel->mapped ||
+			toplevel->associated ||
+			toplevel->xwayland->override_redirect ||
+			!toplevel_matches(start_iconified, toplevel))
+		return;
+	toplevel->start_iconified_match = true;
+	initialize_xwayland_border(toplevel);
+	read_xwayland_icon_name(toplevel);
+	read_xwayland_net_wm_icon(toplevel);
+	read_xwayland_wm_hints_icon(toplevel);
+	if (create_xwayland_frame_scene(toplevel)) map_xwayland_toplevel(toplevel);
+}
+
 static void xwayland_set_title(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_title);
 	update_toplevel_metadata(toplevel, true);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void xwayland_set_class(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_class);
 	update_toplevel_metadata(toplevel, false);
+	manage_bufferless_start_iconified(toplevel);
 }
 
 static void xwayland_set_parent(struct wl_listener *listener, void *data) {
@@ -4805,6 +6044,7 @@ static void xwayland_set_parent(struct wl_listener *listener, void *data) {
 static void xwayland_set_hints(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, set_hints);
+	read_xwayland_wm_hints_icon(toplevel);
 	if (toplevel->mapped && toplevel->xwayland->hints != NULL &&
 			(toplevel->xwayland->hints->flags & XCB_ICCCM_WM_HINT_X_URGENCY) != 0)
 		wlr_log(WLR_DEBUG, "X11 window 0x%08" PRIx32 " requests attention",
@@ -4878,14 +6118,14 @@ static void xwayland_set_override_redirect(struct wl_listener *listener, void *d
 static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, destroy);
+	unmanage_toplevel(toplevel);
+	test_trace_toplevel_event(toplevel, "destroy", "client");
 	if (toplevel->associated) {
-		unmanage_toplevel(toplevel);
-		test_trace_toplevel_event(toplevel, "destroy", "client");
 		wl_list_remove(&toplevel->map.link);
 		wl_list_remove(&toplevel->unmap.link);
 		wl_list_remove(&toplevel->commit.link);
-		destroy_xwayland_scene(toplevel);
-	} else test_trace_toplevel_event(toplevel, "destroy", "client");
+	}
+	if (toplevel->tree != NULL) destroy_xwayland_scene(toplevel);
 	if (toplevel->xwayland_sync_idle != NULL)
 		wl_event_source_remove(toplevel->xwayland_sync_idle);
 	wl_list_remove(&toplevel->associate.link);
@@ -4900,6 +6140,12 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->set_geometry.link);
 	wl_list_remove(&toplevel->xwayland_link);
 	free(toplevel->icon_name);
+	free(toplevel->xwayland_direct_name);
+	free(toplevel->xwayland_direct_instance);
+	free(toplevel->xwayland_direct_class);
+	clear_icon_manager_render_cache(toplevel);
+	free(toplevel->net_wm_icon_pixels);
+	free(toplevel->wm_hints_icon_bits);
 	toplevel->xwayland->data = NULL;
 	free(toplevel);
 }
@@ -4911,6 +6157,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	if (toplevel == NULL) return;
 	toplevel->server = server;
 	toplevel->xwayland = xwayland;
+	toplevel->icon_identity = ++server->next_icon_identity;
 	test_trace_assign_id(toplevel);
 	toplevel->width = xwayland->width;
 	toplevel->height = xwayland->height;
@@ -4940,6 +6187,13 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 		&toplevel->set_override_redirect);
 	toplevel->set_geometry.notify = xwayland_set_geometry;
 	wl_signal_add(&xwayland->events.set_geometry, &toplevel->set_geometry);
+	/* twm manages an X MapRequest before the client has painted.  Rootless
+	 * Xwayland may intentionally defer wl_surface buffers for minimized
+	 * windows, so the user event hook below builds the logical icon and manager
+	 * entry directly from X11 metadata when StartIconified matches.  Association
+	 * attaches content if the window is deiconified later. */
+	manage_bufferless_start_iconified(toplevel);
+	schedule_xwayland_sync(toplevel);
 }
 
 static struct toplevel *xwayland_toplevel_for_window(struct server *server,
@@ -5017,7 +6271,10 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 		struct toplevel *toplevel =
 			xwayland_toplevel_for_window(server, property->window);
 		if (toplevel == NULL) return 0;
-		if (property->atom == server->atom_wm_icon_name)
+		if (property->atom == XCB_ATOM_WM_NAME ||
+				property->atom == XCB_ATOM_WM_CLASS)
+			update_bufferless_xwayland_identity(toplevel);
+		else if (property->atom == server->atom_wm_icon_name)
 			read_xwayland_icon_name(toplevel);
 		else if (property->atom == server->atom_net_wm_icon)
 			read_xwayland_net_wm_icon(toplevel);
@@ -5025,6 +6282,19 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
 			schedule_xwayland_sync(toplevel);
+		return 0;
+	}
+	if (type == XCB_MAP_REQUEST) {
+		xcb_map_request_event_t *map = (xcb_map_request_event_t *)event;
+		struct toplevel *toplevel =
+			xwayland_toplevel_for_window(server, map->window);
+		if (toplevel != NULL) {
+			toplevel->xwayland_map_requested = true;
+			update_bufferless_xwayland_identity(toplevel);
+			read_xwayland_icon_name(toplevel);
+			reserve_icon_manager_toplevel(toplevel);
+			manage_bufferless_start_iconified(toplevel);
+		}
 		return 0;
 	}
 	if (type != XCB_CONFIGURE_REQUEST) return 0;
@@ -5286,8 +6556,9 @@ static void new_decoration(struct wl_listener *listener, void *data) {
 
 #ifdef WTWM_TEST_CONTROL
 static const char *toplevel_app_id(const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
 	const char *app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id :
-		(toplevel->xwayland != NULL ? toplevel->xwayland->class : NULL);
+		identity.resource_class;
 	return app_id != NULL ? app_id : "";
 }
 
@@ -5399,6 +6670,11 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, ",\"focus\":");
 	if (focused_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(focused_toplevel));
+	test_write(control, ",\"pointer_context\":");
+	test_write_json_string(control, binding_context_name(server->pointer_context));
+	test_write(control, ",\"pointer_window\":");
+	if (server->pointer_toplevel == NULL) test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(server->pointer_toplevel));
 	test_write(control, ",\"windows\":[");
 	bool first = true;
 	unsigned stack = 0;
@@ -5407,6 +6683,7 @@ static void test_write_state(struct test_control *control) {
 		if (!first) test_write(control, ",");
 		first = false;
 		struct wtwm_frame_geometry geometry;
+		struct wtwm_client_identity identity = toplevel_identity(toplevel);
 		toplevel_geometry(toplevel, &geometry);
 		test_write(control, "{\"id\":%" PRIu64 ",\"title\":",
 			toplevel->test_id);
@@ -5415,11 +6692,9 @@ static void test_write_state(struct test_control *control) {
 		test_write_json_string(control, toplevel_app_id(toplevel));
 		test_write(control, ",\"type\":\"%s\",\"instance\":",
 			toplevel->xwayland != NULL ? "x11" : "wayland");
-		test_write_json_string(control, toplevel->xwayland != NULL ?
-			toplevel->xwayland->instance : "");
+		test_write_json_string(control, identity.resource_name);
 		test_write(control, ",\"class\":");
-		test_write_json_string(control, toplevel->xwayland != NULL ?
-			toplevel->xwayland->class : "");
+		test_write_json_string(control, identity.resource_class);
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
 			"\"border_width\":%d,\"title_bar_height\":%d,\"title_height\":%d,"
@@ -5427,7 +6702,7 @@ static void test_write_state(struct test_control *control) {
 			"\"outer_width\":%d,\"outer_height\":%d,"
 			"\"content_x\":%d,\"content_y\":%d,"
 			"\"stack\":%u,\"mapped\":%s,\"placement_pending\":%s,"
-			"\"iconified\":%s,"
+			"\"iconified\":%s,\"iconify_by_unmapping\":%s,"
 			"\"decorated\":%s,\"auto_raise\":%s,\"active\":%s,\"placement\":",
 			toplevel->tree->node.x, toplevel->tree->node.y,
 			toplevel->width, toplevel->height,
@@ -5438,6 +6713,7 @@ static void test_write_state(struct test_control *control) {
 			toplevel->mapped && !toplevel->placement_pending ? "true" : "false",
 			toplevel->placement_pending ? "true" : "false",
 			toplevel->iconified ? "true" : "false",
+			toplevel->iconify_by_unmapping ? "true" : "false",
 			toplevel->decorated ? "true" : "false",
 			toplevel->auto_raise ? "true" : "false",
 			server->focus == toplevel ? "true" : "false");
@@ -5558,9 +6834,46 @@ static void test_write_state(struct test_control *control) {
 		test_write(control, "{\"title\":");
 		test_write_json_string(control, toplevel_title(toplevel));
 		test_write(control,
-			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
+			"\"source\":",
 			toplevel->icon_x, toplevel->icon_y,
 			toplevel->icon_width, toplevel->icon_height);
+		test_write_json_string(control, toplevel->icon_source);
+		test_write(control, ",\"region_allocated\":%s}",
+			toplevel->icon_region_allocated ? "true" : "false");
+	}
+	test_write(control, "],\"icon_managers\":[");
+	for (size_t i = 0; i < server->icon_managers.manager_count; ++i) {
+		const struct wtwm_icon_manager_model *manager =
+			&server->icon_managers.managers[i];
+		struct icon_manager_view *view = icon_manager_view_for(server,
+			manager->identity);
+		if (i != 0) test_write(control, ",");
+		test_write(control, "{\"id\":%" PRIu64 ",\"name\":",
+			manager->identity);
+		test_write_json_string(control, manager->label);
+		test_write(control,
+			",\"visible\":%s,\"sorted\":%s,\"columns\":%zu,"
+			"\"rows\":%zu,\"x\":%d,\"y\":%d,\"width\":%d,"
+			"\"height\":%d,\"active_entry\":%" PRIu64 ",\"entries\":[",
+			manager->visible ? "true" : "false",
+			manager->sorted ? "true" : "false", manager->current_columns,
+			manager->current_rows, view != NULL ? view->x : 0,
+			view != NULL ? view->y : 0, view != NULL ? view->width : 0,
+			view != NULL ? view->height : 0,
+			manager->selected_entry_identity);
+		for (size_t position = 0; position < manager->entry_count; ++position) {
+			const struct wtwm_icon_manager_entry *entry =
+				wtwm_icon_manager_entry_at(&server->icon_managers,
+					manager->identity, position);
+			if (position != 0) test_write(control, ",");
+			test_write(control, "{\"id\":%" PRIu64 ",\"label\":",
+				entry->identity);
+			test_write_json_string(control, entry->label);
+			test_write(control, ",\"row\":%zu,\"column\":%zu}",
+				entry->row, entry->column);
+		}
+		test_write(control, "]}");
 	}
 	test_write(control, "],\"override_redirect\":[");
 	first = true;
@@ -5664,7 +6977,17 @@ static bool test_capture_ppm(struct server *server, const char *path,
 		wlr_scene_get_scene_output(server->scene, output->wlr);
 	struct wlr_output_state state;
 	wlr_output_state_init(&state);
-	if (scene_output == NULL || !wlr_scene_output_build_state(scene_output, &state, NULL) ||
+	char cursor_role[sizeof(server->cursor_role)];
+	(void)snprintf(cursor_role, sizeof(cursor_role), "%s", server->cursor_role);
+	/* Screenshot contracts compare compositor-owned window pixels.  Exclude the
+	 * independently timed software pointer overlay, then restore its role after
+	 * the render state has captured immutable output pixels. */
+	wlr_cursor_set_buffer(server->cursor, NULL, 0, 0, 1.0f);
+	bool built = scene_output != NULL &&
+		wlr_scene_output_build_state(scene_output, &state, NULL);
+	server->cursor_role[0] = '\0';
+	set_cursor_role(server, cursor_role);
+	if (!built ||
 		state.buffer == NULL) {
 		snprintf(error, error_size, "unable to render output");
 		wlr_output_state_finish(&state);
@@ -6088,11 +7411,13 @@ int main(int argc, char **argv) {
 	server.scene = wlr_scene_create();
 	server.scene_layout = wlr_scene_attach_output_layout(server.scene, server.output_layout);
 	server.view_tree = wlr_scene_tree_create(&server.scene->tree);
+	server.icon_manager_tree = wlr_scene_tree_create(&server.scene->tree);
 	server.overlay_tree = wlr_scene_tree_create(&server.scene->tree);
 	server.menu_tree = wlr_scene_tree_create(&server.scene->tree);
 	wl_list_init(&server.toplevels);
 	wl_list_init(&server.xwayland_views);
 	wl_list_init(&server.popups);
+	initialize_icon_managers(&server);
 	server.xdg_shell = wlr_xdg_shell_create(server.display, 6);
 	server.new_toplevel.notify = new_toplevel;
 	wl_signal_add(&server.xdg_shell->events.new_toplevel, &server.new_toplevel);
@@ -6164,6 +7489,8 @@ int main(int argc, char **argv) {
 	test_control_finish(&server);
 #endif
 	hide_menu(&server);
+	finish_icon_animation(&server);
+	wtwm_icon_layout_destroy(server.icon_layout);
 	free(server.windows_menu.items);
 	free(server.windows_menu_targets);
 	wlr_scene_node_destroy(&server.scene->tree.node);
@@ -6193,6 +7520,8 @@ fail_runtime:
 	test_control_finish(&server);
 #endif
 	hide_menu(&server);
+	finish_icon_animation(&server);
+	wtwm_icon_layout_destroy(server.icon_layout);
 	free(server.windows_menu.items);
 	free(server.windows_menu_targets);
 	wlr_scene_node_destroy(&server.scene->tree.node);

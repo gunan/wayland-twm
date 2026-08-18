@@ -381,6 +381,28 @@ struct wlr_buffer *wtwm_render_pattern(int width, int height,
 	return &buffer->base;
 }
 
+struct wlr_buffer *wtwm_render_argb_icon(int width, int height,
+		const uint32_t *pixels) {
+	if (pixels == NULL || width < 1 || height < 1) return NULL;
+	if ((size_t)width > SIZE_MAX / (size_t)height) return NULL;
+	struct text_buffer *buffer = pixel_buffer_create(width, height);
+	if (buffer == NULL) return NULL;
+	for (int y = 0; y < height; ++y)
+		for (int x = 0; x < width; ++x) {
+			uint32_t source = pixels[(size_t)y * (size_t)width + (size_t)x];
+			unsigned alpha = source >> 24;
+			unsigned red = (source >> 16) & 0xffu;
+			unsigned green = (source >> 8) & 0xffu;
+			unsigned blue = source & 0xffu;
+			red = (red * alpha + 127u) / 255u;
+			green = (green * alpha + 127u) / 255u;
+			blue = (blue * alpha + 127u) / 255u;
+			buffer->pixels[(size_t)y * buffer->stride / 4u + (size_t)x] =
+				alpha << 24 | red << 16 | green << 8 | blue;
+		}
+	return &buffer->base;
+}
+
 static bool xbm_bit(const struct wtwm_xbm *xbm, unsigned x, unsigned y) {
 	if (xbm == NULL || x >= xbm->width || y >= xbm->height) return false;
 	return (xbm->data[(size_t)y * xbm->stride + x / 8u] &

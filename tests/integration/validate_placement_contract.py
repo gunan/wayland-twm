@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 
@@ -67,15 +68,18 @@ def validate_text(placement: str, config: str, wtwm: str,
         '"placement-fill", (40, 45), "fill"',
         'run_native_translation(compositor, native_client)',
         'client.stdin.write("UNMAP\\n")',
-        'wait_xwayland_unmapped(\n'
-        '                    control, int(before["xid"]), "placement-remap"\n'
-        '                )',
         'client.stdin.write("REMAP\\n")',
         'after["placement"] == "remapped"',
         'event["state"]["placement"]',
     ):
         if marker not in runner:
             errors.append(f"live placement matrix lacks {marker!r}")
+    if re.search(
+        r'wait_xwayland_unmapped\(\s*control,\s*'
+        r'int\(before\["xid"\]\),\s*"placement-remap"\s*\)',
+        runner,
+    ) is None:
+        errors.append("live placement matrix does not synchronize Xwayland unmap")
     for marker in (
         '"placement-default-max-width", 10, 12,',
         '32200, 16, HINT_US_POSITION',
@@ -132,10 +136,8 @@ def main() -> int:
             errors.append("self-test accepted missing remap assertion")
         tampered = list(values)
         tampered[3] = tampered[3].replace(
-            'wait_xwayland_unmapped(\n'
-            '                    control, int(before["xid"]), "placement-remap"\n'
-            '                )',
-            'control.state()',
+            'control, int(before["xid"]), "placement-remap"',
+            'control, 0, "placement-remap"',
             1,
         )
         if not validate_text(*tampered):

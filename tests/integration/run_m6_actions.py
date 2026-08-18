@@ -281,7 +281,10 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             )
             control.command("BUTTON 272 release")
             state = control.state()
-            if (sum(bool(item["iconified"]) for item in state["windows"]) != 1 or
+            iconified = {item["title"] for item in state["windows"]
+                         if item["iconified"]}
+            if (iconified != {"focus-a", "focus-b"} or
+                    len(state["icon_views"]) != 1 or
                     state["icon_views"][0]["title"] != "focus-a"):
                 raise RuntimeError(f"WindowFunction iconified the wrong window: {state!r}")
 

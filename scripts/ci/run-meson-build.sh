@@ -72,13 +72,15 @@ meson compile -C "$build_dir"
 
 case "$profile" in
 	asan)
+		# Instrumented Xwayland instances can starve one another's initial frame
+		# handshake when every integration test starts in parallel.
 		if [ "$(uname -s)" = Darwin ]; then
 			# Apple's AddressSanitizer runtime aborts when leak detection is requested.
 			ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 \
-				meson test -C "$build_dir" --print-errorlogs
+				meson test -C "$build_dir" --print-errorlogs --num-processes 1
 		else
 			ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
-				meson test -C "$build_dir" --print-errorlogs
+				meson test -C "$build_dir" --print-errorlogs --num-processes 1
 		fi
 		;;
 	ubsan)

@@ -109,6 +109,75 @@ config_dep = declare_dependency(
   dependencies: placement_dep,
 )
 
+icon_layout_lib = static_library(
+  'wtwm-icon-layout-lib',
+  'src/icon_layout.c',
+  include_directories: inc,
+  dependencies: config_dep,
+)
+icon_layout_dep = declare_dependency(
+  link_with: icon_layout_lib,
+  include_directories: inc,
+  dependencies: config_dep,
+)
+
+icon_layout_test = executable(
+  'icon-layout-test',
+  'tests/icon_layout_test.c',
+  dependencies: icon_layout_dep,
+)
+test('twm icon-region allocator', icon_layout_test)
+
+icon_manager_lib = static_library(
+  'wtwm-icon-manager-lib',
+  'src/icon_manager.c',
+  include_directories: inc,
+)
+icon_manager_dep = declare_dependency(
+  link_with: icon_manager_lib,
+  include_directories: inc,
+)
+
+icon_manager_test = executable(
+  'icon-manager-test',
+  'tests/icon_manager_test.c',
+  dependencies: icon_manager_dep,
+)
+test('twm icon-manager model', icon_manager_test)
+test(
+  'Milestone 7 icon runtime contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m7_icon_runtime.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 7 live icon differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m7_icon_differential.py'),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 7 deterministic lifecycle churn contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m7_lifecycle_churn.py'),
+    '--self-test',
+  ],
+)
+test(
+  'reference twm icon behavior contract',
+  find_program('python3'),
+  args: [files('tests/reference/validate_reference_icon_contract.py')],
+)
+
 geometry_lib = static_library(
   'wtwm-geometry-lib',
   'src/geometry.c',
@@ -668,6 +737,7 @@ if wlroots.found()
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
   xcb = dependency('xcb')
+  x11 = dependency('x11')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
@@ -681,7 +751,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -691,7 +761,7 @@ if wlroots.found()
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
       command_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
-      focus_stack_dep,
+      focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,
       dependency('fontconfig'),
       wayland_server,
@@ -787,6 +857,18 @@ if wlroots.found()
   wtwm_xwayland_bridge_client = executable(
     'wtwm-xwayland-bridge-client',
     'tests/integration/xwayland_bridge_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_m5_visual_client = executable(
+    'wtwm-m5-visual-client',
+    'tests/integration/m5_visual_client.c',
+    dependencies: x11,
+    install: false,
+  )
+  wtwm_m7_lifecycle_client = executable(
+    'wtwm-m7-lifecycle-client',
+    'tests/integration/m7_lifecycle_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -959,6 +1041,18 @@ if wlroots.found()
       '-B', files('tests/integration/run_m6_actions.py'),
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 7 icons and icon managers integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m7_icons.py'),
+      '--compositor', wtwm_test_compositor,
+      '--bridge-client', wtwm_xwayland_bridge_client,
+      '--visual-client', wtwm_m5_visual_client,
     ],
     timeout: 120,
     is_parallel: false,

@@ -12,7 +12,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Frame, border, and title extents | Exact in the canonical profile | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame. Title height, padding, lower border, squeeze placement, text baseline and clipping, button spacing, and focus/tile patterns use the frozen reference formulas. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations |
 | Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
 | `ButtonN` and quoted key bindings | Effective | libinput buttons and exact, case-sensitive xkbcommon key-symbol names; later declarations replace the same twm trigger slot |
-| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all`, and named contexts | Effective except icon-manager UI | Scene hit-test contexts; `all` expands to the six concrete contexts. Named keys use case-sensitive title, resource/`app_id`, then class prefixes and execute for every client in the first successful category |
+| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all`, and named contexts | Effective | Scene hit-test contexts; `all` expands to the six concrete contexts. Named keys use case-sensitive title, resource/`app_id`, then class prefixes and execute for every client in the first successful category |
 | Shift, Control, Lock, Meta modifiers | Effective | Shift, Control, Lock, and Mod1 through Mod5 use xkb state. As in twm, Shift, Control, and Mod1 are always significant; configuring any other modifier makes it globally significant, so a configured Lock binding makes Caps Lock distinguish every binding |
 | `Function` and `f.function` | Effective | Nested action sequences preserve reference order and pause across interactive move/resize; `f.deltastop` observes the completed gesture. The continuation stack permits the root function plus eight nested calls |
 | Move, force-move, resize, raise, lower | Effective for move/resize interaction | Non-opaque moves and all resizes use compositor-owned outlines with release commit; `OpaqueMove` updates the live window, while second-button abort restores the original geometry. Raise/lower never imply focus |
@@ -22,7 +22,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. Pull-right hover opens a bounded nested stack, moving back into a parent pops its descendants, a second press cancels the stack, and release dispatches only an enabled leaf. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
 | Title buttons | Effective | Default and configured left/right buttons retain reference ordering, borders, spacing, XBM/built-in glyphs, and full hit boxes. Reference `twm` has no distinct hover/pressed pixels; the held-pointer captures are therefore identical while the action still fires on press |
-| Icon windows and icon manager | Configured icons effective; manager pending | Wayland has no client icon-window primitive. Compositor-owned configured-XBM and `UnknownIcon` views use the reference icon font, foreground/background/border colors, bitmap/text layout, and icon focus context. Client-supplied icon rendering, regions, and icon managers remain Milestone 7 work |
+| Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
 | Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use reference geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
 | Warp actions | Behaviorally equivalent | Window, next/previous, window-ring, and output warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates; X screens translate to ordered Wayland outputs while preserving the cursor's output-relative position |
@@ -208,7 +208,34 @@ The bridge live-updates `WM_NAME`, both `WM_CLASS` strings,
 icon pixmap, mask, and window identifiers are retained. `_NET_WM_ICON` parsing
 is bounded to one complete 256x256 image worth of 32-bit words; incomplete or
 larger properties are reported as truncated and never treated as a complete
-icon. Rendering supplied icons in compositor-owned icon UI remains pending.
+icon. One-bit `WM_HINTS` pixmaps and bounded `_NET_WM_ICON` pixels are rendered
+inside compositor-owned icon scenes. X11 client icon-window identifiers remain
+observable, but rootless Xwayland cannot safely transplant an arbitrary X
+window into a Wayland scene; wtwm therefore preserves its supplied pixmap (or
+`_NET_WM_ICON`) appearance in an owned surface instead of exposing the literal
+client window. Native xdg-shell has no standard icon-image or icon-window
+request, so native clients use matching configured icons and `UnknownIcon`.
+
+Iconification keeps logical membership separate from visible representation.
+`IconifyByUnmapping` suppresses the owned icon scene while retaining the
+window's icon-manager row; named opt-ins override the exclusion list, while a
+bare global directive is carved back by `DontIconifyByUnmapping`. Ordinary
+icons allocate the first fitting border-inclusive cell from configured
+`IconRegion` records, with X-geometry negative offsets, reference gravity
+split order, independent grid rounding, centered contents, collision avoidance,
+release coalescing, and client `IconPositionHint` precedence. A manually moved
+icon leaves its region allocation, as in reference twm.
+
+The portable icon-manager model retains stable insertion order, optional
+case-sensitive or folded icon-name sorting, partial-row packing, active and
+per-manager selection, wrapped directional navigation, and visible/nonempty
+next/previous manager traversal. Compositor scenes add the configured geometry,
+columns, colors, iconified marker, active/down borders, pointer hit context,
+focus behavior, and show/hide actions. Custom managers placed with negative
+geometry offsets resolve against the combined ordered output layout, providing
+the Wayland translation of reference multi-screen traversal. `Zoom` draws a
+timer-driven outline between exact frame and icon endpoints; `Zoom` count and
+`NoRaiseOnDeiconify` retain their independent reference effects.
 
 Managed Xwayland windows use the reference `LookInList` identity order:
 case-sensitive `WM_NAME`, then the `WM_CLASS` resource name (instance), then
