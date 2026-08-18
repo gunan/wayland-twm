@@ -530,10 +530,14 @@ def family_members(records: dict[int, dict[str, object]]) -> list[list[int]]:
 
 
 def planned_frames(
-    before_state: dict[str, object], after_outputs: list[tuple[str, Box]]
+    before_state: dict[str, object],
+    after_outputs: list[tuple[str, Box]],
+    source_outputs: list[tuple[str, Box]] | None = None,
 ) -> tuple[dict[int, Box], set[int]]:
     records = windows(before_state)
-    before_outputs = outputs(before_state)
+    before_outputs = (
+        outputs(before_state) if source_outputs is None else source_outputs
+    )
     planned: dict[int, Box] = {}
     changed: set[int] = set()
     for family in family_members(records):
@@ -578,19 +582,23 @@ def assert_transition(
     label: str,
     *,
     preserve_active: bool = True,
+    source_outputs: list[tuple[str, Box]] | None = None,
 ) -> set[int]:
     before_windows = windows(before)
     after_windows = windows(after)
     if set(after_windows) != set(before_windows):
         raise RuntimeError(f"{label}: managed identities changed")
     post_outputs = outputs(after)
-    expected_frames, changed = planned_frames(before, post_outputs)
+    before_outputs = outputs(before) if source_outputs is None else source_outputs
+    expected_frames, changed = planned_frames(
+        before, post_outputs, source_outputs
+    )
     before_icons = icon_views(before)
     after_icons = icon_views(after)
     expected_icons: dict[str, Box] = {}
     for title, item in before_icons.items():
         expected_icons[title] = restore_box(
-            icon_box(item), outputs(before), post_outputs
+            icon_box(item), before_outputs, post_outputs
         ).box
 
     for identity, previous in before_windows.items():
@@ -607,7 +615,7 @@ def assert_transition(
             "x", "y", "restoration_pending", "visible"
         }
         if not preserve_active:
-            ignored_fields.add("active")
+            ignored_fields.update({"active", "stack"})
         for field in WINDOW_STABLE_FIELDS - ignored_fields:
             if (
                 field in {"width", "height", "outer_width", "outer_height"}
@@ -645,7 +653,7 @@ def assert_transition(
                 raise RuntimeError(f"{label}: non-zoomed window gained saved geometry")
         else:
             expected_saved = restore_box(
-                previous_saved, outputs(before), post_outputs
+                previous_saved, before_outputs, post_outputs
             ).box
             if current_saved != expected_saved:
                 raise RuntimeError(
@@ -671,18 +679,32 @@ def assert_transition(
                 key for key, item in before_windows.items() if item["title"] == title
             )
             changed.add(identity)
-        if previous["region_allocated"] != current["region_allocated"]:
-            raise RuntimeError(f"{label}: icon region ownership changed for {title!r}")
+        if (
+            previous["source"] != current["source"]
+            or previous["region_allocated"] != current["region_allocated"]
+        ):
+            raise RuntimeError(f"{label}: icon ownership changed for {title!r}")
+
+    if not outputs(before) and post_outputs:
+        changed.update(before_windows)
 
     if preserve_active and (before["focus"], before["active"]) != (
         after["focus"],
         after["active"],
     ):
         raise RuntimeError(f"{label}: focus changed during restoration")
-    if {identity: item["stack"] for identity, item in before_windows.items()} != {
-        identity: item["stack"] for identity, item in after_windows.items()
-    }:
-        raise RuntimeError(f"{label}: stacking changed during restoration")
+    if preserve_active:
+        if {
+            identity: item["stack"] for identity, item in before_windows.items()
+        } != {
+            identity: item["stack"] for identity, item in after_windows.items()
+        }:
+            raise RuntimeError(f"{label}: stacking changed during restoration")
+    else:
+        before_order = sorted(before_windows, key=lambda key: before_windows[key]["stack"])
+        after_order = sorted(after_windows, key=lambda key: after_windows[key]["stack"])
+        if before_order != after_order:
+            raise RuntimeError(f"{label}: relative stack order changed before waiter map")
     return changed
 
 
@@ -1189,20 +1211,42 @@ def exercise(
             state, changed = topology_transition(
                 control,
                 state,
-                "OUTPUT DESTROY HEADLESS-1",
-                "OK OUTPUT DESTROY HEADLESS-1",
-                "destroy non-owner output",
+                "OUTPUT DESTROY HEADLESS-2",
+                "OK OUTPUT DESTROY HEADLESS-2",
+                "destroy stranded owner with survivor",
             )
-            if changed:
-                raise RuntimeError("non-owner output destruction moved visible windows")
-            session.assert_protocols("destroy_non_owner")
+            if changed != set(windows(state)):
+                raise RuntimeError(
+                    "non-last owner destruction did not restore every family"
+                )
+            session.assert_protocols("destroy_owner")
+
+            disabled_last, _ = topology_transition(
+                control,
+                state,
+                "OUTPUT DISABLE HEADLESS-1",
+                "OK OUTPUT DISABLE HEADLESS-1",
+                "disable last output",
+                active_after=False,
+            )
+            if outputs(disabled_last):
+                raise RuntimeError("last output disable retained a spatial root")
+            session.assert_protocols("disable_last")
+            state, _ = topology_transition(
+                control,
+                disabled_last,
+                "OUTPUT ENABLE HEADLESS-1",
+                "OK OUTPUT ENABLE HEADLESS-1",
+                "same-identity output resume",
+            )
+            session.assert_protocols("reenable_last")
 
             expect_command(control, "TRACE CLEAR", "OK TRACE CLEAR")
             before_zero = state
             expect_command(
                 control,
-                "OUTPUT DESTROY HEADLESS-2",
-                "OK OUTPUT DESTROY HEADLESS-2",
+                "OUTPUT DESTROY HEADLESS-1",
+                "OK OUTPUT DESTROY HEADLESS-1",
             )
             zero = control.state()
             assert_transition(before_zero, zero, "destroy last output")
@@ -1254,6 +1298,7 @@ def exercise(
                 resumed_without_waiter,
                 "resume existing families before waiter",
                 preserve_active=False,
+                source_outputs=outputs(before_zero),
             )
             events = validate_trace(control.trace())
             restore_positions = [
