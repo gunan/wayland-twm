@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 f.startwm behavior and wtwm safe Wayland handoff translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json",
+    "action_contract": "reference/actions/twm-1.0.13.1/action-contract.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c"
+  },
+  "evidence": {
+    "manual.startwm": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1377,
+      "text": ".IP \"\\fBf.startwm\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.startwm-effect": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1378,
+      "text": "This function kills \\fItwm\\fP and starts another window manager, as"
+    },
+    "manual.startwm-target": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1379,
+      "text": "specified by \\fIstring\\fP."
+    },
+    "parse.f-startwm": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 468,
+      "text": "    { \"f.startwm\",              FSKEYWORD, F_STARTWM },"
+    },
+    "startwm.dispatch": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2184,
+      "text": "    case F_STARTWM:"
+    },
+    "startwm.shell-exec": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2185,
+      "text": "        execlp(\"/bin/sh\", \"sh\", \"-c\", action, (void *) NULL);"
+    },
+    "startwm.failure-warning": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2186,
+      "text": "        twmWarning(\"unable to start:  %s\", *Argv);"
+    },
+    "startwm.failure-break": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2187,
+      "text": "        break;"
+    },
+    "startwm.common-return": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2193,
+      "text": "    return do_next_action;"
+    }
+  },
+  "reference_behavior": {
+    "action_identity": {
+      "name": "f.startwm",
+      "inventory_id": "keyword.f.startwm",
+      "parser_token": "FSKEYWORD",
+      "normalized_action": "F_STARTWM",
+      "argument": "one decoded configuration string",
+      "evidence": [
+        "manual.startwm",
+        "manual.startwm-effect",
+        "manual.startwm-target",
+        "parse.f-startwm",
+        "startwm.dispatch"
+      ]
+    },
+    "command_execution": {
+      "execution_model": "replace-process-image-on-success",
+      "program": "/bin/sh",
+      "argv": [
+        "sh",
+        "-c",
+        "action"
+      ],
+      "path_lookup": "execlp",
+      "preflight": false,
+      "shell_interpretation": true,
+      "returns_on_success": false,
+      "rule": "F_STARTWM passes the decoded action string unchanged as the command operand of /bin/sh -c; shell parsing, expansion, redirection, pipelines, and command lookup are therefore shell behavior.",
+      "evidence": [
+        "startwm.dispatch",
+        "startwm.shell-exec"
+      ]
+    },
+    "exec_failure": {
+      "result": "warn-and-continue-current-twm",
+      "warning_format": "unable to start:  %s",
+      "warning_argument": "original Argv[0], not the attempted action string",
+      "common_dispatch_return_reached": true,
+      "rule": "Because execlp returns only on failure, twm emits the warning, breaks from F_STARTWM, performs common input cleanup, and remains the active window manager.",
+      "evidence": [
+        "startwm.shell-exec",
+        "startwm.failure-warning",
+        "startwm.failure-break",
+        "startwm.common-return"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "action_identity": {
+      "name": "f.startwm",
+      "normalized_action": "F_STARTWM",
+      "argument_is_shell_command": true,
+      "replacement_intent": true,
+      "never_reinterpret_as": "f.exec"
+    },
+    "strategy_classification": [
+      {
+        "id": "registered-in-process-successor",
+        "support": "supported-when-preflight-passes",
+        "process_replacement": false,
+        "connection_fd_transfer": false
+      },
+      {
+        "id": "explicit-cooperative-successor",
+        "support": "supported-only-with-verified-handoff-adapter",
+        "process_replacement": true,
+        "connection_fd_transfer": "adapter-defined-and-acknowledged"
+      },
+      {
+        "id": "generic-shell-command",
+        "support": "unsupported",
+        "process_replacement": false,
+        "connection_fd_transfer": false
+      }
+    ],
+    "preflight": {
+      "runs_before_session_mutation": true,
+      "required_checks": [
+        "classify the configured action without executing it",
+        "resolve a registered in-process target or explicit cooperative adapter",
+        "verify target readiness and protocol-version compatibility",
+        "verify continuous ownership for every active display and client connection",
+        "verify native Wayland and Xwayland preservation independently"
+      ],
+      "generic_wayland_takeover_available": false,
+      "shell_success_is_not_handoff_proof": true
+    },
+    "handoff_transaction": {
+      "atomicity": "prepare-ready-commit-or-retain-current-session",
+      "phases": [
+        "prepare successor while wtwm retains every live session resource",
+        "obtain explicit readiness and preservation acknowledgement",
+        "commit ownership only after all protocol paths can remain live",
+        "retire the old handler only after the successor owns the complete session"
+      ],
+      "ownership_boundaries": [
+        "Wayland display and listening socket",
+        "all native Wayland client connections, objects, and roles",
+        "Xwayland server and all X11 client connections",
+        "outputs, input devices, seats, and active grabs",
+        "managed geometry, mapping, iconification, and stacking",
+        "keyboard focus and pointer focus",
+        "clipboard, primary selection, and window-manager selections",
+        "session-manager identity and lifecycle ownership"
+      ],
+      "success_requires": [
+        "a registered in-process successor or verified cooperative adapter",
+        "an acknowledged transfer plan for every ownership boundary",
+        "unchanged live client connection identities",
+        "successor responsibility before wtwm relinquishes any resource"
+      ],
+      "generic_wayland_fd_takeover_claimed": false
+    },
+    "unsupported_or_failed": {
+      "outcome": "report-and-retain-current-session",
+      "diagnostic_required": true,
+      "execute_configured_shell_command": false,
+      "preserve": [
+        "compositor process and event loop",
+        "Wayland display and listening socket",
+        "native Wayland clients and resources",
+        "Xwayland server and X11 clients",
+        "mapping, geometry, iconification, and stacking",
+        "keyboard and pointer focus",
+        "clipboard, primary selection, and window-manager selections",
+        "session-manager identity and lifecycle ownership"
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "startwm.reference-shell-command",
+      "level": "MUST",
+      "rule": "The compatibility identity remains f.startwm STRING / F_STARTWM with the upstream /bin/sh -c command semantics and warn-and-continue exec failure path.",
+      "evidence": [
+        "parse.f-startwm",
+        "startwm.dispatch",
+        "startwm.shell-exec",
+        "startwm.failure-warning",
+        "startwm.common-return"
+      ]
+    },
+    {
+      "id": "startwm.preflight-before-mutation",
+      "level": "MUST",
+      "rule": "wtwm classifies and fully preflights the configured handoff before releasing or changing any current-session resource.",
+      "evidence": [
+        "startwm.shell-exec"
+      ]
+    },
+    {
+      "id": "startwm.unsupported-retention",
+      "level": "MUST",
+      "rule": "A generic shell command or target without a verified handoff adapter is reported as unsupported and is not executed while clients are active.",
+      "evidence": [
+        "startwm.shell-exec"
+      ]
+    },
+    {
+      "id": "startwm.failure-continuity",
+      "level": "MUST",
+      "rule": "Unsupported, preflight-failed, readiness-failed, and pre-commit handoffs retain the compositor, native clients, Xwayland clients, focus, stacking, selections, and session ownership unchanged.",
+      "evidence": [
+        "startwm.failure-warning",
+        "startwm.common-return"
+      ]
+    },
+    {
+      "id": "startwm.success-continuity",
+      "level": "MUST",
+      "rule": "A successful handoff preserves live client connection identities and transfers every ownership boundary before wtwm retires the old handler.",
+      "evidence": [
+        "manual.startwm",
+        "manual.startwm-effect",
+        "manual.startwm-target",
+        "startwm.shell-exec"
+      ]
+    },
+    {
+      "id": "startwm.no-generic-wayland-takeover",
+      "level": "MUST",
+      "rule": "The translation never claims that executing an arbitrary command can inherit or reconstruct wlroots/Wayland protocol state or take over generic client file descriptors.",
+      "evidence": [
+        "startwm.shell-exec"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "upstream-shell-success",
+      "class": "reference-valid",
+      "oracle": "The exact action string reaches /bin/sh -c and a successful execlp does not return to twm."
+    },
+    {
+      "id": "upstream-shell-exec-failure",
+      "class": "reference-invalid",
+      "oracle": "Failed execlp warns using original Argv[0], reaches common cleanup, and leaves twm running."
+    },
+    {
+      "id": "generic-wayland-command",
+      "class": "translation-unsupported",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "wtwm reports unsupported handoff without executing the shell command or changing any preserved session state."
+    },
+    {
+      "id": "supported-target-preflight-failure",
+      "class": "translation-invalid",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "The diagnostic identifies failed preflight and compositor, clients, focus, stacking, selections, and session ownership remain live and unchanged."
+    },
+    {
+      "id": "registered-in-process-success",
+      "class": "translation-valid",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "The registered handler assumes policy ownership atomically without process replacement, fd transfer, client disconnection, or loss of managed state."
+    },
+    {
+      "id": "cooperative-successor-success",
+      "class": "translation-valid-when-adapter-exists",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "The old handler retires only after the verified adapter acknowledges every ownership boundary and all existing connection identities remain live."
+    }
+  ]
+}
