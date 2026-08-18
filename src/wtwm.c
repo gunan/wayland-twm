@@ -2483,6 +2483,8 @@ static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
 	int old_y = toplevel->tree->node.y;
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		toplevel->frame_x = x;
+		toplevel->frame_y = y;
 		sync_toplevel_popups(toplevel);
 	} else {
 		configure_xwayland_frame(toplevel, x, y,
@@ -2500,6 +2502,8 @@ static void set_toplevel_box(struct toplevel *toplevel,
 	constrain_toplevel_size(toplevel, &width, &height);
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		toplevel->frame_x = x;
+		toplevel->frame_y = y;
 		sync_toplevel_popups(toplevel);
 		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
 	} else {
