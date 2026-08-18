@@ -18,7 +18,7 @@ CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/output-placement-contract.json"
 )
 EXPECTED_CANONICAL_SHA256 = (
-    "54634fef4a8f13e0f4f3868147843ed06f62aa8c9b79f0ccd64359a13cdb6e40"
+    "165a32c778c9a9dba131cf2c4441f45c076d8d88f39920d2cd34148dcd90e12a"
 )
 EXPECTED_UPSTREAM = {
     "name": "X.Org twm",
@@ -293,6 +293,10 @@ def validate_current_surface(
         "*y = pointer_y;",
         "if (*x < area->x) *x = area->x;",
         "if (*x > max_x) *x = max_x;",
+        "bool wtwm_placement_output_for_point(",
+        "bool wtwm_placement_output_for_outer(",
+        "uint128_square",
+        "intersection_area",
     )
     for snippet in required_placement:
         if snippet not in placement:
@@ -306,13 +310,26 @@ def validate_current_surface(
     required_runtime = (
         "wlr_output_layout_get_box(server->output_layout, wlr_output, &box);",
         "output->background = wlr_scene_rect_create(&server->scene->tree,",
-        "struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};",
-        "static void place_native_toplevel(struct toplevel *toplevel) {",
+        "struct hit_result hit = {0};",
+        "server.pointer_context = 0;",
+        "leaf == &output->background->node",
+        "static bool place_native_toplevel(struct toplevel *toplevel) {",
         "static bool initial_xwayland_frame(struct toplevel *toplevel,",
+        "wtwm_placement_output_for_point(areas, count",
+        "wtwm_placement_output_for_outer(areas, count",
+        "placement_waiting_output",
+        "toplevel->placement_order < oldest->placement_order",
     )
     for snippet in required_runtime:
         if snippet not in runtime:
             errors.append(f"current compositor surface missing: {snippet}")
+    for stale in (
+        "server_placement_area(",
+        "wlr_output_layout_get_box(server->output_layout, NULL, &output_box)",
+        "wlr_output_layout_get_box(server->output_layout, NULL, &output)",
+    ):
+        if stale in runtime:
+            errors.append(f"current compositor retains layout-union adapter: {stale}")
 
 
 def validate_reference_behavior(value: Any, errors: list[str]) -> None:
@@ -905,8 +922,20 @@ def run_tamper_tests(
         (
             "root hit default",
             "src/wtwm.c",
+            "struct hit_result hit = {0};",
             "struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};",
-            "struct hit_result hit = {.context = WTWM_CONTEXT_WINDOW};",
+        ),
+        (
+            "outer owner selection",
+            "src/wtwm.c",
+            "wtwm_placement_output_for_outer(areas, count",
+            "wtwm_placement_output_for_point(areas, count",
+        ),
+        (
+            "zero-output ordering",
+            "src/wtwm.c",
+            "toplevel->placement_order < oldest->placement_order",
+            "false",
         ),
     ]
     for name, path, before, after in source_mutations:

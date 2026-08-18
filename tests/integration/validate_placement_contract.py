@@ -22,6 +22,10 @@ def validate_text(placement: str, config: str, wtwm: str,
         "WTWM_PLACEMENT_BUTTON_CONFIRM",
         "wtwm_placement_prompt_position",
         "wtwm_placement_fill_size",
+        "wtwm_placement_output_for_point",
+        "wtwm_placement_output_for_outer",
+        "uint128_square",
+        "intersection_area",
         "if (*x < area->x) *x = area->x;",
         "if (*x > max_x) *x = max_x;",
     ):
@@ -51,9 +55,30 @@ def validate_text(placement: str, config: str, wtwm: str,
         "finish_initial_placement(server);",
         "wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);",
         'wtwm_placement_kind_name(toplevel->placement_kind)',
+        "output_area_snapshot(server, &snapshot, &areas, &count)",
+        "wtwm_placement_output_for_point(areas, count",
+        "wtwm_placement_output_for_outer(areas, count",
+        "output_local_pointer(toplevel->server, &area, &pointer_x, &pointer_y)",
+        "xwayland_initial_area(toplevel, toplevel->width, toplevel->height",
+        "position.frame_x,\n\t\tposition.frame_y, area",
+        "candidate->placement_area",
+        ".output_area = output_area",
+        "leaf == &output->background->node",
+        "struct hit_result hit = {0};",
+        "server.pointer_context = 0;",
+        "placement_waiting_output",
+        "resume_output_waiting_toplevels(server);",
+        "toplevel->placement_order < oldest->placement_order",
     ):
         if marker not in wtwm:
             errors.append(f"compositor placement adapter lacks {marker!r}")
+    for stale in (
+        "server_placement_area(",
+        "wlr_output_layout_get_box(server->output_layout, NULL, &output_box)",
+        "wlr_output_layout_get_box(server->output_layout, NULL, &output)",
+    ):
+        if stale in wtwm:
+            errors.append(f"compositor placement adapter retains layout union {stale!r}")
     for marker in (
         'UsePPosition "off"',
         'UsePPosition "on"',
@@ -124,7 +149,7 @@ def main() -> int:
         tampered = list(values)
         tampered[2] = tampered[2].replace(
             "xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_US_POSITION)",
-            "false", 1,
+            "false",
         )
         if not validate_text(*tampered):
             errors.append("self-test accepted missing USPosition runtime policy")
@@ -149,6 +174,20 @@ def main() -> int:
         )
         if not validate_text(*tampered):
             errors.append("self-test accepted missing placement confirm intent")
+        tampered = list(values)
+        tampered[2] = tampered[2].replace(
+            "wtwm_placement_output_for_outer(areas, count",
+            "wtwm_placement_output_for_point(areas, count", 1,
+        )
+        if not validate_text(*tampered):
+            errors.append("self-test accepted missing outer-owner selection")
+        tampered = list(values)
+        tampered[2] = tampered[2].replace(
+            "struct hit_result hit = {0};",
+            "struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};", 1,
+        )
+        if not validate_text(*tampered):
+            errors.append("self-test accepted synthetic root hit in layout gaps")
     if errors:
         for error in errors:
             print(error)

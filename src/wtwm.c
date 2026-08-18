@@ -209,8 +209,11 @@ struct toplevel {
 	bool mapped;
 	bool placed;
 	bool placement_pending;
+	bool placement_waiting_output;
+	bool placement_initial_rules;
 	bool placement_start_iconified;
 	uint64_t placement_order;
+	struct wtwm_placement_area placement_area;
 	bool iconified;
 	bool decorated;
 	bool associated;
@@ -353,6 +356,7 @@ struct menu_view {
 	int height;
 	int row_height;
 	int selected;
+	struct wtwm_placement_area output_area;
 };
 
 struct menu_row_view {
@@ -423,6 +427,8 @@ struct interaction_session {
 	bool moved;
 	bool raised;
 	bool icon_move;
+	bool output_area_valid;
+	struct wtwm_placement_area output_area;
 };
 
 struct action_frame {
@@ -560,6 +566,13 @@ static void start_next_initial_placement(struct server *server);
 static void update_title_text(struct toplevel *toplevel);
 static void update_decoration(struct toplevel *toplevel);
 static void refresh_icon_managers(struct server *server);
+static bool output_area_for_point(struct server *server, int x, int y,
+	struct wtwm_placement_area *area);
+static bool output_area_for_outer(struct server *server, int x, int y,
+	int width, int height, struct wtwm_placement_area *area);
+static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
+	struct wtwm_placement_area *area);
+static void resume_output_waiting_toplevels(struct server *server);
 static void sync_icon_manager_toplevel(struct toplevel *toplevel);
 static void rebuild_icon_layout(struct server *server);
 static void finish_icon_animation(struct server *server);
@@ -2886,20 +2899,31 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	if (server->grabbed != NULL) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
+	int original_x = toplevel->iconified ? toplevel->icon_x :
+		toplevel->tree->node.x;
+	int original_y = toplevel->iconified ? toplevel->icon_y :
+		toplevel->tree->node.y;
+	int owner_width = toplevel->iconified ? toplevel->icon_width :
+		geometry.outer_width;
+	int owner_height = toplevel->iconified ? toplevel->icon_height :
+		geometry.outer_height;
+	struct wtwm_placement_area output_area;
+	if (!output_area_for_outer(server, original_x, original_y,
+			owner_width, owner_height, &output_area)) return;
 	server->grabbed = toplevel;
 	server->cursor_mode = mode;
 	set_cursor_role(server, mode == CURSOR_MOVE ? "Move" : "Resize");
 	server->last_interaction_moved = false;
 	server->interaction = (struct interaction_session){
 		.original = {
-			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
-			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.x = original_x,
+			.y = original_y,
 			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
 			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.preview = {
-			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
-			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.x = original_x,
+			.y = original_y,
 			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
 			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
@@ -2910,6 +2934,8 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.started = server->config.move_delta <= 0,
 		.intent = INTERACTION_DRAG,
 		.icon_move = toplevel->iconified,
+		.output_area_valid = true,
+		.output_area = output_area,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -3235,6 +3261,13 @@ static void show_menu_at(struct server *server, const char *name,
 	}
 	if (submenu && (server->menu.tree == NULL || menu_depth(&server->menu) >= 10))
 		return;
+	struct wtwm_placement_area output_area;
+	bool have_output = submenu ? true : (target != NULL ?
+		output_area_for_toplevel(target, target->iconified, &output_area) :
+		output_area_for_point(server, (int)server->cursor->x,
+			(int)server->cursor->y, &output_area));
+	if (submenu) output_area = server->menu.output_area;
+	if (!have_output || output_area.width <= 0 || output_area.height <= 0) return;
 	int *widths = calloc(menu->item_count, sizeof(*widths));
 	int *heights = calloc(menu->item_count, sizeof(*heights));
 	struct menu_row_palette *palettes = calloc(menu->item_count,
@@ -3375,16 +3408,22 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 	}
 	free(widths); free(heights); free(palettes);
-	struct wlr_box output = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &output);
 	int menu_x = submenu ? requested_x : (int)server->cursor->x;
 	int menu_y = submenu ? requested_y : (int)server->cursor->y;
-	if (menu_x + layout.outer.width > output.x + output.width)
-		menu_x = output.x + output.width - layout.outer.width;
-	if (menu_y + layout.outer.height > output.y + output.height)
-		menu_y = output.y + output.height - layout.outer.height;
-	if (menu_x < output.x) menu_x = output.x;
-	if (menu_y < output.y) menu_y = output.y;
+	int64_t output_right = (int64_t)output_area.x + output_area.width;
+	int64_t output_bottom = (int64_t)output_area.y + output_area.height;
+	if ((int64_t)menu_x + layout.outer.width > output_right) {
+		int64_t clipped = output_right - layout.outer.width;
+		menu_x = clipped < INT_MIN ? INT_MIN :
+			(clipped > INT_MAX ? INT_MAX : (int)clipped);
+	}
+	if ((int64_t)menu_y + layout.outer.height > output_bottom) {
+		int64_t clipped = output_bottom - layout.outer.height;
+		menu_y = clipped < INT_MIN ? INT_MIN :
+			(clipped > INT_MAX ? INT_MAX : (int)clipped);
+	}
+	if (menu_x < output_area.x) menu_x = output_area.x;
+	if (menu_y < output_area.y) menu_y = output_area.y;
 	struct menu_view *parent = NULL;
 	if (submenu) {
 		parent = malloc(sizeof(*parent));
@@ -3410,6 +3449,7 @@ static void show_menu_at(struct server *server, const char *name,
 		.height = layout.outer.height,
 		.row_height = layout.row_height,
 		.selected = -1,
+		.output_area = output_area,
 	};
 	wlr_scene_node_set_position(&tree->node, server->menu.x, server->menu.y);
 }
@@ -3652,15 +3692,15 @@ static void schedule_refresh(struct server *server) {
 static void apply_zoom(struct toplevel *toplevel,
 		enum wtwm_action_type type) {
 	if (toplevel == NULL) return;
-	struct wlr_box layout = {0};
-	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
+	struct wtwm_placement_area area;
+	if (!output_area_for_toplevel(toplevel, false, &area)) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
 	struct wtwm_interaction_box output = {
-		.x = layout.x,
-		.y = layout.y,
-		.width = layout.width,
-		.height = layout.height,
+		.x = area.x,
+		.y = area.y,
+		.width = area.width,
+		.height = area.height,
 	};
 	struct wtwm_interaction_box current = {
 		.x = toplevel->frame_x,
@@ -3892,6 +3932,96 @@ static bool output_order_snapshot(struct server *server,
 	wtwm_output_order_destroy(*snapshot);
 	*snapshot = NULL;
 	return false;
+}
+
+static bool output_area_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot,
+		struct wtwm_placement_area **areas, size_t *count) {
+	*snapshot = NULL;
+	*areas = NULL;
+	*count = 0;
+	if (!output_order_snapshot(server, snapshot)) return false;
+	*count = wtwm_output_order_count(*snapshot);
+	if (*count == 0) return true;
+	*areas = calloc(*count, sizeof(**areas));
+	if (*areas == NULL) {
+		wtwm_output_order_destroy(*snapshot);
+		*snapshot = NULL;
+		return false;
+	}
+	for (size_t i = 0; i < *count; ++i) {
+		struct output *output = wtwm_output_order_at(*snapshot, i);
+		struct wlr_box box = {0};
+		if (output != NULL)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		(*areas)[i] = (struct wtwm_placement_area){
+			.x = box.x,
+			.y = box.y,
+			.width = box.width,
+			.height = box.height,
+		};
+	}
+	return true;
+}
+
+static bool output_area_for_point(struct server *server, int x, int y,
+		struct wtwm_placement_area *area) {
+	struct wtwm_output_order *snapshot = NULL;
+	struct wtwm_placement_area *areas = NULL;
+	size_t count = 0, selected = 0;
+	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
+	bool found = loaded && wtwm_placement_output_for_point(areas, count,
+		x, y, &selected);
+	if (found && area != NULL) *area = areas[selected];
+	free(areas);
+	wtwm_output_order_destroy(snapshot);
+	return found;
+}
+
+static bool output_area_for_outer(struct server *server, int x, int y,
+		int width, int height, struct wtwm_placement_area *area) {
+	struct wtwm_output_order *snapshot = NULL;
+	struct wtwm_placement_area *areas = NULL;
+	size_t count = 0, selected = 0;
+	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
+	bool found = loaded && wtwm_placement_output_for_outer(areas, count,
+		x, y, width, height, &selected);
+	if (found && area != NULL) *area = areas[selected];
+	free(areas);
+	wtwm_output_order_destroy(snapshot);
+	return found;
+}
+
+static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
+		struct wtwm_placement_area *area) {
+	if (toplevel == NULL) return false;
+	if (icon && toplevel->icon_width > 0 && toplevel->icon_height > 0)
+		return output_area_for_outer(toplevel->server, toplevel->icon_x,
+			toplevel->icon_y, toplevel->icon_width, toplevel->icon_height, area);
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int x = toplevel->tree != NULL ? toplevel->tree->node.x : toplevel->frame_x;
+	int y = toplevel->tree != NULL ? toplevel->tree->node.y : toplevel->frame_y;
+	return output_area_for_outer(toplevel->server, x, y,
+		geometry.outer_width, geometry.outer_height, area);
+}
+
+static void output_local_pointer(struct server *server,
+		const struct wtwm_placement_area *target, int *x, int *y) {
+	struct wtwm_placement_area source;
+	if (!output_area_for_point(server, *x, *y, &source)) return;
+	int64_t translated_x = (int64_t)target->x + ((int64_t)*x - source.x);
+	int64_t translated_y = (int64_t)target->y + ((int64_t)*y - source.y);
+	int64_t max_x = (int64_t)target->x + target->width - 1;
+	int64_t max_y = (int64_t)target->y + target->height - 1;
+	if (translated_x < target->x) translated_x = target->x;
+	if (translated_y < target->y) translated_y = target->y;
+	if (translated_x > max_x) translated_x = max_x;
+	if (translated_y > max_y) translated_y = max_y;
+	*x = translated_x < INT_MIN ? INT_MIN :
+		(translated_x > INT_MAX ? INT_MAX : (int)translated_x);
+	*y = translated_y < INT_MIN ? INT_MIN :
+		(translated_y > INT_MAX ? INT_MAX : (int)translated_y);
 }
 
 static void warp_to_screen(struct server *server, const char *argument) {
@@ -5084,13 +5214,21 @@ static bool scene_node_descends_from(struct wlr_scene_node *node,
 }
 
 static struct hit_result desktop_at(struct server *server, double lx, double ly) {
-	struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};
+	struct hit_result hit = {0};
 	double sx = 0, sy = 0;
 	struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->tree.node,
 		lx, ly, &sx, &sy);
 	if (node == NULL) return hit;
 	struct wlr_scene_node *leaf = node;
 	struct wlr_scene_tree *tree = node->parent;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output->wlr->enabled && output->background != NULL &&
+				leaf == &output->background->node) {
+			hit.context = WTWM_CONTEXT_ROOT;
+			return hit;
+		}
+	}
 	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
 		struct icon_manager_view *view = &server->icon_manager_views[i];
 		if (view->tree == NULL ||
@@ -5240,16 +5378,10 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		struct interaction_session *interaction = &server->interaction;
 		struct wtwm_frame_geometry geometry;
 		toplevel_geometry(server->grabbed, &geometry);
-		struct wlr_box output_box = {0};
-		wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-		struct wtwm_placement_area area = {
-			.x = output_box.x,
-			.y = output_box.y,
-			.width = output_box.width > 0 ? output_box.width : 1,
-			.height = output_box.height > 0 ? output_box.height : 1,
-		};
+		if (!interaction->output_area_valid) return;
 		int x = 0, y = 0;
-		wtwm_placement_prompt_position(&area, server->config.dont_move_off,
+		wtwm_placement_prompt_position(&interaction->output_area,
+			server->config.dont_move_off,
 			geometry.outer_width, geometry.outer_height,
 			(int)server->cursor->x, (int)server->cursor->y, &x, &y);
 		interaction->moved = interaction->moved ||
@@ -5296,17 +5428,10 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 			interaction->original.width : geometry.outer_width;
 		int height = interaction->icon_move ?
 			interaction->original.height : geometry.outer_height;
-		if (server->config.dont_move_off) {
-			struct wlr_box output_box = {0};
-			wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-			x -= output_box.x;
-			y -= output_box.y;
-			wtwm_clamp_move(output_box.width, output_box.height,
-				width, height,
-				interaction->force_move, &x, &y);
-			x += output_box.x;
-			y += output_box.y;
-		}
+		if (server->config.dont_move_off && interaction->output_area_valid &&
+				!interaction->force_move)
+			wtwm_clamp_outer_position(&interaction->output_area,
+				width, height, &x, &y);
 		interaction->preview.x = x;
 		interaction->preview.y = y;
 		if (interaction->opaque_move) {
@@ -5446,19 +5571,13 @@ static void begin_initial_resize(struct server *server) {
 static void fill_initial_placement(struct server *server) {
 	struct toplevel *toplevel = server->grabbed;
 	if (toplevel == NULL) return;
-	struct wlr_box output_box = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-	struct wtwm_placement_area area = {
-		.x = output_box.x,
-		.y = output_box.y,
-		.width = output_box.width > 0 ? output_box.width : 1,
-		.height = output_box.height > 0 ? output_box.height : 1,
-	};
+	if (!server->interaction.output_area_valid) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
 	int width = toplevel->width;
 	int height = toplevel->height;
-	wtwm_placement_fill_size(&area, server->interaction.preview.x,
+	wtwm_placement_fill_size(&server->interaction.output_area,
+		server->interaction.preview.x,
 		server->interaction.preview.y,
 		geometry.outer_width - toplevel->width,
 		geometry.outer_height - toplevel->height, &width, &height);
@@ -5858,22 +5977,13 @@ static void new_output(struct wl_listener *listener, void *data) {
 		wl_signal_add(&output->background->node.events.destroy,
 			&output->background_destroy);
 	}
+	resume_output_waiting_toplevels(server);
 	rebuild_icon_layout(server);
 	refresh_icon_managers(server);
 }
 
 static void update_toplevel_metadata(struct toplevel *toplevel,
 	bool title_changed);
-
-static void server_placement_area(struct server *server,
-		struct wtwm_placement_area *area) {
-	struct wlr_box box = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &box);
-	area->x = box.x;
-	area->y = box.y;
-	area->width = box.width > 0 ? box.width : 1;
-	area->height = box.height > 0 ? box.height : 1;
-}
 
 static void server_max_window_size(struct server *server,
 		const struct wtwm_placement_area *area, int *width, int *height) {
@@ -5910,7 +6020,9 @@ static bool take_session_record(struct toplevel *toplevel,
 static void apply_session_geometry(struct toplevel *toplevel,
 		const struct wtwm_session_record *record) {
 	struct wtwm_placement_area area;
-	server_placement_area(toplevel->server, &area);
+	if (!output_area_for_outer(toplevel->server, record->geometry.x,
+			record->geometry.y, record->geometry.width, record->geometry.height,
+			&area)) return;
 	int width = record->geometry.width;
 	int height = record->geometry.height;
 	if (width < 1 || height < 1) return;
@@ -5949,7 +6061,13 @@ static void apply_session_policy(struct toplevel *toplevel,
 	toplevel->zoom.mode = action_zoom_mode(record->zoom_mode);
 	if (toplevel->zoom.mode != WTWM_ACTION_NOP) {
 		struct wtwm_placement_area area;
-		server_placement_area(toplevel->server, &area);
+		if (!output_area_for_outer(toplevel->server,
+				record->zoom_saved_geometry.x, record->zoom_saved_geometry.y,
+				record->zoom_saved_geometry.width,
+				record->zoom_saved_geometry.height, &area)) {
+			toplevel->zoom.mode = WTWM_ACTION_NOP;
+			goto session_policy_complete;
+		}
 		int width = record->zoom_saved_geometry.width;
 		int height = record->zoom_saved_geometry.height;
 		constrain_toplevel_size(toplevel, &width, &height);
@@ -5968,6 +6086,7 @@ static void apply_session_policy(struct toplevel *toplevel,
 			.height = height,
 		};
 	}
+session_policy_complete:
 	toplevel->session_restored = true;
 	toplevel->session_focus = record->focused;
 	toplevel->session_stack_rank = record->stack_rank;
@@ -6010,9 +6129,19 @@ static void restore_session_stack_and_focus(struct server *server) {
 	}
 }
 
-static void place_native_toplevel(struct toplevel *toplevel) {
+static bool place_native_toplevel(struct toplevel *toplevel) {
 	struct wtwm_placement_area area;
-	server_placement_area(toplevel->server, &area);
+	struct toplevel *parent = toplevel->xdg->parent != NULL ?
+		toplevel_from_xdg(toplevel->xdg->parent) : NULL;
+	bool selected = toplevel->placed ?
+		output_area_for_toplevel(toplevel, false, &area) :
+		(parent != NULL && parent != toplevel && parent->mapped ?
+			output_area_for_toplevel(parent, false, &area) :
+			output_area_for_point(toplevel->server,
+				(int)toplevel->server->cursor->x,
+				(int)toplevel->server->cursor->y, &area));
+	if (!selected) return false;
+	toplevel->placement_area = area;
 	int width = toplevel->width, height = toplevel->height;
 	clip_initial_toplevel_size(toplevel, &area, &width, &height);
 	if (width != toplevel->width || height != toplevel->height) {
@@ -6022,10 +6151,12 @@ static void place_native_toplevel(struct toplevel *toplevel) {
 	}
 	if (toplevel->placed) {
 		toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
-		return;
+		return true;
 	}
 	int pointer_x = (int)toplevel->server->cursor->x;
 	int pointer_y = (int)toplevel->server->cursor->y;
+	if (parent != NULL && parent != toplevel && parent->mapped)
+		output_local_pointer(toplevel->server, &area, &pointer_x, &pointer_y);
 	int x = pointer_x, y = pointer_y;
 	if (toplevel->server->config.random_placement) {
 		wtwm_random_placement_next(&toplevel->server->random_placement,
@@ -6049,6 +6180,41 @@ static void place_native_toplevel(struct toplevel *toplevel) {
 	toplevel->frame_y = y;
 	toplevel->placed = true;
 	++toplevel->server->placement_index;
+	return true;
+}
+
+static void complete_native_map(struct toplevel *toplevel) {
+	if (!place_native_toplevel(toplevel)) {
+		toplevel->placement_pending = true;
+		toplevel->placement_waiting_output = true;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+		return;
+	}
+	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
+	struct wtwm_session_record session_record;
+	bool restored = take_session_record(toplevel, &session_record);
+	if (restored) {
+		apply_session_geometry(toplevel, &session_record);
+		apply_session_policy(toplevel, &session_record);
+	}
+	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
+	test_trace_toplevel_event(toplevel, "map", "client");
+	if (restored ? session_record.iconified :
+			should_start_iconified(toplevel, toplevel->placement_initial_rules)) {
+		set_toplevel_iconified(toplevel, true);
+	} else {
+		suspend_toplevel(toplevel, false);
+		process_cursor_motion(toplevel->server,
+			toplevel->server->current_input_time_ms);
+	}
+	if (restored) {
+		restore_session_stack_and_focus(toplevel->server);
+		wtwm_session_record_finish(&session_record);
+	}
 }
 
 static void toplevel_map(struct wl_listener *listener, void *data) {
@@ -6064,33 +6230,13 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
-	bool initial_rules = initialize_toplevel_rules(toplevel);
-	struct wtwm_session_record session_record;
-	bool restored = take_session_record(toplevel, &session_record);
+	toplevel->placement_initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
 	sync_toplevel_scene_stack(toplevel);
 	sync_icon_manager_toplevel(toplevel);
-	place_native_toplevel(toplevel);
-	if (restored) {
-		apply_session_geometry(toplevel, &session_record);
-		apply_session_policy(toplevel, &session_record);
-	}
-	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
-	test_trace_toplevel_event(toplevel, "map", "client");
-	if (restored ? session_record.iconified :
-			should_start_iconified(toplevel, initial_rules)) {
-		set_toplevel_iconified(toplevel, true);
-	} else {
-		suspend_toplevel(toplevel, false);
-		process_cursor_motion(toplevel->server,
-			toplevel->server->current_input_time_ms);
-	}
-	if (restored) {
-		restore_session_stack_and_focus(toplevel->server);
-		wtwm_session_record_finish(&session_record);
-	}
+	complete_native_map(toplevel);
 }
 
 static void dismiss_toplevel_popups(struct toplevel *toplevel) {
@@ -6118,6 +6264,7 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 		if (toplevel == server->grabbed) cancel_initial_placement(toplevel);
 		else {
 			toplevel->placement_pending = false;
+			toplevel->placement_waiting_output = false;
 			test_trace_toplevel_event_at(toplevel, "abort", "placement",
 				toplevel->frame_x, toplevel->frame_y,
 				toplevel->width, toplevel->height);
@@ -6132,7 +6279,7 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	if (server->ring_leader == toplevel) server->ring_leader = NULL;
 	if (server->pointer_toplevel == toplevel) {
 		server->pointer_toplevel = NULL;
-		server->pointer_context = WTWM_CONTEXT_ROOT;
+		server->pointer_context = 0;
 	}
 	if (had_pointer_focus) wlr_seat_pointer_clear_focus(server->seat);
 	dismiss_toplevel_popups(toplevel);
@@ -6419,6 +6566,42 @@ static bool xwayland_position_flag(const struct toplevel *toplevel,
 		(toplevel->xwayland->size_hints->flags & flag) != 0;
 }
 
+static bool xwayland_initial_area(struct toplevel *toplevel, int width,
+		int height, struct wtwm_placement_area *area) {
+	bool transient = toplevel->xwayland->parent != NULL;
+	bool ask_user = wtwm_placement_asks_user(transient,
+		xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_US_POSITION),
+		xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_P_POSITION),
+		toplevel->server->config.use_p_position_mode,
+		toplevel->xwayland->x, toplevel->xwayland->y);
+	if (ask_user)
+		return output_area_for_point(toplevel->server,
+			(int)toplevel->server->cursor->x,
+			(int)toplevel->server->cursor->y, area);
+	struct wlr_xwayland_surface *parent_surface = toplevel->xwayland->parent;
+	struct toplevel *parent = parent_surface != NULL ? parent_surface->data : NULL;
+	if (parent != NULL && parent != toplevel && parent->mapped &&
+			!parent_surface->override_redirect)
+		return output_area_for_toplevel(parent, false, area);
+	int saved_width = toplevel->width;
+	int saved_height = toplevel->height;
+	toplevel->width = width;
+	toplevel->height = height;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	toplevel->width = saved_width;
+	toplevel->height = saved_height;
+	int gravity_x = -1, gravity_y = -1;
+	xwayland_gravity_offsets(toplevel, &gravity_x, &gravity_y);
+	struct wtwm_window_position position;
+	wtwm_initial_window_position(toplevel->xwayland->x, toplevel->xwayland->y,
+		toplevel->original_client_border, &geometry,
+		toplevel->server->config.client_border_width,
+		gravity_x, gravity_y, &position);
+	return output_area_for_point(toplevel->server, position.frame_x,
+		position.frame_y, area);
+}
+
 static bool initial_xwayland_frame(struct toplevel *toplevel,
 		const struct wtwm_placement_area *area, int width, int height,
 		bool start_iconified, int *frame_x, int *frame_y) {
@@ -6446,7 +6629,6 @@ static bool initial_xwayland_frame(struct toplevel *toplevel,
 			(int)toplevel->server->cursor->x,
 			(int)toplevel->server->cursor->y, frame_x, frame_y);
 		toplevel->placement_kind = WTWM_PLACEMENT_INTERACTIVE;
-		++toplevel->server->placement_index;
 		return true;
 	} else {
 		toplevel->placement_kind = WTWM_PLACEMENT_REQUESTED;
@@ -6488,17 +6670,16 @@ static void start_next_initial_placement(struct server *server) {
 	if (server->grabbed != NULL) return;
 	struct toplevel *candidate = NULL, *item;
 	wl_list_for_each(item, &server->toplevels, link) {
-		if (!item->placement_pending) continue;
+		if (!item->placement_pending || item->placement_waiting_output) continue;
 		if (candidate == NULL || item->placement_order < candidate->placement_order)
 			candidate = item;
 	}
 	if (candidate == NULL) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(candidate, &geometry);
-	struct wtwm_placement_area area;
-	server_placement_area(server, &area);
 	int x = 0, y = 0;
-	wtwm_placement_prompt_position(&area, server->config.dont_move_off,
+	wtwm_placement_prompt_position(&candidate->placement_area,
+		server->config.dont_move_off,
 		geometry.outer_width, geometry.outer_height,
 		(int)server->cursor->x, (int)server->cursor->y, &x, &y);
 	server->grabbed = candidate;
@@ -6513,6 +6694,8 @@ static void start_next_initial_placement(struct server *server) {
 		.pointer_start_y = server->cursor->y,
 		.started = true,
 		.intent = INTERACTION_INITIAL_POSITION,
+		.output_area_valid = true,
+		.output_area = candidate->placement_area,
 	};
 	set_cursor_role(server, "Move");
 	candidate->frame_x = x;
@@ -6532,9 +6715,12 @@ static void finish_initial_placement(struct server *server) {
 	configure_xwayland_frame(toplevel, preview.x, preview.y,
 		preview.width, preview.height);
 	toplevel->placed = true;
+	if (toplevel->placement_kind == WTWM_PLACEMENT_INTERACTIVE)
+		++toplevel->server->placement_index;
 	test_trace_toplevel_event_at(toplevel, "commit", "placement",
 		preview.x, preview.y, preview.width, preview.height);
 	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
 	bool start_iconified = toplevel->placement_start_iconified;
 	toplevel->placement_start_iconified = false;
 	reset_cursor(server);
@@ -6546,6 +6732,7 @@ static void cancel_initial_placement(struct toplevel *toplevel) {
 	if (toplevel == NULL || !toplevel->placement_pending) return;
 	struct server *server = toplevel->server;
 	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
 	test_trace_toplevel_event_at(toplevel, "abort", "placement",
 		server->interaction.preview.x, server->interaction.preview.y,
 		server->interaction.preview.width, server->interaction.preview.height);
@@ -6569,11 +6756,67 @@ static void insert_xwayland_stack(struct toplevel *toplevel) {
 	sync_toplevel_scene_stack(toplevel);
 }
 
-static void map_xwayland_toplevel(struct toplevel *toplevel) {
-	if (toplevel->mapped || toplevel->tree == NULL) return;
-	bool initial_rules = initialize_toplevel_rules(toplevel);
+static void complete_managed_xwayland_map(struct toplevel *toplevel) {
+	struct wtwm_placement_area area;
+	if (!xwayland_initial_area(toplevel, toplevel->width, toplevel->height,
+			&area)) {
+		toplevel->placement_pending = true;
+		toplevel->placement_waiting_output = true;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+		return;
+	}
+	toplevel->placement_area = area;
+	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
 	struct wtwm_session_record session_record = {0};
-	bool restored = false;
+	bool restored = take_session_record(toplevel, &session_record);
+	int width = toplevel->width, height = toplevel->height;
+	clip_initial_toplevel_size(toplevel, &area, &width, &height);
+	int frame_x = toplevel->frame_x;
+	int frame_y = toplevel->frame_y;
+	bool interactive_placement = false;
+	bool start_iconified = should_start_iconified(toplevel,
+		toplevel->placement_initial_rules);
+	if (restored) {
+		apply_session_geometry(toplevel, &session_record);
+		apply_session_policy(toplevel, &session_record);
+		expose_managed_xwayland(toplevel, session_record.iconified);
+		restore_session_stack_and_focus(toplevel->server);
+		wtwm_session_record_finish(&session_record);
+		return;
+	}
+	if (!toplevel->frame_positioned) {
+		/* Geometry uses the clipped client size, as AddWindow does. */
+		toplevel->width = width;
+		toplevel->height = height;
+		interactive_placement = initial_xwayland_frame(toplevel, &area,
+			width, height, start_iconified, &frame_x, &frame_y);
+	} else {
+		toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
+	}
+	if (interactive_placement) {
+		toplevel->placement_pending = true;
+		toplevel->placement_start_iconified = start_iconified;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		start_next_initial_placement(toplevel->server);
+		return;
+	}
+	configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
+	toplevel->placed = true;
+	expose_managed_xwayland(toplevel, start_iconified);
+}
+
+static void map_xwayland_toplevel(struct toplevel *toplevel) {
+	if (toplevel->tree == NULL ||
+			(toplevel->mapped && !toplevel->placement_waiting_output)) return;
+	bool first_map = !toplevel->mapped;
+	if (first_map)
+		toplevel->placement_initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	toplevel->width = toplevel->xwayland->width;
@@ -6584,44 +6827,8 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
 		test_trace_toplevel_event(toplevel, "raise", "frame");
 	} else {
-		restored = take_session_record(toplevel, &session_record);
-		insert_xwayland_stack(toplevel);
-		struct wtwm_placement_area area;
-		server_placement_area(toplevel->server, &area);
-		int width = toplevel->width, height = toplevel->height;
-		clip_initial_toplevel_size(toplevel, &area, &width, &height);
-		int frame_x = toplevel->frame_x;
-		int frame_y = toplevel->frame_y;
-		bool interactive_placement = false;
-		bool start_iconified = should_start_iconified(toplevel, initial_rules);
-		if (restored) {
-			apply_session_geometry(toplevel, &session_record);
-			apply_session_policy(toplevel, &session_record);
-			expose_managed_xwayland(toplevel, session_record.iconified);
-			restore_session_stack_and_focus(toplevel->server);
-			wtwm_session_record_finish(&session_record);
-			return;
-		}
-		if (!toplevel->frame_positioned) {
-			/* Geometry uses the clipped client size, as AddWindow does. */
-			toplevel->width = width;
-			toplevel->height = height;
-			interactive_placement = initial_xwayland_frame(toplevel, &area,
-				width, height, start_iconified,
-				&frame_x, &frame_y);
-		} else {
-			toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
-		}
-		if (interactive_placement) {
-			toplevel->placement_pending = true;
-			toplevel->placement_start_iconified = start_iconified;
-			toplevel->placement_order = ++toplevel->server->placement_order_next;
-			start_next_initial_placement(toplevel->server);
-			return;
-		}
-		configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
-		toplevel->placed = true;
-		expose_managed_xwayland(toplevel, start_iconified);
+		if (first_map) insert_xwayland_stack(toplevel);
+		complete_managed_xwayland_map(toplevel);
 		return;
 	}
 	update_decoration(toplevel);
@@ -6637,6 +6844,26 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 			}
 		}
 	}
+}
+
+static void resume_output_waiting_toplevels(struct server *server) {
+	for (;;) {
+		struct toplevel *toplevel, *oldest = NULL;
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			if (!toplevel->placement_waiting_output) continue;
+			if (oldest == NULL ||
+					toplevel->placement_order < oldest->placement_order)
+				oldest = toplevel;
+		}
+		if (oldest == NULL) break;
+		if (oldest->xdg != NULL)
+			complete_native_map(oldest);
+		else if (oldest->xwayland != NULL &&
+				!oldest->xwayland->override_redirect)
+			map_xwayland_toplevel(oldest);
+		if (oldest->placement_waiting_output) break;
+	}
+	start_next_initial_placement(server);
 }
 
 static void xwayland_surface_map(struct wl_listener *listener, void *data) {
@@ -8445,7 +8672,7 @@ int main(int argc, char **argv) {
 		(strcmp(visual_mode, "grayscale") == 0 ? WTWM_COLOR_MODE_GRAYSCALE :
 			WTWM_COLOR_MODE_COLOR);
 	server.focus_root = true;
-	server.pointer_context = WTWM_CONTEXT_ROOT;
+	server.pointer_context = 0;
 	wtwm_random_placement_init(&server.random_placement);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.listen_fd = -1;

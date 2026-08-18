@@ -290,9 +290,9 @@
         "path": "src/placement.c",
         "text": "void wtwm_clamp_outer_position(const struct wtwm_placement_area *area,"
       },
-      "runtime.output-record": {
-        "path": "src/wtwm.c",
-        "text": "struct output {"
+      "placement.output-selection": {
+        "path": "src/placement.c",
+        "text": "bool wtwm_placement_output_for_point(const struct wtwm_placement_area *areas,"
       },
       "runtime.output-box": {
         "path": "src/wtwm.c",
@@ -304,11 +304,11 @@
       },
       "runtime.root-hit": {
         "path": "src/wtwm.c",
-        "text": "struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};"
+        "text": "struct hit_result hit = {0};"
       },
       "runtime.native-placement": {
         "path": "src/wtwm.c",
-        "text": "static void place_native_toplevel(struct toplevel *toplevel) {"
+        "text": "static bool place_native_toplevel(struct toplevel *toplevel) {"
       },
       "runtime.xwayland-placement": {
         "path": "src/wtwm.c",
@@ -332,8 +332,8 @@
       }
     },
     "observed": [
-      "Portable placement helpers already reproduce twm's requested-position policy, global random cascade math, pointer-origin prompt, fill, and near-edge-then-far-edge clamp.",
-      "The compositor currently derives several placement, menu, move, fill, zoom, and restore areas from the whole output-layout bounding box, so layout gaps are incorrectly usable root geometry.",
+      "Portable placement helpers reproduce twm's requested-position policy, global random cascade math, pointer-origin prompt, fill, and near-edge-then-far-edge clamp, plus deterministic canonical point and outer-geometry output selection.",
+      "The compositor selects one actual enabled-output box for placement, menus, moves, fills, zooms, and covered restore geometry; operation state pins that box instead of using the output-layout union.",
       "Each current output already owns a scene background sized and positioned from that output's logical layout box, while the seat exposes one compositor-global PointerRoot-style focus state.",
       "Native toplevels have no absolute global requested-position protocol; managed Xwayland toplevels retain ICCCM USPosition, PPosition, transient, gravity, and override-redirect distinctions.",
       "Milestone 7 deliberately defines icon-region and icon-manager layout across the ordered global Wayland output layout, so this contract does not duplicate those managers or allocation pools per output."
