@@ -68,7 +68,7 @@ def config_text(option_mask: int, *, opaque: bool) -> str:
     return "".join((
         "NoDefaults\nRandomPlacement\nNoIconManagers\n",
         "OpaqueMove\n" if opaque else "",
-        "NoRaiseOnMove\nMoveDelta 1\n",
+        "NoRaiseOnMove\nMoveDelta 1\nConstrainedMoveTime 0\n",
         options,
         "Button1 = : title : f.move\n",
         'Button3 = : root : f.menu "noop-menu"\n',
