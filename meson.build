@@ -249,6 +249,23 @@ actions_test = executable(
 )
 test('twm built-in action model', actions_test)
 
+output_order_lib = static_library(
+  'wtwm-output-order-lib',
+  'src/output_order.c',
+  include_directories: inc,
+)
+output_order_dep = declare_dependency(
+  link_with: output_order_lib,
+  include_directories: inc,
+)
+
+output_order_test = executable(
+  'output-order-test',
+  'tests/output_order_test.c',
+  dependencies: output_order_dep,
+)
+test('Wayland output screen ordering', output_order_test)
+
 command_lib = static_library(
   'wtwm-command-lib',
   'src/command.c',
@@ -744,6 +761,15 @@ test(
   ],
 )
 test(
+  'Milestone 8 screen output mapping model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_screen_output.py'),
+    '--self-test-model',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -855,7 +881,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -863,6 +889,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
+      output_order_dep,
       command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
@@ -1235,6 +1262,16 @@ if wlroots.found()
       '--compositor', wtwm_test_compositor,
       '--wayland-client', wtwm_selection_wayland_client,
       '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 X screen and Wayland output mapping integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_screen_output.py'),
+      '--compositor', wtwm_test_compositor,
     ],
     timeout: 180,
     is_parallel: false,

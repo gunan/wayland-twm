@@ -256,11 +256,11 @@
       },
       "runtime.startup-load": {
         "path": "src/wtwm.c",
-        "text": "if (!wtwm_config_load(&server.config, config_path, config_error, sizeof(config_error))) {"
+        "text": "if (!wtwm_config_load_for_screen(&server.config, config_path, 0,"
       },
       "runtime.restart-load": {
         "path": "src/wtwm.c",
-        "text": "if (!wtwm_config_load(&replacement, config_path, error,"
+        "text": "if (!wtwm_config_load_for_screen(&replacement, config_path, 0, error,"
       },
       "runtime.output-list": {
         "path": "src/wtwm.c",
@@ -269,6 +269,26 @@
       "runtime.current-list-insert": {
         "path": "src/wtwm.c",
         "text": "wl_list_insert(&server->outputs, &output->link);"
+      },
+      "output-order.identity-record": {
+        "path": "include/wtwm/output_order.h",
+        "text": "struct wtwm_output_identity {"
+      },
+      "output-order.unsigned-compare": {
+        "path": "src/output_order.c",
+        "text": "const unsigned char *a = (const unsigned char *)left;"
+      },
+      "output-order.ordinal-tie-break": {
+        "path": "src/output_order.c",
+        "text": "return a->announcement_ordinal < b->announcement_ordinal ? -1 :"
+      },
+      "runtime.output-order-snapshot": {
+        "path": "src/wtwm.c",
+        "text": "static bool output_order_snapshot(struct server *server,"
+      },
+      "runtime.output-identity-copy": {
+        "path": "src/wtwm.c",
+        "text": "if (!wtwm_output_identity_init(&output->identity, wlr_output->name,"
       },
       "runtime.screen-target": {
         "path": "src/actions.c",
@@ -281,6 +301,10 @@
       "test.screen-target-range": {
         "path": "tests/actions_test.c",
         "text": "assert(wtwm_action_screen_target(\"4\", 0, 2, 3) == -1);"
+      },
+      "test.output-order-reverse": {
+        "path": "tests/output_order_test.c",
+        "text": "static void reverse_announcement(void) {"
       }
     },
     "observed": [
@@ -288,7 +312,7 @@
       "The compositor startup and in-place restart call the screen-zero wrapper and own one server-level wtwm_config.",
       "Every current output consumes values from that one server-level configuration.",
       "The config parser admits only named screen actions or ASCII decimal digits; the runtime target helper rejects negative, malformed, overflow, and out-of-range values.",
-      "The current output list is insertion ordered, so this contract deliberately requires a canonical index view instead of blessing list order as screen identity."
+      "Numeric screen operations use one identity-sorted canonical output snapshot independent of compositor list insertion and layout order."
     ]
   },
   "reference_behavior": {
@@ -398,7 +422,7 @@
       "output_add": "Adding an output never triggers another startup-file search or configuration merge; the new scene receives the already-active global configuration, and the canonical index view is recomputed.",
       "output_remove": "Removing an output never changes the active configuration; the canonical index view is recomputed after removal.",
       "output_property_change": "Mode, scale, transform, or layout changes do not reload configuration and do not change the identity-key order.",
-      "topology_boundary": "Safe window relocation, output-aware placement, per-output root interactions, warp execution/history, and hotplug restoration are governed by later Milestone 8 tasks, not completed by this mapping contract."
+      "topology_boundary": "Safe window relocation, output-aware placement, per-output root interactions, next/prev/back warp history, and hotplug restoration are governed by later Milestone 8 tasks, not completed by this mapping contract."
     }
   },
   "scope_boundaries": {
@@ -411,7 +435,7 @@
     ],
     "explicitly_deferred": [
       "output-aware window placement and complete per-output root behavior",
-      "f.warptoscreen execution, next/prev/back history, and pointer coordinate translation",
+      "f.warptoscreen next/prev/back history and topology-sensitive history repair",
       "output addition/removal/scale/mode transaction mechanics",
       "safe restoration or relocation of windows after output removal",
       "input hotplug and multiple seats",
@@ -457,7 +481,7 @@
     },
     {
       "id": "screen.scope-boundary",
-      "rule": "Do not treat this namespace/index mapping as completion of later placement, root, warp, hotplug, restoration, or input tasks.",
+      "rule": "Do not treat this namespace/index mapping as completion of later placement, root, named screen history, hotplug, restoration, or input tasks.",
       "evidence": ["manual.warp-screen", "warp.managed-screen"]
     }
   ],
@@ -580,7 +604,7 @@
     {
       "id": "deferred-behavior-not-claimed",
       "kind": "contract-scope",
-      "oracle": "Passing mapping tests does not mark placement, per-output roots, warp/history, hotplug transactions, or disappeared-output restoration complete."
+      "oracle": "Passing mapping tests does not mark placement, per-output roots, next/prev/back screen history, hotplug transactions, or disappeared-output restoration complete."
     }
   ]
 }

@@ -29,6 +29,8 @@ from generate_feature_test_map import (
     NOOP_OPTIONS_RUNTIME_FEATURES,
     NOOP_OPTIONS_RUNTIME_ID,
     RESTART_RUNTIME_FEATURES,
+    SCREEN_OUTPUT_RUNTIME_FEATURES,
+    SCREEN_OUTPUT_RUNTIME_ID,
     SESSION_STATE_RUNTIME_FEATURES,
     STARTWM_RUNTIME_FEATURES,
     build,
@@ -192,8 +194,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 9:
-        errors.append("feature_map.test_catalog must contain the nine registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 10:
+        errors.append("feature_map.test_catalog must contain the ten registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -296,6 +298,8 @@ def validate_feature_map(
             expected_dimensions.append("runtime")
         if feature.get("id") in RESTART_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
+        if feature.get("id") in SCREEN_OUTPUT_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
         if feature.get("id") in STARTWM_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
@@ -397,6 +401,16 @@ def tamper_self_test(
     source_mapping = next(test for test in effective["tests"] if test["dimension"] == "source_contract")
     source_mapping["checks"][0]["contains"] = "not present in source"
     mutations.append(("invalid-source-contract", changed))
+    changed = copy.deepcopy(feature_map)
+    screen_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in SCREEN_OUTPUT_RUNTIME_FEATURES
+    )
+    screen_entry["tests"] = [
+        item for item in screen_entry["tests"]
+        if item["test_id"] != SCREEN_OUTPUT_RUNTIME_ID
+    ]
+    mutations.append(("missing-screen-output-runtime", changed))
     changed = copy.deepcopy(feature_map)
     noop_catalog = next(
         item for item in changed["test_catalog"]  # type: ignore[union-attr]

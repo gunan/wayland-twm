@@ -292,7 +292,9 @@ RUNTIME_CONTRACT_FRAGMENTS = {
         "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
     ],
     "runtime_dispatch.button-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
-    "runtime_dispatch.configuration-load-at-startup": ["wtwm_config_load(&server.config,"],
+    "runtime_dispatch.configuration-load-at-startup": [
+        "wtwm_config_load_for_screen(&server.config, config_path, 0,"
+    ],
     "runtime_dispatch.configured-frame-and-title-rendering": [
         "static int configured_title_bar_height("
     ],

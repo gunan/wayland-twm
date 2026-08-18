@@ -18,7 +18,7 @@ CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/screen-output-contract.json"
 )
 EXPECTED_CANONICAL_SHA256 = (
-    "0d1b99929119bc4992226520fae7cf3c18c48bd69b1052ab9176c1635cdbb0ce"
+    "656ff2f5f6a8aca46d37f23d1bbc3d8ba5993f6e4f33b6618a332d4a8005e17f"
 )
 EXPECTED_UPSTREAM = {
     "name": "X.Org twm",
@@ -101,18 +101,21 @@ EXPECTED_IMPLICIT_SEARCH = [
 ]
 EXPECTED_DEFERRED = [
     "output-aware window placement and complete per-output root behavior",
-    "f.warptoscreen execution, next/prev/back history, and pointer coordinate translation",
+    "f.warptoscreen next/prev/back history and topology-sensitive history repair",
     "output addition/removal/scale/mode transaction mechanics",
     "safe restoration or relocation of windows after output removal",
     "input hotplug and multiple seats",
     "persistent physical-output identity across sessions when backend identity strings collide",
 ]
 SOURCE_PATHS = (
+    "include/wtwm/output_order.h",
     "src/config.c",
+    "src/output_order.c",
     "src/wtwm.c",
     "src/actions.c",
     "tests/config_test.c",
     "tests/actions_test.c",
+    "tests/output_order_test.c",
 )
 
 
@@ -256,7 +259,7 @@ def validate_current_surface(
         errors.append("current_surface fields differ from schema")
         return
     anchors = value.get("source_anchors")
-    if not isinstance(anchors, dict) or len(anchors) != 12:
+    if not isinstance(anchors, dict) or len(anchors) != 18:
         errors.append("current source-anchor coverage mismatch")
         return
     for anchor_id, anchor in anchors.items():
@@ -291,18 +294,34 @@ def validate_current_surface(
             errors.append(f"screen-zero loader structure missing: {snippet}")
     if runtime.count("struct wtwm_config config;") != 1:
         errors.append("server must expose one global config field")
-    if "wtwm_config_load(&server.config, config_path" not in runtime:
+    if "wtwm_config_load_for_screen(&server.config, config_path, 0," not in runtime:
         errors.append("startup must use the screen-zero global loader")
-    if "wtwm_config_load(&replacement, config_path" not in runtime:
+    if "wtwm_config_load_for_screen(&replacement, config_path, 0," not in runtime:
         errors.append("restart must use the screen-zero global loader")
     required_action = (
-        "strtol(argument, &end, 10)",
-        "end == argument || *end != '\\0' || parsed < 0",
-        "parsed >= count || parsed > INT_MAX",
+        "if (argument[0] == '\\0') return -1;",
+        "if (*cursor < '0' || *cursor > '9') return -1;",
+        "if (parsed > (INT_MAX - digit) / 10) return -1;",
+        "return parsed < count ? parsed : -1;",
     )
     for snippet in required_action:
         if snippet not in actions:
             errors.append(f"strict numeric screen parser missing: {snippet}")
+    output_order = sources.get("src/output_order.c", "")
+    required_order = (
+        "const unsigned char *a = (const unsigned char *)left;",
+        "return a->announcement_ordinal < b->announcement_ordinal ? -1 :",
+    )
+    for snippet in required_order:
+        if snippet not in output_order:
+            errors.append(f"canonical output ordering missing: {snippet}")
+    required_runtime = (
+        "static bool output_order_snapshot(struct server *server,",
+        "if (!wtwm_output_identity_init(&output->identity, wlr_output->name,",
+    )
+    for snippet in required_runtime:
+        if snippet not in runtime:
+            errors.append(f"canonical output runtime missing: {snippet}")
 
 
 def require_object(value: Any, label: str, errors: list[str]) -> dict[str, Any]:
@@ -471,7 +490,9 @@ def validate_translation(value: Any, errors: list[str]) -> None:
         errors.append("output-remove config behavior mismatch")
     if not all(
         term in str(lifecycle.get("topology_boundary"))
-        for term in ("window relocation", "output-aware placement", "warp execution", "later")
+        for term in (
+            "window relocation", "output-aware placement", "warp history", "later"
+        )
     ):
         errors.append("topology scope boundary mismatch")
 
@@ -551,7 +572,9 @@ def validate_contract(
         "screen.canonical-index": ("dense zero-based", "identity", "ordinal"),
         "screen.numeric-safety": ("complete", "unsigned decimal", "no target"),
         "screen.config-lifecycle": ("Reload/restart", "atomically", "topology"),
-        "screen.scope-boundary": ("placement", "warp", "hotplug", "restoration"),
+        "screen.scope-boundary": (
+            "placement", "named screen history", "hotplug", "restoration"
+        ),
     }
     for requirement_id, terms in required_terms.items():
         record = requirements.get(requirement_id, {})
@@ -745,20 +768,26 @@ def run_tamper_tests(
         (
             "startup global loader",
             "src/wtwm.c",
-            "wtwm_config_load(&server.config, config_path",
-            "wtwm_config_load_for_screen(&server.config, config_path, 1",
+            "wtwm_config_load_for_screen(&server.config, config_path, 0,",
+            "wtwm_config_load_for_screen(&server.config, config_path, 1,",
         ),
         (
             "strict negative rejection",
             "src/actions.c",
-            "end == argument || *end != '\\0' || parsed < 0",
-            "end == argument || *end != '\\0'",
+            "if (*cursor < '0' || *cursor > '9') return -1;",
+            "if (*cursor > '9') return -1;",
         ),
         (
             "strict range rejection",
             "src/actions.c",
-            "parsed >= count || parsed > INT_MAX",
-            "parsed > INT_MAX",
+            "return parsed < count ? parsed : -1;",
+            "return parsed;",
+        ),
+        (
+            "unsigned output identity ordering",
+            "src/output_order.c",
+            "const unsigned char *a = (const unsigned char *)left;",
+            "const char *a = left;",
         ),
     ]
     for name, path, before, after in source_mutations:
