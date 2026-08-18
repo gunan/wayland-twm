@@ -506,10 +506,14 @@ struct server {
 	uint32_t pointer_context;
 	uint64_t icon_manager_down_identity;
 	bool focus_root;
+	const char *program_name;
 	const char *config_path;
+	char *adopted_config_path;
 	int previous_output_index;
 	struct toplevel *ring_leader;
 	struct wl_event_source *restart_idle;
+	char *restart_config_path;
+	bool restart_adopt_config_path;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -3974,11 +3978,12 @@ static void refresh_toplevel_configuration(struct toplevel *toplevel) {
 	destroy_icon_scene(toplevel);
 }
 
-static bool restart_compositor_state(struct server *server) {
+static bool restart_compositor_state(struct server *server,
+		const char *config_path) {
 	struct wtwm_config replacement;
 	wtwm_config_init(&replacement);
 	char error[1024];
-	if (!wtwm_config_load(&replacement, server->config_path, error,
+	if (!wtwm_config_load(&replacement, config_path, error,
 			sizeof(error))) {
 		wlr_log(WLR_ERROR, "restart configuration rejected: %s", error);
 		wtwm_config_finish(&replacement);
@@ -4033,16 +4038,89 @@ static bool restart_compositor_state(struct server *server) {
 static void restart_compositor_idle(void *data) {
 	struct server *server = data;
 	server->restart_idle = NULL;
-	(void)restart_compositor_state(server);
+	char *config_path = server->restart_config_path;
+	bool adopt_config_path = server->restart_adopt_config_path;
+	server->restart_config_path = NULL;
+	server->restart_adopt_config_path = false;
+	bool restarted = restart_compositor_state(server,
+		config_path != NULL ? config_path : server->config_path);
+	if (restarted && adopt_config_path) {
+		free(server->adopted_config_path);
+		server->adopted_config_path = config_path;
+		server->config_path = config_path;
+		config_path = NULL;
+		wlr_log(WLR_INFO, "completed safe f.startwm handoff to %s -f %s",
+			server->program_name, server->config_path);
+	}
+	free(config_path);
 }
 
-static void request_compositor_restart(struct server *server) {
-	if (server->restart_idle != NULL) return;
+static bool request_compositor_reload(struct server *server,
+		const char *config_path, bool adopt_config_path) {
+	if (server->restart_idle != NULL) {
+		wlr_log(WLR_ERROR, "%s", "compositor reload is already pending");
+		return false;
+	}
+	if (config_path != NULL) {
+		server->restart_config_path = strdup(config_path);
+		if (server->restart_config_path == NULL) {
+			wlr_log(WLR_ERROR, "%s",
+				"unable to copy compositor handoff configuration path");
+			return false;
+		}
+	}
+	server->restart_adopt_config_path = adopt_config_path;
 	server->restart_idle = wl_event_loop_add_idle(
 		wl_display_get_event_loop(server->display), restart_compositor_idle,
 		server);
-	if (server->restart_idle == NULL)
+	if (server->restart_idle == NULL) {
 		wlr_log(WLR_ERROR, "%s", "unable to schedule compositor restart");
+		free(server->restart_config_path);
+		server->restart_config_path = NULL;
+		server->restart_adopt_config_path = false;
+		return false;
+	}
+	return true;
+}
+
+static void request_compositor_restart(struct server *server) {
+	(void)request_compositor_reload(server, NULL, false);
+}
+
+static bool request_startwm_handoff(struct server *server,
+		const char *command) {
+	struct wtwm_command_plan plan;
+	enum wtwm_command_result result = wtwm_command_plan_create(command, &plan);
+	if (result != WTWM_COMMAND_OK) {
+		wlr_log(WLR_ERROR, "f.startwm handoff rejected: %s",
+			wtwm_command_result_message(result));
+		return false;
+	}
+	const char *config_path = NULL;
+	enum wtwm_handoff_result handoff = wtwm_command_handoff(&plan,
+		server->program_name, &config_path);
+	bool requested = false;
+	if (handoff == WTWM_HANDOFF_RELOAD) {
+		requested = request_compositor_reload(server, NULL, false);
+	} else if (handoff == WTWM_HANDOFF_RELOAD_CONFIG) {
+		requested = request_compositor_reload(server, config_path, true);
+	} else {
+		wlr_log(WLR_ERROR,
+			"f.startwm handoff unsupported without transferable Wayland client state: %s",
+			command != NULL ? command : "");
+	}
+	wtwm_command_plan_destroy(&plan);
+	return requested;
+}
+
+static void finish_compositor_reload(struct server *server) {
+	if (server->restart_idle != NULL)
+		wl_event_source_remove(server->restart_idle);
+	server->restart_idle = NULL;
+	free(server->restart_config_path);
+	server->restart_config_path = NULL;
+	free(server->adopted_config_path);
+	server->adopted_config_path = NULL;
 }
 
 static void execute_action(struct server *server, struct toplevel *toplevel,
@@ -4182,7 +4260,8 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 			"f.priority is inactive without the X Sync priority extension");
 		break;
 	case WTWM_ACTION_STARTWM:
-		if (spawn_command(action->argument)) wl_display_terminate(server->display);
+		if (!request_startwm_handoff(server, action->argument))
+			(void)ring_bell(server);
 		break;
 	case WTWM_ACTION_SAVEYOURSELF:
 		if (!send_save_yourself(toplevel)) {
@@ -7501,6 +7580,7 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	struct server server = {0};
+	server.program_name = argv[0];
 	server.config_path = config_path;
 	server.previous_output_index = -1;
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
@@ -7632,6 +7712,7 @@ int main(int argc, char **argv) {
 	if (startup != NULL) spawn_command(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
+	finish_compositor_reload(&server);
 	xwayland_finish(&server);
 	wl_display_destroy_clients(server.display);
 #ifdef WTWM_TEST_CONTROL
@@ -7659,6 +7740,7 @@ int main(int argc, char **argv) {
 	return 0;
 
 fail_runtime:
+	finish_compositor_reload(&server);
 	xwayland_finish(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);

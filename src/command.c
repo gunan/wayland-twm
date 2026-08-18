@@ -264,3 +264,35 @@ const char *wtwm_command_result_message(enum wtwm_command_result result) {
 	}
 	return "unknown command result";
 }
+
+static const char *program_basename(const char *path) {
+	if (path == NULL) return NULL;
+	const char *slash = strrchr(path, '/');
+	return slash != NULL ? slash + 1 : path;
+}
+
+enum wtwm_handoff_result wtwm_command_handoff(
+		const struct wtwm_command_plan *plan, const char *running_program,
+		const char **config_path) {
+	if (config_path != NULL) *config_path = NULL;
+	if (plan == NULL || running_program == NULL || config_path == NULL ||
+			plan->mode != WTWM_COMMAND_DIRECT || plan->argv == NULL ||
+			plan->argc == 0) return WTWM_HANDOFF_UNSUPPORTED;
+	const char *requested = program_basename(plan->argv[0]);
+	const char *running = program_basename(running_program);
+	if (requested == NULL || running == NULL || requested[0] == '\0' ||
+			strcmp(requested, running) != 0)
+		return WTWM_HANDOFF_UNSUPPORTED;
+	if (plan->argc == 1) return WTWM_HANDOFF_RELOAD;
+	if (plan->argc == 3 && strcmp(plan->argv[1], "-f") == 0 &&
+			plan->argv[2][0] != '\0') {
+		*config_path = plan->argv[2];
+		return WTWM_HANDOFF_RELOAD_CONFIG;
+	}
+	if (plan->argc == 2 && strncmp(plan->argv[1], "-f", 2) == 0 &&
+			plan->argv[1][2] != '\0') {
+		*config_path = plan->argv[1] + 2;
+		return WTWM_HANDOFF_RELOAD_CONFIG;
+	}
+	return WTWM_HANDOFF_UNSUPPORTED;
+}

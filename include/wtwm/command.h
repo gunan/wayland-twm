@@ -19,6 +19,12 @@ enum wtwm_command_result {
 	WTWM_COMMAND_NO_MEMORY,
 };
 
+enum wtwm_handoff_result {
+	WTWM_HANDOFF_UNSUPPORTED,
+	WTWM_HANDOFF_RELOAD,
+	WTWM_HANDOFF_RELOAD_CONFIG,
+};
+
 /*
  * A command plan owns command and argv.  A shell plan has an empty argv and
  * command must be passed unchanged to `/bin/sh -c`.  A direct plan has a
@@ -36,5 +42,15 @@ enum wtwm_command_result wtwm_command_plan_create(
 	const char *command, struct wtwm_command_plan *plan);
 void wtwm_command_plan_destroy(struct wtwm_command_plan *plan);
 const char *wtwm_command_result_message(enum wtwm_command_result result);
+
+/*
+ * A safe Wayland handoff is deliberately narrower than exec(3): only a direct
+ * invocation of the running compositor, optionally with one -f configuration,
+ * can be translated to an in-process reload without disconnecting clients.
+ * config_path borrows storage from plan until the plan is destroyed.
+ */
+enum wtwm_handoff_result wtwm_command_handoff(
+	const struct wtwm_command_plan *plan, const char *running_program,
+	const char **config_path);
 
 #endif

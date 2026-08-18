@@ -179,10 +179,20 @@ Wayland display, Xwayland server, client resources, stable window identities,
 mapping, stack, geometry, focus, and selections. The headless Milestone 8
 restart test exercises both aliases and an invalid replacement while native and
 Xwayland clients prove their original protocol connections remain usable.
-`f.startwm` launches its configured command with the same direct-or-shell
-planner and then terminates wtwm. `f.identify` and `f.version` report through
-the compositor log because Wayland has no server-owned X information-window
-primitive.
+Reference `f.startwm` replaces twm by passing its decoded argument to
+`/bin/sh -c`. Wayland has no generic transfer for an existing compositor's
+accepted client resources, focus, selections, or Xwayland ownership, so wtwm
+does not destroy the session merely because a shell or different executable
+could be launched. A direct invocation of the running wtwm program, with no
+arguments or with exactly one `-f` configuration, is the supported safe
+handoff: it is translated to the same atomic in-process transaction as
+`f.restart`, and `-f` adopts the new path only after that configuration parses
+and applies successfully. Shell commands, other program names, and unsupported
+wtwm option combinations report an unsupported handoff and ring the minor-error
+bell while leaving native and Xwayland clients, focus, stack, geometry, and
+selection ownership live. An invalid replacement config receives the same
+rollback guarantee. `f.identify` and `f.version` report through the compositor
+log because Wayland has no server-owned X information-window primitive.
 
 Milestone 6 verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as

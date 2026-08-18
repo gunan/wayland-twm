@@ -1080,6 +1080,18 @@ if wlroots.found()
     is_parallel: false,
   )
   test(
+    'Milestone 8 safe startwm handoff integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_startwm.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
     'Xwayland window-list rules integration',
     integration_runner,
     args: [

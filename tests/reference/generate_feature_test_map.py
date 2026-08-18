@@ -38,6 +38,10 @@ RESTART_RUNTIME_FEATURES = {
     "action.f-restart",
     "action.f-twmrc",
 }
+STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
+STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
+STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
+STARTWM_RUNTIME_FEATURES = {"action.f-startwm"}
 ARGUMENT_ACTIONS = {
     "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
     "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
@@ -438,6 +442,24 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in STARTWM_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": STARTWM_RUNTIME_ID,
+                "path": STARTWM_RUNTIME_PATH,
+                "meson_test": STARTWM_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "Stable native/Xwayland identities, protocol roundtrips, "
+                    "adopted-config reload, and a missing command marker prove "
+                    "safe handoff and non-destructive rejection.",
+                    f"The Linux headless handoff runner invokes {feature_id} "
+                    "with supported, invalid, and unsupported targets.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -460,6 +482,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "test_id": RESTART_RUNTIME_ID,
                 "path": RESTART_RUNTIME_PATH,
                 "meson_test": RESTART_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": STARTWM_RUNTIME_ID,
+                "path": STARTWM_RUNTIME_PATH,
+                "meson_test": STARTWM_RUNTIME_TEST,
                 "dimension": "runtime",
             },
             {

@@ -464,7 +464,7 @@ Required mappings:
 
 - [x] Keep `f.twmrc` as the exact `f.restart` alias; restart compositor state in
   place so existing clients are not disconnected.
-- [ ] `f.startwm` supports a safe configured handoff where possible, and reports
+- [x] `f.startwm` supports a safe configured handoff where possible, and reports
   unsupported handoffs without destroying the session.
 - [ ] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
   that can be restored safely.

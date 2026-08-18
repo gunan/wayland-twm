@@ -79,6 +79,13 @@ state, cursors, colors, and output backgrounds. The display, backend, Xwayland
 server, protocol resources, and managed-client identities are deliberately
 outside that transaction, so native and Xwayland connections remain live.
 
+`f.startwm` crosses that boundary only for a direct self-target whose runtime
+can be preserved in-process. A no-argument self-target reloads the active
+configuration path; a self-target with exactly one `-f` path adopts that path
+only after the candidate commits. Arbitrary shell or external targets cannot
+receive libwayland resource ownership or the embedded Xwayland XWM, so they are
+rejected before execution and the current session remains authoritative.
+
 Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
 the reference first-fit region allocator, including gravity splits, grid-cell
 rounding, collision reservations, and release coalescing; the compositor only

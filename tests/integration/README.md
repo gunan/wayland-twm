@@ -169,3 +169,10 @@ valid replacement. Stable compositor IDs and the original XID must remain
 unchanged throughout, both client processes perform protocol roundtrips after
 every attempt, and the original test-control connection remains usable. This
 would fail immediately if restart tore down the Wayland display or Xwayland.
+
+`run_m8_startwm.py` exercises the narrow safe-handoff translation with the
+same native/Xwayland pair. A direct self-target adopts an alternate `-f`
+configuration in-process, an invalid candidate rolls back, and a different
+executable is proven not to run. A subsequent no-argument self-target reloads
+the adopted path while compositor/client connections and managed state remain
+unchanged.
