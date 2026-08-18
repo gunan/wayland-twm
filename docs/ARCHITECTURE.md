@@ -13,6 +13,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
        bindings.c / actions.c / command.c / interaction.c
        (portable trigger, action, launch, and gesture decisions)
                               │
+                       session_state.c
+          (portable atomic persistence and identity matching)
+                              │
               icon_layout.c / icon_manager.c
        (portable allocation, ordering, and navigation state)
                               │
@@ -85,6 +88,18 @@ configuration path; a self-target with exactly one `-f` path adopts that path
 only after the candidate commits. Arbitrary shell or external targets cannot
 receive libwayland resource ownership or the embedded Xwayland XWM, so they are
 rejected before execution and the current session remains authoritative.
+
+`src/session_state.c` owns the versioned compositor-state file without linking
+Wayland, X11, or wlroots. `f.saveyourself` writes a private same-directory
+temporary file, flushes it, and atomically renames it over the previous
+snapshot only after every record validates. With `RestartPreviousState`, the
+compositor loads the complete candidate before publishing anything, then
+consumes a record only when exactly one newly mapped client has the same native
+title/`app_id` or Xwayland name/instance/class identity. Each map transaction
+clamps saved geometry to current outputs and restores only compositor-owned
+iconic, stacking, focus, manual-icon, auto-raise, and zoom state. Transients,
+ambiguous identities, client processes, client documents, and active menus or
+gestures are deliberately outside the persistence boundary.
 
 Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
 the reference first-fit region allocator, including gravity splits, grid-cell

@@ -20,6 +20,7 @@ from generate_feature_test_map import (
     TEST_PATH,
     INTERACTION_RUNTIME_FEATURES,
     RESTART_RUNTIME_FEATURES,
+    SESSION_STATE_RUNTIME_FEATURES,
     STARTWM_RUNTIME_FEATURES,
     build,
     canonical,
@@ -182,8 +183,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 5:
-        errors.append("feature_map.test_catalog must contain the five registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 6:
+        errors.append("feature_map.test_catalog must contain the six registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -243,6 +244,8 @@ def validate_feature_map(
         if feature.get("id") in RESTART_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in STARTWM_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:

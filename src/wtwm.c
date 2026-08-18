@@ -18,6 +18,7 @@
 #include "wtwm/icon_manager.h"
 #include "wtwm/interaction.h"
 #include "wtwm/placement.h"
+#include "wtwm/session_state.h"
 #include "wtwm/visual.h"
 #include "text.h"
 #ifdef WTWM_TEST_CONTROL
@@ -212,6 +213,10 @@ struct toplevel {
 	bool iconify_by_unmapping;
 	bool icon_region_allocated;
 	bool icon_moved;
+	bool session_restored;
+	bool session_focus;
+	bool session_stack_applied;
+	uint32_t session_stack_rank;
 	uint64_t icon_identity;
 	uint64_t icon_manager_identity;
 	char *xwayland_direct_name;
@@ -514,6 +519,8 @@ struct server {
 	struct wl_event_source *restart_idle;
 	char *restart_config_path;
 	bool restart_adopt_config_path;
+	char *session_state_path;
+	struct wtwm_session_state session_state;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -723,6 +730,52 @@ static struct wtwm_client_identity toplevel_identity(
 		.title = toplevel->xdg != NULL ? toplevel->xdg->title : NULL,
 		.app_id = toplevel->xdg != NULL ? toplevel->xdg->app_id : NULL,
 	};
+}
+
+static struct wtwm_session_identity session_identity(
+		const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	if (toplevel->xwayland != NULL) {
+		return (struct wtwm_session_identity){
+			.kind = WTWM_SESSION_XWAYLAND,
+			.name = (char *)identity.name,
+			.resource_name = (char *)identity.resource_name,
+			.resource_class = (char *)identity.resource_class,
+		};
+	}
+	return (struct wtwm_session_identity){
+		.kind = WTWM_SESSION_NATIVE,
+		.title = (char *)identity.title,
+		.app_id = (char *)identity.app_id,
+	};
+}
+
+static enum wtwm_session_zoom_mode session_zoom_mode(
+		enum wtwm_action_type mode) {
+	switch (mode) {
+	case WTWM_ACTION_ZOOM: return WTWM_SESSION_ZOOM_VERTICAL;
+	case WTWM_ACTION_HORIZOOM: return WTWM_SESSION_ZOOM_HORIZONTAL;
+	case WTWM_ACTION_FULLZOOM: return WTWM_SESSION_ZOOM_FULL;
+	case WTWM_ACTION_LEFTZOOM: return WTWM_SESSION_ZOOM_LEFT;
+	case WTWM_ACTION_RIGHTZOOM: return WTWM_SESSION_ZOOM_RIGHT;
+	case WTWM_ACTION_TOPZOOM: return WTWM_SESSION_ZOOM_TOP;
+	case WTWM_ACTION_BOTTOMZOOM: return WTWM_SESSION_ZOOM_BOTTOM;
+	default: return WTWM_SESSION_ZOOM_NONE;
+	}
+}
+
+static enum wtwm_action_type action_zoom_mode(
+		enum wtwm_session_zoom_mode mode) {
+	switch (mode) {
+	case WTWM_SESSION_ZOOM_VERTICAL: return WTWM_ACTION_ZOOM;
+	case WTWM_SESSION_ZOOM_HORIZONTAL: return WTWM_ACTION_HORIZOOM;
+	case WTWM_SESSION_ZOOM_FULL: return WTWM_ACTION_FULLZOOM;
+	case WTWM_SESSION_ZOOM_LEFT: return WTWM_ACTION_LEFTZOOM;
+	case WTWM_SESSION_ZOOM_RIGHT: return WTWM_ACTION_RIGHTZOOM;
+	case WTWM_SESSION_ZOOM_TOP: return WTWM_ACTION_TOPZOOM;
+	case WTWM_SESSION_ZOOM_BOTTOM: return WTWM_ACTION_BOTTOMZOOM;
+	default: return WTWM_ACTION_NOP;
+	}
 }
 
 static bool xwayland_color(struct server *server, const char *name,
@@ -2056,10 +2109,18 @@ static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
 	if (layout.width > 0 && layout.height > 0) {
 		int64_t right = (int64_t)layout.x + layout.width;
 		int64_t bottom = (int64_t)layout.y + layout.height;
-		if ((int64_t)toplevel->icon_x > right)
-			toplevel->icon_x = (int)(right - toplevel->icon_width);
-		if ((int64_t)toplevel->icon_y > bottom)
-			toplevel->icon_y = (int)(bottom - toplevel->icon_height);
+		int64_t max_x = right - toplevel->icon_width;
+		int64_t max_y = bottom - toplevel->icon_height;
+		if (max_x < layout.x) max_x = layout.x;
+		if (max_y < layout.y) max_y = layout.y;
+		if ((int64_t)toplevel->icon_x < layout.x)
+			toplevel->icon_x = layout.x;
+		else if ((int64_t)toplevel->icon_x > max_x)
+			toplevel->icon_x = (int)max_x;
+		if ((int64_t)toplevel->icon_y < layout.y)
+			toplevel->icon_y = layout.y;
+		else if ((int64_t)toplevel->icon_y > max_y)
+			toplevel->icon_y = (int)max_y;
 	}
 	wlr_scene_node_set_position(&toplevel->icon_tree->node,
 		toplevel->icon_x, toplevel->icon_y);
@@ -3813,6 +3874,77 @@ static void warp_to_screen(struct server *server, const char *argument) {
 	process_cursor_motion(server, server->current_input_time_ms);
 }
 
+static bool persistable_session_toplevel(const struct toplevel *toplevel) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->tree == NULL)
+		return false;
+	if ((toplevel->xdg != NULL && toplevel->xdg->parent != NULL) ||
+			(toplevel->xwayland != NULL &&
+			toplevel->xwayland->parent != NULL)) return false;
+	struct wtwm_session_identity identity = session_identity(toplevel);
+	if (identity.kind == WTWM_SESSION_NATIVE)
+		return (identity.title != NULL && identity.title[0] != '\0') ||
+			(identity.app_id != NULL && identity.app_id[0] != '\0');
+	return (identity.name != NULL && identity.name[0] != '\0') ||
+		(identity.resource_name != NULL && identity.resource_name[0] != '\0') ||
+		(identity.resource_class != NULL && identity.resource_class[0] != '\0');
+}
+
+static bool save_compositor_session(struct server *server) {
+	if (server->session_state_path == NULL) {
+		wlr_log(WLR_ERROR, "%s",
+			"f.saveyourself cannot resolve the session-state path");
+		return false;
+	}
+	struct wtwm_session_state state = {.focus_root = server->focus_root};
+	uint32_t stack_rank = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!persistable_session_toplevel(toplevel)) continue;
+		struct wtwm_session_record record = {
+			.identity = session_identity(toplevel),
+			.geometry = {
+				.x = toplevel->tree->node.x,
+				.y = toplevel->tree->node.y,
+				.width = toplevel->width,
+				.height = toplevel->height,
+			},
+			.iconified = toplevel->iconified,
+			.has_manual_icon_position = toplevel->icon_moved,
+			.icon_x = toplevel->icon_x,
+			.icon_y = toplevel->icon_y,
+			.stack_rank = stack_rank++,
+			.focused = !server->focus_root && server->focus == toplevel,
+			.auto_raise = toplevel->auto_raise,
+			.zoom_mode = session_zoom_mode(toplevel->zoom.mode),
+			.zoom_saved_geometry = {
+				.x = toplevel->zoom.saved.x,
+				.y = toplevel->zoom.saved.y,
+				.width = toplevel->zoom.saved.width,
+				.height = toplevel->zoom.saved.height,
+			},
+		};
+		enum wtwm_session_result appended =
+			wtwm_session_state_append(&state, &record);
+		if (appended != WTWM_SESSION_OK) {
+			wlr_log(WLR_ERROR, "f.saveyourself state snapshot failed: %s",
+				wtwm_session_result_message(appended));
+			wtwm_session_state_finish(&state);
+			return false;
+		}
+	}
+	char error[512];
+	enum wtwm_session_result saved = wtwm_session_state_save(
+		server->session_state_path, &state, error, sizeof(error));
+	wtwm_session_state_finish(&state);
+	if (saved != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR, "f.saveyourself state write failed: %s", error);
+		return false;
+	}
+	wlr_log(WLR_INFO, "saved compositor-owned session state to %s",
+		server->session_state_path);
+	return true;
+}
+
 static bool send_save_yourself(struct toplevel *toplevel) {
 	if (toplevel == NULL || toplevel->xwayland == NULL ||
 			toplevel->server->atom_wm_save_yourself == XCB_ATOM_NONE ||
@@ -4264,10 +4396,21 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 			(void)ring_bell(server);
 		break;
 	case WTWM_ACTION_SAVEYOURSELF:
-		if (!send_save_yourself(toplevel)) {
-			wlr_log(WLR_DEBUG, "%s",
-				"f.saveyourself requires X11 WM_SAVE_YOURSELF support");
-			(void)ring_bell(server);
+		{
+			bool notified = send_save_yourself(toplevel);
+			bool saved = save_compositor_session(server);
+			if (toplevel != NULL && toplevel->xwayland != NULL && !notified) {
+				wlr_log(WLR_DEBUG, "%s",
+					"f.saveyourself persisted compositor state but the X11 client has no WM_SAVE_YOURSELF protocol");
+				(void)ring_bell(server);
+			} else if (!notified && !saved) {
+				wlr_log(WLR_ERROR, "%s",
+					"f.saveyourself could neither persist compositor state nor notify the client");
+				(void)ring_bell(server);
+			} else if (!notified) {
+				wlr_log(WLR_DEBUG, "%s",
+					"f.saveyourself persisted compositor state; client has no WM_SAVE_YOURSELF protocol");
+			}
 		}
 		break;
 	case WTWM_ACTION_CUT:
@@ -5207,6 +5350,124 @@ static void clip_initial_toplevel_size(struct toplevel *toplevel,
 	wtwm_clip_initial_size(max_width, max_height, width, height);
 }
 
+static bool take_session_record(struct toplevel *toplevel,
+		struct wtwm_session_record *record) {
+	memset(record, 0, sizeof(*record));
+	if (!toplevel->server->config.restart_previous_state) return false;
+	struct wtwm_session_identity identity = session_identity(toplevel);
+	enum wtwm_session_match_result match = wtwm_session_state_take_unique(
+		&toplevel->server->session_state, &identity, record);
+	if (match == WTWM_SESSION_MATCH_AMBIGUOUS) {
+		wlr_log(WLR_ERROR,
+			"RestartPreviousState skipped ambiguous identity for '%s'",
+			toplevel_title(toplevel));
+	}
+	return match == WTWM_SESSION_MATCH_UNIQUE;
+}
+
+static void apply_session_geometry(struct toplevel *toplevel,
+		const struct wtwm_session_record *record) {
+	struct wtwm_placement_area area;
+	server_placement_area(toplevel->server, &area);
+	int width = record->geometry.width;
+	int height = record->geometry.height;
+	if (width < 1 || height < 1) return;
+	constrain_toplevel_size(toplevel, &width, &height);
+	clip_initial_toplevel_size(toplevel, &area, &width, &height);
+	toplevel->width = width;
+	toplevel->height = height;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int frame_x = record->geometry.x;
+	int frame_y = record->geometry.y;
+	wtwm_clamp_outer_position(&area, geometry.outer_width,
+		geometry.outer_height, &frame_x, &frame_y);
+	if (toplevel->xwayland != NULL) {
+		configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
+	} else {
+		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
+		wlr_scene_node_set_position(&toplevel->tree->node, frame_x, frame_y);
+		sync_toplevel_popups(toplevel);
+		toplevel->frame_x = frame_x;
+		toplevel->frame_y = frame_y;
+		toplevel->frame_positioned = true;
+	}
+	toplevel->placed = true;
+	toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
+}
+
+static void apply_session_policy(struct toplevel *toplevel,
+		const struct wtwm_session_record *record) {
+	toplevel->auto_raise = record->auto_raise;
+	if (record->has_manual_icon_position) {
+		toplevel->icon_x = record->icon_x;
+		toplevel->icon_y = record->icon_y;
+		toplevel->icon_moved = true;
+	}
+	toplevel->zoom.mode = action_zoom_mode(record->zoom_mode);
+	if (toplevel->zoom.mode != WTWM_ACTION_NOP) {
+		struct wtwm_placement_area area;
+		server_placement_area(toplevel->server, &area);
+		int width = record->zoom_saved_geometry.width;
+		int height = record->zoom_saved_geometry.height;
+		constrain_toplevel_size(toplevel, &width, &height);
+		clip_initial_toplevel_size(toplevel, &area, &width, &height);
+		struct wtwm_frame_geometry geometry;
+		wtwm_frame_geometry(width, height, toplevel->border_width,
+			toplevel->title_bar_height, toplevel->decorated, &geometry);
+		int x = record->zoom_saved_geometry.x;
+		int y = record->zoom_saved_geometry.y;
+		wtwm_clamp_outer_position(&area, geometry.outer_width,
+			geometry.outer_height, &x, &y);
+		toplevel->zoom.saved = (struct wtwm_interaction_box){
+			.x = x,
+			.y = y,
+			.width = width,
+			.height = height,
+		};
+	}
+	toplevel->session_restored = true;
+	toplevel->session_focus = record->focused;
+	toplevel->session_stack_rank = record->stack_rank;
+}
+
+static void restore_session_stack_and_focus(struct server *server) {
+	size_t restored_count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		toplevel->session_stack_applied = false;
+		if (toplevel->session_restored) ++restored_count;
+	}
+	for (size_t i = 0; i < restored_count; ++i) {
+		struct toplevel *selected = NULL;
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			if (!toplevel->session_restored ||
+					toplevel->session_stack_applied) continue;
+			if (selected == NULL || toplevel->session_stack_rank >
+					selected->session_stack_rank) selected = toplevel;
+		}
+		if (selected == NULL) break;
+		wl_list_remove(&selected->link);
+		wl_list_insert(&server->toplevels, &selected->link);
+		selected->session_stack_applied = true;
+	}
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		sync_toplevel_scene_stack(toplevel);
+
+	if (server->session_state.focus_root) {
+		server->focus_root = true;
+		clear_keyboard_focus(server);
+		return;
+	}
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!toplevel->session_restored || !toplevel->session_focus ||
+				toplevel->iconified) continue;
+		server->focus_root = false;
+		focus_toplevel(toplevel, true, false, "session-restore");
+		return;
+	}
+}
+
 static void place_native_toplevel(struct toplevel *toplevel) {
 	struct wtwm_placement_area area;
 	server_placement_area(toplevel->server, &area);
@@ -5262,20 +5523,31 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
 	bool initial_rules = initialize_toplevel_rules(toplevel);
+	struct wtwm_session_record session_record;
+	bool restored = take_session_record(toplevel, &session_record);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
 	sync_toplevel_scene_stack(toplevel);
 	sync_icon_manager_toplevel(toplevel);
 	place_native_toplevel(toplevel);
+	if (restored) {
+		apply_session_geometry(toplevel, &session_record);
+		apply_session_policy(toplevel, &session_record);
+	}
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
-	if (should_start_iconified(toplevel, initial_rules)) {
+	if (restored ? session_record.iconified :
+			should_start_iconified(toplevel, initial_rules)) {
 		set_toplevel_iconified(toplevel, true);
 	} else {
 		suspend_toplevel(toplevel, false);
 		process_cursor_motion(toplevel->server,
 			toplevel->server->current_input_time_ms);
+	}
+	if (restored) {
+		restore_session_stack_and_focus(toplevel->server);
+		wtwm_session_record_finish(&session_record);
 	}
 }
 
@@ -5758,6 +6030,8 @@ static void insert_xwayland_stack(struct toplevel *toplevel) {
 static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->mapped || toplevel->tree == NULL) return;
 	bool initial_rules = initialize_toplevel_rules(toplevel);
+	struct wtwm_session_record session_record = {0};
+	bool restored = false;
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	toplevel->width = toplevel->xwayland->width;
@@ -5768,6 +6042,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
 		test_trace_toplevel_event(toplevel, "raise", "frame");
 	} else {
+		restored = take_session_record(toplevel, &session_record);
 		insert_xwayland_stack(toplevel);
 		struct wtwm_placement_area area;
 		server_placement_area(toplevel->server, &area);
@@ -5777,6 +6052,14 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		int frame_y = toplevel->frame_y;
 		bool interactive_placement = false;
 		bool start_iconified = should_start_iconified(toplevel, initial_rules);
+		if (restored) {
+			apply_session_geometry(toplevel, &session_record);
+			apply_session_policy(toplevel, &session_record);
+			expose_managed_xwayland(toplevel, session_record.iconified);
+			restore_session_stack_and_focus(toplevel->server);
+			wtwm_session_record_finish(&session_record);
+			return;
+		}
 		if (!toplevel->frame_positioned) {
 			/* Geometry uses the clipped client size, as AddWindow does. */
 			toplevel->width = width;
@@ -7496,6 +7779,34 @@ static void test_control_finish(struct server *server) {
 }
 #endif
 
+static void initialize_session_state(struct server *server) {
+	server->session_state.focus_root = true;
+	char error[512];
+	enum wtwm_session_result result = wtwm_session_state_default_path(
+		&server->session_state_path, error, sizeof(error));
+	if (result != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR, "session state is unavailable: %s", error);
+		return;
+	}
+	if (!server->config.restart_previous_state) return;
+	result = wtwm_session_state_load(server->session_state_path,
+		&server->session_state, error, sizeof(error));
+	if (result != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR,
+			"RestartPreviousState rejected saved state and will start clean: %s",
+			error);
+	} else if (server->session_state.record_count != 0) {
+		wlr_log(WLR_INFO, "loaded %zu compositor session records from %s",
+			server->session_state.record_count, server->session_state_path);
+	}
+}
+
+static void finish_session_state(struct server *server) {
+	wtwm_session_state_finish(&server->session_state);
+	free(server->session_state_path);
+	server->session_state_path = NULL;
+}
+
 static void usage(FILE *stream, const char *program) {
 	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]"
 		" [--visual-mode color|grayscale|monochrome]", program);
@@ -7605,6 +7916,7 @@ int main(int argc, char **argv) {
 	if (server.config.warning_count)
 		wlr_log(WLR_INFO, "%zu twm directives accepted but not effective; run wtwm-config for details",
 			server.config.warning_count);
+	initialize_session_state(&server);
 	server.display = wl_display_create();
 #ifdef WTWM_TEST_CONTROL
 	if (strcmp(test_backend, "headless") == 0) {
@@ -7732,6 +8044,7 @@ int main(int argc, char **argv) {
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
 	wl_display_destroy(server.display);
+	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 #ifdef WTWM_TEST_CONTROL
 	pango_cairo_font_map_set_default(NULL);
@@ -7762,6 +8075,7 @@ fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
 	wl_display_destroy(server.display);
+	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 	return 1;
 }

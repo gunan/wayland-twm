@@ -466,7 +466,7 @@ Required mappings:
   place so existing clients are not disconnected.
 - [x] `f.startwm` supports a safe configured handoff where possible, and reports
   unsupported handoffs without destroying the session.
-- [ ] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
+- [x] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
   that can be restored safely.
 - [ ] Backing-store, save-under, and server-grab options become verified no-ops
   unless they have a visible compatibility effect.

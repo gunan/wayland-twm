@@ -42,6 +42,13 @@ STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
 STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
 STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
 STARTWM_RUNTIME_FEATURES = {"action.f-startwm"}
+SESSION_STATE_RUNTIME_PATH = "tests/integration/run_m8_session_state.py"
+SESSION_STATE_RUNTIME_TEST = "Milestone 8 saved session state integration"
+SESSION_STATE_RUNTIME_ID = "test.current-feature.m8-session-state-runtime"
+SESSION_STATE_RUNTIME_FEATURES = {
+    "action.f-saveyourself",
+    "directive.restartpreviousstate",
+}
 ARGUMENT_ACTIONS = {
     "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
     "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
@@ -460,6 +467,24 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in SESSION_STATE_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SESSION_STATE_RUNTIME_ID,
+                "path": SESSION_STATE_RUNTIME_PATH,
+                "meson_test": SESSION_STATE_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "A private atomic state file restores uniquely matched "
+                    "native/Xwayland geometry, iconic, stack, focus, icon, "
+                    "auto-raise, and zoom state across compositor lifetimes.",
+                    f"The Linux headless session runner exercises {feature_id} "
+                    "and rejects an unsupported state-file version safely.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -482,6 +507,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "test_id": RESTART_RUNTIME_ID,
                 "path": RESTART_RUNTIME_PATH,
                 "meson_test": RESTART_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SESSION_STATE_RUNTIME_ID,
+                "path": SESSION_STATE_RUNTIME_PATH,
+                "meson_test": SESSION_STATE_RUNTIME_TEST,
                 "dimension": "runtime",
             },
             {

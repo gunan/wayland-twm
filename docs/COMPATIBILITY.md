@@ -194,6 +194,23 @@ selection ownership live. An invalid replacement config receives the same
 rollback guarantee. `f.identify` and `f.version` report through the compositor
 log because Wayland has no server-owned X information-window primitive.
 
+Reference `f.saveyourself` sends `WM_SAVE_YOURSELF` only to an X11 client that
+advertises that protocol, ringing the minor-error bell otherwise;
+`RestartPreviousState` consults the client's `WM_STATE` property only for
+normal-versus-iconic startup. wtwm preserves both observable rules for
+Xwayland and extends the Wayland translation with a compositor-owned snapshot
+at `$XDG_STATE_HOME/wtwm/state` (or `$HOME/.local/state/wtwm/state`). The
+versioned file is mode `0600` and atomically replaced. A complete valid file is
+loaded before restoration; malformed or unsupported files are reported and
+ignored without disturbing the running session. Uniquely matched native
+title/`app_id` and Xwayland name/instance/class records restore output-clamped
+geometry, iconic state, relative stack, valid focus, manual icon position,
+auto-raise, and pre-zoom state as those clients map. Exact duplicate identities,
+transients, client process/document state, and ephemeral menus or grabs are not
+restored. Native clients have no `WM_SAVE_YOURSELF` protocol, so their action
+saves only the compositor-owned snapshot; Xwayland clients still receive the
+ClientMessage when advertised and retain the reference bell when it is absent.
+
 Milestone 6 verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as
 a direct action and through a two-level named function, checked against its

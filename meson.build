@@ -677,6 +677,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 saved-state persistence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_state_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -788,7 +798,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -796,7 +806,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
-      command_dep, bindings_dep, wlroots, font_dep,
+      command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,
@@ -1116,6 +1126,18 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 saved session state integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_session_state.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
     is_parallel: false,
   )
   test(

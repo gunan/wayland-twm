@@ -176,3 +176,11 @@ configuration in-process, an invalid candidate rolls back, and a different
 executable is proven not to run. A subsequent no-argument self-target reloads
 the adopted path while compositor/client connections and managed state remain
 unchanged.
+
+`run_m8_session_state.py` spans three compositor lifetimes in one isolated
+state home. It saves a mixed native/Xwayland session with moved geometry,
+manual icon position, iconic state, stacking, click focus, auto-raise, and an
+active zoom restore box; reconnects the clients in reverse order and requires
+the same compositor-owned state; then corrupts the version header and proves
+the next session starts clean with a diagnostic. The runner also checks that
+the published state file is private mode `0600`.
