@@ -335,6 +335,10 @@ struct output {
 	struct wtwm_output_identity identity;
 	struct wlr_scene_rect *background;
 	bool in_layout;
+	bool layout_position_known;
+	bool layout_auto;
+	int layout_x;
+	int layout_y;
 	struct wl_listener background_destroy;
 	struct wl_listener frame;
 	struct wl_listener request_state;
@@ -6151,8 +6155,14 @@ static void output_frame(struct wl_listener *listener, void *data) {
 
 static bool attach_output_layout(struct output *output) {
 	if (output->in_layout) return true;
-	struct wlr_output_layout_output *layout_output =
-		wlr_output_layout_add_auto(output->server->output_layout, output->wlr);
+	struct wlr_output_layout_output *layout_output;
+	if (output->layout_position_known && !output->layout_auto) {
+		layout_output = wlr_output_layout_add(output->server->output_layout,
+			output->wlr, output->layout_x, output->layout_y);
+	} else {
+		layout_output =
+			wlr_output_layout_add_auto(output->server->output_layout, output->wlr);
+	}
 	if (layout_output == NULL) return false;
 	if (output->scene_output == NULL) {
 		wlr_output_layout_remove(output->server->output_layout, output->wlr);
@@ -6166,6 +6176,14 @@ static bool attach_output_layout(struct output *output) {
 
 static void detach_output_layout(struct output *output) {
 	if (!output->in_layout) return;
+	struct wlr_output_layout_output *layout_output =
+		wlr_output_layout_get(output->server->output_layout, output->wlr);
+	if (layout_output != NULL) {
+		output->layout_position_known = true;
+		output->layout_auto = layout_output->auto_configured;
+		output->layout_x = layout_output->x;
+		output->layout_y = layout_output->y;
+	}
 	output->in_layout = false;
 	wlr_output_layout_remove(output->server->output_layout, output->wlr);
 }
@@ -8953,6 +8971,12 @@ static void test_execute(struct test_control *control,
 			bool changed = positioned != NULL &&
 				(positioned->x != old_x || positioned->y != old_y ||
 				positioned->auto_configured != old_auto);
+			if (positioned != NULL) {
+				output->layout_position_known = true;
+				output->layout_auto = positioned->auto_configured;
+				output->layout_x = positioned->x;
+				output->layout_y = positioned->y;
+			}
 			finish_output_topology_mutation(server, changed);
 			if (positioned == NULL) {
 				test_write(control, "ERROR OUTPUT POSITION failed: %s\n",
