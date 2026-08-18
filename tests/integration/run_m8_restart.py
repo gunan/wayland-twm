@@ -91,9 +91,12 @@ def assert_preserved(
         raise RuntimeError(
             f"restart replaced or changed client identities: {state!r}"
         )
-    if session_snapshot(state) != expected_session:
+    observed_session = session_snapshot(state)
+    if observed_session != expected_session:
         raise RuntimeError(
-            f"restart changed focus, stacking, geometry, or iconic state: {state!r}"
+            "restart changed focus, stacking, geometry, or iconic state: "
+            f"expected={expected_session!r}, observed={observed_session!r}, "
+            f"state={state!r}"
         )
     if any(bool(item["decorated"]) != decorated for item in state["windows"]):
         raise RuntimeError(
