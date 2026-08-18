@@ -479,7 +479,7 @@ Required mappings:
 Implementation work:
 
 - [x] Implement output-aware placement and per-output root behavior.
-- [ ] Complete warp-to-screen behavior and screen history.
+- [x] Complete warp-to-screen behavior and screen history.
 - [ ] Handle output addition, removal, scale changes, and mode changes.
 - [ ] Restore windows safely when an output disappears.
 - [ ] Support input hotplugging and multiple keyboards and pointers.
