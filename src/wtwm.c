@@ -4237,8 +4237,8 @@ static void apply_colormap_action(struct server *server,
 		toplevel->colormap_rotation = (toplevel->colormap_rotation +
 			toplevel->colormap_count - 1) % toplevel->colormap_count;
 	}
-	char trace_context[16];
-	(void)snprintf(trace_context, sizeof(trace_context), "x11-%s", argument);
+	const char *trace_context = strcmp(argument, "next") == 0 ? "x11-next" :
+		strcmp(argument, "prev") == 0 ? "x11-prev" : "x11-default";
 	test_trace_toplevel_event(toplevel, "colormap", trace_context);
 	if (install_xwayland_colormaps(toplevel, connection)) {
 		xcb_colormap_t selected =
