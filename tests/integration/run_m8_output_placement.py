@@ -552,15 +552,14 @@ def verify_xwayland_random(session: Session, client_binary: Path) -> None:
         )
         for title in ("placement-random-1", "placement-random-2")
     }
-    random_before = (second_state["placement_seed"], second_state["random_placement"])
     point(session.control, 300, 220, "root")
     click(session.control, 8)
     session.control.command("WAIT 2")
     restarted = wait_state(
         session.control,
-        lambda state: state["placement_seed"] == random_before[0]
-        and state["random_placement"] == random_before[1],
-        "restart preserves placement counters",
+        lambda state: state["placement_seed"] == 2
+        and state["random_placement"] == {"next_x": 50, "next_y": 50},
+        "restart preserves the diagnostic count and resets the random cursor",
     )
     geometry_after = {
         title: tuple(state_window(restarted, title)[key] for key in ("x", "y", "width", "height"))
@@ -573,8 +572,8 @@ def verify_xwayland_random(session: Session, client_binary: Path) -> None:
     client_command(client, "NEXT", "MAPPED")
     third = state_window(wait_mapped(session.control, "placement-random-3"),
                          "placement-random-3")
-    if (third["x"], third["y"], third["placement"]) != (110, 110, "random"):
-        raise RuntimeError(f"restart reset the shared random cascade: {third!r}")
+    if (third["x"], third["y"], third["placement"]) != (50, 50, "random"):
+        raise RuntimeError(f"restart did not reset the shared random cursor: {third!r}")
 
 
 def verify_native_random(session: Session, native_binary: Path) -> None:
