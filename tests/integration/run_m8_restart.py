@@ -194,8 +194,8 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
                 f"POINTER {int(x11_window['x']) + int(x11_window['content_x']) + 10} "
                 f"{int(x11_window['y']) + int(x11_window['content_y']) + 10}"
             )
-            control.command("BUTTON 274 press")
-            control.command("BUTTON 274 release")
+            control.command("BUTTON 273 press")
+            control.command("BUTTON 273 release")
             wait_state(
                 control,
                 lambda state: not state["focus_root"]
@@ -226,7 +226,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
             # atomically, leaving both the active configuration and clients live.
             config.write_text('Button1 = : root : f.restart\n"unterminated\n',
                               encoding="utf-8")
-            restart(control, 273)
+            restart(control, 274)
             assert_preserved(
                 control, identities, session, False, native_process, native,
                 x11_process, x11,
@@ -235,7 +235,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
             # The alias remains usable after rejection and applies the next
             # valid replacement without reconnecting either protocol client.
             config.write_text(config_text(no_title=False), encoding="utf-8")
-            restart(control, 273)
+            restart(control, 274)
             assert_preserved(
                 control, identities, session, True, native_process, native,
                 x11_process, x11,
