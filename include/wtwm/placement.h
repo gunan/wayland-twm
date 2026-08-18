@@ -3,6 +3,7 @@
 #define WTWM_PLACEMENT_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 enum wtwm_use_p_position {
 	WTWM_USE_P_POSITION_OFF,
@@ -36,6 +37,16 @@ struct wtwm_placement_area {
 	int width;
 	int height;
 };
+
+/*
+ * Candidate areas are ordered canonically by the caller.  Selection keeps the
+ * first candidate on every containment, distance, or intersection tie.
+ */
+bool wtwm_placement_output_for_point(const struct wtwm_placement_area *areas,
+	size_t count, int point_x, int point_y, size_t *selected);
+bool wtwm_placement_output_for_outer(const struct wtwm_placement_area *areas,
+	size_t count, int outer_x, int outer_y, int outer_width, int outer_height,
+	size_t *selected);
 
 bool wtwm_parse_use_p_position(const char *text,
 	enum wtwm_use_p_position *mode);

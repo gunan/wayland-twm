@@ -14,6 +14,144 @@ static int saturate_int(int64_t value) {
 	return (int)value;
 }
 
+struct uint128_value {
+	uint64_t high;
+	uint64_t low;
+};
+
+static struct uint128_value uint128_add(struct uint128_value left,
+		struct uint128_value right) {
+	struct uint128_value result = {
+		.high = left.high + right.high,
+		.low = left.low + right.low,
+	};
+	if (result.low < left.low) ++result.high;
+	return result;
+}
+
+static struct uint128_value uint128_square(uint64_t value) {
+	uint64_t low = value & UINT32_MAX;
+	uint64_t high = value >> 32;
+	uint64_t low_square = low * low;
+	uint64_t cross = low * high;
+	struct uint128_value result = {
+		.high = high * high + (cross >> 31),
+		.low = low_square + (cross << 33),
+	};
+	if (result.low < low_square) ++result.high;
+	return result;
+}
+
+static int uint128_compare(struct uint128_value left,
+		struct uint128_value right) {
+	if (left.high != right.high) return left.high < right.high ? -1 : 1;
+	if (left.low != right.low) return left.low < right.low ? -1 : 1;
+	return 0;
+}
+
+static uint64_t absolute_difference(int64_t left, int64_t right) {
+	return left >= right ? (uint64_t)(left - right) :
+		(uint64_t)(right - left);
+}
+
+static bool valid_area(const struct wtwm_placement_area *area) {
+	return area != NULL && area->width > 0 && area->height > 0;
+}
+
+static bool area_contains(const struct wtwm_placement_area *area,
+		int point_x, int point_y) {
+	int64_t right = (int64_t)area->x + area->width;
+	int64_t bottom = (int64_t)area->y + area->height;
+	return valid_area(area) && point_x >= area->x && (int64_t)point_x < right &&
+		point_y >= area->y && (int64_t)point_y < bottom;
+}
+
+static struct uint128_value distance_to_area(const struct wtwm_placement_area *area,
+		int64_t point_x, int64_t point_y, int scale) {
+	int64_t left = (int64_t)scale * area->x;
+	int64_t top = (int64_t)scale * area->y;
+	int64_t right = (int64_t)scale * ((int64_t)area->x + area->width);
+	int64_t bottom = (int64_t)scale * ((int64_t)area->y + area->height);
+	uint64_t dx = point_x < left ? absolute_difference(point_x, left) :
+		(point_x > right ? absolute_difference(point_x, right) : 0);
+	uint64_t dy = point_y < top ? absolute_difference(point_y, top) :
+		(point_y > bottom ? absolute_difference(point_y, bottom) : 0);
+	return uint128_add(uint128_square(dx), uint128_square(dy));
+}
+
+bool wtwm_placement_output_for_point(const struct wtwm_placement_area *areas,
+		size_t count, int point_x, int point_y, size_t *selected) {
+	if (areas == NULL || selected == NULL) return false;
+	for (size_t i = 0; i < count; ++i) {
+		if (area_contains(&areas[i], point_x, point_y)) {
+			*selected = i;
+			return true;
+		}
+	}
+	bool found = false;
+	struct uint128_value best = {0, 0};
+	for (size_t i = 0; i < count; ++i) {
+		if (!valid_area(&areas[i])) continue;
+		struct uint128_value distance = distance_to_area(&areas[i],
+			point_x, point_y, 1);
+		if (!found || uint128_compare(distance, best) < 0) {
+			found = true;
+			best = distance;
+			*selected = i;
+		}
+	}
+	return found;
+}
+
+static uint64_t intersection_area(const struct wtwm_placement_area *area,
+		int x, int y, int width, int height) {
+	if (!valid_area(area) || width <= 0 || height <= 0) return 0;
+	int64_t left = x > area->x ? x : area->x;
+	int64_t top = y > area->y ? y : area->y;
+	int64_t outer_right = (int64_t)x + width;
+	int64_t outer_bottom = (int64_t)y + height;
+	int64_t area_right = (int64_t)area->x + area->width;
+	int64_t area_bottom = (int64_t)area->y + area->height;
+	int64_t right = outer_right < area_right ? outer_right : area_right;
+	int64_t bottom = outer_bottom < area_bottom ? outer_bottom : area_bottom;
+	if (right <= left || bottom <= top) return 0;
+	return (uint64_t)(right - left) * (uint64_t)(bottom - top);
+}
+
+bool wtwm_placement_output_for_outer(const struct wtwm_placement_area *areas,
+		size_t count, int outer_x, int outer_y, int outer_width, int outer_height,
+		size_t *selected) {
+	if (areas == NULL || selected == NULL) return false;
+	bool found = false;
+	uint64_t best_intersection = 0;
+	for (size_t i = 0; i < count; ++i) {
+		uint64_t intersection = intersection_area(&areas[i], outer_x, outer_y,
+			outer_width, outer_height);
+		if (intersection > best_intersection) {
+			found = true;
+			best_intersection = intersection;
+			*selected = i;
+		}
+	}
+	if (found) return true;
+	int64_t center_x = (int64_t)2 * outer_x +
+		(outer_width > 0 ? outer_width : 0);
+	int64_t center_y = (int64_t)2 * outer_y +
+		(outer_height > 0 ? outer_height : 0);
+	struct uint128_value best = {0, 0};
+	for (size_t i = 0; i < count; ++i) {
+		if (!valid_area(&areas[i])) continue;
+		struct uint128_value distance = distance_to_area(&areas[i],
+			center_x, center_y, 2);
+		if (!found || uint128_compare(distance, best) < 0) {
+			found = true;
+			best = distance;
+			*selected = i;
+		}
+	}
+	return found;
+}
+
 bool wtwm_parse_use_p_position(const char *text,
 		enum wtwm_use_p_position *mode) {
 	if (text == NULL || mode == NULL) return false;
