@@ -76,6 +76,15 @@
       "dimension": "runtime"
     },
     {
+      "test_id": "test.current-feature.m8-warp-screen-runtime",
+      "path": "tests/integration/run_m8_warp_screen.py",
+      "meson_test": "Milestone 8 warp-to-screen history integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.f.warptoscreen"
+      ]
+    },
+    {
       "test_id": "test.current-feature.move-resize-runtime",
       "path": "tests/integration/run_move_resize.py",
       "meson_test": "move and resize interaction integration",
@@ -3991,6 +4000,22 @@
             "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
             "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
             "The Linux two-output runner exercises runtime_dispatch.execute-configured-action through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-warp-screen-runtime",
+          "path": "tests/integration/run_m8_warp_screen.py",
+          "meson_test": "Milestone 8 warp-to-screen history integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Repeated back toggles, rejected and same targets, one-output no-ops, and restart reset prove exact previous-output history.",
+            "The Linux headless runner exercises runtime_dispatch.execute-configured-action through numeric, next, prev, back, and mixed-case bindings.",
+            "The catalog ledger_features maps the exact frozen keyword.f.warptoscreen inventory row.",
+            "Unequal adjacent outputs prove unscaled source-relative coordinates clamp to the selected target rather than leaking onto another output."
           ],
           "fixture": "",
           "checks": []

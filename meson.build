@@ -734,6 +734,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 warp-to-screen history contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_warp_screen_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 8 output placement and root contract',
   find_program('python3'),
   args: [
@@ -777,6 +787,15 @@ test(
     '-B',
     files('tests/integration/run_m8_screen_output.py'),
     '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 warp-to-screen history model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_warp_screen.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
   ],
 )
 test(
@@ -1291,6 +1310,17 @@ if wlroots.found()
     args: [
       '-B', files('tests/integration/run_m8_screen_output.py'),
       '--compositor', wtwm_test_compositor,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 warp-to-screen history integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_warp_screen.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
     ],
     timeout: 180,
     is_parallel: false,

@@ -26,7 +26,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
 | Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use the target's current owner-output geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
-| Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. A numeric `f.warptoscreen` target selects the canonical Wayland output index and preserves the cursor's output-relative position; next/prev/back screen history and topology changes remain later Milestone 8 work |
+| Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. `f.warptoscreen` resolves numeric, `next`, `prev`, and `back` targets in canonical output order, preserves an unscaled source-relative cursor position clamped to the selected target, toggles previous-output history on repeated `back`, and resets that ephemeral history on successful `f.restart`. Output-topology repair remains later Milestone 8 work |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
 | Legacy bell, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
@@ -204,6 +204,15 @@ out-of-range forms are no-ops rather than reference twm's `atoi`-and-wrap
 behavior. A successful numeric warp preserves the cursor's output-relative
 coordinate, clamped only when the target is smaller.
 
+Named `f.warptoscreen` targets are case-insensitive like reference twm:
+`next` and `prev` wrap through the fixed canonical output snapshot, while
+`back` toggles between the last two successfully visited outputs. Same,
+invalid, out-of-range, gap, zero-output, and one-output targets do not move the
+pointer or alter history. A valid configuration reload preserves navigation
+history; a successful in-place `f.restart` clears it as reference process
+replacement would. The fixed-topology contract deliberately leaves history
+repair after output add/remove/renumber to the following Roadmap task.
+
 The Milestone 8 headless runner starts an implicit session with zero outputs
 and mutually conflicting `.twmrc.0`, `.twmrc.1`, and `.twmrc` files. One and
 then two equal-sized auto-laid-out outputs prove that the screen-zero bindings
@@ -212,6 +221,11 @@ list insertion, an out-of-range target preserves exact pointer coordinates,
 and root `f.restart` retains the source and mapping. A second session proves an
 explicit unsuffixed file is global and HOME screen files are ignored. This
 mapping does not by itself claim placement or topology behavior.
+
+The dedicated warp-screen runner adds one, two, and three unequal adjacent
+outputs and proves numeric and mixed-case `next`/`prev`/`back` traversal,
+repeated-back toggling, rejected-target history preservation, restart reset,
+and selected-target clamping that cannot spill into a neighboring output.
 
 Reference twm confines placement and spatial root actions to the selected X
 screen's `RootWindow`, width, and height. wtwm maps each enabled Wayland
@@ -252,8 +266,8 @@ The Linux live runner adds two auto-laid-out outputs and exact native/Xwayland
 selected-output `MaxWindowSize`, root-menu/submenu clamping, full zoom on both
 sides, Button3 fill, pinned window/icon moves, `f.forcemove`, restart continuity,
 and deferred zero-output mapping. This steady-state slice deliberately leaves
-next/previous/back screen history, output add/remove/scale/mode transaction
-repair, restoration after output disappearance, persistent topology
+output add/remove/scale/mode transaction repair, restoration after output
+disappearance, persistent topology
 reassociation, multiple-seat/input hotplug, and session lifecycle work for the
 following Milestone 8 tasks. Milestone 7's globally ordered IconRegion and
 icon-manager allocation pools also remain global; only an explicit icon move's

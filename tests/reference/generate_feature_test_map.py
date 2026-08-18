@@ -44,6 +44,13 @@ SCREEN_OUTPUT_RUNTIME_ID = "test.current-feature.m8-screen-output-runtime"
 SCREEN_OUTPUT_RUNTIME_FEATURES = {
     "runtime_dispatch.configuration-load-at-startup",
 }
+WARP_SCREEN_RUNTIME_PATH = "tests/integration/run_m8_warp_screen.py"
+WARP_SCREEN_RUNTIME_TEST = "Milestone 8 warp-to-screen history integration"
+WARP_SCREEN_RUNTIME_ID = "test.current-feature.m8-warp-screen-runtime"
+WARP_SCREEN_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+WARP_SCREEN_LEDGER_FEATURES = ("keyword.f.warptoscreen",)
 OUTPUT_PLACEMENT_RUNTIME_PATH = "tests/integration/run_m8_output_placement.py"
 OUTPUT_PLACEMENT_RUNTIME_TEST = "Milestone 8 output-aware placement/root integration"
 OUTPUT_PLACEMENT_RUNTIME_ID = "test.current-feature.m8-output-placement-runtime"
@@ -521,6 +528,28 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in WARP_SCREEN_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": WARP_SCREEN_RUNTIME_ID,
+                "path": WARP_SCREEN_RUNTIME_PATH,
+                "meson_test": WARP_SCREEN_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner exercises {feature_id} through "
+                    "numeric, next, prev, back, and mixed-case bindings.",
+                    "Repeated back toggles, rejected and same targets, one-output "
+                    "no-ops, and restart reset prove exact previous-output history.",
+                    "Unequal adjacent outputs prove unscaled source-relative "
+                    "coordinates clamp to the selected target rather than leaking "
+                    "onto another output.",
+                    "The catalog ledger_features maps the exact frozen "
+                    "keyword.f.warptoscreen inventory row.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
             tests.append({
                 "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
@@ -710,6 +739,13 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "path": STARTWM_RUNTIME_PATH,
                 "meson_test": STARTWM_RUNTIME_TEST,
                 "dimension": "runtime",
+            },
+            {
+                "test_id": WARP_SCREEN_RUNTIME_ID,
+                "path": WARP_SCREEN_RUNTIME_PATH,
+                "meson_test": WARP_SCREEN_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(WARP_SCREEN_LEDGER_FEATURES),
             },
             {
                 "test_id": INTERACTION_RUNTIME_ID,
