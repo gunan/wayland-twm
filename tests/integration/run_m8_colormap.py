@@ -116,9 +116,13 @@ def assert_trace(control: Control) -> None:
         event for event in control.trace()["events"]
         if event["event"] == "colormap"
     ]
-    x11 = [event["context"] for event in events if event["type"] == "x11"]
+    x11 = [
+        event["context"] for event in events
+        if event["window"]["type"] == "x11"
+    ]
     native = [
-        event["context"] for event in events if event["type"] == "wayland"
+        event["context"] for event in events
+        if event["window"]["type"] == "wayland"
     ]
     expected_x11 = [
         "x11-next",
