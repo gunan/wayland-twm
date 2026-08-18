@@ -25,7 +25,7 @@ def config_text(*, no_title: bool) -> str:
         + ("NoTitle\n" if no_title else "")
         + "Button1 = : root : f.restart\n"
         + "Button2 = : root : f.twmrc\n"
-        + "Button3 = : window : f.focus\n"
+        + "Button3 = : all : f.focus\n"
     )
 
 
