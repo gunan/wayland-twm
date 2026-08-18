@@ -1,0 +1,555 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 f.colormap behavior and the split Xwayland/native Wayland translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/add_window.c": "c3133cc763d2db086e3417b3c2f3c103dc23685690a59e4116cbd338feb7b888",
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/gram.y": "7b7c66abb6280891ffc265c25c7989b206e16d883008db44a94dd057f39e8a52",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/menus.h": "2ac660c04c2df65c7c2ee6fac5fc2e812cf06b518eedba37705aa68c2a13b572",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.identity": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1207,
+      "text": ".IP \"\\fBf.colormap\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.property-source": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1208,
+      "text": "This function rotates the colormaps (obtained from the WM_COLORMAP_WINDOWS"
+    },
+    "manual.allowed-arguments": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1212,
+      "text": "values: \\fB\"next\"\\fP, \\fB\"prev\"\\fP, and \\fB\"default\"\\fP."
+    },
+    "parse.identity": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 425,
+      "text": "    { \"f.colormap\",             FSKEYWORD, F_COLORMAP },"
+    },
+    "parser.action-rule": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 592,
+      "text": "                | FSKEYWORD string {"
+    },
+    "parser.colormap-case": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 616,
+      "text": "                                  case F_COLORMAP:"
+    },
+    "parser.invalid-warning": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 621,
+      "text": "                                             \"ignoring invalid f.colormap argument \\\"%s\\\"\","
+    },
+    "parser.invalid-nop": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 623,
+      "text": "                                        $$ = F_NOP;"
+    },
+    "parser.lowercase": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 858,
+      "text": "    XmuCopyISOLatin1Lowered(s, s);"
+    },
+    "parser.allowed-comparison": {
+      "member": "twm-1.0.13.1/src/gram.y",
+      "line": 860,
+      "text": "    if (strcmp(s, COLORMAP_NEXT) == 0 ||"
+    },
+    "constant.next": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 159,
+      "text": "#define COLORMAP_NEXT \"next\""
+    },
+    "constant.prev": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 160,
+      "text": "#define COLORMAP_PREV \"prev\""
+    },
+    "constant.default": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 161,
+      "text": "#define COLORMAP_DEFAULT \"default\""
+    },
+    "dispatch.case": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1967,
+      "text": "    case F_COLORMAP:"
+    },
+    "dispatch.next": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1970,
+      "text": "            BumpWindowColormap(tmp_win, 1);"
+    },
+    "dispatch.prev": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1973,
+      "text": "            BumpWindowColormap(tmp_win, -1);"
+    },
+    "dispatch.default": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1976,
+      "text": "            BumpWindowColormap(tmp_win, 0);"
+    },
+    "bump.targetless-return": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2683,
+      "text": "    if (!tmp)"
+    },
+    "bump.rotation-guard": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2686,
+      "text": "    if (inc && tmp->cmaps.number_cwins > 0) {"
+    },
+    "bump.rotation-index": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2701,
+      "text": "                int j = i - inc;"
+    },
+    "bump.rotation-store": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2707,
+      "text": "                cwins[j] = tmp->cmaps.cwins[i];"
+    },
+    "bump.reinstall": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2719,
+      "text": "                InstallWindowColormaps(PropertyNotify, (TwmWindow *) NULL);"
+    },
+    "bump.default-refetch": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2723,
+      "text": "        FetchWmColormapWindows(tmp);"
+    },
+    "fetch.initial": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 194,
+      "text": "    FetchWmColormapWindows(tmp_win);"
+    },
+    "fetch.property": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1488,
+      "text": "    if (XGetWMColormapWindows(dpy, tmp->w, &cmap_windows,"
+    },
+    "fetch.top-level-search": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1496,
+      "text": "        for (i = 0; i < number_cmap_windows; i++) {"
+    },
+    "fetch.top-level-front": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1510,
+      "text": "            new_cmap_windows[0] = tmp->w;       /* add to front */"
+    },
+    "fetch.property-order": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1512,
+      "text": "                new_cmap_windows[i + 1] = cmap_windows[i];"
+    },
+    "fetch.query-attributes": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1422,
+      "text": "        if (!XGetWindowAttributes(dpy, w, &attributes) ||"
+    },
+    "fetch.attribute-colormap": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1428,
+      "text": "        if (XFindContext(dpy, attributes.colormap, ColormapContext,"
+    },
+    "fetch.invalid-remove": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1552,
+      "text": "                                cmap_windows[k - 1] = cmap_windows[k];"
+    },
+    "fetch.invalid-decrement": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1554,
+      "text": "                            number_cmap_windows--;"
+    },
+    "fetch.fallback": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1566,
+      "text": "    if (number_cmap_windows == 0) {"
+    },
+    "fetch.fallback-top-level": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 1574,
+      "text": "                CreateColormapWindow(tmp->w,"
+    },
+    "property.reset": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 950,
+      "text": "            FetchWmColormapWindows(Tmp_win);    /* frees old data */"
+    },
+    "install.max-source": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 452,
+      "text": "        Scr->cmapInfo.maxCmaps ="
+    },
+    "install.max-screen": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 453,
+      "text": "            MaxCmapsOfScreen(ScreenOfDisplay(dpy, Scr->screen));"
+    },
+    "install.visible-and-bounded": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2544,
+      "text": "        if (cwin->visibility != VisibilityFullyObscured &&"
+    },
+    "install.max-condition": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2545,
+      "text": "            n < Scr->cmapInfo.maxCmaps) {"
+    },
+    "install.conflict-skip": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2548,
+      "text": "                if (row[j] && (cwins[j]->colormap->state & CM_INSTALL))"
+    },
+    "install.reverse-selected-order": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2561,
+      "text": "    for (; n > 0 && maxcwin >= cwins; maxcwin--) {"
+    },
+    "install.request": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2567,
+      "text": "                XInstallColormap(dpy, cmap->c);"
+    }
+  },
+  "reference_behavior": {
+    "identity": {
+      "name": "f.colormap",
+      "inventory_id": "keyword.f.colormap",
+      "parser_token": "FSKEYWORD",
+      "parser_value": "F_COLORMAP",
+      "argument_count": 1,
+      "evidence": [
+        "manual.identity",
+        "parse.identity",
+        "parser.action-rule"
+      ]
+    },
+    "argument_decoding": {
+      "normalization": "ISO Latin-1 lowercase in place before comparison",
+      "accepted": [
+        {
+          "argument": "next",
+          "function": "F_COLORMAP",
+          "increment": 1
+        },
+        {
+          "argument": "prev",
+          "function": "F_COLORMAP",
+          "increment": -1
+        },
+        {
+          "argument": "default",
+          "function": "F_COLORMAP",
+          "increment": 0
+        }
+      ],
+      "invalid": {
+        "function": "F_NOP",
+        "diagnostic": "ignoring invalid f.colormap argument",
+        "dispatches": false
+      },
+      "evidence": [
+        "manual.allowed-arguments",
+        "parser.colormap-case",
+        "parser.invalid-warning",
+        "parser.invalid-nop",
+        "parser.lowercase",
+        "parser.allowed-comparison",
+        "constant.next",
+        "constant.prev",
+        "constant.default"
+      ]
+    },
+    "dispatch": {
+      "target": "the selected TwmWindow tmp_win",
+      "callee": "BumpWindowColormap",
+      "increments": {
+        "next": 1,
+        "prev": -1,
+        "default": 0
+      },
+      "targetless": "return without property, attribute, installation, or state effects",
+      "evidence": [
+        "dispatch.case",
+        "dispatch.next",
+        "dispatch.prev",
+        "dispatch.default",
+        "bump.targetless-return"
+      ]
+    },
+    "fetch_and_reset": {
+      "triggers": [
+        "initial management",
+        "WM_COLORMAP_WINDOWS PropertyNotify",
+        "f.colormap default"
+      ],
+      "valid_property": "preserve WM_COLORMAP_WINDOWS order; if the managed top-level window is absent, insert it at index zero and append every property entry in its original order",
+      "invalid_or_empty_property": "fall back to the managed top-level window as the sole entry",
+      "entry_resolution": "query each listed X window's attributes and use its colormap attribute",
+      "invalid_entry": "remove an unqueryable or otherwise uncreatable entry in place while preserving the relative order of all remaining entries",
+      "installed_reset": "if this target list is currently installed, clear the old states and reinstall the refetched list",
+      "client_property_mutation": false,
+      "evidence": [
+        "manual.property-source",
+        "fetch.initial",
+        "fetch.property",
+        "fetch.top-level-search",
+        "fetch.top-level-front",
+        "fetch.property-order",
+        "fetch.query-attributes",
+        "fetch.attribute-colormap",
+        "fetch.invalid-remove",
+        "fetch.invalid-decrement",
+        "fetch.fallback",
+        "fetch.fallback-top-level",
+        "property.reset",
+        "bump.default-refetch"
+      ]
+    },
+    "rotation": {
+      "scope": "rotate twm's per-window internal copy; do not rewrite WM_COLORMAP_WINDOWS",
+      "index_rule": "destination = (source_index - increment) modulo entry_count",
+      "examples": {
+        "property_order": [
+          "A",
+          "B",
+          "C"
+        ],
+        "next": [
+          "B",
+          "C",
+          "A"
+        ],
+        "prev": [
+          "C",
+          "A",
+          "B"
+        ],
+        "default": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      "allocation_failure": "leave the existing internal order and installation state unchanged",
+      "reinstall_when_active": true,
+      "evidence": [
+        "bump.rotation-guard",
+        "bump.rotation-index",
+        "bump.rotation-store",
+        "bump.reinstall",
+        "bump.default-refetch"
+      ]
+    },
+    "installation": {
+      "capacity": "MaxCmapsOfScreen for the target X screen",
+      "selection_order": "scan the current internal list from index zero, selecting non-fully-obscured entries until capacity is reached and skipping scoreboard conflicts with an already selected colormap",
+      "request_order": "issue XInstallColormap for selected entries in reverse list-index order",
+      "already_installed": "do not issue a redundant install request when the selected state is already installed",
+      "observable_result": "the selected X colormap set changes through XInstallColormap and is observable through the X server's installed-colormap list; with capacity one its sole entry is the first eligible entry in the rotated internal list",
+      "evidence": [
+        "install.max-source",
+        "install.max-screen",
+        "install.visible-and-bounded",
+        "install.max-condition",
+        "install.conflict-skip",
+        "install.reverse-selected-order",
+        "install.request"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": {
+      "relevant_xwayland_target": "behaviorally-equivalent",
+      "native_true_color_wayland_target": "verified-no-op",
+      "no_target": "verified-no-op"
+    },
+    "xwayland": {
+      "target": "a managed Xwayland toplevel selected by the configured action context",
+      "property": "read WM_COLORMAP_WINDOWS from the target X client without mutating it",
+      "resolution": "resolve each retained X window to its current colormap attribute and ignore unqueryable entries",
+      "state": "retain an internal property-order snapshot and current rotation per managed Xwayland toplevel; reset it on default and property change",
+      "rotation": "match the reference next/prev circular directions",
+      "installation": "install the eligible rotated X colormap selection through the compositor's XWM connection, bounded by the X screen's advertised maximum installed maps",
+      "observability": "the X server installed-colormap list changes while the client WM_COLORMAP_WINDOWS property stays byte-for-byte unchanged"
+    },
+    "native_wayland": {
+      "reason": "native true-color Wayland surfaces expose neither WM_COLORMAP_WINDOWS nor an installed X colormap",
+      "result": "leave native surface pixels, focus, geometry, stacking, input, and protocol liveness unchanged",
+      "x_requests": [],
+      "installed_x_colormaps": "unchanged"
+    },
+    "no_target": {
+      "result": "return without X requests or compositor-visible state changes"
+    }
+  },
+  "requirements": [
+    {
+      "id": "colormap.parser",
+      "text": "Retain FSKEYWORD string syntax, lowercase matching, exact next/prev/default arguments, and invalid-to-F_NOP behavior.",
+      "evidence": [
+        "parse.identity",
+        "parser.action-rule",
+        "parser.invalid-nop",
+        "parser.lowercase",
+        "parser.allowed-comparison"
+      ]
+    },
+    {
+      "id": "colormap.xwayland-property",
+      "text": "For a relevant Xwayland target, preserve property ordering, insert the top-level when absent, fall back to it when needed, and filter unqueryable entries without reordering survivors.",
+      "evidence": [
+        "fetch.property",
+        "fetch.top-level-front",
+        "fetch.property-order",
+        "fetch.query-attributes",
+        "fetch.invalid-remove",
+        "fetch.fallback-top-level"
+      ]
+    },
+    {
+      "id": "colormap.rotation-reset",
+      "text": "Maintain per-Xwayland-window next/prev rotation and restore current property order for default or property change without mutating the client property.",
+      "evidence": [
+        "bump.rotation-index",
+        "bump.rotation-store",
+        "bump.default-refetch",
+        "property.reset"
+      ]
+    },
+    {
+      "id": "colormap.installation",
+      "text": "Select visible conflict-free colormaps from the rotated order up to the X screen capacity, issue required installs in reference order, and expose the result through the installed-colormap list.",
+      "evidence": [
+        "install.max-screen",
+        "install.visible-and-bounded",
+        "install.conflict-skip",
+        "install.reverse-selected-order",
+        "install.request"
+      ]
+    },
+    {
+      "id": "colormap.native-no-op",
+      "text": "For a native true-color Wayland target or no target, issue no X requests and preserve all client-visible and compositor-visible state.",
+      "evidence": [
+        "dispatch.case",
+        "bump.targetless-return"
+      ]
+    },
+    {
+      "id": "colormap.resource-safety",
+      "text": "Bound WM_COLORMAP_WINDOWS reads to at most 4096 entries, reject size arithmetic overflow, release every X reply and temporary allocation on every path, discard cached state when the managed target is destroyed, ignore invalid X resources without terminating the compositor, use checked X requests for actionable failures, and never mutate the client property.",
+      "evidence": [
+        "fetch.query-attributes",
+        "fetch.invalid-remove",
+        "fetch.invalid-decrement",
+        "fetch.property-order"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "parser-accepted-casefold",
+      "kind": "parser-positive",
+      "assertions": [
+        "next, prev, and default parse as F_COLORMAP",
+        "mixed-case forms normalize to the same actions"
+      ]
+    },
+    {
+      "id": "parser-invalid-nop",
+      "kind": "parser-negative",
+      "assertions": [
+        "an invalid argument emits the diagnostic",
+        "the binding becomes F_NOP and never dispatches"
+      ]
+    },
+    {
+      "id": "xwayland-property-order-and-filter",
+      "kind": "runtime-positive-negative-pair",
+      "assertions": [
+        "property order is retained",
+        "a missing top-level is inserted first",
+        "an invalid window is ignored while survivor order remains stable",
+        "empty or invalid property data falls back to the top-level"
+      ]
+    },
+    {
+      "id": "xwayland-next-prev-default",
+      "kind": "runtime-state-machine",
+      "assertions": [
+        "A,B,C next installs from B,C,A",
+        "prev restores A,B,C after that next",
+        "prev from default installs from C,A,B",
+        "default refetches current property order",
+        "WM_COLORMAP_WINDOWS bytes never change"
+      ]
+    },
+    {
+      "id": "xwayland-property-change-reset",
+      "kind": "runtime-state-machine",
+      "assertions": [
+        "PropertyNotify replaces stale rotation state",
+        "new window attributes and colormaps are resolved",
+        "the active target is reinstalled"
+      ]
+    },
+    {
+      "id": "xwayland-install-capacity",
+      "kind": "runtime-boundary",
+      "assertions": [
+        "fully obscured and conflicting entries are skipped",
+        "no more than the X screen maximum are selected",
+        "install requests are issued in reverse selected index order",
+        "the installed-colormap list exposes the selected result"
+      ]
+    },
+    {
+      "id": "native-wayland-no-op",
+      "kind": "runtime-negative",
+      "assertions": [
+        "the native surface remains live and visually unchanged",
+        "focus, geometry, stacking, and input state are unchanged",
+        "no X request is issued",
+        "the installed X colormap list is unchanged"
+      ]
+    },
+    {
+      "id": "targetless-no-op",
+      "kind": "runtime-negative",
+      "assertions": [
+        "no X request is issued",
+        "no compositor-visible state changes"
+      ]
+    },
+    {
+      "id": "xwayland-invalid-and-oversized-resources",
+      "kind": "runtime-resource-safety",
+      "assertions": [
+        "invalid windows and colormaps do not terminate the compositor",
+        "more than 4096 property entries are rejected or truncated deterministically",
+        "all clients remain protocol-live",
+        "no reply, temporary list, or per-window cache survives its ownership boundary"
+      ]
+    }
+  ]
+}
