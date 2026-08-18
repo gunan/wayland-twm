@@ -242,7 +242,11 @@ def main() -> int:
     parser.add_argument("--wayland-client", required=True, type=Path)
     parser.add_argument("--x11-client", required=True, type=Path)
     args = parser.parse_args()
-    run(args.compositor, args.wayland_client, args.x11_client)
+    run(
+        args.compositor.resolve(),
+        args.wayland_client.resolve(),
+        args.x11_client.resolve(),
+    )
     return 0
 
 
