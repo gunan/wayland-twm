@@ -266,6 +266,23 @@ command_test = executable(
 )
 test('twm command execution planning', command_test)
 
+session_state_lib = static_library(
+  'wtwm-session-state-lib',
+  'src/session_state.c',
+  include_directories: inc,
+)
+session_state_dep = declare_dependency(
+  link_with: session_state_lib,
+  include_directories: inc,
+)
+
+session_state_test = executable(
+  'session-state-test',
+  'tests/session_state_test.c',
+  dependencies: session_state_dep,
+)
+test('portable compositor session state', session_state_test)
+
 bindings_lib = static_library(
   'wtwm-bindings-lib',
   'src/bindings.c',
