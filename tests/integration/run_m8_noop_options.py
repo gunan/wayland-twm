@@ -183,6 +183,7 @@ class Session:
         )
         self.x11 = ClientChannel(x11_process, f"{label} X11")
         self.x11.expect_prefix(f"OK READY {X11_TITLE} ")
+        self.x11.command("FREEZE", "OK FROZEN 0x007030a0")
         self.clients = {
             NATIVE_TITLE: native_process,
             X11_TITLE: x11_process,
