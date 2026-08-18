@@ -47,7 +47,9 @@ class WarpHistory:
     previous: int = -1
 
     def apply(self, argument: str, count: int) -> tuple[int, int]:
-        target = screen_target(argument, self.current, self.previous, count)
+        target = screen_target(
+            argument.lower(), self.current, self.previous, count
+        )
         if target >= 0 and target != self.current:
             self.previous, self.current = self.current, target
         return self.current, self.previous
@@ -63,9 +65,9 @@ def config_text() -> str:
         'Button1 = : root : f.warptoscreen "0"\n'
         'Button2 = : root : f.warptoscreen "1"\n'
         'Button3 = : root : f.warptoscreen "2"\n'
-        'Button4 = : root : f.warptoscreen "next"\n'
+        'Button4 = : root : f.warptoscreen "NeXt"\n'
         'Button5 = : root : f.warptoscreen "prev"\n'
-        'Button6 = : root : f.warptoscreen "back"\n'
+        'Button6 = : root : f.warptoscreen "BACK"\n'
         "Button7 = : root : f.restart\n"
         'Button8 = : root : f.warptoscreen "9"\n'
         'Button9 = : root : f.warptoscreen "garbage"\n'
@@ -138,9 +140,9 @@ def validate_model() -> None:
         1,
         [
             ("0", (0, -1)),
-            ("next", (0, -1)),
+            ("NeXt", (0, -1)),
             ("prev", (0, -1)),
-            ("back", (0, -1)),
+            ("BACK", (0, -1)),
             ("9", (0, -1)),
             ("garbage", (0, -1)),
         ],
@@ -152,15 +154,15 @@ def validate_model() -> None:
         two,
         2,
         [
-            ("next", (1, 0)),
-            ("back", (0, 1)),
-            ("back", (1, 0)),
+            ("NeXt", (1, 0)),
+            ("BACK", (0, 1)),
+            ("BACK", (1, 0)),
             ("prev", (0, 1)),
             ("0", (0, 1)),
             ("9", (0, 1)),
             ("garbage", (0, 1)),
-            ("back", (1, 0)),
-            ("back", (0, 1)),
+            ("BACK", (1, 0)),
+            ("BACK", (0, 1)),
         ],
     )
 
@@ -172,20 +174,20 @@ def validate_model() -> None:
         [
             ("2", (2, 0)),
             ("prev", (1, 2)),
-            ("back", (2, 1)),
-            ("back", (1, 2)),
-            ("next", (2, 1)),
-            ("next", (0, 2)),
+            ("BACK", (2, 1)),
+            ("BACK", (1, 2)),
+            ("NeXt", (2, 1)),
+            ("NeXt", (0, 2)),
             ("prev", (2, 0)),
             ("1", (1, 2)),
             ("1", (1, 2)),
             ("9", (1, 2)),
             ("garbage", (1, 2)),
-            ("back", (2, 1)),
-            ("back", (1, 2)),
+            ("BACK", (2, 1)),
+            ("BACK", (1, 2)),
         ],
     )
-    if three.restart() != (1, -1) or three.apply("back", 3) != (1, -1):
+    if three.restart() != (1, -1) or three.apply("BACK", 3) != (1, -1):
         raise RuntimeError("restart did not clear screen history")
     for invalid in (
         None,
@@ -236,6 +238,16 @@ def validate_generated_configs(config_tool: Path) -> None:
                 "portable wtwm-config did not retain all nine bindings: "
                 f"{result.stdout!r}"
             )
+        for normalized in (
+            "button=4 mods=0x0 contexts=0x1 action=f.warptoscreen next",
+            "button=6 mods=0x0 contexts=0x1 action=f.warptoscreen back",
+        ):
+            if normalized not in result.stdout:
+                raise RuntimeError(
+                    "portable wtwm-config did not lowercase a named "
+                    f"f.warptoscreen argument: {normalized!r}; "
+                    f"output={result.stdout!r}"
+                )
         if "compatibility-warnings=1\n" not in result.stdout:
             raise RuntimeError(
                 "malformed-action no-op projection was not explicit: "
