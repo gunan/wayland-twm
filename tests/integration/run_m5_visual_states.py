@@ -35,6 +35,8 @@ MODE_COLORS = {
     },
 }
 
+MAX_STABILITY_CAPTURES = 12
+
 
 def wait_line(client: subprocess.Popen[str], expected: str) -> str:
     assert client.stdout is not None
@@ -112,16 +114,24 @@ def capture(control: Control, directory: Path, name: str) -> bytes:
     repeat = directory / f".{name}.repeat.ppm"
     control.command("WAIT 3")
     control.command(f"CAPTURE {first}")
-    control.command("WAIT 3")
-    control.command(f"CAPTURE {repeat}")
-    data = first.read_bytes()
-    if data != repeat.read_bytes():
-        raise RuntimeError(f"{name} changed between consecutive stable captures")
-    repeat.unlink()
-    width, height, _ = parse_ppm(data)
-    if (width, height) != (260, 180):
-        raise RuntimeError(f"{name} has unexpected size {width}x{height}")
-    return data
+    stability_hashes = [sha256(first.read_bytes())]
+    for _ in range(MAX_STABILITY_CAPTURES - 1):
+        control.command("WAIT 3")
+        control.command(f"CAPTURE {repeat}")
+        data = first.read_bytes()
+        repeat_data = repeat.read_bytes()
+        stability_hashes.append(sha256(repeat_data))
+        if data == repeat_data:
+            repeat.unlink()
+            width, height, _ = parse_ppm(data)
+            if (width, height) != (260, 180):
+                raise RuntimeError(f"{name} has unexpected size {width}x{height}")
+            return data
+        repeat.replace(first)
+    raise RuntimeError(
+        f"{name} did not converge after {MAX_STABILITY_CAPTURES} captures: "
+        f"sha256={stability_hashes!r}"
+    )
 
 
 def sha256(data: bytes) -> str:
