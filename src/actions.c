@@ -4,7 +4,6 @@
 
 #include <limits.h>
 #include <stdint.h>
-#include <string.h>
 
 static int at_least_one(int value) {
 	return value > 0 ? value : 1;
@@ -97,18 +96,31 @@ int wtwm_action_cycle_index(int count, int current, bool forward) {
 	return forward ? (current + 1) % count : (current + count - 1) % count;
 }
 
+static bool ascii_case_equal(const char *left, const char *right) {
+	while (*left != '\0' && *right != '\0') {
+		unsigned char left_char = (unsigned char)*left++;
+		unsigned char right_char = (unsigned char)*right++;
+		if (left_char >= 'A' && left_char <= 'Z')
+			left_char = (unsigned char)(left_char - 'A' + 'a');
+		if (right_char >= 'A' && right_char <= 'Z')
+			right_char = (unsigned char)(right_char - 'A' + 'a');
+		if (left_char != right_char) return false;
+	}
+	return *left == '\0' && *right == '\0';
+}
+
 int wtwm_action_screen_target(const char *argument, int current,
 		int previous, int count) {
 	if (argument == NULL || count <= 0) return -1;
-	if (strcmp(argument, "next") == 0) {
+	if (ascii_case_equal(argument, "next")) {
 		if (current < 0 || current >= count) return -1;
 		return current == count - 1 ? 0 : current + 1;
 	}
-	if (strcmp(argument, "prev") == 0) {
+	if (ascii_case_equal(argument, "prev")) {
 		if (current < 0 || current >= count) return -1;
 		return current == 0 ? count - 1 : current - 1;
 	}
-	if (strcmp(argument, "back") == 0)
+	if (ascii_case_equal(argument, "back"))
 		return previous >= 0 && previous < count ? previous :
 			(current >= 0 && current < count ? current : -1);
 	if (argument[0] == '\0') return -1;

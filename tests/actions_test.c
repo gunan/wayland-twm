@@ -69,8 +69,12 @@ static void navigation_cases(void) {
 	assert(wtwm_action_screen_target("x", 0, 2, 3) == -1);
 	assert(wtwm_action_screen_target("999999999999999999999999999999999",
 		0, 2, 3) == -1);
-	assert(wtwm_action_screen_target("NEXT", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("NEXT", 0, 2, 3) == 1);
+	assert(wtwm_action_screen_target("nExT", 2, 0, 3) == 0);
+	assert(wtwm_action_screen_target("PrEv", 0, 1, 3) == 2);
+	assert(wtwm_action_screen_target("BaCk", 0, 2, 3) == 2);
 	assert(wtwm_action_screen_target("previous", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("ne" "\xc3\xa9" "xt", 0, 2, 3) == -1);
 	assert(wtwm_action_screen_target("back", 0, -1, 3) == 0);
 	assert(wtwm_action_screen_target("next", -1, 0, 3) == -1);
 	assert(wtwm_action_screen_target("prev", 3, 0, 3) == -1);
@@ -102,20 +106,20 @@ static void screen_warp_plan_cases(void) {
 	assert(state.previous == 0);
 
 	/* Successful back operations exchange current and previous outputs. */
-	assert(wtwm_action_plan_screen_warp("back", 1, 3, outputs,
+	assert(wtwm_action_plan_screen_warp("BaCk", 1, 3, outputs,
 		plan.x, plan.y, &state, &plan));
 	assert(plan.source == 1 && plan.target == 0);
 	assert(plan.x == 42 && plan.y == 30 && state.previous == 1);
-	assert(wtwm_action_plan_screen_warp("back", 0, 3, outputs,
+	assert(wtwm_action_plan_screen_warp("bACK", 0, 3, outputs,
 		plan.x, plan.y, &state, &plan));
 	assert(plan.source == 0 && plan.target == 1);
 	assert(plan.x == 1032 && plan.y == -90 && state.previous == 0);
 
-	assert(wtwm_action_plan_screen_warp("next", 2, 3, outputs,
+	assert(wtwm_action_plan_screen_warp("NeXt", 2, 3, outputs,
 		-450, 450, &state, &plan));
 	assert(plan.source == 2 && plan.target == 0);
 	assert(plan.x == 60 && plan.y == 70 && state.previous == 2);
-	assert(wtwm_action_plan_screen_warp("prev", 0, 3, outputs,
+	assert(wtwm_action_plan_screen_warp("pReV", 0, 3, outputs,
 		60, 70, &state, &plan));
 	assert(plan.source == 0 && plan.target == 2);
 	assert(plan.x == -450 && plan.y == 450 && state.previous == 0);
@@ -145,7 +149,7 @@ static void screen_warp_noop_cases(void) {
 	ASSERT_NO_WARP("next", -1, 2, outputs);
 	ASSERT_NO_WARP("next", 2, 2, outputs);
 	ASSERT_NO_WARP("2", 0, 2, outputs);
-	ASSERT_NO_WARP("NEXT", 0, 2, outputs);
+	ASSERT_NO_WARP("previous", 0, 2, outputs);
 	ASSERT_NO_WARP(NULL, 0, 2, outputs);
 	ASSERT_NO_WARP("next", 0, 0, outputs);
 	ASSERT_NO_WARP("next", 0, 2, NULL);

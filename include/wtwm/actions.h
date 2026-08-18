@@ -36,7 +36,7 @@ struct wtwm_interaction_box wtwm_action_zoom(
 /* Wrap a current list position by one step; -1 means no current item. */
 int wtwm_action_cycle_index(int count, int current, bool forward);
 
-/* Resolve next/prev/back/numeric f.warptoscreen arguments. */
+/* Resolve ASCII-case-insensitive next/prev/back or strict numeric arguments. */
 int wtwm_action_screen_target(const char *argument, int current,
 	int previous, int count);
 
