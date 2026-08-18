@@ -474,7 +474,7 @@ Required mappings:
   no-op for native true-color Wayland clients.
 - [x] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
   mechanism.
-- [ ] X screen-specific configuration maps predictably to Wayland outputs.
+- [x] X screen-specific configuration maps predictably to Wayland outputs.
 
 Implementation work:
 

@@ -52,6 +52,12 @@
       "dimension": "runtime"
     },
     {
+      "test_id": "test.current-feature.m8-screen-output-runtime",
+      "path": "tests/integration/run_m8_screen_output.py",
+      "meson_test": "Milestone 8 X screen and Wayland output mapping integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.m8-session-state-runtime",
       "path": "tests/integration/run_m8_session_state.py",
       "meson_test": "Milestone 8 saved session state integration",
@@ -3781,6 +3787,21 @@
       "category": "runtime_dispatch",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-screen-output-runtime",
+          "path": "tests/integration/run_m8_screen_output.py",
+          "meson_test": "Milestone 8 X screen and Wayland output mapping integration",
+          "case": "runtime_dispatch.configuration-load-at-startup",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Conflicting HOME screen files, numeric rejection, and in-place restart prove screen-zero or explicit source selection without merging or losing control continuity.",
+            "Exact cursor coordinates prove canonical HEADLESS-1/2 identity order rather than reverse compositor-list insertion, while both roots dispatch one global config.",
+            "The Linux headless runner exercises runtime_dispatch.configuration-load-at-startup with zero, one, and two outputs in implicit and explicit configuration sessions."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",

@@ -38,6 +38,12 @@ RESTART_RUNTIME_FEATURES = {
     "action.f-restart",
     "action.f-twmrc",
 }
+SCREEN_OUTPUT_RUNTIME_PATH = "tests/integration/run_m8_screen_output.py"
+SCREEN_OUTPUT_RUNTIME_TEST = "Milestone 8 X screen and Wayland output mapping integration"
+SCREEN_OUTPUT_RUNTIME_ID = "test.current-feature.m8-screen-output-runtime"
+SCREEN_OUTPUT_RUNTIME_FEATURES = {
+    "runtime_dispatch.configuration-load-at-startup",
+}
 STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
 STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
 STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
@@ -479,6 +485,28 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in SCREEN_OUTPUT_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SCREEN_OUTPUT_RUNTIME_ID,
+                "path": SCREEN_OUTPUT_RUNTIME_PATH,
+                "meson_test": SCREEN_OUTPUT_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner exercises {feature_id} with "
+                    "zero, one, and two outputs in implicit and explicit "
+                    "configuration sessions.",
+                    "Exact cursor coordinates prove canonical HEADLESS-1/2 "
+                    "identity order rather than reverse compositor-list "
+                    "insertion, while both roots dispatch one global config.",
+                    "Conflicting HOME screen files, numeric rejection, and "
+                    "in-place restart prove screen-zero or explicit source "
+                    "selection without merging or losing control continuity.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in STARTWM_RUNTIME_FEATURES:
             tests.append({
                 "test_id": STARTWM_RUNTIME_ID,
@@ -621,6 +649,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "test_id": RESTART_RUNTIME_ID,
                 "path": RESTART_RUNTIME_PATH,
                 "meson_test": RESTART_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SCREEN_OUTPUT_RUNTIME_ID,
+                "path": SCREEN_OUTPUT_RUNTIME_PATH,
+                "meson_test": SCREEN_OUTPUT_RUNTIME_TEST,
                 "dimension": "runtime",
             },
             {

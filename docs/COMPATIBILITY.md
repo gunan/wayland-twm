@@ -7,7 +7,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 
 | twm facility | 0.1 status | Wayland mapping |
 | --- | --- | --- |
-| `~/.twmrc.0`, `~/.twmrc`, `-f` search | Effective | Same precedence, followed by packaged defaults |
+| `~/.twmrc.0`, `~/.twmrc`, `-f` search | Effective global translation | Implicit startup selects only screen zero (`~/.twmrc.0`, then `~/.twmrc`) before system/built-in fallbacks; an explicit unsuffixed `-f` file is global. The one active configuration applies to every Wayland output and is never merged with `~/.twmrc.1` or higher |
 | `Color` / `Grayscale` / `Monochrome` blocks | Effective | `--visual-mode` selects the active block. X11 hexadecimal and `rgb:` widths, gray percentages, and named colors resolve through exact 16-bit channels before deterministic grayscale or monochrome conversion; base and per-window colors feed frames, titles, menus, icons, the root, and cursors |
 | Frame, border, and title extents | Exact in the canonical profile | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame. Title height, padding, lower border, squeeze placement, text baseline and clipping, button spacing, and focus/tile patterns use the frozen reference formulas. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations |
 | Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
@@ -26,7 +26,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
 | Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use reference geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
-| Warp actions | Behaviorally equivalent | Window, next/previous, window-ring, and output warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates; X screens translate to ordered Wayland outputs while preserving the cursor's output-relative position |
+| Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. A numeric `f.warptoscreen` target selects the canonical Wayland output index and preserves the cursor's output-relative position; next/prev/back screen history and topology changes remain later Milestone 8 work |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
 | Legacy bell, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
@@ -182,6 +182,39 @@ Wayland display, Xwayland server, client resources, stable window identities,
 mapping, stack, geometry, focus, and selections. The headless Milestone 8
 restart test exercises both aliases and an invalid replacement while native and
 Xwayland clients prove their original protocol connections remain usable.
+
+Reference twm gives each managed X screen a distinct root and parses its
+screen-specific startup search independently. Wayland outputs are not separate
+root namespaces, so wtwm uses one compositor-global configuration instead.
+Without `-f`, screen zero is the sole compatibility source: wtwm tries
+`$HOME/.twmrc.0`, then `$HOME/.twmrc`, then the system and built-in defaults.
+It never reads or merges `.twmrc.1` or a higher suffix because another output
+appeared. With `-f`, the exact unsuffixed file is the single global candidate;
+HOME screen files are ignored. The configuration remains active with zero
+outputs and applies unchanged to every active output.
+
+Active outputs receive dense zero-based compatibility indices by sorting an
+immutable session identity tuple `(name, make, model, serial)` in unsigned-byte
+lexicographic order, treating null fields as empty, with a never-reused
+announcement ordinal as the final tie-break. List insertion, scene order,
+layout coordinates, mode, scale, and pointer focus do not define identity.
+Numeric `f.warptoscreen` accepts only a complete unsigned ASCII decimal value
+that fits `int` and names a current index; signed, partial, overflow, and
+out-of-range forms are no-ops rather than reference twm's `atoi`-and-wrap
+behavior. A successful numeric warp preserves the cursor's output-relative
+coordinate, clamped only when the target is smaller.
+
+The Milestone 8 headless runner starts an implicit session with zero outputs
+and mutually conflicting `.twmrc.0`, `.twmrc.1`, and `.twmrc` files. One and
+then two equal-sized auto-laid-out outputs prove that the screen-zero bindings
+apply on both roots, `HEADLESS-1` remains index zero despite reverse compositor
+list insertion, an out-of-range target preserves exact pointer coordinates,
+and root `f.restart` retains the source and mapping. A second session proves an
+explicit unsuffixed file is global and HOME screen files are ignored. This
+mapping does not claim completion of output-aware placement, complete root
+behavior, next/previous/back screen history, output hotplug/removal/restoration,
+scale/mode transactions, or input hotplug.
+
 Reference `f.startwm` replaces twm by passing its decoded argument to
 `/bin/sh -c`. Wayland has no generic transfer for an existing compositor's
 accepted client resources, focus, selections, or Xwayland ownership, so wtwm
