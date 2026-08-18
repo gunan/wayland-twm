@@ -51,6 +51,12 @@ WARP_SCREEN_RUNTIME_FEATURES = {
     "runtime_dispatch.execute-configured-action",
 }
 WARP_SCREEN_LEDGER_FEATURES = ("keyword.f.warptoscreen",)
+OUTPUT_TOPOLOGY_RUNTIME_PATH = "tests/integration/run_m8_output_topology.py"
+OUTPUT_TOPOLOGY_RUNTIME_TEST = "Milestone 8 output topology transactions"
+OUTPUT_TOPOLOGY_RUNTIME_ID = "test.current-feature.m8-output-topology-runtime"
+OUTPUT_TOPOLOGY_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
 OUTPUT_PLACEMENT_RUNTIME_PATH = "tests/integration/run_m8_output_placement.py"
 OUTPUT_PLACEMENT_RUNTIME_TEST = "Milestone 8 output-aware placement/root integration"
 OUTPUT_PLACEMENT_RUNTIME_ID = "test.current-feature.m8-output-placement-runtime"
@@ -550,6 +556,28 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in OUTPUT_TOPOLOGY_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_TOPOLOGY_RUNTIME_ID,
+                "path": OUTPUT_TOPOLOGY_RUNTIME_PATH,
+                "meson_test": OUTPUT_TOPOLOGY_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner keeps {feature_id} available "
+                    "through atomic add, enable, disable, mode, scale, "
+                    "transform, position, and destroy transactions.",
+                    "Exact managed-output STATE records prove immutable identity, "
+                    "never-reused ordinals, dense canonical indices, refreshed "
+                    "layout/background boxes, and failure rollback.",
+                    "Native and Xwayland liveness plus cursor and previous-output "
+                    "repair cover active, disabled, renumbered, and zero-output "
+                    "states without claiming window relocation.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
             tests.append({
                 "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
@@ -714,6 +742,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
                 "path": OUTPUT_PLACEMENT_RUNTIME_PATH,
                 "meson_test": OUTPUT_PLACEMENT_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": OUTPUT_TOPOLOGY_RUNTIME_ID,
+                "path": OUTPUT_TOPOLOGY_RUNTIME_PATH,
+                "meson_test": OUTPUT_TOPOLOGY_RUNTIME_TEST,
                 "dimension": "runtime",
             },
             {

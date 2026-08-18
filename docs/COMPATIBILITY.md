@@ -26,7 +26,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
 | Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use the target's current owner-output geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
-| Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. `f.warptoscreen` resolves numeric, `next`, `prev`, and `back` targets in canonical output order, preserves an unscaled source-relative cursor position clamped to the selected target, toggles previous-output history on repeated `back`, and resets that ephemeral history on successful `f.restart`. Output-topology repair remains later Milestone 8 work |
+| Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. `f.warptoscreen` resolves numeric, `next`, `prev`, and `back` targets in canonical output order, preserves an unscaled source-relative cursor position clamped to the selected target, toggles previous-output history on repeated `back`, repairs that history by immutable output identity after topology changes, and resets it on successful `f.restart` |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
 | Legacy bell, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
@@ -210,8 +210,9 @@ Named `f.warptoscreen` targets are case-insensitive like reference twm:
 invalid, out-of-range, gap, zero-output, and one-output targets do not move the
 pointer or alter history. A valid configuration reload preserves navigation
 history; a successful in-place `f.restart` clears it as reference process
-replacement would. The fixed-topology contract deliberately leaves history
-repair after output add/remove/renumber to the following Roadmap task.
+replacement would. Successful topology changes repair history through the
+surviving immutable output identity, so canonical-index renumbering preserves
+`back`; disabling or destroying the remembered output invalidates it.
 
 The Milestone 8 headless runner starts an implicit session with zero outputs
 and mutually conflicting `.twmrc.0`, `.twmrc.1`, and `.twmrc` files. One and
@@ -265,13 +266,41 @@ The Linux live runner adds two auto-laid-out outputs and exact native/Xwayland
 `STATE`/`TRACE` checks for global random placement, requested positions,
 selected-output `MaxWindowSize`, root-menu/submenu clamping, full zoom on both
 sides, Button3 fill, pinned window/icon moves, `f.forcemove`, restart continuity,
-and deferred zero-output mapping. This steady-state slice deliberately leaves
-output add/remove/scale/mode transaction repair, restoration after output
-disappearance, persistent topology
-reassociation, multiple-seat/input hotplug, and session lifecycle work for the
-following Milestone 8 tasks. Milestone 7's globally ordered IconRegion and
+and deferred zero-output mapping. Milestone 7's globally ordered IconRegion and
 icon-manager allocation pools also remain global; only an explicit icon move's
 `DontMoveOff` bounds are output-pinned here.
+
+Wayland output topology changes are serialized prepare/commit/publish
+transactions over the complete managed-output set. Add, enable, disable, mode,
+scale, transform, explicit/automatic layout position, and destroy recompute
+dense canonical indices without changing immutable identity or reusing an
+announcement ordinal. Failed reversible changes leave the previously published
+layout, backgrounds, pointer, history, and interaction state unchanged;
+destroy is the unavoidable irreversible boundary once the backend has emitted
+it. Disabled outputs remain managed but have no compatibility index, layout
+box, spatial root, or background.
+
+After publication, every enabled output has one refreshed logical root and
+background. A pointer that is still within an enabled output stays exact;
+otherwise it moves to the canonical-nearest enabled box, and zero outputs clear
+its scene target. A menu pinned to a changed or removed box closes. Ordinary,
+forced, and resize interactions pinned to one restore their pre-operation
+geometry and release their grab/outline. An initial-placement prompt on an
+affected output is canceled without exposing the client or consuming placement
+state, then is requeued oldest-first after the new topology is published. An
+operation continues only when its pinned output survives with a byte-identical
+logical box. Native and Xwayland clients remain connected and mapped throughout
+these topology changes.
+
+The headless topology runner exercises three unequal outputs through explicit
+position, mode, fractional scale, all transform repair paths, disable/reenable,
+automatic layout, canonical renumbering, repeated destruction, zero active and
+zero managed states, and a new post-destruction output. Exact `STATE`, rollback,
+pointer/history, protocol-roundtrip, and trace assertions distinguish topology
+repair from the following Roadmap task: relocating already managed windows,
+icons, and transient families when their owner output disappears. Persistent
+topology reassociation, input hotplug/multiple seats, and session lifecycle are
+also still separate Milestone 8 work.
 
 Reference `f.startwm` replaces twm by passing its decoded argument to
 `/bin/sh -c`. Wayland has no generic transfer for an existing compositor's

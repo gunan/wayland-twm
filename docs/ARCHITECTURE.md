@@ -13,6 +13,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
        bindings.c / actions.c / command.c / interaction.c
        (portable trigger, action, launch, and gesture decisions)
                               │
+                output_order.c / output_topology.c
+        (portable identity ordering and topology transaction plans)
+                              │
                        session_state.c
           (portable atomic persistence and identity matching)
                               │
@@ -68,6 +71,17 @@ geometry. An unconstrained move may commit across outputs, after which the next
 operation recomputes ownership from the committed outer box. This selection is
 spatial adapter state, not a second configuration namespace or independent
 per-output keyboard focus.
+
+`src/output_order.c` defines immutable session identities and canonical dense
+indices independently of list insertion, layout position, mode, or scale.
+`src/output_topology.c` validates complete before/after snapshots and publishes
+an owned portable change plan only after every identity, mode, scale,
+transform, and normalized logical box is valid. The compositor adapter performs
+the wlroots state commit, then publishes roots/backgrounds and repairs cursor,
+warp history, active operations, and deferred placement in one serialized
+post-layout boundary. Disabled outputs stay in the managed identity set but are
+absent from the spatial layout. Output-loss window relocation deliberately
+belongs to the next layer of policy rather than this transaction model.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide

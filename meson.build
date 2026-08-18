@@ -266,6 +266,23 @@ output_order_test = executable(
 )
 test('Wayland output screen ordering', output_order_test)
 
+output_topology_lib = static_library(
+  'wtwm-output-topology-lib',
+  'src/output_topology.c',
+  include_directories: inc,
+)
+output_topology_dep = declare_dependency(
+  link_with: output_topology_lib,
+  include_directories: inc,
+)
+
+output_topology_test = executable(
+  'output-topology-test',
+  'tests/output_topology_test.c',
+  dependencies: output_topology_dep,
+)
+test('Wayland output topology transaction model', output_topology_test)
+
 command_lib = static_library(
   'wtwm-command-lib',
   'src/command.c',
@@ -744,6 +761,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 output topology transaction contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_output_topology_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 8 output placement and root contract',
   find_program('python3'),
   args: [
@@ -805,6 +832,15 @@ test(
     '-B',
     files('tests/integration/run_m8_output_placement.py'),
     '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 output topology model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_output_topology.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
   ],
 )
 test(
@@ -1333,6 +1369,19 @@ if wlroots.found()
       '--compositor', wtwm_test_compositor,
       '--client', wtwm_xwayland_placement_client,
       '--native-client', wtwm_stress_wayland_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output topology transactions',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_topology.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 180,
     is_parallel: false,

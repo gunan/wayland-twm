@@ -10,7 +10,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 
 **Features mapped:** 134 of 134
 
-**Automated case mappings:** 201
+**Automated case mappings:** 202
 
 ## Mapping counts
 
@@ -18,14 +18,14 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 | --- | ---: |
 | `syntax` | 122 |
 | `source_contract` | 54 |
-| `runtime` | 25 |
+| `runtime` | 26 |
 
 | Category | Features | Syntax | Source contract | Runtime |
 | --- | ---: | ---: | ---: | ---: |
 | `action` | 38 | 38 | 18 | 10 |
 | `construct` | 19 | 19 | 0 | 1 |
 | `directive` | 65 | 65 | 24 | 9 |
-| `runtime_dispatch` | 12 | 0 | 12 | 5 |
+| `runtime_dispatch` | 12 | 0 | 12 | 6 |
 
 | Implementation status | Features |
 | --- | ---: |
