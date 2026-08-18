@@ -303,6 +303,7 @@ class Session:
     def prove_responsive(self, label: str) -> None:
         if any(process.poll() is not None for process in self.clients.values()):
             raise RuntimeError(f"{label} option exercise disconnected a client")
+        self.native.command(f"ARM {label}", f"OK ARMED {label}")
         self.native.stdin.write((f"REPORT {label}\n").encode("utf-8"))
         self.native.stdin.flush()
         self.native.expect_prefix(f"OK REPORT {label} ")
