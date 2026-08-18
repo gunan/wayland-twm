@@ -780,6 +780,15 @@ test(
   ],
 )
 test(
+  'Milestone 8 output placement/root model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_output_placement.py'),
+    '--self-test-model',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -1282,6 +1291,18 @@ if wlroots.found()
     args: [
       '-B', files('tests/integration/run_m8_screen_output.py'),
       '--compositor', wtwm_test_compositor,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output-aware placement/root integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_placement.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_placement_client,
+      '--native-client', wtwm_stress_wayland_client,
     ],
     timeout: 180,
     is_parallel: false,
