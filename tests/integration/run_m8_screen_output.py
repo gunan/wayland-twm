@@ -19,6 +19,16 @@ HEIGHT = 240
 LEFT = (41.0, 37.0)
 RIGHT = (WIDTH + LEFT[0], LEFT[1])
 INT_MAX = 2_147_483_647
+BUTTON_CODES = {
+    1: 272,
+    2: 274,
+    3: 273,
+    4: 275,
+    5: 276,
+    6: 277,
+    7: 278,
+    8: 279,
+}
 
 
 def select_config_source(
@@ -71,6 +81,12 @@ def translated_coordinate(
 
 
 def validate_model() -> None:
+    if BUTTON_CODES != {
+        1: 272, 2: 274, 3: 273, 4: 275,
+        5: 276, 6: 277, 7: 278, 8: 279,
+    }:
+        raise RuntimeError("twm Button1-8 to Linux BTN_* mapping changed")
+
     available = {
         ".twmrc.0", ".twmrc.1", ".twmrc", "explicit.twmrc", "system",
         "builtin",
@@ -173,7 +189,7 @@ def point(control: Control, expected: tuple[float, float], label: str) -> None:
 
 
 def click(control: Control, button: int) -> None:
-    raw = 271 + button
+    raw = BUTTON_CODES[button]
     control.command(f"BUTTON {raw} press")
     control.command(f"BUTTON {raw} release")
 
