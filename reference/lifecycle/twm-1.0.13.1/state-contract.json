@@ -213,10 +213,9 @@
       ],
       "xwayland_keys": [
         "protocol-xwayland",
-        "same-xwayland-generation-xid-or-wm-class-instance-and-class",
-        "wm-window-role",
-        "sm-client-id-when-present",
-        "title"
+        "wm-name-or-title",
+        "wm-class-instance",
+        "wm-class-class"
       ],
       "missing_identity_result": "skip-record-with-diagnostic",
       "ambiguous_identity_result": "skip-all-conflicting-records-with-diagnostic",
@@ -256,12 +255,16 @@
       "accepted_schema_versions": [
         1
       ],
+      "file_validation_atomicity": "read-and-validate-whole-file-before-any-record-is-eligible",
+      "client_arrival_model": "clients-map-asynchronously",
+      "record_application_atomicity": "one-atomic-map-transaction-per-uniquely-matched-client",
       "phases": [
         "read the complete candidate snapshot without mutating the session",
-        "validate format version structure values and record uniqueness",
-        "match records only to unique native Wayland or Xwayland identities",
-        "derive clamped geometry stack focus icon and zoom state for current outputs",
-        "publish the valid matched restoration as one compositor generation"
+        "validate format version structure and values for the whole file",
+        "retain the validated snapshot as immutable restoration input",
+        "as each client maps match it only to one unique native Wayland or Xwayland record",
+        "derive clamped geometry stack focus icon and zoom state for that client on current outputs",
+        "publish that client restoration atomically within its map transaction"
       ],
       "malformed_result": "reject-whole-snapshot-retain-running-session-and-report-diagnostic",
       "unsupported_version_result": "reject-whole-snapshot-retain-running-session-and-report-diagnostic",
@@ -348,7 +351,7 @@
     {
       "id": "mixed-protocol-valid-restore",
       "kind": "valid",
-      "oracle": "Unique native Wayland and Xwayland clients regain all safe fields in relative order; geometry, icons, and zoom data are valid on current outputs."
+      "oracle": "As each uniquely matching native Wayland or Xwayland client maps, one atomic map transaction restores its safe fields; geometry, icons, and zoom data are valid on current outputs."
     },
     {
       "id": "changed-output-topology",
@@ -363,7 +366,7 @@
     {
       "id": "ambiguous-native-or-xwayland-identity",
       "kind": "invalid-record",
-      "oracle": "Every conflicting saved record is skipped with a diagnostic while other uniquely matched valid records may restore atomically."
+      "oracle": "Every conflicting saved record is skipped with a diagnostic while other uniquely matched valid records may restore in their own atomic map transactions."
     },
     {
       "id": "malformed-snapshot",

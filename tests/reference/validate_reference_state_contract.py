@@ -202,10 +202,9 @@ EXPECTED_NATIVE_PROTOCOL = {
 EXPECTED_NATIVE_KEYS = ["protocol-native-wayland", "app-id", "title"]
 EXPECTED_XWAYLAND_KEYS = [
     "protocol-xwayland",
-    "same-xwayland-generation-xid-or-wm-class-instance-and-class",
-    "wm-window-role",
-    "sm-client-id-when-present",
-    "title",
+    "wm-name-or-title",
+    "wm-class-instance",
+    "wm-class-class",
 ]
 EXPECTED_IDENTITY = {
     "match_cardinality": "exactly-one-live-client-to-exactly-one-saved-record",
@@ -265,15 +264,29 @@ EXPECTED_EXCLUDED = [
 ]
 EXPECTED_RESTORE_PHASES = [
     "read the complete candidate snapshot without mutating the session",
-    "validate format version structure values and record uniqueness",
-    "match records only to unique native Wayland or Xwayland identities",
-    "derive clamped geometry stack focus icon and zoom state for current outputs",
-    "publish the valid matched restoration as one compositor generation",
+    "validate format version structure and values for the whole file",
+    "retain the validated snapshot as immutable restoration input",
+    (
+        "as each client maps match it only to one unique native Wayland or "
+        "Xwayland record"
+    ),
+    (
+        "derive clamped geometry stack focus icon and zoom state for that client "
+        "on current outputs"
+    ),
+    "publish that client restoration atomically within its map transaction",
 ]
 EXPECTED_RESTORE_TRANSACTION = {
     "enabled_by": "RestartPreviousState",
     "accepted_format": "wtwm-compositor-state",
     "accepted_schema_versions": [1],
+    "file_validation_atomicity": (
+        "read-and-validate-whole-file-before-any-record-is-eligible"
+    ),
+    "client_arrival_model": "clients-map-asynchronously",
+    "record_application_atomicity": (
+        "one-atomic-map-transaction-per-uniquely-matched-client"
+    ),
     "phases": EXPECTED_RESTORE_PHASES,
     "malformed_result": (
         "reject-whole-snapshot-retain-running-session-and-report-diagnostic"
@@ -773,6 +786,18 @@ def self_test_tamper(
     ].append(99)
     mutations.append(("unsupported version accepted", unsupported_accepted))
 
+    batch_restore = copy.deepcopy(contract)
+    batch_restore["wayland_translation"]["restore_transaction"][
+        "record_application_atomicity"
+    ] = "publish-all-matches-in-one-generation"
+    mutations.append(("batch restoration overclaim", batch_restore))
+
+    mutable_candidate = copy.deepcopy(contract)
+    mutable_candidate["wayland_translation"]["restore_transaction"][
+        "file_validation_atomicity"
+    ] = "validate-records-lazily-after-client-map"
+    mutations.append(("non-atomic file validation", mutable_candidate))
+
     dropped_scenario = copy.deepcopy(contract)
     dropped_scenario["verification_scenarios"].pop()
     mutations.append(("missing unsupported scenario", dropped_scenario))
@@ -820,7 +845,7 @@ def main() -> int:
             print(f"  - {error}", file=sys.stderr)
         return 1
 
-    suffix = " with 13 tamper self-tests" if args.self_test_tamper else ""
+    suffix = " with 15 tamper self-tests" if args.self_test_tamper else ""
     print(
         "saved-state contract valid: 2 upstream mechanisms, 8 Wayland "
         f"requirements, 8 scenarios, {len(EXPECTED_EVIDENCE)} exact source "
