@@ -37,6 +37,17 @@ def client_command(process: subprocess.Popen[str], command: str,
     return wait_line(process, expected)
 
 
+def wait_client_status(process: subprocess.Popen[str], predicate,
+                       description: str) -> str:
+    deadline = time.monotonic() + 10
+    last = ""
+    while time.monotonic() < deadline:
+        last = client_command(process, "STATUS", "STATUS")
+        if predicate(last):
+            return last
+    raise RuntimeError(f"timed out waiting for {description}: {last!r}")
+
+
 def wait_state(control: Control, predicate, description: str) -> dict[str, object]:
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
@@ -155,7 +166,12 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if state["active"] != "focus-a" or state["focus"] is not None:
                 raise RuntimeError(f"NoTitleFocus did not separate activation: {state!r}")
             control.command("WAIT 2")
-            status = client_command(client, "STATUS", "STATUS")
+            status = wait_client_status(
+                client,
+                lambda value: (int(value.split()[1]) == 1 and
+                               value.split()[3] == "root"),
+                "input=true WM_TAKE_FOCUS at PointerRoot",
+            )
             if int(status.split()[1]) != 1 or status.split()[3] != "root":
                 raise RuntimeError(f"WM_TAKE_FOCUS was not sent to input=true client: {status}")
 
@@ -164,7 +180,12 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if state["focus_root"] is not False or state["focus"] != "focus-a":
                 raise RuntimeError(f"f.focus did not lock client focus: {state!r}")
             control.command("WAIT 2")
-            status = client_command(client, "STATUS", "STATUS")
+            status = wait_client_status(
+                client,
+                lambda value: (int(value.split()[1]) == 1 and
+                               value.split()[3] == "a"),
+                "direct input focus for focus-a",
+            )
             if int(status.split()[1]) != 1 or status.split()[3] != "a":
                 raise RuntimeError(f"f.focus conflated direct focus with TAKE_FOCUS: {status}")
 
@@ -207,7 +228,11 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if state["focus_root"] is not True or state["active"] is not None:
                 raise RuntimeError(f"second f.focus did not restore PointerRoot: {state!r}")
             control.command("WAIT 2")
-            status = client_command(client, "STATUS", "STATUS")
+            status = wait_client_status(
+                client,
+                lambda value: value.split()[3] == "root",
+                "restored X PointerRoot focus",
+            )
             if status.split()[3] != "root":
                 raise RuntimeError(f"f.focus toggle did not restore X PointerRoot: {status}")
 
@@ -218,7 +243,12 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if state["active"] != "focus-b" or state["focus"] is not None:
                 raise RuntimeError(f"input=false TAKE_FOCUS changed direct input: {state!r}")
             control.command("WAIT 2")
-            status = client_command(client, "STATUS", "STATUS")
+            status = wait_client_status(
+                client,
+                lambda value: (int(value.split()[2]) == 1 and
+                               value.split()[3] == "root"),
+                "input=false WM_TAKE_FOCUS at PointerRoot",
+            )
             if int(status.split()[2]) != 1 or status.split()[3] != "root":
                 raise RuntimeError(f"input=false TAKE_FOCUS protocol split failed: {status}")
             click(control, b_window_exposed, 272)
@@ -248,7 +278,11 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             control.command("WAIT 2")
             click(control, point(window(state, "focus-a"), "window"), 272)
             locked = control.state()
-            status = client_command(client, "STATUS", "STATUS")
+            status = wait_client_status(
+                client,
+                lambda value: value.split()[3] == "a",
+                "direct focus without WM_HINTS",
+            )
             if status.split()[3] != "a":
                 raise RuntimeError(f"absent WM_HINTS did not accept f.focus: {status}")
             control.command(f"POINTER {root[0]} {root[1]}")

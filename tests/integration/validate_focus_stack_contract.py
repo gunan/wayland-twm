@@ -13,6 +13,21 @@ def require(text: str, fragments: tuple[str, ...], label: str) -> None:
             raise ValueError(f"{label} lacks {fragment!r}")
 
 
+def validate_status_sync(runner: str) -> None:
+    require(runner, (
+        "def wait_client_status(",
+        'last = client_command(process, "STATUS", "STATUS")',
+        "if predicate(last):",
+        "input=true WM_TAKE_FOCUS at PointerRoot",
+        "direct input focus for focus-a",
+        "restored X PointerRoot focus",
+        "input=false WM_TAKE_FOCUS at PointerRoot",
+        "direct focus without WM_HINTS",
+    ), "X11 focus status synchronization")
+    if runner.count("wait_client_status(") < 6:
+        raise ValueError("positive X11 focus transitions bypass the status barrier")
+
+
 def validate(root: Path) -> None:
     header = (root / "include/wtwm/focus_stack.h").read_text(encoding="utf-8")
     model = (root / "src/focus_stack.c").read_text(encoding="utf-8")
@@ -24,6 +39,7 @@ def validate(root: Path) -> None:
     )
     meson = (root / "meson.build").read_text(encoding="utf-8")
     docs = (root / "docs/COMPATIBILITY.md").read_text(encoding="utf-8")
+    validate_status_sync(runner)
     require(header, (
         "WTWM_FOCUS_SURFACE_MENU",
         "global_no_titlebar",
@@ -132,7 +148,18 @@ def main() -> None:
             pass
         else:
             raise ValueError("focus/stack contract accepted reversed circle-up order")
+        tampered_runner = (arguments.source_root /
+                           "tests/integration/run_focus_stack.py").read_text(
+                               encoding="utf-8"
+                           ).replace("if predicate(last):", "if True:", 1)
+        try:
+            validate_status_sync(tampered_runner)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("focus/stack contract accepted an unobserved X11 status")
         print("focus/stack circulation tamper rejected")
+        print("focus/stack X11 status synchronization tamper rejected")
     print("focus/context/stacking contract valid")
 
 
