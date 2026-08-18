@@ -255,7 +255,20 @@ def click_content(control: Control, state: dict[str, object], title: str) -> Non
     if state["focus"] == title and state["focus_root"] is False:
         return
     x, y = visible_content_point(state, title)
-    control.command(f"POINTER {x} {y}")
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        control.command(f"POINTER {x} {y}")
+        state = control.state()
+        if (
+            state["pointer_window"] == title
+            and state["pointer_context"] == "window"
+        ):
+            break
+        control.command("WAIT 1")
+    else:
+        raise RuntimeError(
+            f"timed out waiting for client content entry for {title}: {state!r}"
+        )
     control.command("BUTTON 273 press")
     control.command("BUTTON 273 release")
 

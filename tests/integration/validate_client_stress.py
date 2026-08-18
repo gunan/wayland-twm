@@ -76,6 +76,9 @@ def validate_text(
         'Button3 = : window : f.focus',
         'state["focus"] == title and state["focus_root"] is False',
         'control.command("BUTTON 273 press")',
+        'state["pointer_window"] == title',
+        'state["pointer_context"] == "window"',
+        'timed out waiting for client content entry',
         'f"explicit pointer focus for {protocol} target {title}"',
         'description + " survivor refocus"',
         'if state["focus"] != title:',
@@ -213,6 +216,14 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
          wayland, x11, meson, compatibility, integration_readme),
         ("focused-exit", runner.replace('if state["focus"] != title:',
                                         "if False:", 1),
+         wayland, x11, meson, compatibility, integration_readme),
+        ("content-entry-context", runner.replace(
+            'state["pointer_context"] == "window"',
+            'state["pointer_context"] == "frame"', 1),
+         wayland, x11, meson, compatibility, integration_readme),
+        ("content-entry-target", runner.replace(
+            'state["pointer_window"] == title',
+            'state["pointer_window"] is not None', 1),
          wayland, x11, meson, compatibility, integration_readme),
         ("survivor-root-focus", runner.replace(
             'state["focus"] not in (None, SURVIVOR_TITLE)',
