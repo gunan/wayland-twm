@@ -725,6 +725,15 @@ test(
   ],
 )
 test(
+  'Milestone 8 cut-buffer state model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_cut_buffer.py'),
+    '--self-test-model',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -1206,6 +1215,18 @@ if wlroots.found()
       '--x11-client', wtwm_m8_colormap_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 Wayland and Xwayland cut-buffer integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_cut_buffer.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_selection_wayland_client,
+      '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 180,
     is_parallel: false,
   )
   test(
