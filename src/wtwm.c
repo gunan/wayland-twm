@@ -539,7 +539,7 @@ struct server {
 	const char *program_name;
 	const char *config_path;
 	char *adopted_config_path;
-	int previous_output_index;
+	struct wtwm_screen_warp_state screen_warp;
 	struct toplevel *ring_leader;
 	struct wl_event_source *restart_idle;
 	char *restart_config_path;
@@ -4038,42 +4038,53 @@ static void warp_to_screen(struct server *server, const char *argument) {
 		wtwm_output_order_destroy(snapshot);
 		return;
 	}
+	struct wtwm_interaction_box *boxes = calloc(output_count, sizeof(*boxes));
+	if (boxes == NULL) {
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
 	int current = -1;
 	for (size_t index = 0; index < output_count; ++index) {
 		struct output *output = wtwm_output_order_at(snapshot, index);
+		if (output == NULL) {
+			free(boxes);
+			wtwm_output_order_destroy(snapshot);
+			return;
+		}
 		struct wlr_box box = {0};
 		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
-		if (server->cursor->x >= box.x && server->cursor->x < box.x + box.width &&
-				server->cursor->y >= box.y && server->cursor->y < box.y + box.height) {
+		boxes[index] = (struct wtwm_interaction_box){
+			.x = box.x,
+			.y = box.y,
+			.width = box.width,
+			.height = box.height,
+		};
+		if (current < 0 && server->cursor->x >= box.x &&
+				server->cursor->x < (double)box.x + box.width &&
+				server->cursor->y >= box.y &&
+				server->cursor->y < (double)box.y + box.height) {
 			current = (int)index;
-			break;
 		}
 	}
 	if (current < 0) {
+		free(boxes);
 		wtwm_output_order_destroy(snapshot);
 		return;
 	}
-	int target = wtwm_action_screen_target(argument, current,
-		server->previous_output_index, (int)output_count);
-	if (target < 0 || target == current) {
+	int pointer_x = server->cursor->x <= INT_MIN ? INT_MIN :
+		(server->cursor->x >= INT_MAX ? INT_MAX : (int)server->cursor->x);
+	int pointer_y = server->cursor->y <= INT_MIN ? INT_MIN :
+		(server->cursor->y >= INT_MAX ? INT_MAX : (int)server->cursor->y);
+	struct wtwm_screen_warp_plan plan;
+	if (!wtwm_action_plan_screen_warp(argument, current, (int)output_count,
+			boxes, pointer_x, pointer_y, &server->screen_warp, &plan)) {
+		free(boxes);
 		wtwm_output_order_destroy(snapshot);
 		return;
 	}
-	struct output *from = wtwm_output_order_at(snapshot, (size_t)current);
-	struct output *to = wtwm_output_order_at(snapshot, (size_t)target);
-	if (from == NULL || to == NULL) {
-		wtwm_output_order_destroy(snapshot);
-		return;
-	}
-	struct wlr_box from_box = {0};
-	struct wlr_box to_box = {0};
-	wlr_output_layout_get_box(server->output_layout, from->wlr, &from_box);
-	wlr_output_layout_get_box(server->output_layout, to->wlr, &to_box);
-	double x = to_box.x + (server->cursor->x - from_box.x);
-	double y = to_box.y + (server->cursor->y - from_box.y);
-	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
-	server->previous_output_index = current;
+	wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);
 	process_cursor_motion(server, server->current_input_time_ms);
+	free(boxes);
 	wtwm_output_order_destroy(snapshot);
 }
 
@@ -4789,7 +4800,7 @@ static bool restart_compositor_state(struct server *server,
 			"%zu twm directives accepted but not effective; run wtwm-config for details",
 			server->config.warning_count);
 
-	server->previous_output_index = -1;
+	wtwm_action_screen_warp_init(&server->screen_warp);
 	server->ring_leader = NULL;
 	server->icon_manager_down_identity = 0;
 	wtwm_random_placement_init(&server->random_placement);
@@ -8679,7 +8690,7 @@ int main(int argc, char **argv) {
 	struct server server = {0};
 	server.program_name = argv[0];
 	server.config_path = config_path;
-	server.previous_output_index = -1;
+	wtwm_action_screen_warp_init(&server.screen_warp);
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
 		WTWM_COLOR_MODE_MONOCHROME :
 		(strcmp(visual_mode, "grayscale") == 0 ? WTWM_COLOR_MODE_GRAYSCALE :

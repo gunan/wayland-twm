@@ -18,7 +18,7 @@ CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/warp-screen-contract.json"
 )
 EXPECTED_CANONICAL_SHA256 = (
-    "533b6d57c6e7ace17c61f3ac5b836299a37ff2b70a21b4011667ae6cc68d0582"
+    "71e9b8f24e286ac560f96015ae8491289a3702d7a25189575c2cb67e227ca425"
 )
 EXPECTED_UPSTREAM = {
     "name": "X.Org twm",
@@ -69,9 +69,14 @@ EXPECTED_CURRENT_ANCHORS = {
     "action.target-helper",
     "action.next",
     "action.prev",
+    "action.warp-plan",
+    "action.target-clamp",
     "runtime.output-snapshot",
     "runtime.warp-entry",
     "runtime.point-half-open",
+    "runtime.plan-call",
+    "runtime.plan-warp",
+    "runtime.history-reset",
     "runtime.pointer-motion",
     "output-order.lookup",
 }
@@ -674,26 +679,56 @@ def run_tamper_tests(
         (
             "action next",
             "src/actions.c",
-            "return (current + 1) % count;",
+            "return current == count - 1 ? 0 : current + 1;",
             "return current;",
         ),
         (
             "action prev",
             "src/actions.c",
-            "return (current + count - 1) % count;",
-            "return (current + 1) % count;",
+            "return current == 0 ? count - 1 : current - 1;",
+            "return current;",
+        ),
+        (
+            "action warp planner",
+            "src/actions.c",
+            "bool wtwm_action_plan_screen_warp(const char *argument, int current, int count,",
+            "bool wtwm_action_plan_other_warp(const char *argument, int current, int count,",
+        ),
+        (
+            "action target clamp",
+            "src/actions.c",
+            "plan->x = translated_axis(pointer_x, outputs[current].x,",
+            "plan->x = pointer_x + outputs[target].x; /* unclamped */",
         ),
         (
             "runtime half-open containment",
             "src/wtwm.c",
-            "server->cursor->y >= box.y && server->cursor->y < box.y + box.height) {",
-            "server->cursor->y >= box.y && server->cursor->y <= box.y + box.height) {",
+            "server->cursor->y < (double)box.y + box.height) {",
+            "server->cursor->y <= (double)box.y + box.height) {",
+        ),
+        (
+            "runtime plan call",
+            "src/wtwm.c",
+            "if (!wtwm_action_plan_screen_warp(argument, current, (int)output_count,",
+            "if (!wtwm_action_plan_other_warp(argument, current, (int)output_count,",
+        ),
+        (
+            "runtime planned coordinate",
+            "src/wtwm.c",
+            "wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);",
+            "wlr_cursor_warp_closest(server->cursor, NULL, pointer_x, pointer_y);",
+        ),
+        (
+            "runtime history reset",
+            "src/wtwm.c",
+            "wtwm_action_screen_warp_init(&server->screen_warp);",
+            "/* warp history preserved across restart */",
         ),
         (
             "runtime pointer refresh",
             "src/wtwm.c",
-            "process_cursor_motion(server, server->current_input_time_ms);\n\twtwm_output_order_destroy(snapshot);",
-            "/* pointer refresh removed */\n\twtwm_output_order_destroy(snapshot);",
+            "process_cursor_motion(server, server->current_input_time_ms);\n\tfree(boxes);\n\twtwm_output_order_destroy(snapshot);",
+            "/* pointer refresh removed */\n\tfree(boxes);\n\twtwm_output_order_destroy(snapshot);",
         ),
         (
             "canonical output lookup",

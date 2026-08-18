@@ -203,13 +203,21 @@
         "path": "src/actions.c",
         "text": "int wtwm_action_screen_target(const char *argument, int current,"
       },
-      "action.next": {
-        "path": "src/actions.c",
-        "text": "return (current + 1) % count;"
-      },
-      "action.prev": {
-        "path": "src/actions.c",
-        "text": "return (current + count - 1) % count;"
+    "action.next": {
+      "path": "src/actions.c",
+      "text": "return current == count - 1 ? 0 : current + 1;"
+    },
+    "action.prev": {
+      "path": "src/actions.c",
+      "text": "return current == 0 ? count - 1 : current - 1;"
+    },
+    "action.warp-plan": {
+      "path": "src/actions.c",
+      "text": "bool wtwm_action_plan_screen_warp(const char *argument, int current, int count,"
+    },
+    "action.target-clamp": {
+      "path": "src/actions.c",
+      "text": "plan->x = translated_axis(pointer_x, outputs[current].x,"
       },
       "runtime.output-snapshot": {
         "path": "src/wtwm.c",
@@ -219,13 +227,25 @@
         "path": "src/wtwm.c",
         "text": "static void warp_to_screen(struct server *server, const char *argument) {"
       },
-      "runtime.point-half-open": {
-        "path": "src/wtwm.c",
-        "text": "server->cursor->y >= box.y && server->cursor->y < box.y + box.height) {"
-      },
-      "runtime.pointer-motion": {
-        "path": "src/wtwm.c",
-        "text": "process_cursor_motion(server, server->current_input_time_ms);\n\twtwm_output_order_destroy(snapshot);"
+    "runtime.point-half-open": {
+      "path": "src/wtwm.c",
+      "text": "server->cursor->y < (double)box.y + box.height) {"
+    },
+    "runtime.plan-call": {
+      "path": "src/wtwm.c",
+      "text": "if (!wtwm_action_plan_screen_warp(argument, current, (int)output_count,"
+    },
+    "runtime.plan-warp": {
+      "path": "src/wtwm.c",
+      "text": "wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);"
+    },
+    "runtime.history-reset": {
+      "path": "src/wtwm.c",
+      "text": "wtwm_action_screen_warp_init(&server->screen_warp);"
+    },
+    "runtime.pointer-motion": {
+      "path": "src/wtwm.c",
+      "text": "process_cursor_motion(server, server->current_input_time_ms);\n\tfree(boxes);\n\twtwm_output_order_destroy(snapshot);"
       },
       "output-order.lookup": {
         "path": "src/output_order.c",
