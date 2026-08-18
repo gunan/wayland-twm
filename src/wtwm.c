@@ -96,6 +96,7 @@ enum interaction_intent {
 };
 
 struct server;
+struct output;
 
 struct cut_buffer_source {
 	struct wlr_data_source source;
@@ -214,6 +215,7 @@ struct toplevel {
 	bool placement_start_iconified;
 	uint64_t placement_order;
 	struct wtwm_placement_area placement_area;
+	struct output *placement_output;
 	bool iconified;
 	bool decorated;
 	bool associated;
@@ -329,8 +331,10 @@ struct output {
 	struct wl_list link;
 	struct server *server;
 	struct wlr_output *wlr;
+	struct wlr_scene_output *scene_output;
 	struct wtwm_output_identity identity;
 	struct wlr_scene_rect *background;
+	bool in_layout;
 	struct wl_listener background_destroy;
 	struct wl_listener frame;
 	struct wl_listener request_state;
@@ -357,6 +361,7 @@ struct menu_view {
 	int row_height;
 	int selected;
 	struct wtwm_placement_area output_area;
+	struct output *output;
 };
 
 struct menu_row_view {
@@ -429,6 +434,7 @@ struct interaction_session {
 	bool icon_move;
 	bool output_area_valid;
 	struct wtwm_placement_area output_area;
+	struct output *output;
 };
 
 struct action_frame {
@@ -462,6 +468,11 @@ struct server {
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
+	struct wl_listener output_layout_change;
+	unsigned topology_mutation_depth;
+	bool topology_refresh_pending;
+	bool shutting_down;
+	uint64_t topology_epoch;
 	uint64_t next_output_announcement_ordinal;
 	bool output_announcement_ordinal_exhausted;
 	struct wl_listener new_output;
@@ -540,6 +551,7 @@ struct server {
 	const char *config_path;
 	char *adopted_config_path;
 	struct wtwm_screen_warp_state screen_warp;
+	struct output *screen_warp_previous_output;
 	struct toplevel *ring_leader;
 	struct wl_event_source *restart_idle;
 	char *restart_config_path;
@@ -572,6 +584,13 @@ static bool output_area_for_outer(struct server *server, int x, int y,
 	int width, int height, struct wtwm_placement_area *area);
 static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
 	struct wtwm_placement_area *area);
+static bool output_selection_for_point(struct server *server, int x, int y,
+	struct wtwm_placement_area *area, struct output **output);
+static bool output_selection_for_outer(struct server *server, int x, int y,
+	int width, int height, struct wtwm_placement_area *area,
+	struct output **output);
+static bool output_selection_for_toplevel(struct toplevel *toplevel, bool icon,
+	struct wtwm_placement_area *area, struct output **output);
 static void resume_output_waiting_toplevels(struct server *server);
 static void sync_icon_manager_toplevel(struct toplevel *toplevel);
 static void rebuild_icon_layout(struct server *server);
@@ -2908,8 +2927,10 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	int owner_height = toplevel->iconified ? toplevel->icon_height :
 		geometry.outer_height;
 	struct wtwm_placement_area output_area;
-	if (!output_area_for_outer(server, original_x, original_y,
-			owner_width, owner_height, &output_area)) return;
+	struct output *operation_output = NULL;
+	if (!output_selection_for_outer(server, original_x, original_y,
+			owner_width, owner_height, &output_area,
+			&operation_output)) return;
 	server->grabbed = toplevel;
 	server->cursor_mode = mode;
 	set_cursor_role(server, mode == CURSOR_MOVE ? "Move" : "Resize");
@@ -2936,6 +2957,7 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.icon_move = toplevel->iconified,
 		.output_area_valid = true,
 		.output_area = output_area,
+		.output = operation_output,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -3262,11 +3284,16 @@ static void show_menu_at(struct server *server, const char *name,
 	if (submenu && (server->menu.tree == NULL || menu_depth(&server->menu) >= 10))
 		return;
 	struct wtwm_placement_area output_area;
+	struct output *menu_output = NULL;
 	bool have_output = submenu ? true : (target != NULL ?
-		output_area_for_toplevel(target, target->iconified, &output_area) :
-		output_area_for_point(server, (int)server->cursor->x,
-			(int)server->cursor->y, &output_area));
-	if (submenu) output_area = server->menu.output_area;
+		output_selection_for_toplevel(target, target->iconified,
+			&output_area, &menu_output) :
+		output_selection_for_point(server, (int)server->cursor->x,
+			(int)server->cursor->y, &output_area, &menu_output));
+	if (submenu) {
+		output_area = server->menu.output_area;
+		menu_output = server->menu.output;
+	}
 	if (!have_output || output_area.width <= 0 || output_area.height <= 0) return;
 	int *widths = calloc(menu->item_count, sizeof(*widths));
 	int *heights = calloc(menu->item_count, sizeof(*heights));
@@ -3450,6 +3477,7 @@ static void show_menu_at(struct server *server, const char *name,
 		.row_height = layout.row_height,
 		.selected = -1,
 		.output_area = output_area,
+		.output = menu_output,
 	};
 	wlr_scene_node_set_position(&tree->node, server->menu.x, server->menu.y);
 }
@@ -3686,7 +3714,8 @@ static bool action_needs_toplevel(enum wtwm_action_type type) {
 static void schedule_refresh(struct server *server) {
 	struct output *output;
 	wl_list_for_each(output, &server->outputs, link)
-		wlr_output_schedule_frame(output->wlr);
+		if (output->wlr->enabled && output->in_layout)
+			wlr_output_schedule_frame(output->wlr);
 }
 
 static void apply_zoom(struct toplevel *toplevel,
@@ -3916,11 +3945,11 @@ static bool output_order_snapshot(struct server *server,
 	size_t count = 0;
 	struct output *output;
 	wl_list_for_each(output, &server->outputs, link)
-		if (output->wlr->enabled) ++count;
+		if (output->wlr->enabled && output->in_layout) ++count;
 	if (!wtwm_output_order_create(count, snapshot)) return false;
 	size_t index = 0;
 	wl_list_for_each(output, &server->outputs, link) {
-		if (!output->wlr->enabled) continue;
+		if (!output->wlr->enabled || !output->in_layout) continue;
 		if (!wtwm_output_order_set(*snapshot, index, &output->identity, output)) {
 			wtwm_output_order_destroy(*snapshot);
 			*snapshot = NULL;
@@ -3933,6 +3962,29 @@ static bool output_order_snapshot(struct server *server,
 	*snapshot = NULL;
 	return false;
 }
+
+#ifdef WTWM_TEST_CONTROL
+static bool all_output_order_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot) {
+	size_t count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) ++count;
+	if (!wtwm_output_order_create(count, snapshot)) return false;
+	size_t index = 0;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (!wtwm_output_order_set(*snapshot, index++, &output->identity,
+				output)) {
+			wtwm_output_order_destroy(*snapshot);
+			*snapshot = NULL;
+			return false;
+		}
+	}
+	if (wtwm_output_order_sort(*snapshot)) return true;
+	wtwm_output_order_destroy(*snapshot);
+	*snapshot = NULL;
+	return false;
+}
+#endif
 
 static bool output_area_snapshot(struct server *server,
 		struct wtwm_output_order **snapshot,
@@ -3970,15 +4022,41 @@ static int runtime_saturate_int(int64_t value) {
 	return (int)value;
 }
 
-static bool output_area_for_point(struct server *server, int x, int y,
-		struct wtwm_placement_area *area) {
+static bool output_selection_for_point(struct server *server, int x, int y,
+		struct wtwm_placement_area *area, struct output **output) {
 	struct wtwm_output_order *snapshot = NULL;
 	struct wtwm_placement_area *areas = NULL;
 	size_t count = 0, selected = 0;
+	if (output != NULL) *output = NULL;
 	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
 	bool found = loaded && wtwm_placement_output_for_point(areas, count,
 		x, y, &selected);
 	if (found && area != NULL) *area = areas[selected];
+	if (found && output != NULL)
+		*output = wtwm_output_order_at(snapshot, selected);
+	free(areas);
+	wtwm_output_order_destroy(snapshot);
+	return found;
+}
+
+static bool output_area_for_point(struct server *server, int x, int y,
+		struct wtwm_placement_area *area) {
+	return output_selection_for_point(server, x, y, area, NULL);
+}
+
+static bool output_selection_for_outer(struct server *server, int x, int y,
+		int width, int height, struct wtwm_placement_area *area,
+		struct output **output) {
+	struct wtwm_output_order *snapshot = NULL;
+	struct wtwm_placement_area *areas = NULL;
+	size_t count = 0, selected = 0;
+	if (output != NULL) *output = NULL;
+	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
+	bool found = loaded && wtwm_placement_output_for_outer(areas, count,
+		x, y, width, height, &selected);
+	if (found && area != NULL) *area = areas[selected];
+	if (found && output != NULL)
+		*output = wtwm_output_order_at(snapshot, selected);
 	free(areas);
 	wtwm_output_order_destroy(snapshot);
 	return found;
@@ -3986,30 +4064,27 @@ static bool output_area_for_point(struct server *server, int x, int y,
 
 static bool output_area_for_outer(struct server *server, int x, int y,
 		int width, int height, struct wtwm_placement_area *area) {
-	struct wtwm_output_order *snapshot = NULL;
-	struct wtwm_placement_area *areas = NULL;
-	size_t count = 0, selected = 0;
-	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
-	bool found = loaded && wtwm_placement_output_for_outer(areas, count,
-		x, y, width, height, &selected);
-	if (found && area != NULL) *area = areas[selected];
-	free(areas);
-	wtwm_output_order_destroy(snapshot);
-	return found;
+	return output_selection_for_outer(server, x, y, width, height, area, NULL);
 }
 
-static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
-		struct wtwm_placement_area *area) {
+static bool output_selection_for_toplevel(struct toplevel *toplevel, bool icon,
+		struct wtwm_placement_area *area, struct output **output) {
 	if (toplevel == NULL) return false;
 	if (icon && toplevel->icon_width > 0 && toplevel->icon_height > 0)
-		return output_area_for_outer(toplevel->server, toplevel->icon_x,
-			toplevel->icon_y, toplevel->icon_width, toplevel->icon_height, area);
+		return output_selection_for_outer(toplevel->server, toplevel->icon_x,
+			toplevel->icon_y, toplevel->icon_width, toplevel->icon_height,
+			area, output);
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
 	int x = toplevel->tree != NULL ? toplevel->tree->node.x : toplevel->frame_x;
 	int y = toplevel->tree != NULL ? toplevel->tree->node.y : toplevel->frame_y;
-	return output_area_for_outer(toplevel->server, x, y,
-		geometry.outer_width, geometry.outer_height, area);
+	return output_selection_for_outer(toplevel->server, x, y,
+		geometry.outer_width, geometry.outer_height, area, output);
+}
+
+static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
+		struct wtwm_placement_area *area) {
+	return output_selection_for_toplevel(toplevel, icon, area, NULL);
 }
 
 static void output_local_pointer(struct server *server,
@@ -4038,6 +4113,16 @@ static void warp_to_screen(struct server *server, const char *argument) {
 		wtwm_output_order_destroy(snapshot);
 		return;
 	}
+	server->screen_warp.previous = -1;
+	for (size_t index = 0; index < output_count; ++index) {
+		if (wtwm_output_order_at(snapshot, index) ==
+				server->screen_warp_previous_output) {
+			server->screen_warp.previous = (int)index;
+			break;
+		}
+	}
+	if (server->screen_warp.previous < 0)
+		server->screen_warp_previous_output = NULL;
 	struct wtwm_interaction_box *boxes = calloc(output_count, sizeof(*boxes));
 	if (boxes == NULL) {
 		wtwm_output_order_destroy(snapshot);
@@ -4082,6 +4167,8 @@ static void warp_to_screen(struct server *server, const char *argument) {
 		wtwm_output_order_destroy(snapshot);
 		return;
 	}
+	server->screen_warp_previous_output =
+		wtwm_output_order_at(snapshot, (size_t)server->screen_warp.previous);
 	wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);
 	process_cursor_motion(server, server->current_input_time_ms);
 	free(boxes);
@@ -4718,11 +4805,149 @@ static void refresh_output_configuration(struct server *server) {
 	wl_list_for_each(output, &server->outputs, link) {
 		if (output->background == NULL) continue;
 		struct wlr_box box = {0};
-		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (output->in_layout)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		bool active = output->wlr->enabled && output->in_layout &&
+			box.width > 0 && box.height > 0;
+		wlr_scene_node_set_enabled(&output->background->node, active);
+		if (!active) continue;
 		wlr_scene_rect_set_color(output->background, background);
 		wlr_scene_rect_set_size(output->background, box.width, box.height);
 		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
 	}
+}
+
+static bool output_is_enabled_managed(struct server *server,
+		const struct output *target) {
+	if (target == NULL) return false;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output == target)
+			return output->wlr->enabled && output->in_layout;
+	}
+	return false;
+}
+
+static size_t enabled_output_count(struct server *server) {
+	size_t count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link)
+		if (output->wlr->enabled && output->in_layout) ++count;
+	return count;
+}
+
+static bool output_current_area(struct server *server,
+		const struct output *target, struct wtwm_placement_area *area) {
+	if (target == NULL) return false;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output != target) continue;
+		if (!output->wlr->enabled || !output->in_layout) return false;
+		struct wlr_box box = {0};
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (box.width <= 0 || box.height <= 0) return false;
+		if (area != NULL) {
+			*area = (struct wtwm_placement_area){
+				.x = box.x,
+				.y = box.y,
+				.width = box.width,
+				.height = box.height,
+			};
+		}
+		return true;
+	}
+	return false;
+}
+
+static bool placement_area_equal(const struct wtwm_placement_area *left,
+		const struct wtwm_placement_area *right) {
+	return left->x == right->x && left->y == right->y &&
+		left->width == right->width && left->height == right->height;
+}
+
+static void repair_topology_operations(struct server *server) {
+	if (server->menu.tree != NULL) {
+		struct wtwm_placement_area current;
+		if (!output_current_area(server, server->menu.output, &current) ||
+				!placement_area_equal(&current, &server->menu.output_area)) {
+			hide_menu(server);
+			memset(&server->continuation, 0, sizeof(server->continuation));
+		}
+	}
+	server->deferred_root_action_active = false;
+
+	if (server->grabbed == NULL) return;
+	struct wtwm_placement_area current;
+	if (output_current_area(server, server->interaction.output, &current) &&
+			placement_area_equal(&current, &server->interaction.output_area))
+		return;
+	if (server->interaction.intent == INTERACTION_INITIAL_POSITION ||
+			server->interaction.intent == INTERACTION_INITIAL_CONFIRM ||
+			server->interaction.intent == INTERACTION_INITIAL_RESIZE) {
+		struct toplevel *pending = server->grabbed;
+		reset_cursor(server);
+		pending->placement_waiting_output = true;
+		pending->placement_output = NULL;
+		return;
+	}
+	finish_interactive(server, true);
+}
+
+static void refresh_output_topology(struct server *server) {
+	if (server->shutting_down) return;
+	if (server->topology_epoch != UINT64_MAX) ++server->topology_epoch;
+	if (!output_is_enabled_managed(server,
+			server->screen_warp_previous_output)) {
+		server->screen_warp_previous_output = NULL;
+		server->screen_warp.previous = -1;
+	}
+	repair_topology_operations(server);
+	refresh_output_configuration(server);
+	rebuild_icon_layout(server);
+	refresh_icon_managers(server);
+
+	if (enabled_output_count(server) == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		if (server->seat != NULL) wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
+	if (server->cursor != NULL) {
+		double x = server->cursor->x, y = server->cursor->y;
+		wlr_output_layout_closest_point(server->output_layout, NULL,
+			x, y, &x, &y);
+		wlr_cursor_warp_closest(server->cursor, NULL, x, y);
+		if (server->seat != NULL) refresh_pointer_after_restart(server);
+	}
+	resume_output_waiting_toplevels(server);
+	schedule_refresh(server);
+}
+
+static void begin_output_topology_mutation(struct server *server) {
+	++server->topology_mutation_depth;
+}
+
+static void finish_output_topology_mutation(struct server *server,
+		bool changed) {
+	if (server->topology_mutation_depth == 0) return;
+	server->topology_refresh_pending |= changed;
+	--server->topology_mutation_depth;
+	if (server->topology_mutation_depth == 0 &&
+			server->topology_refresh_pending) {
+		server->topology_refresh_pending = false;
+		refresh_output_topology(server);
+	}
+}
+
+static void output_layout_change(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct server *server = wl_container_of(listener, server,
+		output_layout_change);
+	if (server->topology_mutation_depth != 0) {
+		server->topology_refresh_pending = true;
+		return;
+	}
+	refresh_output_topology(server);
 }
 
 static bool rebuild_toplevel_title(struct toplevel *toplevel) {
@@ -4801,6 +5026,7 @@ static bool restart_compositor_state(struct server *server,
 			server->config.warning_count);
 
 	wtwm_action_screen_warp_init(&server->screen_warp);
+	server->screen_warp_previous_output = NULL;
 	server->ring_leader = NULL;
 	server->icon_manager_down_identity = 0;
 	wtwm_random_placement_init(&server->random_placement);
@@ -5897,10 +6123,75 @@ static void output_frame(struct wl_listener *listener, void *data) {
 	render_output(output);
 }
 
+static bool attach_output_layout(struct output *output) {
+	if (output->in_layout) return true;
+	struct wlr_output_layout_output *layout_output =
+		wlr_output_layout_add_auto(output->server->output_layout, output->wlr);
+	if (layout_output == NULL) return false;
+	if (output->scene_output == NULL) {
+		wlr_output_layout_remove(output->server->output_layout, output->wlr);
+		return false;
+	}
+	wlr_scene_output_layout_add_output(output->server->scene_layout,
+		layout_output, output->scene_output);
+	output->in_layout = true;
+	return true;
+}
+
+static void detach_output_layout(struct output *output) {
+	if (!output->in_layout) return;
+	output->in_layout = false;
+	wlr_output_layout_remove(output->server->output_layout, output->wlr);
+}
+
+static bool commit_output_state(struct output *output,
+		const struct wlr_output_state *state) {
+	struct server *server = output->server;
+	bool old_enabled = output->wlr->enabled;
+	int old_width = output->wlr->width;
+	int old_height = output->wlr->height;
+	int old_refresh = output->wlr->refresh;
+	float old_scale = output->wlr->scale;
+	enum wl_output_transform old_transform = output->wlr->transform;
+
+	begin_output_topology_mutation(server);
+	if (!wlr_output_commit_state(output->wlr, state)) {
+		finish_output_topology_mutation(server, false);
+		return false;
+	}
+	bool attached = true;
+	if (output->wlr->enabled) {
+		attached = attach_output_layout(output);
+	} else {
+		detach_output_layout(output);
+	}
+	if (!attached) {
+		wlr_log(WLR_ERROR, "unable to attach enabled output %s to layout",
+			output->wlr->name);
+		if (!old_enabled) {
+			struct wlr_output_state rollback;
+			wlr_output_state_init(&rollback);
+			wlr_output_state_set_enabled(&rollback, false);
+			if (!wlr_output_commit_state(output->wlr, &rollback))
+				wlr_log(WLR_ERROR, "unable to roll back output %s enable",
+					output->wlr->name);
+			wlr_output_state_finish(&rollback);
+		}
+	}
+	bool changed = output->wlr->enabled != old_enabled ||
+		output->wlr->width != old_width || output->wlr->height != old_height ||
+		output->wlr->refresh != old_refresh || output->wlr->scale != old_scale ||
+		output->wlr->transform != old_transform;
+	finish_output_topology_mutation(server, changed);
+	return attached;
+}
+
 static void output_request_state(struct wl_listener *listener, void *data) {
 	struct output *output = wl_container_of(listener, output, request_state);
 	const struct wlr_output_event_request_state *event = data;
-	wlr_output_commit_state(output->wlr, event->state);
+	if (!commit_output_state(output, event->state))
+		wlr_log(WLR_ERROR, "unable to commit requested state for output %s",
+			output->wlr->name);
 }
 
 static void output_background_destroy(struct wl_listener *listener, void *data) {
@@ -5915,12 +6206,20 @@ static void output_background_destroy(struct wl_listener *listener, void *data) 
 static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct output *output = wl_container_of(listener, output, destroy);
+	struct server *server = output->server;
+	begin_output_topology_mutation(server);
+	detach_output_layout(output);
 	wl_list_remove(&output->frame.link);
 	wl_list_remove(&output->request_state.link);
 	wl_list_remove(&output->destroy.link);
 	wl_list_remove(&output->link);
+	if (server->screen_warp_previous_output == output) {
+		server->screen_warp_previous_output = NULL;
+		server->screen_warp.previous = -1;
+	}
 	if (output->background != NULL)
 		wlr_scene_node_destroy(&output->background->node);
+	finish_output_topology_mutation(server, true);
 	wtwm_output_identity_finish(&output->identity);
 	free(output);
 }
@@ -5977,6 +6276,18 @@ static void new_output(struct wl_listener *listener, void *data) {
 	}
 	output->server = server;
 	output->wlr = wlr_output;
+	output->scene_output = wlr_scene_output_create(server->scene, wlr_output);
+	if (output->scene_output == NULL) {
+		wlr_log(WLR_ERROR, "%s", "unable to create output scene");
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	output->frame.notify = output_frame;
 	wl_signal_add(&wlr_output->events.frame, &output->frame);
 	output->request_state.notify = output_request_state;
@@ -5984,26 +6295,56 @@ static void new_output(struct wl_listener *listener, void *data) {
 	output->destroy.notify = output_destroy;
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 	wl_list_insert(&server->outputs, &output->link);
-	struct wlr_output_layout_output *layout_output =
-		wlr_output_layout_add_auto(server->output_layout, wlr_output);
-	struct wlr_scene_output *scene_output = wlr_scene_output_create(server->scene, wlr_output);
-	wlr_scene_output_layout_add_output(server->scene_layout, layout_output, scene_output);
+	begin_output_topology_mutation(server);
+	if (!attach_output_layout(output)) {
+		wlr_log(WLR_ERROR, "%s", "unable to add announced output to layout");
+		wl_list_remove(&output->frame.link);
+		wl_list_remove(&output->request_state.link);
+		wl_list_remove(&output->destroy.link);
+		wl_list_remove(&output->link);
+		wlr_scene_output_destroy(output->scene_output);
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		server->topology_refresh_pending = false;
+		finish_output_topology_mutation(server, false);
+		return;
+	}
 	struct wlr_box box = {0};
 	wlr_output_layout_get_box(server->output_layout, wlr_output, &box);
 	float background[4];
 	configured_color(server, "DefaultBackground", "white", NULL, background);
 	output->background = wlr_scene_rect_create(&server->scene->tree,
 		box.width, box.height, background);
-	if (output->background != NULL) {
-		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
-		wlr_scene_node_lower_to_bottom(&output->background->node);
-		output->background_destroy.notify = output_background_destroy;
-		wl_signal_add(&output->background->node.events.destroy,
-			&output->background_destroy);
+	if (output->background == NULL) {
+		wlr_log(WLR_ERROR, "%s", "unable to create output root background");
+		detach_output_layout(output);
+		wl_list_remove(&output->frame.link);
+		wl_list_remove(&output->request_state.link);
+		wl_list_remove(&output->destroy.link);
+		wl_list_remove(&output->link);
+		wlr_scene_output_destroy(output->scene_output);
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		server->topology_refresh_pending = false;
+		finish_output_topology_mutation(server, false);
+		return;
 	}
-	resume_output_waiting_toplevels(server);
-	rebuild_icon_layout(server);
-	refresh_icon_managers(server);
+	wlr_scene_node_set_position(&output->background->node, box.x, box.y);
+	wlr_scene_node_lower_to_bottom(&output->background->node);
+	output->background_destroy.notify = output_background_destroy;
+	wl_signal_add(&output->background->node.events.destroy,
+		&output->background_destroy);
+	finish_output_topology_mutation(server, true);
 }
 
 static void update_toplevel_metadata(struct toplevel *toplevel,
@@ -6591,7 +6932,7 @@ static bool xwayland_position_flag(const struct toplevel *toplevel,
 }
 
 static bool xwayland_initial_area(struct toplevel *toplevel, int width,
-		int height, struct wtwm_placement_area *area) {
+		int height, struct wtwm_placement_area *area, struct output **output) {
 	bool transient = toplevel->xwayland->parent != NULL;
 	bool ask_user = wtwm_placement_asks_user(transient,
 		xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_US_POSITION),
@@ -6599,14 +6940,14 @@ static bool xwayland_initial_area(struct toplevel *toplevel, int width,
 		toplevel->server->config.use_p_position_mode,
 		toplevel->xwayland->x, toplevel->xwayland->y);
 	if (ask_user)
-		return output_area_for_point(toplevel->server,
+		return output_selection_for_point(toplevel->server,
 			(int)toplevel->server->cursor->x,
-			(int)toplevel->server->cursor->y, area);
+			(int)toplevel->server->cursor->y, area, output);
 	struct wlr_xwayland_surface *parent_surface = toplevel->xwayland->parent;
 	struct toplevel *parent = parent_surface != NULL ? parent_surface->data : NULL;
 	if (parent != NULL && parent != toplevel && parent->mapped &&
 			!parent_surface->override_redirect)
-		return output_area_for_toplevel(parent, false, area);
+		return output_selection_for_toplevel(parent, false, area, output);
 	int saved_width = toplevel->width;
 	int saved_height = toplevel->height;
 	toplevel->width = width;
@@ -6622,8 +6963,8 @@ static bool xwayland_initial_area(struct toplevel *toplevel, int width,
 		toplevel->original_client_border, &geometry,
 		toplevel->server->config.client_border_width,
 		gravity_x, gravity_y, &position);
-	return output_area_for_point(toplevel->server, position.frame_x,
-		position.frame_y, area);
+	return output_selection_for_point(toplevel->server, position.frame_x,
+		position.frame_y, area, output);
 }
 
 static bool initial_xwayland_frame(struct toplevel *toplevel,
@@ -6720,6 +7061,7 @@ static void start_next_initial_placement(struct server *server) {
 		.intent = INTERACTION_INITIAL_POSITION,
 		.output_area_valid = true,
 		.output_area = candidate->placement_area,
+		.output = candidate->placement_output,
 	};
 	set_cursor_role(server, "Move");
 	candidate->frame_x = x;
@@ -6745,6 +7087,7 @@ static void finish_initial_placement(struct server *server) {
 		preview.x, preview.y, preview.width, preview.height);
 	toplevel->placement_pending = false;
 	toplevel->placement_waiting_output = false;
+	toplevel->placement_output = NULL;
 	bool start_iconified = toplevel->placement_start_iconified;
 	toplevel->placement_start_iconified = false;
 	reset_cursor(server);
@@ -6757,6 +7100,7 @@ static void cancel_initial_placement(struct toplevel *toplevel) {
 	struct server *server = toplevel->server;
 	toplevel->placement_pending = false;
 	toplevel->placement_waiting_output = false;
+	toplevel->placement_output = NULL;
 	test_trace_toplevel_event_at(toplevel, "abort", "placement",
 		server->interaction.preview.x, server->interaction.preview.y,
 		server->interaction.preview.width, server->interaction.preview.height);
@@ -6782,10 +7126,12 @@ static void insert_xwayland_stack(struct toplevel *toplevel) {
 
 static void complete_managed_xwayland_map(struct toplevel *toplevel) {
 	struct wtwm_placement_area area;
+	struct output *placement_output = NULL;
 	if (!xwayland_initial_area(toplevel, toplevel->width, toplevel->height,
-			&area)) {
+			&area, &placement_output)) {
 		toplevel->placement_pending = true;
 		toplevel->placement_waiting_output = true;
+		toplevel->placement_output = NULL;
 		if (toplevel->placement_order == 0)
 			toplevel->placement_order =
 				++toplevel->server->placement_order_next;
@@ -6793,6 +7139,7 @@ static void complete_managed_xwayland_map(struct toplevel *toplevel) {
 		return;
 	}
 	toplevel->placement_area = area;
+	toplevel->placement_output = placement_output;
 	toplevel->placement_pending = false;
 	toplevel->placement_waiting_output = false;
 	struct wtwm_session_record session_record = {0};
@@ -6805,6 +7152,7 @@ static void complete_managed_xwayland_map(struct toplevel *toplevel) {
 	bool start_iconified = should_start_iconified(toplevel,
 		toplevel->placement_initial_rules);
 	if (restored) {
+		toplevel->placement_output = NULL;
 		apply_session_geometry(toplevel, &session_record);
 		apply_session_policy(toplevel, &session_record);
 		expose_managed_xwayland(toplevel, session_record.iconified);
@@ -6830,6 +7178,7 @@ static void complete_managed_xwayland_map(struct toplevel *toplevel) {
 		start_next_initial_placement(toplevel->server);
 		return;
 	}
+	toplevel->placement_output = NULL;
 	configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
 	toplevel->placed = true;
 	expose_managed_xwayland(toplevel, start_iconified);
@@ -7961,6 +8310,20 @@ static void test_trace_clear(struct test_control *control) {
 	control->trace_dropped = 0;
 }
 
+static const char *test_output_transform_name(enum wl_output_transform transform) {
+	switch (transform) {
+	case WL_OUTPUT_TRANSFORM_NORMAL: return "normal";
+	case WL_OUTPUT_TRANSFORM_90: return "90";
+	case WL_OUTPUT_TRANSFORM_180: return "180";
+	case WL_OUTPUT_TRANSFORM_270: return "270";
+	case WL_OUTPUT_TRANSFORM_FLIPPED: return "flipped";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_90: return "flipped-90";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_180: return "flipped-180";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_270: return "flipped-270";
+	}
+	return "invalid";
+}
+
 static void test_write_state(struct test_control *control) {
 	struct server *server = control->server;
 	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
@@ -7984,7 +8347,55 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, ",\"pointer_window\":");
 	if (server->pointer_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(server->pointer_toplevel));
-	test_write(control, ",\"windows\":[");
+	test_write(control, ",\"topology_epoch\":%" PRIu64 ",\"outputs\":[",
+		server->topology_epoch);
+	struct wtwm_output_order *output_order = NULL;
+	bool have_output_order = all_output_order_snapshot(server, &output_order);
+	size_t active_index = 0;
+	for (size_t position = 0; have_output_order &&
+			position < wtwm_output_order_count(output_order); ++position) {
+		struct output *output = wtwm_output_order_at(output_order, position);
+		if (position != 0) test_write(control, ",");
+		test_write(control, "{\"name\":");
+		test_write_json_string(control, output->identity.name);
+		test_write(control, ",\"ordinal\":%" PRIu64 ",\"index\":",
+			output->identity.announcement_ordinal);
+		bool active_output = output->wlr->enabled && output->in_layout;
+		if (active_output) test_write(control, "%zu", active_index++);
+		else test_write(control, "null");
+		test_write(control,
+			",\"enabled\":%s,\"mode\":{\"width\":%d,\"height\":%d,"
+			"\"refresh_mhz\":%d},\"scale\":%.3f,\"transform\":",
+			output->wlr->enabled ? "true" : "false",
+			output->wlr->width, output->wlr->height, output->wlr->refresh,
+			(double)output->wlr->scale);
+		test_write_json_string(control,
+			test_output_transform_name(output->wlr->transform));
+		test_write(control, ",\"box\":");
+		struct wlr_box box = {0};
+		if (active_output)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (!active_output || box.width <= 0 || box.height <= 0) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				box.x, box.y, box.width, box.height);
+		}
+		test_write(control, ",\"background\":");
+		if (!active_output || output->background == NULL ||
+				!output->background->node.enabled) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				output->background->node.x, output->background->node.y,
+				output->background->width, output->background->height);
+		}
+		test_write(control, "}");
+	}
+	wtwm_output_order_destroy(output_order);
+	test_write(control, "],\"windows\":[");
 	bool first = true;
 	unsigned stack = 0;
 	struct toplevel *toplevel;
@@ -8265,10 +8676,11 @@ static void test_write_state(struct test_control *control) {
 }
 
 static bool test_render_stable(struct server *server, unsigned count) {
-	if (wl_list_empty(&server->outputs)) return false;
+	if (enabled_output_count(server) == 0) return false;
 	for (unsigned i = 0; i < count; ++i) {
 		struct output *output;
 		wl_list_for_each(output, &server->outputs, link) {
+			if (!output->wlr->enabled || !output->in_layout) continue;
 			if (!render_output(output)) return false;
 		}
 	}
@@ -8277,11 +8689,21 @@ static bool test_render_stable(struct server *server, unsigned count) {
 
 static bool test_capture_ppm(struct server *server, const char *path,
 	char *error, size_t error_size) {
-	if (wl_list_empty(&server->outputs)) {
+	if (enabled_output_count(server) == 0) {
 		snprintf(error, error_size, "no output");
 		return false;
 	}
-	struct output *output = wl_container_of(server->outputs.next, output, link);
+	struct output *output = NULL, *candidate;
+	wl_list_for_each(candidate, &server->outputs, link) {
+		if (candidate->wlr->enabled && candidate->in_layout) {
+			output = candidate;
+			break;
+		}
+	}
+	if (output == NULL) {
+		snprintf(error, error_size, "no output");
+		return false;
+	}
 	struct wlr_scene_output *scene_output =
 		wlr_scene_get_scene_output(server->scene, output->wlr);
 	struct wlr_output_state state;
@@ -8745,6 +9167,9 @@ int main(int argc, char **argv) {
 	wlr_primary_selection_v1_device_manager_create(server.display);
 	server.output_layout = wlr_output_layout_create(server.display);
 	wl_list_init(&server.outputs);
+	server.output_layout_change.notify = output_layout_change;
+	wl_signal_add(&server.output_layout->events.change,
+		&server.output_layout_change);
 	server.new_output.notify = new_output;
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 	server.scene = wlr_scene_create();
@@ -8822,6 +9247,7 @@ int main(int argc, char **argv) {
 	if (startup != NULL) spawn_command(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
+	server.shutting_down = true;
 	finish_compositor_reload(&server);
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);
@@ -8852,6 +9278,7 @@ int main(int argc, char **argv) {
 	return 0;
 
 fail_runtime:
+	server.shutting_down = true;
 	finish_compositor_reload(&server);
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);
