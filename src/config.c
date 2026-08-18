@@ -382,8 +382,7 @@ static bool append_string(struct parser *parser, struct wtwm_string_list *list,
 
 static enum wtwm_compatibility directive_compatibility(const char *name) {
 	static const char *const unsupported[] = {
-		"NoBackingStore", "NoGrabServer", "NoSaveUnders", "NoVersion",
-		"RestartPreviousState", "Priority", "SaveColor",
+		"NoVersion", "RestartPreviousState", "Priority", "SaveColor",
 	};
 	static const char *const effective[] = {
 		"BorderWidth", "ButtonIndent", "ClientBorderWidth", "Color",
@@ -404,7 +403,8 @@ static enum wtwm_compatibility directive_compatibility(const char *name) {
 	};
 	static const char *const translated[] = {
 		"ClientBorderWidth", "DecorateTransients", "IconFont", "IconManagerFont",
-		"MenuFont", "ResizeFont", "TitleFont",
+		"MenuFont", "NoBackingStore", "NoGrabServer", "NoSaveUnders",
+		"ResizeFont", "TitleFont",
 	};
 	for (size_t i = 0; i < sizeof(unsupported) / sizeof(unsupported[0]); ++i)
 		if (equal_ci(name, unsupported[i])) return WTWM_COMPAT_UNSUPPORTED;

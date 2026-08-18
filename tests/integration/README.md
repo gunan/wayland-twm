@@ -184,3 +184,17 @@ active zoom restore box; reconnects the clients in reverse order and requires
 the same compositor-owned state; then corrupts the version header and proves
 the next session starts clean with a diagnostic. The runner also checks that
 the published state file is private mode `0600`.
+
+`run_m8_noop_options.py` runs an exact headless A/B comparison for the X11
+server-resource directives `NoBackingStore`, `NoSaveUnders`, and
+`NoGrabServer`. It runs all eight subsets of mixed-case spellings and compares
+each non-empty subset with the same option-free baseline, so compensating
+effects cannot conceal a difference. Every subset runs in both outlined- and
+opaque-move configurations, covering each path for one native and one managed
+Xwayland client alongside compositor-menu selection and second-button
+cancellation. At stable frame barriers the runner compares every full-output
+PPM byte and normalized `STATE`/`TRACE`, then
+requires both clients and the compositor control socket to answer roundtrips.
+This proves the options do not leak an unexplained visible or interaction
+consequence into wtwm-owned Wayland scene behavior; independent resource
+requests made by X11 clients are outside that contract.

@@ -49,6 +49,17 @@ SESSION_STATE_RUNTIME_FEATURES = {
     "action.f-saveyourself",
     "directive.restartpreviousstate",
 }
+NOOP_OPTIONS_RUNTIME_PATH = "tests/integration/run_m8_noop_options.py"
+NOOP_OPTIONS_RUNTIME_TEST = "Milestone 8 X11 server resource no-op integration"
+NOOP_OPTIONS_RUNTIME_ID = "test.current-feature.m8-noop-options-runtime"
+NOOP_OPTIONS_RUNTIME_FEATURES = {
+    "construct.case-insensitive-keywords-and-actions",
+}
+NOOP_OPTIONS_LEDGER_FEATURES = (
+    "keyword.nobackingstore",
+    "keyword.nograbserver",
+    "keyword.nosaveunders",
+)
 ARGUMENT_ACTIONS = {
     "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
     "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
@@ -485,6 +496,27 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in NOOP_OPTIONS_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": NOOP_OPTIONS_RUNTIME_ID,
+                "path": NOOP_OPTIONS_RUNTIME_PATH,
+                "meson_test": NOOP_OPTIONS_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The {feature_id} runtime mapping proves mixed-case "
+                    "configuration reaches identical A/B compositor dispatch.",
+                    "The catalog ledger_features separately map "
+                    "keyword.nobackingstore, keyword.nograbserver, and "
+                    "keyword.nosaveunders from the frozen upstream ledger.",
+                    "All eight option subsets retain identical outlined/opaque "
+                    "move and menu full-output pixels plus normalized "
+                    "STATE/TRACE while native and Xwayland clients remain live.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -493,7 +525,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         })
     dimensions = ["syntax", "source_contract", "runtime"]
     result = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "current_audit_path": AUDIT_PATH,
         "feature_count": len(mappings),
         "dimension_policy": {
@@ -503,6 +535,13 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
             "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0.",
         },
         "test_catalog": [
+            {
+                "test_id": NOOP_OPTIONS_RUNTIME_ID,
+                "path": NOOP_OPTIONS_RUNTIME_PATH,
+                "meson_test": NOOP_OPTIONS_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(NOOP_OPTIONS_LEDGER_FEATURES),
+            },
             {
                 "test_id": RESTART_RUNTIME_ID,
                 "path": RESTART_RUNTIME_PATH,
@@ -601,6 +640,9 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.",
         "- The immutable current audit retains the tests visible at its audited commit; this",
         "  map is the authoritative current test-coverage layer for the Milestone 0 gate.",
+        "- The no-op option runtime catalog entry uses `ledger_features` to name the three",
+        "  frozen upstream keyword IDs separately from its current-audit case-insensitive",
+        "  parser/dispatch mapping.",
         "",
     ]
     return result, "\n".join(lines)

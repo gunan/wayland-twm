@@ -19,6 +19,9 @@ from generate_feature_test_map import (
     SUMMARY_PATH,
     TEST_PATH,
     INTERACTION_RUNTIME_FEATURES,
+    NOOP_OPTIONS_LEDGER_FEATURES,
+    NOOP_OPTIONS_RUNTIME_FEATURES,
+    NOOP_OPTIONS_RUNTIME_ID,
     RESTART_RUNTIME_FEATURES,
     SESSION_STATE_RUNTIME_FEATURES,
     STARTWM_RUNTIME_FEATURES,
@@ -165,8 +168,8 @@ def validate_feature_map(
     if not fields(feature_map, ROOT_FIELDS, "feature_map", errors):
         return errors
     assert isinstance(feature_map, dict)
-    if feature_map["schema_version"] != "1.1":
-        errors.append("feature_map.schema_version must be 1.1")
+    if feature_map["schema_version"] != "1.2":
+        errors.append("feature_map.schema_version must be 1.2")
     if feature_map["current_audit_path"] != AUDIT_PATH:
         errors.append("feature_map.current_audit_path differs from the immutable audit")
     policy = feature_map["dimension_policy"]
@@ -183,17 +186,34 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 6:
-        errors.append("feature_map.test_catalog must contain the six registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 7:
+        errors.append("feature_map.test_catalog must contain the seven registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
     for index, item in enumerate(catalog_values):
-        if not fields(item, catalog_fields, f"feature_map.test_catalog[{index}]", errors):
+        expected_fields = catalog_fields + (["ledger_features"] if
+            isinstance(item, dict) and item.get("test_id") == NOOP_OPTIONS_RUNTIME_ID
+            else [])
+        if not fields(item, expected_fields,
+                f"feature_map.test_catalog[{index}]", errors):
             continue
         assert isinstance(item, dict)
         catalog[str(item["test_id"])] = item
         repository_path(item["path"], source_root, f"feature_map.test_catalog[{index}].path", errors)
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(NOOP_OPTIONS_LEDGER_FEATURES):
+                errors.append(
+                    "no-op option runtime ledger_features must exactly map "
+                    "keyword.nobackingstore, keyword.nograbserver, and "
+                    "keyword.nosaveunders"
+                )
     if [item.get("test_id") for item in catalog_values if isinstance(item, dict)] != sorted(catalog):
         errors.append("feature_map.test_catalog is not ordered by test ID")
     meson_text = (source_root / "meson.build").read_text(encoding="utf-8")
@@ -246,6 +266,8 @@ def validate_feature_map(
         if feature.get("id") in STARTWM_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in NOOP_OPTIONS_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:
@@ -338,6 +360,20 @@ def tamper_self_test(
     source_mapping = next(test for test in effective["tests"] if test["dimension"] == "source_contract")
     source_mapping["checks"][0]["contains"] = "not present in source"
     mutations.append(("invalid-source-contract", changed))
+    changed = copy.deepcopy(feature_map)
+    noop_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID
+    )
+    noop_catalog["ledger_features"].pop()
+    mutations.append(("missing-noop-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    noop_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID
+    )
+    noop_catalog["ledger_features"][0] = "keyword.not-the-frozen-option"
+    mutations.append(("wrong-noop-ledger-feature", changed))
     failures = [
         name for name, changed in mutations
         if not validate_feature_map(changed, audit, expected, source_root)

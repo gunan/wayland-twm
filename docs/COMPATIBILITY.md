@@ -21,6 +21,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
 | `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. Pull-right hover opens a bounded nested stack, moving back into a parent pops its descendants, a second press cancels the stack, and release dispatches only an enabled leaf. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
+| `NoBackingStore`, `NoSaveUnders`, `NoGrabServer` | Verified Wayland-translated no-ops | wtwm menus and opaque moves are compositor-owned scene operations: they neither request X backing-store/save-under resources nor wrap the operation in a global X server grab. The spellings remain accepted and explicitly classified without changing native or managed-Xwayland pixels, state, input traces, or liveness |
 | Title buttons | Effective | Default and configured left/right buttons retain reference ordering, borders, spacing, XBM/built-in glyphs, and full hit boxes. Reference `twm` has no distinct hover/pressed pixels; the held-pointer captures are therefore identical while the action still fires on press |
 | Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
@@ -210,6 +211,32 @@ transients, client process/document state, and ephemeral menus or grabs are not
 restored. Native clients have no `WM_SAVE_YOURSELF` protocol, so their action
 saves only the compositor-owned snapshot; Xwayland clients still receive the
 ClientMessage when advertised and retain the reference bell when it is absent.
+
+Reference `twm` uses `NoBackingStore` to suppress a backing-store request on
+its X menu windows, `NoSaveUnders` to suppress their save-under request, and
+`NoGrabServer` to avoid a global X server grab while menus are active or opaque
+moves are in progress. None of those X server resource choices exists on a
+Wayland scene graph. wtwm always redraws its own menu layer from retained scene
+state, composites opaque movement directly, and never grabs the X server around
+either operation. Reference `twm` still performs its outlined-move server grab
+regardless of `NoGrabServer`; wtwm's compositor-owned outline cannot reproduce
+that global X exclusion, and the test therefore verifies the outlined path
+separately. The three directives are retained as
+Wayland-translated no-ops rather than silently dropped or reported unsupported.
+This boundary covers wtwm-owned menus and movement for both native and managed
+Xwayland toplevels; it does not rewrite independent backing-store, save-under,
+or grab requests that an X11 client may make for its own windows.
+
+The Milestone 8 headless A/B runner starts all eight subsets of mixed-case
+spellings of these three flags and compares every non-empty subset with the
+same option-free baseline, preventing individual effects from cancelling one
+another. Each subset is tested in both outlined- and opaque-move
+configurations. Every run maps one native and one managed Xwayland client,
+drives the selected move path for each protocol, selects and cancels compositor
+menus, and compares full-output PPM bytes plus normalized `STATE` and `TRACE`
+at the same stable frame barriers. Both clients must also complete protocol
+control roundtrips afterward. The comparison has no pixel masks or tolerated
+state/trace differences.
 
 Milestone 6 verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as

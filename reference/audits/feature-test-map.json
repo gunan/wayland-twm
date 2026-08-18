@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "current_audit_path": "reference/audits/current-implementation.json",
   "feature_count": 134,
   "dimension_policy": {
@@ -13,6 +13,17 @@
     "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0."
   },
   "test_catalog": [
+    {
+      "test_id": "test.current-feature.m8-noop-options-runtime",
+      "path": "tests/integration/run_m8_noop_options.py",
+      "meson_test": "Milestone 8 X11 server resource no-op integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.nobackingstore",
+        "keyword.nograbserver",
+        "keyword.nosaveunders"
+      ]
+    },
     {
       "test_id": "test.current-feature.m8-restart-runtime",
       "path": "tests/integration/run_m8_restart.py",
@@ -1457,6 +1468,21 @@
       "category": "construct",
       "implementation_status": "not_applicable",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-noop-options-runtime",
+          "path": "tests/integration/run_m8_noop_options.py",
+          "meson_test": "Milestone 8 X11 server resource no-op integration",
+          "case": "construct.case-insensitive-keywords-and-actions",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "All eight option subsets retain identical outlined/opaque move and menu full-output pixels plus normalized STATE/TRACE while native and Xwayland clients remain live.",
+            "The catalog ledger_features separately map keyword.nobackingstore, keyword.nograbserver, and keyword.nosaveunders from the frozen upstream ledger.",
+            "The construct.case-insensitive-keywords-and-actions runtime mapping proves mixed-case configuration reaches identical A/B compositor dispatch."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",

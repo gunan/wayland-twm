@@ -468,7 +468,7 @@ Required mappings:
   unsupported handoffs without destroying the session.
 - [x] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
   that can be restored safely.
-- [ ] Backing-store, save-under, and server-grab options become verified no-ops
+- [x] Backing-store, save-under, and server-grab options become verified no-ops
   unless they have a visible compatibility effect.
 - [ ] Colormap actions operate for relevant Xwayland clients and become a documented
   no-op for native true-color Wayland clients.
