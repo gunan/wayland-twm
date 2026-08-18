@@ -61,6 +61,15 @@ def validate_model() -> None:
     restarted = state
     if restarted != b"previous":
         raise RuntimeError("restart preservation model failed")
+    pointer_states = [
+        {"pointer_window": None, "pointer_context": "root"},
+        {"pointer_window": "target", "pointer_context": "frame"},
+        {"pointer_window": "target", "pointer_context": "window"},
+    ]
+    if [pointer_on_content(item, "target") for item in pointer_states] != [
+        False, False, True,
+    ]:
+        raise RuntimeError("exact pointer content synchronization model failed")
 
 
 def config_text(large: Path, empty: Path, missing: Path) -> str:
@@ -192,13 +201,40 @@ def visible_content_point(
     raise RuntimeError(f"no visible content point for {title!r}: {state!r}")
 
 
+def pointer_on_content(state: dict[str, object], title: str) -> bool:
+    return (
+        state.get("pointer_window") == title
+        and state.get("pointer_context") == "window"
+    )
+
+
 def pointer_inside(control: Control, title: str) -> None:
-    x, y = visible_content_point(control.state(), title)
-    control.command(f"POINTER {x} {y}")
-    control.command("WAIT 2")
-    state = control.state()
-    if state["pointer_window"] != title or state["pointer_context"] != "window":
-        raise RuntimeError(f"pointer did not enter {title!r} content: {state!r}")
+    deadline = time.monotonic() + 10
+    attempts = 0
+    last_state: dict[str, object] = {}
+    last_point: tuple[int, int] | None = None
+    last_point_error = ""
+    while time.monotonic() < deadline:
+        last_state = control.state()
+        try:
+            last_point = visible_content_point(last_state, title)
+            last_point_error = ""
+        except RuntimeError as error:
+            last_point = None
+            last_point_error = str(error)
+            control.command("WAIT 2")
+            continue
+        attempts += 1
+        control.command(f"POINTER {last_point[0]} {last_point[1]}")
+        control.command("WAIT 2")
+        last_state = control.state()
+        if pointer_on_content(last_state, title):
+            return
+    raise RuntimeError(
+        f"timed out entering {title!r} content after {attempts} attempts; "
+        f"last_point={last_point!r}, point_error={last_point_error!r}, "
+        f"last_state={last_state!r}"
+    )
 
 
 def click(control: Control, title: str, raw_button: int) -> None:
