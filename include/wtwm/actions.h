@@ -12,6 +12,17 @@ struct wtwm_zoom_state {
 	struct wtwm_interaction_box saved;
 };
 
+struct wtwm_screen_warp_state {
+	int previous;
+};
+
+struct wtwm_screen_warp_plan {
+	int source;
+	int target;
+	int x;
+	int y;
+};
+
 bool wtwm_action_is_zoom(enum wtwm_action_type type);
 
 /* Apply twm's toggle/switch rules to client size plus frame position. */
@@ -28,5 +39,17 @@ int wtwm_action_cycle_index(int count, int current, bool forward);
 /* Resolve next/prev/back/numeric f.warptoscreen arguments. */
 int wtwm_action_screen_target(const char *argument, int current,
 	int previous, int count);
+
+/* Initialize f.warptoscreen history with no previous output. */
+void wtwm_action_screen_warp_init(struct wtwm_screen_warp_state *state);
+
+/*
+ * Plan one f.warptoscreen operation and update history only on success.
+ * Output boxes use half-open bounds and must have positive dimensions.
+ */
+bool wtwm_action_plan_screen_warp(const char *argument, int current, int count,
+	const struct wtwm_interaction_box *outputs, int pointer_x, int pointer_y,
+	struct wtwm_screen_warp_state *state,
+	struct wtwm_screen_warp_plan *plan);
 
 #endif

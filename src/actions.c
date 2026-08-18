@@ -3,6 +3,7 @@
 #include "wtwm/actions.h"
 
 #include <limits.h>
+#include <stdint.h>
 #include <string.h>
 
 static int at_least_one(int value) {
@@ -99,12 +100,17 @@ int wtwm_action_cycle_index(int count, int current, bool forward) {
 int wtwm_action_screen_target(const char *argument, int current,
 		int previous, int count) {
 	if (argument == NULL || count <= 0) return -1;
-	if (strcmp(argument, "next") == 0)
-		return (current + 1) % count;
-	if (strcmp(argument, "prev") == 0)
-		return (current + count - 1) % count;
+	if (strcmp(argument, "next") == 0) {
+		if (current < 0 || current >= count) return -1;
+		return current == count - 1 ? 0 : current + 1;
+	}
+	if (strcmp(argument, "prev") == 0) {
+		if (current < 0 || current >= count) return -1;
+		return current == 0 ? count - 1 : current - 1;
+	}
 	if (strcmp(argument, "back") == 0)
-		return previous >= 0 && previous < count ? previous : current;
+		return previous >= 0 && previous < count ? previous :
+			(current >= 0 && current < count ? current : -1);
 	if (argument[0] == '\0') return -1;
 	int parsed = 0;
 	for (const unsigned char *cursor = (const unsigned char *)argument;
@@ -115,4 +121,54 @@ int wtwm_action_screen_target(const char *argument, int current,
 		parsed = parsed * 10 + digit;
 	}
 	return parsed < count ? parsed : -1;
+}
+
+void wtwm_action_screen_warp_init(struct wtwm_screen_warp_state *state) {
+	if (state != NULL) state->previous = -1;
+}
+
+static bool valid_output_box(const struct wtwm_interaction_box *box) {
+	return box != NULL && box->width > 0 && box->height > 0;
+}
+
+static int translated_axis(int pointer, int source_origin, int target_origin,
+		int target_size) {
+	int64_t translated = (int64_t)target_origin +
+		((int64_t)pointer - source_origin);
+	int64_t maximum = (int64_t)target_origin + target_size - 1;
+	if (translated < target_origin) translated = target_origin;
+	if (translated > maximum) translated = maximum;
+	if (translated < INT_MIN) return INT_MIN;
+	if (translated > INT_MAX) return INT_MAX;
+	return (int)translated;
+}
+
+bool wtwm_action_plan_screen_warp(const char *argument, int current, int count,
+		const struct wtwm_interaction_box *outputs, int pointer_x, int pointer_y,
+		struct wtwm_screen_warp_state *state,
+		struct wtwm_screen_warp_plan *plan) {
+	if (plan == NULL) return false;
+	*plan = (struct wtwm_screen_warp_plan){
+		.source = -1,
+		.target = -1,
+		.x = pointer_x,
+		.y = pointer_y,
+	};
+	if (state == NULL || outputs == NULL || count <= 0 ||
+			current < 0 || current >= count) return false;
+	for (int index = 0; index < count; ++index) {
+		if (!valid_output_box(&outputs[index])) return false;
+	}
+	int target = wtwm_action_screen_target(argument, current,
+		state->previous, count);
+	if (target < 0 || target >= count || target == current) return false;
+
+	plan->source = current;
+	plan->target = target;
+	plan->x = translated_axis(pointer_x, outputs[current].x,
+		outputs[target].x, outputs[target].width);
+	plan->y = translated_axis(pointer_y, outputs[current].y,
+		outputs[target].y, outputs[target].height);
+	state->previous = current;
+	return true;
 }
