@@ -1,0 +1,657 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 per-screen placement/root geometry and the wtwm Wayland-output translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/add_window.c": "c3133cc763d2db086e3417b3c2f3c103dc23685690a59e4116cbd338feb7b888",
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/resize.c": "086966fc1ef0ba0cc7975623aaed52273b9b03f40f6a08e0a3d6f49698f25f67",
+    "twm-1.0.13.1/src/screen.h": "f238b482ee38fd1d75f410574d36b47e2dafec50808518b7ca374924785e48b0",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.dont-move-off": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 477,
+      "text": "This variable indicates that windows should not be allowed to be moved off the"
+    },
+    "manual.force-move": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1272,
+      "text": "This function is like \\fBf.move\\fP except that it ignores the \\fBDontMoveOff\\fP"
+    },
+    "manual.random-placement": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 880,
+      "text": "This variable indicates that windows with no specified geometry should"
+    },
+    "manual.random-instead-of-prompt": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 881,
+      "text": "be placed in a pseudo-random location instead of having the user drag out"
+    },
+    "manual.use-p-position": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1012,
+      "text": "program-requested locations (given by the \\fBPPosition\\fP flag in the"
+    },
+    "manual.fullzoom-display": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1278,
+      "text": "This function resizes the selected window to the full size of the display,"
+    },
+    "screen.info": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 62,
+      "text": "typedef struct ScreenInfo {"
+    },
+    "screen.width": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 67,
+      "text": "    int MyDisplayWidth;         /* my copy of DisplayWidth(dpy, screen) */"
+    },
+    "screen.height": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 68,
+      "text": "    int MyDisplayHeight;        /* my copy of DisplayHeight(dpy, screen) */"
+    },
+    "screen.root": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 74,
+      "text": "    Window Root;                /* the root window */"
+    },
+    "screen.menus": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 87,
+      "text": "    MenuRoot *MenuList;         /* head of the menu list */"
+    },
+    "screen.dont-move-off": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 223,
+      "text": "    short DontMoveOff;          /* don't allow windows to be moved off */"
+    },
+    "screen.random-placement": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 233,
+      "text": "    short RandomPlacement;      /* randomly place windows that no give hints */"
+    },
+    "startup.screen-info": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 397,
+      "text": "        Scr = ScreenList[scrnum] = (ScreenInfo *) calloc(1, sizeof(ScreenInfo));"
+    },
+    "startup.root": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 441,
+      "text": "        Scr->Root = RootWindow(dpy, scrnum);"
+    },
+    "startup.width": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 469,
+      "text": "        Scr->MyDisplayWidth = DisplayWidth(dpy, scrnum);"
+    },
+    "startup.height": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 470,
+      "text": "        Scr->MyDisplayHeight = DisplayHeight(dpy, scrnum);"
+    },
+    "dispatch.screen-context": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 292,
+      "text": "    if (XFindContext(dpy, w, ScreenContext, &context_data) == 0)"
+    },
+    "dispatch.screen-fallback": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 295,
+      "text": "        Scr = FindScreenInfo(WindowOfEvent(&Event));"
+    },
+    "placement.seed-x": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 88,
+      "text": "static int PlaceX = 50;"
+    },
+    "placement.seed-y": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 89,
+      "text": "static int PlaceY = 50;"
+    },
+    "placement.transient": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 394,
+      "text": "    if (tmp_win->transient ||"
+    },
+    "placement.us-position": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 395,
+      "text": "        (tmp_win->hints.flags & USPosition) ||"
+    },
+    "placement.p-position": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 396,
+      "text": "        ((tmp_win->hints.flags & PPosition) && Scr->UsePPosition &&"
+    },
+    "placement.random-branch": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 405,
+      "text": "        if (Scr->RandomPlacement) {     /* just stick it somewhere */"
+    },
+    "placement.random-current-screen": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 407,
+      "text": "            if ((PlaceX + tmp_win->attr.width) > Scr->MyDisplayWidth) {"
+    },
+    "placement.random-assign": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 422,
+      "text": "            tmp_win->attr.x = PlaceX;"
+    },
+    "placement.random-advance-x": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 424,
+      "text": "            PlaceX += 30;"
+    },
+    "placement.random-advance-y": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 425,
+      "text": "            PlaceY += 30;"
+    },
+    "placement.query-root": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 445,
+      "text": "                    if (!XQueryPointer(dpy, Scr->Root, &root,"
+    },
+    "placement.grab-root": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 480,
+      "text": "                    stat = XGrabPointer(dpy, Scr->Root, False,"
+    },
+    "placement.initial-clamp-x": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 519,
+      "text": "                    if (AddingX > Scr->MyDisplayWidth - AddingW)"
+    },
+    "placement.initial-clamp-y": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 524,
+      "text": "                    if (AddingY > Scr->MyDisplayHeight - AddingH)"
+    },
+    "placement.pointer-origin": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 545,
+      "text": "                        AddingX = event.xbutton.x_root;"
+    },
+    "placement.button-two": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 599,
+      "text": "                if (event.xbutton.button == Button2) {"
+    },
+    "placement.button-three": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 681,
+      "text": "                else if (event.xbutton.button == Button3) {"
+    },
+    "placement.fill-width": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 682,
+      "text": "                    int maxw = Scr->MyDisplayWidth - AddingX;"
+    },
+    "placement.fill-height": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 683,
+      "text": "                    int maxh = Scr->MyDisplayHeight - AddingY;"
+    },
+    "menu.clip-right": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1013,
+      "text": "    if (x + menu->width > Scr->MyDisplayWidth) {"
+    },
+    "menu.clip-bottom": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1018,
+      "text": "    if (y + menu->height > Scr->MyDisplayHeight) {"
+    },
+    "move.dont-move-off": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1688,
+      "text": "                    if (Scr->DontMoveOff && MoveFunction != F_FORCEMOVE) {"
+    },
+    "move.clip-right": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1694,
+      "text": "                        if (xr > Scr->MyDisplayWidth)"
+    },
+    "move.clip-bottom": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1699,
+      "text": "                        if (yb > Scr->MyDisplayHeight)"
+    },
+    "move.release-clamp": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1553,
+      "text": "        if (Scr->DontMoveOff && MoveFunction != F_FORCEMOVE) {"
+    },
+    "zoom.vertical": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 953,
+      "text": "            dragHeight = Scr->MyDisplayHeight - frame_bw_times_2;"
+    },
+    "zoom.horizontal": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 958,
+      "text": "            dragWidth = Scr->MyDisplayWidth - frame_bw_times_2;"
+    },
+    "zoom.full-width": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 964,
+      "text": "            dragWidth = Scr->MyDisplayWidth - frame_bw_times_2;"
+    },
+    "zoom.right-origin": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 973,
+      "text": "            dragx = basex + Scr->MyDisplayWidth / 2;"
+    },
+    "topology.per-screen-dimensions": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2409,
+      "text": "        if (ScreenList[scrnum]->Root == xev->root) {"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "placement.area-type": {
+        "path": "include/wtwm/placement.h",
+        "text": "struct wtwm_placement_area {"
+      },
+      "placement.random-state": {
+        "path": "include/wtwm/placement.h",
+        "text": "struct wtwm_random_placement {"
+      },
+      "placement.pointer-translation": {
+        "path": "src/placement.c",
+        "text": "void wtwm_pointer_placement(unsigned index, int pointer_x, int pointer_y,"
+      },
+      "placement.prompt-clamp": {
+        "path": "src/placement.c",
+        "text": "wtwm_clamp_outer_position(area, outer_width, outer_height, x, y);"
+      },
+      "placement.fill": {
+        "path": "src/placement.c",
+        "text": "void wtwm_placement_fill_size(const struct wtwm_placement_area *area,"
+      },
+      "placement.outer-clamp": {
+        "path": "src/placement.c",
+        "text": "void wtwm_clamp_outer_position(const struct wtwm_placement_area *area,"
+      },
+      "runtime.output-record": {
+        "path": "src/wtwm.c",
+        "text": "struct output {"
+      },
+      "runtime.output-box": {
+        "path": "src/wtwm.c",
+        "text": "wlr_output_layout_get_box(server->output_layout, wlr_output, &box);"
+      },
+      "runtime.output-background": {
+        "path": "src/wtwm.c",
+        "text": "output->background = wlr_scene_rect_create(&server->scene->tree,"
+      },
+      "runtime.root-hit": {
+        "path": "src/wtwm.c",
+        "text": "struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};"
+      },
+      "runtime.native-placement": {
+        "path": "src/wtwm.c",
+        "text": "static void place_native_toplevel(struct toplevel *toplevel) {"
+      },
+      "runtime.xwayland-placement": {
+        "path": "src/wtwm.c",
+        "text": "static bool initial_xwayland_frame(struct toplevel *toplevel,"
+      },
+      "runtime.menu": {
+        "path": "src/wtwm.c",
+        "text": "static void show_menu_at(struct server *server, const char *name,"
+      },
+      "runtime.zoom": {
+        "path": "src/wtwm.c",
+        "text": "static void apply_zoom(struct toplevel *toplevel,"
+      },
+      "runtime.motion": {
+        "path": "src/wtwm.c",
+        "text": "static void process_cursor_motion(struct server *server, uint32_t time_msec) {"
+      },
+      "runtime.global-focus-root": {
+        "path": "src/wtwm.c",
+        "text": "bool focus_root;"
+      }
+    },
+    "observed": [
+      "Portable placement helpers already reproduce twm's requested-position policy, global random cascade math, pointer-origin prompt, fill, and near-edge-then-far-edge clamp.",
+      "The compositor currently derives several placement, menu, move, fill, zoom, and restore areas from the whole output-layout bounding box, so layout gaps are incorrectly usable root geometry.",
+      "Each current output already owns a scene background sized and positioned from that output's logical layout box, while the seat exposes one compositor-global PointerRoot-style focus state.",
+      "Native toplevels have no absolute global requested-position protocol; managed Xwayland toplevels retain ICCCM USPosition, PPosition, transient, gravity, and override-redirect distinctions.",
+      "Milestone 7 deliberately defines icon-region and icon-manager layout across the ordered global Wayland output layout, so this contract does not duplicate those managers or allocation pools per output."
+    ]
+  },
+  "reference_behavior": {
+    "screen_root_namespace": {
+      "rule": "Every managed X screen has a distinct RootWindow and ScreenInfo. Event dispatch selects Scr from the event window/root, and root-relative geometry uses that Scr's width and height.",
+      "spatial_effect": "Placement prompts, menus, moves, fills, and zooms cannot treat another X screen or the space between screens as part of the selected root.",
+      "evidence": [
+        "screen.info",
+        "screen.width",
+        "screen.height",
+        "screen.root",
+        "screen.menus",
+        "screen.dont-move-off",
+        "screen.random-placement",
+        "startup.screen-info",
+        "startup.root",
+        "startup.width",
+        "startup.height",
+        "dispatch.screen-context",
+        "dispatch.screen-fallback"
+      ]
+    },
+    "initial_placement": {
+      "requested_rule": "Transient and USPosition windows use their requested position. PPosition is used only under the configured on/non-zero policy; accepted requested positions are not passed through DontMoveOff.",
+      "prompt_rule": "A non-iconic window without an accepted position is interactively placed on its already-selected X root; the root-confined pointer supplies the frame upper-left and Button2 resizes while Button3 fills to that root's right and bottom edges.",
+      "random_rule": "RandomPlacement replaces that prompt with PlaceX/PlaceY, applies the current Scr dimensions for edge reset, assigns the current pair, then advances each coordinate by 30.",
+      "evidence": [
+        "manual.random-placement",
+        "manual.random-instead-of-prompt",
+        "manual.use-p-position",
+        "placement.transient",
+        "placement.us-position",
+        "placement.p-position",
+        "placement.random-branch",
+        "placement.random-current-screen",
+        "placement.random-assign",
+        "placement.query-root",
+        "placement.grab-root",
+        "placement.pointer-origin",
+        "placement.button-two",
+        "placement.button-three",
+        "placement.fill-width",
+        "placement.fill-height"
+      ]
+    },
+    "placement_state": {
+      "random_scope": "PlaceX and PlaceY are file-scope static variables in add_window.c, not ScreenInfo members. One twm process therefore shares the cascade across all managed X screens, even though edge adjustment uses the current Scr dimensions.",
+      "random_seed_and_advance": "The process-global pair begins at (50,50) and each successful RandomPlacement advances it by (30,30) after any current-screen edge reset.",
+      "pointer_state": "Reference twm has no PointerPlacement directive and no per-screen pointer-placement sequence. Interactive placement reads the current pointer on the selected root; any wtwm pointer-placement counter is diagnostic bookkeeping, not reference spatial state.",
+      "evidence": [
+        "placement.seed-x",
+        "placement.seed-y",
+        "placement.random-current-screen",
+        "placement.random-advance-x",
+        "placement.random-advance-y",
+        "placement.query-root"
+      ]
+    },
+    "root_spatial_actions": {
+      "menu": "PopUpMenu clips the menu into the current Scr root width and height.",
+      "dont_move_off": "DontMoveOff clamps ordinary window and icon moves to the current Scr root in near-edge then far-edge order; f.forcemove bypasses that clamp.",
+      "interactive": "DontMoveOff clamps the initial placement outline and final pointer-origin placement to the same selected Scr root.",
+      "fill": "Initial-placement Button3 fills downward and clips rightward using the selected Scr dimensions.",
+      "zoom": "Every zoom form derives its origin and dimensions from the selected window's current Scr root and restores the saved pre-zoom geometry when toggled.",
+      "evidence": [
+        "manual.dont-move-off",
+        "manual.force-move",
+        "manual.fullzoom-display",
+        "placement.initial-clamp-x",
+        "placement.initial-clamp-y",
+        "menu.clip-right",
+        "menu.clip-bottom",
+        "move.dont-move-off",
+        "move.clip-right",
+        "move.clip-bottom",
+        "move.release-clamp",
+        "zoom.vertical",
+        "zoom.horizontal",
+        "zoom.full-width",
+        "zoom.right-origin"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "behaviorally-equivalent per-output root-geometry translation with documented unified-layout output selection and preserved process-global random state",
+    "output_root_model": {
+      "root_box": "Each enabled compositor-managed Wayland output's current logical layout box is one X-root-equivalent spatial box. Width and height are logical coordinates and the global root origin is the output box origin.",
+      "no_union": "The whole-layout bounding rectangle is never a root box. Empty gaps, disabled outputs, and space outside all output boxes are not root surface and cannot contribute placement, menu, zoom, fill, or DontMoveOff bounds.",
+      "overlap_tie": "If output boxes overlap, any point containment or equal-area tie is resolved by the canonical output-index order frozen by the screen/output contract.",
+      "root_bindings": "The same global configuration's root bindings apply on every output background. A root event targets only the actual output box hit by the event; a gap produces no root binding target.",
+      "background": "Every enabled output has its own DefaultBackground scene rectangle exactly covering that output box; no synthetic rectangle paints layout gaps.",
+      "focus": "Wayland has one seat keyboard focus, so FocusRoot remains one compositor-global PointerRoot-style state. Activating any output root clears the global client focus; wtwm does not invent independent keyboard focus per output."
+    },
+    "output_selection": {
+      "point_containment": "A point selects an enabled output whose half-open logical box contains it. Overlap ties use canonical output order.",
+      "nearest_fallback": "When a selection point is in a layout gap or outside every output, select the output whose closed logical box has the smallest squared Euclidean distance to the point; ties use canonical output order. This chooses an output identity only and never makes the gap part of its root box.",
+      "window_owner": "A managed toplevel or manually moved icon selects the enabled output with the greatest positive intersection area with its outer geometry; ties use canonical output order. With no positive intersection, use the nearest output to the outer-box center.",
+      "operation_pinning": "Placement, menu, interactive move, fill, and zoom capture one selected output when the operation begins and retain it for the whole operation. Pointer motion across another output never changes bounds mid-operation. After an unconstrained move commits, a later operation recomputes the owner from the new geometry.",
+      "zero_outputs": "With no enabled output, selection returns no output. Managed initial placement remains deferred and unexposed, no synthetic 1x1 root is created, and neither random nor diagnostic pointer-placement sequence state advances."
+    },
+    "client_paths": {
+      "native_top_level": "A new unparented native xdg toplevel has no client-supplied global position, so select by the pointer point with nearest fallback. A parented native toplevel selects its managed parent's current owner output. Random or pointer-origin placement then uses that selected output.",
+      "native_remap": "A native remap preserves its prior compositor position and does not consume placement state; later spatial operations select its current owner output.",
+      "xwayland_prompt_or_random": "A managed Xwayland window for which twm would ask the user selects the pointer output at the start. Interactive placement pins that output; RandomPlacement uses the same selected output's local dimensions but the one process-global cascade.",
+      "xwayland_accepted_request": "For an accepted USPosition/PPosition request, first compute twm's gravity-adjusted outer-frame origin in global layout coordinates. If that point is inside an output, select that output; if it is in a layout gap or outside all outputs, use the nearest-output rule. Preserve the accepted global position exactly: output selection does not clamp or rewrite it and DontMoveOff does not apply.",
+      "xwayland_transient": "A managed Xwayland transient with a managed parent selects the parent's current owner output, matching the same-root X11 relationship, while preserving the accepted requested global position. Without a managed parent, use the accepted-request point rule.",
+      "xwayland_override_redirect": "Override-redirect Xwayland surfaces remain unmanaged and preserve their Xwayland global coordinates; they do not consume managed placement state or acquire an X-root-equivalent placement owner."
+    },
+    "placement_state": {
+      "random_scope": "Retain one compositor-global RandomPlacement cascade to match upstream's file-scope PlaceX/PlaceY. Do not reset or isolate the cascade per output. Express each chosen pair in selected-output-local coordinates, apply that output's logical width/height edge reset, then add its global origin.",
+      "pointer_scope": "Pointer-origin placement uses the selected operation output but has no per-output reference sequence. If wtwm retains a placement counter for traces or test seeding, it remains global, does not alter coordinates, and advances only for a placement that actually commits or consumes RandomPlacement.",
+      "deliberate_non_divergence": "Per-output random cursors would look ScreenInfo-like but contradict the frozen source. This contract deliberately rejects that divergence unless a later compatibility decision changes the classification with new evidence and tests."
+    },
+    "root_spatial_actions": {
+      "menu": "A root menu uses the invocation output; a window-context menu uses the target's owner output. The root menu and every submenu stay pinned to that same output and clamp only to its root box.",
+      "dont_move_off": "At move start, select the window or icon owner output and pin it. DontMoveOff clamps outer geometry to that output in twm's near-edge then far-edge order; f.forcemove bypasses the clamp. The pinned output never switches as the pointer crosses another output.",
+      "interactive_initial": "Pointer-origin initial placement, its confirmation outline, Button2 resize origin, and Button3 fill all stay pinned to the initially selected output. Fill uses only that output's right and bottom edges.",
+      "zoom": "Zoom selects the target toplevel's owner output at invocation and computes every full, horizontal, vertical, and half-output form from that output's box and global origin. It does not switch outputs during the operation.",
+      "max_window_default": "The screen-derived MaxWindowSize default for a new managed toplevel uses the selected output's logical width and height, not the layout union.",
+      "accepted_request_exception": "DontMoveOff and output-root clamps do not alter an accepted Xwayland requested position, matching reference twm; output ownership still follows the explicit accepted-request selection rule."
+    }
+  },
+  "scope_boundaries": {
+    "this_slice_requires": [
+      "deterministic selection of one enabled output for every covered spatial operation",
+      "output-local initial placement and screen-derived maximum-size geometry for native and managed Xwayland clients",
+      "output-pinned menus, interactive placement, fills, zooms, and DontMoveOff window/icon moves",
+      "actual-output root hit targets, per-output backgrounds, and one explicit global seat FocusRoot translation",
+      "gap and zero-output safety without synthetic root geometry or placement-state consumption"
+    ],
+    "icon_and_manager_boundary": "Milestone 7 already froze IconRegion allocation pools and icon-manager geometry/navigation across the ordered global Wayland output layout, and the screen/output contract chose one global configuration namespace. This slice does not duplicate icon regions or icon managers per output and does not reopen those checked semantics. It does cover DontMoveOff bounds for an explicitly moved icon because that is the same root-confined move operation as a window.",
+    "non_spatial_root_boundary": "Global config, menus definitions, focus policy, stacking, refresh scheduling, colormap state, and clipboard state are not duplicated per output merely because their X11 implementation was attached to ScreenInfo or a root. Only an observable spatial/root-hit distinction in this contract is output-scoped.",
+    "explicitly_deferred": [
+      "f.warptoscreen next/prev/back history and topology-sensitive history repair",
+      "output addition/removal/scale/mode transaction mechanics and operation repair during those changes",
+      "safe window restoration or relocation after an output disappears",
+      "persistent session-state reassociation across changed output topology",
+      "input hotplug and multiple keyboards, pointers, seats, or independent seat focus",
+      "session startup, logout, failure recovery, and persistent state-file lifecycle",
+      "persistent physical-output identity across sessions when backend identity strings collide"
+    ],
+    "non_claim": "Steady-state placement/root tests do not complete later warp history, topology mutation, disappeared-output restoration, input, session lifecycle, or Milestone 8 testing/exit-criteria checkboxes."
+  },
+  "requirements": [
+    {
+      "id": "placement.reference-root",
+      "rule": "Preserve evidence that each X ScreenInfo has one root and dimensions selected by event context for placement and root-relative spatial actions.",
+      "evidence": ["screen.info", "screen.root", "screen.width", "screen.height", "dispatch.screen-context"]
+    },
+    {
+      "id": "placement.output-selection",
+      "rule": "Select one enabled output by point containment, nearest-point fallback, or greatest window intersection, with canonical ties and operation-long pinning.",
+      "evidence": ["startup.root", "dispatch.screen-fallback", "placement.grab-root"]
+    },
+    {
+      "id": "placement.xwayland-requested",
+      "rule": "Select accepted Xwayland requests by gravity-adjusted global frame origin inside, in a gap, or outside outputs, while preserving the requested position without DontMoveOff clamping.",
+      "evidence": ["manual.use-p-position", "placement.transient", "placement.us-position", "placement.p-position"]
+    },
+    {
+      "id": "placement.native-and-prompt",
+      "rule": "Place native toplevels and Xwayland prompt/random cases on the selected pointer or parent output and pin interactive placement to that output.",
+      "evidence": ["placement.query-root", "placement.grab-root", "placement.pointer-origin"]
+    },
+    {
+      "id": "placement.global-random-state",
+      "rule": "Retain one process-global RandomPlacement cascade, apply the selected output dimensions and origin, and do not invent per-output PlaceX/PlaceY or PointerPlacement state.",
+      "evidence": ["placement.seed-x", "placement.seed-y", "placement.random-current-screen", "placement.random-advance-x", "placement.random-advance-y"]
+    },
+    {
+      "id": "placement.root-menu-focus",
+      "rule": "Limit root hits, backgrounds, and menu geometry to actual output boxes while retaining one global Wayland seat FocusRoot state.",
+      "evidence": ["screen.root", "screen.menus", "menu.clip-right", "menu.clip-bottom"]
+    },
+    {
+      "id": "placement.spatial-actions",
+      "rule": "Use one pinned output root for interactive fill, zoom, and DontMoveOff window/icon movement, while f.forcemove bypasses the move clamp.",
+      "evidence": ["manual.force-move", "placement.fill-width", "placement.fill-height", "move.dont-move-off", "zoom.full-width"]
+    },
+    {
+      "id": "placement.gap-zero-safety",
+      "rule": "Never treat layout gaps or a synthetic zero-output box as root geometry, and never advance placement state while no output can be selected.",
+      "evidence": ["screen.width", "screen.height", "startup.root"]
+    },
+    {
+      "id": "placement.scope-boundary",
+      "rule": "Do not reopen global Milestone 7 icon-region/icon-manager semantics or claim warp history, topology repair, output removal restoration, input, or session lifecycle work.",
+      "evidence": ["topology.per-screen-dimensions", "screen.menus"]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-global-random-cascade",
+      "kind": "reference-state",
+      "oracle": "Placements on two X screens consume one shared 50,50 then 80,80 cascade while each edge check uses the current Scr dimensions."
+    },
+    {
+      "id": "reference-requested-position-bypasses-clamp",
+      "kind": "reference-requested",
+      "oracle": "An accepted USPosition/PPosition is preserved even with DontMoveOff because only prompted placement enters the placement clamp."
+    },
+    {
+      "id": "reference-root-confined-prompt",
+      "kind": "reference-root",
+      "oracle": "Interactive placement queries and grabs the selected Scr root and uses that root's dimensions."
+    },
+    {
+      "id": "native-pointer-output",
+      "kind": "runtime-native",
+      "oracle": "An unparented native map at a pointer inside output B is placed against B's box, not the layout union or canonical output zero."
+    },
+    {
+      "id": "native-parent-output",
+      "kind": "runtime-native",
+      "oracle": "A parented native toplevel selects its managed parent's owner output independent of pointer location."
+    },
+    {
+      "id": "xwayland-request-inside",
+      "kind": "runtime-xwayland-requested",
+      "oracle": "An accepted gravity-adjusted frame origin inside output B selects B and preserves the exact global requested position."
+    },
+    {
+      "id": "xwayland-request-gap",
+      "kind": "runtime-xwayland-requested",
+      "oracle": "An accepted frame origin in a layout gap selects the nearest output with a canonical tie but remains at the requested gap coordinate."
+    },
+    {
+      "id": "xwayland-request-outside",
+      "kind": "runtime-xwayland-requested",
+      "oracle": "An accepted frame origin outside all outputs selects the nearest output identity but is not rewritten or DontMoveOff-clamped."
+    },
+    {
+      "id": "xwayland-transient-parent",
+      "kind": "runtime-xwayland-requested",
+      "oracle": "A managed Xwayland transient selects its managed parent's owner output while retaining its accepted requested coordinates."
+    },
+    {
+      "id": "xwayland-prompt-pointer-output",
+      "kind": "runtime-xwayland-interactive",
+      "oracle": "A managed Xwayland window requiring a prompt selects the pointer output once and stays pinned through confirmation or resize."
+    },
+    {
+      "id": "global-random-across-outputs",
+      "kind": "runtime-state",
+      "oracle": "Random placements on output A then B consume successive pairs from one global cascade, translating each pair by the selected output origin."
+    },
+    {
+      "id": "output-local-random-edge-reset",
+      "kind": "runtime-state",
+      "oracle": "A global random pair that overflows output B resets using B's width/height, not A's dimensions or the layout union."
+    },
+    {
+      "id": "menu-output-clamp",
+      "kind": "runtime-root",
+      "oracle": "A root menu and its submenu invoked on output B remain wholly clamped to B even when the submenu would fit in the union."
+    },
+    {
+      "id": "root-gap-no-binding",
+      "kind": "runtime-gap",
+      "oracle": "A pointer coordinate in a layout gap hits no output background and dispatches no root binding."
+    },
+    {
+      "id": "background-gap-unpainted",
+      "kind": "runtime-gap",
+      "oracle": "DefaultBackground rectangles cover each actual output box and do not paint the gap between them."
+    },
+    {
+      "id": "move-pinned-output",
+      "kind": "runtime-move",
+      "oracle": "With DontMoveOff, a window or icon move begun on output A remains clamped to A when the pointer crosses B."
+    },
+    {
+      "id": "force-move-cross-output",
+      "kind": "runtime-move",
+      "oracle": "f.forcemove bypasses A's clamp and can commit on B; the next operation recomputes B as owner from committed geometry."
+    },
+    {
+      "id": "zoom-owner-output",
+      "kind": "runtime-zoom",
+      "oracle": "A toplevel mostly intersecting output B zooms within B's origin and dimensions and does not switch during the action."
+    },
+    {
+      "id": "interactive-fill-output",
+      "kind": "runtime-placement",
+      "oracle": "Button3 initial fill uses only the pinned output's right and bottom edges, never the layout union."
+    },
+    {
+      "id": "selected-output-max-window-default",
+      "kind": "runtime-placement",
+      "oracle": "Default MaxWindowSize is derived from the selected output dimensions for native and managed Xwayland initial placement."
+    },
+    {
+      "id": "zero-output-deferred",
+      "kind": "runtime-zero-output",
+      "oracle": "With no enabled output, managed initial placement remains deferred and unexposed without creating a 1x1 compatibility root."
+    },
+    {
+      "id": "zero-output-state-stable",
+      "kind": "runtime-zero-output",
+      "oracle": "A deferred zero-output map does not advance the global random cascade or diagnostic placement counter."
+    },
+    {
+      "id": "override-redirect-unmanaged",
+      "kind": "runtime-xwayland-boundary",
+      "oracle": "An override-redirect surface keeps Xwayland global coordinates and consumes no managed placement state."
+    },
+    {
+      "id": "icon-manager-boundary",
+      "kind": "contract-scope",
+      "oracle": "Passing this slice does not duplicate or redefine the globally ordered IconRegion allocation pools or icon-manager geometry completed in Milestone 7."
+    },
+    {
+      "id": "deferred-topology-boundary",
+      "kind": "contract-scope",
+      "oracle": "Passing steady-state output placement does not claim warp history, topology mutation, removed-output restoration, input hotplug, or session lifecycle completion."
+    }
+  ]
+}
