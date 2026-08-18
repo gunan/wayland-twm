@@ -1,0 +1,690 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 fixed-screen geometry and the wtwm safe disappeared-output restoration translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/icons.c": "d97413dc1abb5a8811ee54056d3a949dbbe6a8ef08c147198a2ae30cff4e558b",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/resize.c": "086966fc1ef0ba0cc7975623aaed52273b9b03f40f6a08e0a3d6f49698f25f67",
+    "twm-1.0.13.1/src/twm.h": "c9688764f567e781acaf6ed8f7590ddf94b45ce09bd306dd8db55524a88b46e1"
+  },
+  "evidence": {
+    "randr.handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2403,
+      "text": "HandleScreenChangeNotify(void)"
+    },
+    "randr.fixed-loop": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2408,
+      "text": "    for (scrnum = 0; scrnum < NumScreens; scrnum++) {"
+    },
+    "randr.width": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2410,
+      "text": "            ScreenList[scrnum]->MyDisplayWidth = xev->width;"
+    },
+    "randr.height": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2411,
+      "text": "            ScreenList[scrnum]->MyDisplayHeight = xev->height;"
+    },
+    "randr.xlib-update": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 2415,
+      "text": "    XRRUpdateConfiguration(&Event);"
+    },
+    "move.dont-move-off": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1553,
+      "text": "        if (Scr->DontMoveOff && MoveFunction != F_FORCEMOVE) {"
+    },
+    "move.near-x": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1557,
+      "text": "            if (xl < 0)"
+    },
+    "move.far-x": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1559,
+      "text": "            if (xr > Scr->MyDisplayWidth)"
+    },
+    "icon.position-hint": {
+      "member": "twm-1.0.13.1/src/icons.c",
+      "line": 537,
+      "text": "    if (tmp_win->wmhints && tmp_win->wmhints->flags & IconPositionHint) {"
+    },
+    "icon.automatic-place": {
+      "member": "twm-1.0.13.1/src/icons.c",
+      "line": 542,
+      "text": "        PlaceIcon(tmp_win, def_x, def_y, &final_x, &final_y);"
+    },
+    "icon.far-x": {
+      "member": "twm-1.0.13.1/src/icons.c",
+      "line": 545,
+      "text": "    if (final_x > Scr->MyDisplayWidth)"
+    },
+    "icon.move": {
+      "member": "twm-1.0.13.1/src/icons.c",
+      "line": 553,
+      "text": "    XMoveWindow(dpy, tmp_win->icon_w, final_x, final_y);"
+    },
+    "icon.ever-iconified": {
+      "member": "twm-1.0.13.1/src/icons.c",
+      "line": 554,
+      "text": "    tmp_win->iconified = TRUE;"
+    },
+    "deiconify.map-client": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2381,
+      "text": "    XMapWindow(dpy, tmp_win->w);"
+    },
+    "deiconify.transient-loop": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2403,
+      "text": "    for (t = Scr->TwmRoot.next; t != NULL; t = t->next) {"
+    },
+    "deiconify.transient-parent": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2404,
+      "text": "        if (t->transient && t->transientfor == tmp_win->w) {"
+    },
+    "iconify.unmapping-choice": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2440,
+      "text": "    iconify = ((!tmp_win->iconify_by_unmapping) || tmp_win->transient);"
+    },
+    "iconify.transients-first": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2454,
+      "text": "    /* iconify transients first */"
+    },
+    "iconify.transient-state": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2477,
+      "text": "            SetMapStateProp(t, IconicState);"
+    },
+    "iconify.focus-root": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2507,
+      "text": "    if (tmp_win == Scr->Focus) {"
+    },
+    "zoom.read-frame": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 920,
+      "text": "    XGetGeometry(dpy, (Drawable) tmp_win->frame, &junkRoot,"
+    },
+    "zoom.restore-saved": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 928,
+      "text": "        dragHeight = tmp_win->save_frame_height;"
+    },
+    "zoom.save-x": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 938,
+      "text": "            tmp_win->save_frame_x = dragx;"
+    },
+    "zoom.save-mode": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 942,
+      "text": "            tmp_win->zoomed = (short) flag;"
+    },
+    "zoom.display-height": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 953,
+      "text": "            dragHeight = Scr->MyDisplayHeight - frame_bw_times_2;"
+    },
+    "zoom.raise": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 993,
+      "text": "    if (!Scr->NoRaiseResize)"
+    },
+    "zoom.setup": {
+      "member": "twm-1.0.13.1/src/resize.c",
+      "line": 998,
+      "text": "    SetupWindow(tmp_win, dragx, dragy, dragWidth, dragHeight, -1);"
+    },
+    "state.icon-moved": {
+      "member": "twm-1.0.13.1/src/twm.h",
+      "line": 287,
+      "text": "    short icon_moved;           /* user explicitly moved the icon */"
+    },
+    "state.transient": {
+      "member": "twm-1.0.13.1/src/twm.h",
+      "line": 292,
+      "text": "    short transient;            /* this is a transient window */"
+    },
+    "state.transient-for": {
+      "member": "twm-1.0.13.1/src/twm.h",
+      "line": 293,
+      "text": "    Window transientfor;        /* window contained in XA_XM_TRANSIENT_FOR */"
+    },
+    "state.saved-frame": {
+      "member": "twm-1.0.13.1/src/twm.h",
+      "line": 296,
+      "text": "    int save_frame_x;           /* x position of frame */"
+    },
+    "state.zoomed": {
+      "member": "twm-1.0.13.1/src/twm.h",
+      "line": 300,
+      "text": "    short zoomed;               /* is the window zoomed? */"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "runtime.toplevel-state": {
+        "path": "src/wtwm.c",
+        "text": "struct toplevel {"
+      },
+      "runtime.frame-position": {
+        "path": "src/wtwm.c",
+        "text": "int frame_x;\n\tint frame_y;\n\tbool frame_positioned;"
+      },
+      "runtime.output-reference": {
+        "path": "src/wtwm.c",
+        "text": "struct output *placement_output;"
+      },
+      "runtime.icon-state": {
+        "path": "src/wtwm.c",
+        "text": "bool icon_region_allocated;\n\tbool icon_moved;"
+      },
+      "runtime.zoom-state": {
+        "path": "src/wtwm.c",
+        "text": "struct wtwm_zoom_state zoom;"
+      },
+      "runtime.outer-selection": {
+        "path": "src/wtwm.c",
+        "text": "bool found = loaded && wtwm_placement_output_for_outer(areas, count,"
+      },
+      "placement.outer-selector": {
+        "path": "src/placement.c",
+        "text": "bool wtwm_placement_output_for_outer(const struct wtwm_placement_area *areas,"
+      },
+      "placement.intersection-priority": {
+        "path": "src/placement.c",
+        "text": "if (intersection > best_intersection) {"
+      },
+      "placement.nearest-center": {
+        "path": "src/placement.c",
+        "text": "int64_t center_x = (int64_t)2 * outer_x +"
+      },
+      "placement.reference-clamp": {
+        "path": "src/placement.c",
+        "text": "/* Reference move/placement checks the near edge, then the far edge. */"
+      },
+      "runtime.topology-refresh": {
+        "path": "src/wtwm.c",
+        "text": "static void refresh_output_topology(struct server *server) {"
+      },
+      "runtime.topology-zero": {
+        "path": "src/wtwm.c",
+        "text": "if (enabled_output_count(server) == 0) {\n\t\tserver->pointer_toplevel = NULL;"
+      },
+      "runtime.topology-destroy": {
+        "path": "src/wtwm.c",
+        "text": "static void output_destroy(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.waiter-resume": {
+        "path": "src/wtwm.c",
+        "text": "static void resume_output_waiting_toplevels(struct server *server) {"
+      },
+      "runtime.session-save-icon": {
+        "path": "src/wtwm.c",
+        "text": ".has_manual_icon_position = toplevel->icon_moved,"
+      },
+      "runtime.session-save-zoom": {
+        "path": "src/wtwm.c",
+        "text": ".zoom_mode = session_zoom_mode(toplevel->zoom.mode),"
+      },
+      "runtime.session-restore-geometry": {
+        "path": "src/wtwm.c",
+        "text": "static void apply_session_geometry(struct toplevel *toplevel,"
+      },
+      "runtime.session-restore-icon": {
+        "path": "src/wtwm.c",
+        "text": "if (record->has_manual_icon_position) {"
+      },
+      "runtime.xwayland-transient": {
+        "path": "src/wtwm.c",
+        "text": "static void position_xwayland_transient(struct toplevel *toplevel) {"
+      },
+      "actions.zoom-record": {
+        "path": "include/wtwm/actions.h",
+        "text": "struct wtwm_zoom_state {\n\tenum wtwm_action_type mode;\n\tstruct wtwm_interaction_box saved;\n};"
+      },
+      "actions.zoom-save": {
+        "path": "src/actions.c",
+        "text": "if (!wtwm_action_is_zoom(state->mode)) state->saved = *current;"
+      },
+      "actions.zoom-output": {
+        "path": "src/actions.c",
+        "text": "int full_width = at_least_one(output->width - decoration_width);"
+      }
+    },
+    "observed": [
+      "wtwm already has canonical output-area selection by greatest positive outer-frame intersection with an overflow-safe nearest-center fallback and canonical input order for ties.",
+      "Managed native and Xwayland toplevels already retain frame, iconified/manual-icon/automatic-region, transient, focus/stacking, and zoom mode plus saved geometry state.",
+      "The topology path already repairs pinned operations, output roots, icons, warp history, pointer validity, and zero-output placement waiters, but it does not yet plan or publish managed-window restoration.",
+      "Session save/restore already records frame, manual icon, stack/focus, iconified, zoom mode, and saved geometry, so restoration must update those live values without inventing persistent physical-output identity."
+    ]
+  },
+  "reference_behavior": {
+    "topology_limit": {
+      "rule": "Reference twm owns a fixed startup X-screen list. Its XRandR handler searches that fixed list, updates only cached screen width and height, calls XRRUpdateConfiguration, and contains no output disappearance, window restoration, transient repair, icon repair, or transaction rollback path.",
+      "evidence": [
+        "randr.handler",
+        "randr.fixed-loop",
+        "randr.width",
+        "randr.height",
+        "randr.xlib-update"
+      ]
+    },
+    "move_and_icon_bounds": {
+      "rule": "During an explicit non-force move with DontMoveOff, twm checks the near edge and then the far edge of the current screen. Icon creation honors IconPositionHint or PlaceIcon and clamps only coordinates beyond the far screen edge before moving the icon. These are user-action and icon-creation rules, not topology restoration.",
+      "oversize_discrepancy": "For an object larger than the screen, the reference near-then-far order can leave its near edge negative. wtwm restoration deliberately uses a stronger safety translation: preserve the object size and pin its near edge to the destination origin so title/icon access is not permanently hidden.",
+      "evidence": [
+        "move.dont-move-off",
+        "move.near-x",
+        "move.far-x",
+        "icon.position-hint",
+        "icon.automatic-place",
+        "icon.far-x",
+        "icon.move",
+        "icon.ever-iconified"
+      ]
+    },
+    "families_icons_zoom": {
+      "rule": "twm records transient parentage and iconifies/deiconifies related transients as a family. It separately records manual icon movement, current icon state, saved unzoomed frame geometry, and zoom mode. fullzoom derives displayed geometry from current screen dimensions and normally raises as a resize side effect.",
+      "restoration_difference": "Because reference twm has no disappearing-screen restoration action, wtwm reuses those state relationships but restoration itself must not synthesize iconify/deiconify, focus, raise, or stacking actions.",
+      "evidence": [
+        "deiconify.map-client",
+        "deiconify.transient-loop",
+        "deiconify.transient-parent",
+        "iconify.unmapping-choice",
+        "iconify.transients-first",
+        "iconify.transient-state",
+        "iconify.focus-root",
+        "zoom.read-frame",
+        "zoom.restore-saved",
+        "zoom.save-x",
+        "zoom.save-mode",
+        "zoom.display-height",
+        "zoom.raise",
+        "zoom.setup",
+        "state.icon-moved",
+        "state.transient",
+        "state.transient-for",
+        "state.saved-frame",
+        "state.zoomed"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "This is a documented Wayland behaviorally-equivalent safety translation over twm's fixed-screen model. Dynamic-output restoration adds deterministic visibility, atomicity, and resource-safety guarantees that XRandR twm does not provide.",
+    "snapshot_and_affected": {
+      "snapshot": "Plan from immutable pre-transaction and proposed post-transaction canonical output snapshots. Each snapshot contains surviving identity and positive logical boxes; all frame, icon, family, zoom, focus, and stack decisions use that one pair.",
+      "normal_frame": "A positive-sized outer frame is unaffected when it retains any positive-area intersection with any post-state output. Preserve its position and size byte-for-byte even if its old owner changed, another output disappeared, or canonical indices changed.",
+      "stranded": "A normal frame is stranded only when it has zero positive-area intersection with every post-state output. Disable and destroy use the same rule; output shrink, move, scale, transform, or mode change restores only frames made stranded by the resulting logical boxes.",
+      "no_op": "Rejected, rolled-back, and semantically unchanged topology transactions move nothing and mutate no restoration state. Mere proximity, partial visibility, pointer position, focus, or output return is never a relocation trigger."
+    },
+    "owner_destination": {
+      "source_owner": "Resolve a stranded box's source owner in the pre-state with wtwm_placement_output_for_outer: greatest positive intersection, first canonical output on a tie, then canonical-nearest-center distance to the old outer-box center if no intersection exists.",
+      "surviving_owner": "If that exact source identity remains active post-state, it is the destination even when its logical box moved or shrank.",
+      "missing_owner": "Otherwise choose the post-state output nearest the old outer-box center using the same overflow-safe distance and first canonical tie-break. Never use dense-index inheritance, focus, pointer, mapping order, output list order, or client protocol.",
+      "no_outputs": "With no active post-state output, select no destination and create bounded in-memory restoration-pending state instead of synthetic geometry.",
+      "no_repatriation": "A successfully restored box adopts its new geometry as future pre-state. Adding or re-enabling an old output does not return it automatically; a still-visible box stays byte-exact."
+    },
+    "coordinate_and_clamp": {
+      "relative_candidate": "For a resolved source and destination, compute the candidate outer top-left as destination origin plus the old unscaled logical offset from source origin, with checked wide intermediates and saturation only at the final integer boundary. With no valid source, use the old global top-left.",
+      "fitting_axis": "On each axis where outer size is no larger than destination size, clamp the candidate into the inclusive range from destination origin through destination origin plus destination size minus outer size, so the whole outer box is visible.",
+      "oversize_axis": "On each axis where outer size exceeds destination size, preserve size and pin the near edge exactly to destination origin; allow overflow only beyond the far edge. Never shrink an ordinary frame or place its title/near edge outside the destination.",
+      "dimensions": "All containment uses complete compositor outer geometry including decorations and half-open positive-area intersection. Preserve ordinary client/frame size, border, title, requested constraints, and fractional-scale-independent logical coordinates."
+    },
+    "transient_families": {
+      "membership": "Build each managed recursive family from native xdg parent links or managed Xwayland transient-for parent links before publication. Unmanaged Xwayland override-redirect surfaces are excluded. Preserve links and process roots in stable stacking order.",
+      "root_stranded": "When a family root is stranded, choose one root destination, plan and safety-clamp the root, then define the actual root delta as planned root top-left minus old root top-left. Translate every managed descendant by that actual post-clamp delta, then independently safety-clamp each outer box to the root destination. Preserve every member size and relative position unless an individual clamp is required.",
+      "root_visible": "When the root remains positively visible, preserve the root and every still-visible descendant byte-for-byte. Repair only a stranded descendant to the root's post-state owner, using its unchanged global top-left as candidate (delta zero) followed by safety clamp; do not perturb visible siblings.",
+      "ordering": "Restoration never changes parent links, modal relationships, iconified state, mapped state, focus, or the exact pre-state stacking order and never raises a root or descendant."
+    },
+    "icons_and_iconified": {
+      "hidden_frame": "Restore the hidden underlying frame of every iconified managed client with the normal or family rule so later deiconify cannot reveal a permanently stranded frame.",
+      "visible_icon": "Treat each visible positive-sized icon box as an independent restoration box. Manual/IconPositionHint-equivalent icons use the normal source, relative candidate, destination, and safety clamp without changing iconified state.",
+      "automatic_icon": "An automatic icon-region allocation remains automatic. Rebuild the existing deterministic allocator against post-state regions; preserve a still-valid allocation byte-for-byte, otherwise place on the resolved destination, and fall back to relative-candidate safety clamp only if no configured region accepts it. Never convert it to manual movement.",
+      "unmapping": "For IconifyByUnmapping or any iconified client with no visible icon box, repair only the hidden frame. Do not create an icon, synthesize map/unmap, or change icon-manager membership."
+    },
+    "zoom_and_saved_geometry": {
+      "affected": "A zoomed window has a pre-state zoom-owner output selected from its displayed outer box. It is affected when that identity disappears or its logical box changes, even if the old displayed zoom box still intersects a post-state output; an unchanged owner box leaves displayed and saved geometry byte-exact.",
+      "target": "Resolve the zoom target by surviving owner identity or canonical-nearest old displayed center. Relocate the saved unzoomed outer geometry by the source-to-target origin delta and the same safety clamp while preserving its client size.",
+      "displayed": "Preserve the exact zoom mode and recompute displayed client/frame geometry from the selected target's post-state logical box using wtwm_action_zoom decoration and half-output rules. Do not treat restoration as a zoom toggle and do not overwrite the relocated saved box.",
+      "side_effects": "Unlike reference fullzoom, topology restoration does not raise, focus, or unzoom the window. With zero outputs, retain exact displayed geometry, mode, and saved box in pending state until a target exists."
+    },
+    "zero_output_lifecycle": {
+      "hide_existing": "On transition to zero active outputs, keep already managed native and Xwayland clients protocol-mapped, connected, and logically managed, but disable their compositor scene trees and mark their complete family/frame/icon/zoom restoration records pending. Preserve exact geometry and state; do not send synthetic unmap, minimize, close, or configure-to-zero.",
+      "focus_stack": "Preserve keyboard-focus bookkeeping, root/client focus choice, exact stacking order, iconified state, and all client associations while no output exists. Clear only invalid pointer/root hit context as required by the topology contract; no hidden client receives pointer input.",
+      "new_maps": "Clients first mapped with zero outputs remain placement-waiting and scene-hidden under the placement contract; they are not mixed into the already-managed restoration-pending sequence.",
+      "resume": "After the first successful active-output transaction, restore all already-managed pending families in stable pre-existing stacking order and make their scene visibility match mapped/iconified state before resuming new placement waiters oldest-first. A failed output transaction resumes nothing.",
+      "pending_identity": "Pending records retain the source output identity and logical area only in memory. Re-enable of the same managed identity uses it; destroy plus reannouncement is a new identity and uses canonical-nearest fallback."
+    },
+    "focus_stack_protocol": {
+      "focus_and_stack": "Relocation preserves the exact focus target/root-focus state, stacking order, activation, mapped/iconified state, auto-raise state, and icon-manager ordering. It emits no focus, raise, lower, iconify, deiconify, or user-action trace.",
+      "native": "For native Wayland, move compositor-owned frame/scene position and send a configure only when recomputed zoom changes client size; normal restoration preserves client size and protocol mapping.",
+      "xwayland": "For managed Xwayland, configure the managed frame/client coordinates and any changed zoom size without withdrawing or remapping the X11 window, and preserve transient-for and stacking relationships.",
+      "invariance": "Destination, clamp, family, zero-output, focus, and stack policy is identical for native and managed Xwayland clients regardless of app_id/title, WM_NAME/WM_CLASS, focus, iconification, or mapping order."
+    },
+    "atomicity_and_churn": {
+      "prepare": "Compute and allocate the complete restoration plan, family closures, pending records, icon allocator result, and protocol configure set before publishing a reversible topology commit or dispatching input/render/client-visible state.",
+      "reversible_failure": "Any validation, overflow, allocation, backend, layout, scene, or planning failure for a reversible add/enable/disable/mode/scale/transform/layout transaction rolls back topology, frames, icons, zoom, pending flags, focus, stack, pointer, history, and UI byte-for-byte.",
+      "destroy_failure": "Destroy is irreversible. If allocation or planning cannot finish after backend loss, detach every dead output reference, keep affected client scene trees hidden, and retain bounded restoration-pending records based on already-owned geometry; never expose stale coordinates or dereference the dead output.",
+      "repeat": "After success, restored geometry is the next transaction's pre-state. Repeated disable/destroy/shrink/move/add churn is deterministic and drift-free for no-op/rejected transactions and bounded in outputs plus managed boxes, with no leak, duplicate configure, stale reference, double restore, or use after free."
+    },
+    "configuration_session_restart": {
+      "reload": "Successful or rejected .twmrc reload does not undo, repatriate, or independently rerun restoration. A successful reload may rebuild automatic icon regions using current restored geometry; rejection preserves every live and pending record.",
+      "save": "A later successful f.saveyourself serializes the relocated current frame, manual icon position, stack/focus/iconified state, zoom mode, and relocated saved unzoom geometry. While zero-output pending, it serializes the exact preserved geometry rather than synthetic coordinates.",
+      "restart": "Successful in-place f.restart/f.twmrc preserves live restored and pending geometry/state and never repatriates windows. Restart cancellation of interactions and warp-history rules remain separate and do not alter restoration results.",
+      "previous_state": "RestartPreviousState has no physical-output identity field: when a record maps, apply current canonical destination selection and safety clamp to its stored frame/icon/zoom-saved geometry, then recompute any zoom display. Ambiguous client identity remains rejected by the session contract."
+    }
+  },
+  "scope_boundaries": {
+    "this_slice_requires": [
+      "deterministic affected-box detection, source ownership, destination choice, relative translation, and near-edge-safe clamping",
+      "native/Xwayland frame, recursive transient family, visible icon, hidden iconified frame, zoom, focus, and stack preservation",
+      "zero-output pending hiding and ordered restoration before placement waiters resume",
+      "atomic reversible rollback, irreversible-destroy fallback, bounded repeated-churn safety, reload/restart/session-record interaction",
+      "live restoration state that contains no dead output pointer and never automatically repatriates a still-visible window"
+    ],
+    "already_owned": [
+      "topology add/remove/enable/mode/scale/transform/layout transaction publication, output-root refresh, pointer repair, and operation cancellation are defined by output-topology-contract.json",
+      "canonical output identity/order and output-aware initial placement are defined by screen-output-contract.json and output-placement-contract.json",
+      "f.warptoscreen history repair by surviving identity is defined by warp-screen-contract.json"
+    ],
+    "explicitly_deferred": [
+      "input hotplug and multiple keyboards, pointers, seats, or independent seat focus",
+      "session startup, logout, failure recovery, state-file lifetime, and persistent physical-output identity or reassociation",
+      "new per-output workspace ownership, automatic repatriation policy, or user-configurable restoration destinations",
+      "relocation of unmanaged Xwayland override-redirect surfaces, layer-shell surfaces, popups, drag icons, or client-owned subsurfaces"
+    ],
+    "next_handoff": "The immediately following Roadmap item may add input hotplug only after restored and pending clients have valid output-independent focus bookkeeping; it must not reinterpret window destinations or zero-output scene visibility.",
+    "non_claim": "Passing this contract completes only managed-window restoration after output loss. It does not complete topology implementation by itself, input hotplug, full session lifecycle, Milestone 8 testing, or exit criteria."
+  },
+  "requirements": [
+    {
+      "id": "restoration.reference-boundary",
+      "rule": "Preserve proof that twm has fixed screens and dimensions-only XRandR handling; identify move/icon/zoom/transient state reused by the stronger Wayland safety translation without claiming native hotplug restoration.",
+      "evidence": [
+        "randr.fixed-loop",
+        "randr.width",
+        "randr.height",
+        "move.dont-move-off",
+        "icon.automatic-place",
+        "zoom.save-x",
+        "state.transient"
+      ]
+    },
+    {
+      "id": "restoration.affected-selection",
+      "rule": "Preserve every positive-intersection ordinary frame byte-exact and restore only zero-intersection stranded frames, while treating changed zoom-owner geometry as derived and affected.",
+      "evidence": [
+        "randr.width",
+        "randr.height",
+        "zoom.display-height"
+      ]
+    },
+    {
+      "id": "restoration.destination-clamp",
+      "rule": "Select source by greatest intersection/canonical-nearest, prefer its surviving identity, otherwise choose canonical-nearest destination, preserve unscaled relative coordinates, fully clamp fitting axes, and pin oversized near edges without resizing.",
+      "evidence": [
+        "move.near-x",
+        "move.far-x",
+        "icon.far-x"
+      ]
+    },
+    {
+      "id": "restoration.transient-family",
+      "rule": "Translate a stranded managed native/Xwayland family by its root delta with per-member clamp; when the root stays visible, preserve visible members and repair only stranded descendants without changing relationships or stack.",
+      "evidence": [
+        "deiconify.transient-loop",
+        "deiconify.transient-parent",
+        "iconify.transients-first",
+        "state.transient-for"
+      ]
+    },
+    {
+      "id": "restoration.iconified-icons",
+      "rule": "Restore hidden iconified frames and independently restore visible manual/automatic icons while preserving IconifyByUnmapping, iconified state, manual/region semantics, and icon-manager membership.",
+      "evidence": [
+        "icon.position-hint",
+        "icon.automatic-place",
+        "icon.move",
+        "iconify.unmapping-choice",
+        "state.icon-moved"
+      ]
+    },
+    {
+      "id": "restoration.zoom-saved",
+      "rule": "On zoom-owner loss or box change, preserve zoom mode, relocate/clamp saved unzoom geometry, recompute displayed geometry from the target output, and produce no raise/focus/toggle side effect.",
+      "evidence": [
+        "zoom.restore-saved",
+        "zoom.save-mode",
+        "zoom.display-height",
+        "zoom.raise",
+        "zoom.setup",
+        "state.saved-frame",
+        "state.zoomed"
+      ]
+    },
+    {
+      "id": "restoration.zero-output",
+      "rule": "At zero outputs keep clients mapped/connected but scene-hidden with exact bounded pending state; restore existing families in stable stack order before new placement waiters and never synthesize unmap/iconify/configure-to-zero.",
+      "evidence": [
+        "deiconify.map-client",
+        "iconify.transient-state"
+      ]
+    },
+    {
+      "id": "restoration.focus-protocol",
+      "rule": "Preserve exact focus/root-focus, activation, stacking, mapping, iconification, and relationships with the same destination policy for native and managed Xwayland, excluding override-redirect surfaces.",
+      "evidence": [
+        "iconify.focus-root",
+        "state.transient",
+        "state.transient-for"
+      ]
+    },
+    {
+      "id": "restoration.atomic-churn",
+      "rule": "Prepare restoration inside the topology transaction; roll reversible failure back byte-exact, degrade irreversible destroy to hidden pending state without dead references, and keep repeated churn deterministic, drift-free, and bounded.",
+      "evidence": [
+        "randr.xlib-update",
+        "icon.move",
+        "zoom.setup"
+      ]
+    },
+    {
+      "id": "restoration.lifecycle-boundary",
+      "rule": "Persist relocated live geometry through save/restart without repatriation, apply current destination/clamp on RestartPreviousState, and defer input hotplug plus physical-output/session-lifetime policy explicitly.",
+      "evidence": [
+        "zoom.save-x",
+        "state.icon-moved",
+        "state.saved-frame"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-randr-no-restoration",
+      "kind": "reference-topology",
+      "oracle": "RRScreenChangeNotify updates only cached width/height on fixed ScreenList entries and contains no window/icon/transient restoration loop or rollback."
+    },
+    {
+      "id": "reference-oversize-clamp-difference",
+      "kind": "reference-translation",
+      "oracle": "Reference non-force move may place an oversized near edge negative after its far-edge check; restoration instead preserves size and pins the near edge to target origin."
+    },
+    {
+      "id": "visible-frame-byte-exact",
+      "kind": "runtime-frame",
+      "oracle": "A frame with one pixel of positive post-output intersection retains exact x/y/size and restoration state through unrelated removal, renumber, and owner ambiguity."
+    },
+    {
+      "id": "stranded-frame-relative-restore",
+      "kind": "runtime-frame",
+      "oracle": "A stranded frame moves by the source-to-target origin delta, then clamps per axis without resizing, using complete decorated outer geometry."
+    },
+    {
+      "id": "surviving-owner-moved",
+      "kind": "runtime-destination",
+      "oracle": "A stranded frame whose exact source identity survives uses that moved/shrunken output rather than a nearer different output."
+    },
+    {
+      "id": "missing-owner-canonical-tie",
+      "kind": "runtime-destination",
+      "oracle": "Equal nearest distances after owner loss choose the first canonical post-state identity, independent of pointer, focus, dense-index inheritance, and protocol."
+    },
+    {
+      "id": "oversized-frame-near-edge",
+      "kind": "runtime-clamp",
+      "oracle": "An outer frame larger than its target retains size and has x/y pinned to target origin on oversized axes, with overflow only to the right/bottom."
+    },
+    {
+      "id": "disable-destroy-equivalent",
+      "kind": "runtime-topology",
+      "oracle": "Given identical post-state boxes, disable and destroy produce identical client destinations and state; only output resource lifetime differs."
+    },
+    {
+      "id": "shrink-move-stranded-only",
+      "kind": "runtime-topology",
+      "oracle": "Mode/scale/transform/layout shrink or move restores ordinary frames only when positive intersection becomes zero; partially visible frames remain exact."
+    },
+    {
+      "id": "no-automatic-repatriation",
+      "kind": "runtime-churn",
+      "oracle": "After restoration to B, adding or enabling old A leaves the now-visible frame at its exact B geometry."
+    },
+    {
+      "id": "native-managed-frame",
+      "kind": "runtime-native",
+      "oracle": "Native restoration moves compositor frame position, preserves client size/mapping for ordinary relocation, and configures size only when zoom recomputation requires it."
+    },
+    {
+      "id": "xwayland-managed-frame",
+      "kind": "runtime-xwayland",
+      "oracle": "Managed Xwayland restoration configures frame/client coordinates without withdraw/remap and preserves WM state and stacking."
+    },
+    {
+      "id": "transient-root-family",
+      "kind": "runtime-family",
+      "oracle": "A stranded root selects one destination and clamps first; recursive native/Xwayland descendants translate by the root's actual final delta and individually clamp while links, sizes, and stack remain exact."
+    },
+    {
+      "id": "transient-child-only",
+      "kind": "runtime-family",
+      "oracle": "When root and one sibling stay visible, only a stranded descendant clamps to the root post owner with delta zero; visible family members are byte-exact."
+    },
+    {
+      "id": "override-redirect-excluded",
+      "kind": "runtime-boundary",
+      "oracle": "An unmanaged Xwayland override-redirect surface never enters a managed restoration family and no compositor configure is synthesized for it."
+    },
+    {
+      "id": "iconified-frame-and-manual-icon",
+      "kind": "runtime-icon",
+      "oracle": "An iconified client repairs its hidden frame and visible manual icon independently, preserving iconified/manual state so deiconify exposes a visible frame."
+    },
+    {
+      "id": "automatic-icon-region",
+      "kind": "runtime-icon",
+      "oracle": "A valid automatic allocation stays exact; a stranded one is deterministically rebuilt on the target without becoming manual and safely clamps only when no region accepts it."
+    },
+    {
+      "id": "iconify-by-unmapping",
+      "kind": "runtime-icon",
+      "oracle": "An IconifyByUnmapping client with no visible icon repairs only its hidden frame and receives no created icon or synthetic mapping transition."
+    },
+    {
+      "id": "zoom-owner-changed",
+      "kind": "runtime-zoom",
+      "oracle": "A changed zoom-owner box triggers saved-box relocation and displayed recomputation even when the old zoom display still intersects a surviving output."
+    },
+    {
+      "id": "zoom-owner-unchanged",
+      "kind": "runtime-zoom",
+      "oracle": "A zoomed window whose owner identity and box are unchanged retains displayed and saved geometry byte-exact when another output changes."
+    },
+    {
+      "id": "zoom-preserves-mode-stack-focus",
+      "kind": "runtime-zoom",
+      "oracle": "Restoration preserves zoom mode and relocated saved geometry without toggling, raising, focusing, or changing stack."
+    },
+    {
+      "id": "focus-and-stack-invariant",
+      "kind": "runtime-state",
+      "oracle": "Mixed mapped/iconified native/Xwayland families retain exact focus/root-focus, activation, stack, icon-manager, and mapping order after relocation."
+    },
+    {
+      "id": "zero-output-hide-existing",
+      "kind": "runtime-zero-output",
+      "oracle": "Last-output loss hides managed scene trees and records exact pending state while clients remain connected/protocol-mapped and no configure-to-zero or iconify/unmap occurs."
+    },
+    {
+      "id": "zero-output-new-map-separated",
+      "kind": "runtime-zero-output",
+      "oracle": "New zero-output maps remain placement-waiting separately and do not displace or consume existing restoration-pending records."
+    },
+    {
+      "id": "zero-output-resume-order",
+      "kind": "runtime-zero-output",
+      "oracle": "First successful output restores pre-existing families in stable stacking order and correct scene visibility before new placement waiters resume oldest-first."
+    },
+    {
+      "id": "zero-output-same-vs-new-identity",
+      "kind": "runtime-zero-output",
+      "oracle": "Same managed identity re-enabled is preferred; destroyed/reannounced hardware has a new ordinal identity and uses canonical-nearest fallback."
+    },
+    {
+      "id": "reversible-failure-rollback",
+      "kind": "runtime-atomicity",
+      "oracle": "Injected allocation/planning/backend/layout/scene failure leaves topology, all geometries, pending flags, focus, stack, pointer, history, and UI byte-for-byte unchanged."
+    },
+    {
+      "id": "destroy-failure-pending",
+      "kind": "runtime-atomicity",
+      "oracle": "Injected post-destroy planning failure hides affected clients in bounded pending state and removes every dead output reference without stale exposure or disconnect."
+    },
+    {
+      "id": "repeated-topology-churn",
+      "kind": "runtime-churn",
+      "oracle": "Long success/failure shrink/move/disable/destroy/add cycles are deterministic, do not drift on rejection/no-op, and leak no pending record or configure."
+    },
+    {
+      "id": "save-after-restoration",
+      "kind": "runtime-session",
+      "oracle": "f.saveyourself records relocated frame/manual-icon/zoom-saved geometry plus unchanged focus/stack/iconified/zoom state, including exact preserved pending geometry at zero outputs."
+    },
+    {
+      "id": "restart-preserves-restoration",
+      "kind": "runtime-session",
+      "oracle": "In-place restart preserves live and pending restoration state and never automatically returns a window to an old output."
+    },
+    {
+      "id": "previous-state-current-topology",
+      "kind": "runtime-session",
+      "oracle": "RestartPreviousState selects and safely clamps stored boxes against current canonical outputs without requiring or inventing persistent output identity."
+    },
+    {
+      "id": "reload-no-restoration-side-effect",
+      "kind": "runtime-lifecycle",
+      "oracle": "Accepted/rejected reload neither repatriates nor independently relocates frames; only accepted automatic icon-region rebuild may use current restored geometry."
+    },
+    {
+      "id": "input-and-session-boundary",
+      "kind": "contract-scope",
+      "oracle": "Restoration leaves output-independent focus bookkeeping safe for the next input task but does not claim input hotplug, state-file lifetime, or persistent physical-output reassociation."
+    }
+  ]
+}
