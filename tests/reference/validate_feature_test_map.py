@@ -19,6 +19,7 @@ from generate_feature_test_map import (
     SUMMARY_PATH,
     TEST_PATH,
     INTERACTION_RUNTIME_FEATURES,
+    RESTART_RUNTIME_FEATURES,
     build,
     canonical,
 )
@@ -180,8 +181,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 3:
-        errors.append("feature_map.test_catalog must contain the three registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 4:
+        errors.append("feature_map.test_catalog must contain the four registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -237,6 +238,8 @@ def validate_feature_map(
         if feature.get("native_wayland_status") == "effective":
             expected_dimensions.append("source_contract")
         if feature.get("id") in INTERACTION_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in RESTART_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:
@@ -322,7 +325,10 @@ def tamper_self_test(
     changed["entries"][1]["tests"][0]["fixture"] = first_fixture  # type: ignore[index]
     mutations.append(("shared-fixture", changed))
     changed = copy.deepcopy(feature_map)
-    effective = next(entry for entry in changed["entries"] if len(entry["tests"]) == 2)  # type: ignore[union-attr]
+    effective = next(
+        entry for entry in changed["entries"]  # type: ignore[union-attr]
+        if any(test["dimension"] == "source_contract" for test in entry["tests"])
+    )
     source_mapping = next(test for test in effective["tests"] if test["dimension"] == "source_contract")
     source_mapping["checks"][0]["contains"] = "not present in source"
     mutations.append(("invalid-source-contract", changed))

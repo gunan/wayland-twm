@@ -166,8 +166,19 @@ classified as effective merely because its spelling parsed.
 
 `f.refresh` and `f.winrefresh` schedule compositor redraws instead of creating
 temporary X cover windows. As in reference twm, `f.twmrc` is an exact alias for
-`f.restart`; both perform a normal compositor teardown and re-execute the
-original argument vector. There is no separate upstream reload action.
+`f.restart`; there is no separate upstream reload action. Reference twm
+restores client borders and re-executes its original argument vector. Doing
+that literally would destroy every Wayland connection, so wtwm translates both
+spellings to the same in-process restart. It parses the selected `-f`,
+screen-specific, user, system, or built-in configuration into a temporary
+object and swaps it only after a complete successful parse. A malformed
+replacement reports an error and leaves the active configuration and session
+untouched. A successful swap rebuilds configured decorations, colors, cursors,
+icons, icon managers, bindings, menus, and placement policy while retaining the
+Wayland display, Xwayland server, client resources, stable window identities,
+mapping, stack, geometry, focus, and selections. The headless Milestone 8
+restart test exercises both aliases and an invalid replacement while native and
+Xwayland clients prove their original protocol connections remain usable.
 `f.startwm` launches its configured command with the same direct-or-shell
 planner and then terminates wtwm. `f.identify` and `f.version` report through
 the compositor log because Wayland has no server-owned X information-window

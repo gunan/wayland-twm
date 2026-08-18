@@ -14,6 +14,12 @@
   },
   "test_catalog": [
     {
+      "test_id": "test.current-feature.m8-restart-runtime",
+      "path": "tests/integration/run_m8_restart.py",
+      "meson_test": "Milestone 8 in-place restart integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.move-resize-runtime",
       "path": "tests/integration/run_move_resize.py",
       "meson_test": "move and resize interaction integration",
@@ -265,7 +271,7 @@
               "contains": "ACT_ARG(\"f.exec\","
             },
             {
-              "location": "src/wtwm.c:3989",
+              "location": "src/wtwm.c:4118",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -309,7 +315,7 @@
               "contains": "strcmp(spelling, \"!\")"
             },
             {
-              "location": "src/wtwm.c:3989",
+              "location": "src/wtwm.c:4118",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -476,7 +482,7 @@
               "contains": "ACT_ARG(\"f.function\","
             },
             {
-              "location": "src/wtwm.c:3994",
+              "location": "src/wtwm.c:4123",
               "contains": "WTWM_ACTION_FUNCTION"
             }
           ]
@@ -713,7 +719,7 @@
               "contains": "ACT_ARG(\"f.menu\","
             },
             {
-              "location": "src/wtwm.c:3991",
+              "location": "src/wtwm.c:4120",
               "contains": "WTWM_ACTION_MENU"
             }
           ]
@@ -836,7 +842,7 @@
               "contains": "ACT(\"f.quit\","
             },
             {
-              "location": "src/wtwm.c:4085",
+              "location": "src/wtwm.c:4213",
               "contains": "WTWM_ACTION_QUIT"
             }
           ]
@@ -1030,6 +1036,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-restart-runtime",
+          "path": "tests/integration/run_m8_restart.py",
+          "meson_test": "Milestone 8 in-place restart integration",
+          "case": "action.f-restart",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Stable compositor IDs, the original XID, client protocol roundtrips, decoration-policy refresh, and invalid-config retention prove in-process continuity.",
+            "The Linux headless restart runner invokes action.f-restart while native and Xwayland clients remain mapped."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -1114,6 +1134,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-restart-runtime",
+          "path": "tests/integration/run_m8_restart.py",
+          "meson_test": "Milestone 8 in-place restart integration",
+          "case": "action.f-twmrc",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Stable compositor IDs, the original XID, client protocol roundtrips, decoration-policy refresh, and invalid-config retention prove in-process continuity.",
+            "The Linux headless restart runner invokes action.f-twmrc while native and Xwayland clients remain mapped."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -1152,7 +1186,7 @@
               "contains": "ACT(\"f.unfocus\","
             },
             {
-              "location": "src/wtwm.c:3980",
+              "location": "src/wtwm.c:4109",
               "contains": "WTWM_ACTION_UNFOCUS"
             }
           ]
@@ -1196,7 +1230,7 @@
               "contains": "ACT(\"f.warpnext\","
             },
             {
-              "location": "src/wtwm.c:4007",
+              "location": "src/wtwm.c:4136",
               "contains": "WTWM_ACTION_WARPNEXT"
             }
           ]
@@ -1719,11 +1753,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:837",
+              "location": "src/wtwm.c:3955",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             },
             {
-              "location": "src/wtwm.c:838",
+              "location": "src/wtwm.c:3956",
               "contains": "&toplevel->server->config.auto_raise_windows,"
             }
           ]
@@ -1798,7 +1832,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5248",
+              "location": "src/wtwm.c:5376",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -1899,7 +1933,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4724",
+              "location": "src/wtwm.c:4852",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -1960,7 +1994,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5248",
+              "location": "src/wtwm.c:5376",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -2448,7 +2482,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:793",
+              "location": "src/wtwm.c:791",
               "contains": "&toplevel->server->config.make_title_windows,"
             }
           ]
@@ -3039,11 +3073,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:792",
+              "location": "src/wtwm.c:790",
               "contains": "return wtwm_window_has_title(toplevel->server->config.no_title,"
             },
             {
-              "location": "src/wtwm.c:794",
+              "location": "src/wtwm.c:792",
               "contains": "&toplevel->server->config.no_title_windows,"
             }
           ]
@@ -3181,7 +3215,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4782",
+              "location": "src/wtwm.c:4910",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3650,7 +3684,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:837",
+              "location": "src/wtwm.c:3955",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             }
           ]
@@ -3676,7 +3710,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4724",
+              "location": "src/wtwm.c:4852",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -3702,7 +3736,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:7371",
+              "location": "src/wtwm.c:7497",
               "contains": "wtwm_config_load(&server.config,"
             }
           ]
@@ -3754,7 +3788,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3930",
+              "location": "src/wtwm.c:4059",
               "contains": "switch (action->type)"
             }
           ]
@@ -3810,7 +3844,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4782",
+              "location": "src/wtwm.c:4910",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3862,7 +3896,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4684",
+              "location": "src/wtwm.c:4812",
               "contains": "execute_action(server, target, &action,"
             }
           ]
@@ -3914,7 +3948,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4716",
+              "location": "src/wtwm.c:4844",
               "contains": "&hit.toplevel->title_buttons[hit.title_button_index].action;"
             }
           ]
@@ -3940,7 +3974,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5202",
+              "location": "src/wtwm.c:5330",
               "contains": "set_decorated(toplevel, should_decorate(toplevel));"
             }
           ]

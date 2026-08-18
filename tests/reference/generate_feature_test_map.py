@@ -31,6 +31,13 @@ INTERACTION_RUNTIME_FEATURES = {
     "directive.noraiseonresize",
     "directive.opaquemove",
 }
+RESTART_RUNTIME_PATH = "tests/integration/run_m8_restart.py"
+RESTART_RUNTIME_TEST = "Milestone 8 in-place restart integration"
+RESTART_RUNTIME_ID = "test.current-feature.m8-restart-runtime"
+RESTART_RUNTIME_FEATURES = {
+    "action.f-restart",
+    "action.f-twmrc",
+}
 ARGUMENT_ACTIONS = {
     "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
     "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
@@ -413,6 +420,24 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in RESTART_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": RESTART_RUNTIME_ID,
+                "path": RESTART_RUNTIME_PATH,
+                "meson_test": RESTART_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "Stable compositor IDs, the original XID, client protocol "
+                    "roundtrips, decoration-policy refresh, and invalid-config "
+                    "retention prove in-process continuity.",
+                    f"The Linux headless restart runner invokes {feature_id} "
+                    "while native and Xwayland clients remain mapped.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -431,6 +456,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
             "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0.",
         },
         "test_catalog": [
+            {
+                "test_id": RESTART_RUNTIME_ID,
+                "path": RESTART_RUNTIME_PATH,
+                "meson_test": RESTART_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
             {
                 "test_id": INTERACTION_RUNTIME_ID,
                 "path": INTERACTION_RUNTIME_PATH,

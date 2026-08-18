@@ -507,11 +507,9 @@ struct server {
 	uint64_t icon_manager_down_identity;
 	bool focus_root;
 	const char *config_path;
-	int argc;
-	char **argv;
 	int previous_output_index;
 	struct toplevel *ring_leader;
-	bool restart_requested;
+	struct wl_event_source *restart_idle;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -834,8 +832,10 @@ static bool should_iconify_by_unmapping(const struct toplevel *toplevel) {
 static bool initialize_toplevel_rules(struct toplevel *toplevel) {
 	if (toplevel->rules_initialized || (toplevel->xwayland != NULL &&
 			toplevel->xwayland->override_redirect)) return false;
-	toplevel->auto_raise = toplevel->server->config.auto_raise ||
-		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	const struct wtwm_config *config = &toplevel->server->config;
+	bool listed_auto_raise = toplevel_matches(&config->auto_raise_windows,
+		toplevel);
+	toplevel->auto_raise = listed_auto_raise || config->auto_raise;
 	toplevel->iconify_by_unmapping = should_iconify_by_unmapping(toplevel);
 	toplevel->rules_initialized = true;
 	return true;
@@ -3915,6 +3915,135 @@ static void cut_text(struct server *server, const char *text) {
 	free(line);
 }
 
+static void refresh_output_configuration(struct server *server) {
+	float background[4];
+	configured_color(server, "DefaultBackground", "white", NULL, background);
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output->background == NULL) continue;
+		struct wlr_box box = {0};
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		wlr_scene_rect_set_color(output->background, background);
+		wlr_scene_rect_set_size(output->background, box.width, box.height);
+		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
+	}
+}
+
+static bool rebuild_toplevel_title(struct toplevel *toplevel) {
+	if (toplevel->title_tree != NULL)
+		wlr_scene_node_destroy(&toplevel->title_tree->node);
+	free(toplevel->title_buttons);
+	toplevel->title_tree = NULL;
+	toplevel->title = NULL;
+	toplevel->focus_mark = NULL;
+	toplevel->title_buttons = NULL;
+	toplevel->title_button_count = 0;
+	toplevel->title_text = NULL;
+	toplevel->title_text_height = 0;
+	toplevel->title_text_width = 0;
+	toplevel->title_font_ascent = 0;
+	return create_title_scene(toplevel);
+}
+
+static void refresh_toplevel_configuration(struct toplevel *toplevel) {
+	int frame_x = toplevel->tree != NULL ? toplevel->tree->node.x :
+		toplevel->frame_x;
+	int frame_y = toplevel->tree != NULL ? toplevel->tree->node.y :
+		toplevel->frame_y;
+	toplevel->border_width = configured_border_width(toplevel->server);
+	toplevel->title_bar_height = configured_title_bar_height(toplevel->server);
+	toplevel->auto_raise = toplevel->server->config.auto_raise ||
+		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	toplevel->iconify_by_unmapping = should_iconify_by_unmapping(toplevel);
+	if (!rebuild_toplevel_title(toplevel)) {
+		wlr_log(WLR_ERROR, "unable to rebuild decorations for '%s'",
+			toplevel_title(toplevel));
+		return;
+	}
+	update_title_text(toplevel);
+	bool decorated = should_decorate(toplevel);
+	set_decorated(toplevel, decorated);
+	if (toplevel->xwayland != NULL && toplevel->mapped &&
+			!toplevel->xwayland->override_redirect)
+		configure_xwayland_frame(toplevel, frame_x, frame_y,
+			toplevel->width, toplevel->height);
+	else
+		update_decoration(toplevel);
+	clear_icon_manager_render_cache(toplevel);
+	destroy_icon_scene(toplevel);
+}
+
+static bool restart_compositor_state(struct server *server) {
+	struct wtwm_config replacement;
+	wtwm_config_init(&replacement);
+	char error[1024];
+	if (!wtwm_config_load(&replacement, server->config_path, error,
+			sizeof(error))) {
+		wlr_log(WLR_ERROR, "restart configuration rejected: %s", error);
+		wtwm_config_finish(&replacement);
+		(void)ring_bell(server);
+		return false;
+	}
+
+	/* Config-owned menus and function continuations must not survive the
+	 * atomic swap.  The Wayland display, backend, Xwayland server, client
+	 * resources, mapping, stacking, focus, and selections remain live. */
+	hide_menu(server);
+	memset(&server->continuation, 0, sizeof(server->continuation));
+	server->deferred_root_action_active = false;
+	reset_cursor(server);
+	finish_icon_animation(server);
+
+	struct wtwm_config previous = server->config;
+	server->config = replacement;
+	memset(&replacement, 0, sizeof(replacement));
+	wtwm_config_finish(&previous);
+	if (server->config.warning_count)
+		wlr_log(WLR_INFO,
+			"%zu twm directives accepted but not effective; run wtwm-config for details",
+			server->config.warning_count);
+
+	server->previous_output_index = -1;
+	server->ring_leader = NULL;
+	server->icon_manager_down_identity = 0;
+	wtwm_random_placement_init(&server->random_placement);
+	refresh_output_configuration(server);
+
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		refresh_toplevel_configuration(toplevel);
+		toplevel->icon_manager_identity = 0;
+	}
+	rebuild_icon_layout(server);
+	initialize_icon_managers(server);
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		reserve_icon_manager_toplevel(toplevel);
+		refresh_toplevel_icon(toplevel);
+	}
+	refresh_icon_managers(server);
+	server->cursor_role[0] = '\0';
+	process_cursor_motion(server, server->current_input_time_ms);
+	schedule_refresh(server);
+	wlr_log(WLR_INFO, "%s",
+		"restarted compositor configuration in place; clients preserved");
+	return true;
+}
+
+static void restart_compositor_idle(void *data) {
+	struct server *server = data;
+	server->restart_idle = NULL;
+	(void)restart_compositor_state(server);
+}
+
+static void request_compositor_restart(struct server *server) {
+	if (server->restart_idle != NULL) return;
+	server->restart_idle = wl_event_loop_add_idle(
+		wl_display_get_event_loop(server->display), restart_compositor_idle,
+		server);
+	if (server->restart_idle == NULL)
+		wlr_log(WLR_ERROR, "%s", "unable to schedule compositor restart");
+}
+
 static void execute_action(struct server *server, struct toplevel *toplevel,
 		const struct wtwm_action *action, uint32_t context) {
 	/* Reference twm refuses f.resize from a key binding and on an icon before
@@ -4079,8 +4208,7 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 			"Xwayland owns installed colormaps; f.colormap is a verified no-op");
 		break;
 	case WTWM_ACTION_RESTART:
-		server->restart_requested = true;
-		wl_display_terminate(server->display);
+		request_compositor_restart(server);
 		break;
 	case WTWM_ACTION_QUIT: wl_display_terminate(server->display); break;
 	case WTWM_ACTION_UNSUPPORTED:
@@ -7350,8 +7478,6 @@ int main(int argc, char **argv) {
 	signal(SIGPIPE, SIG_IGN);
 #endif
 	struct server server = {0};
-	server.argc = argc;
-	server.argv = argv;
 	server.config_path = config_path;
 	server.previous_output_index = -1;
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
@@ -7507,11 +7633,6 @@ int main(int argc, char **argv) {
 	pango_cairo_font_map_set_default(NULL);
 	FcFini();
 #endif
-	if (server.restart_requested) {
-		execvp(server.argv[0], server.argv);
-		wlr_log_errno(WLR_ERROR, "%s", "failed to restart wtwm");
-		return 1;
-	}
 	return 0;
 
 fail_runtime:

@@ -70,6 +70,15 @@ which also resumes a bounded function-continuation stack so `f.deltastop`
 observes the completed asynchronous interaction. Unmap and destruction clear
 both the session and any continuation before releasing the toplevel.
 
+Restart-style configuration is an atomic compositor-layer transaction rather
+than a process re-exec. The portable parser builds a complete temporary
+`wtwm_config`; only a successful parse replaces the active configuration.
+Before the old object is released, the compositor closes config-owned menus and
+continuations, then rebuilds derived scene decorations, icon state, manager
+state, cursors, colors, and output backgrounds. The display, backend, Xwayland
+server, protocol resources, and managed-client identities are deliberately
+outside that transaction, so native and Xwayland connections remain live.
+
 Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
 the reference first-fit region allocator, including gravity splits, grid-cell
 rounding, collision reservations, and release coalescing; the compositor only

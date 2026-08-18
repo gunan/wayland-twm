@@ -160,3 +160,12 @@ allocator and manager tests add full/partial regions, release/reuse, malformed
 inputs, capacity churn, selection repair, and wrapped grid navigation. The
 frozen `reference/icons/twm-1.0.13.1/icon-contract.json` validator ties those
 assertions to exact reference source and manual anchors.
+
+`run_m8_restart.py` keeps one native xdg-shell client and one managed X11
+client mapped while it replaces the active configuration. A root `f.restart`
+applies a valid `NoTitle` change; the exact `f.twmrc` alias then rejects a
+malformed replacement without changing active state and applies a subsequent
+valid replacement. Stable compositor IDs and the original XID must remain
+unchanged throughout, both client processes perform protocol roundtrips after
+every attempt, and the original test-control connection remains usable. This
+would fail immediately if restart tore down the Wayland display or Xwayland.
