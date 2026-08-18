@@ -640,6 +640,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 restart translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_restart_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [

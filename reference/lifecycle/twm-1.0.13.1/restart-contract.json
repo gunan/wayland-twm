@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 restart behavior and wtwm Wayland translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "parse.f-restart": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 461,
+      "text": "    { \"f.restart\",              FKEYWORD, F_RESTART },"
+    },
+    "parse.f-twmrc": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 471,
+      "text": "    { \"f.twmrc\",                FKEYWORD, F_RESTART },"
+    },
+    "startup.argc": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 216,
+      "text": "    Argc = argc;"
+    },
+    "startup.argv": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 217,
+      "text": "    Argv = argv;"
+    },
+    "restart.dispatch": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1271,
+      "text": "    case F_RESTART:"
+    },
+    "restart.reborder": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1274,
+      "text": "        Reborder(eventp->xbutton.time);"
+    },
+    "restart.exec-original-argv": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1278,
+      "text": "        execvp(*Argv, Argv);"
+    }
+  },
+  "reference_behavior": {
+    "action_identity": {
+      "normalized_action": "F_RESTART",
+      "aliases": [
+        {
+          "name": "f.restart",
+          "inventory_id": "keyword.f.restart",
+          "parser_token": "FKEYWORD",
+          "parser_value": "F_RESTART",
+          "evidence": "parse.f-restart"
+        },
+        {
+          "name": "f.twmrc",
+          "inventory_id": "keyword.f.twmrc",
+          "parser_token": "FKEYWORD",
+          "parser_value": "F_RESTART",
+          "evidence": "parse.f-twmrc"
+        }
+      ],
+      "rule": "The two spellings have one parser action identity and reach the same F_RESTART dispatch with no alias-specific branch."
+    },
+    "process_restart": {
+      "execution_model": "replace-process-image",
+      "program": "*Argv",
+      "arguments": "Argv",
+      "argv_origin": "main-argv",
+      "argv_assignment_count": 1,
+      "sequence": [
+        "synchronize-x-server",
+        "reborder-managed-windows",
+        "synchronize-x-server",
+        "close-session-manager-connection-if-present",
+        "exec-original-argv"
+      ],
+      "rule": "At startup twm retains main's argc and argv directly; F_RESTART restores X-side window borders and replaces twm with execvp using the retained original argv vector.",
+      "evidence": [
+        "startup.argc",
+        "startup.argv",
+        "restart.dispatch",
+        "restart.reborder",
+        "restart.exec-original-argv"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "action_identity": {
+      "normalized_action": "F_RESTART",
+      "aliases": [
+        "f.restart",
+        "f.twmrc"
+      ],
+      "dispatch": "one-shared-handler",
+      "alias_specific_behavior": false
+    },
+    "restart_transaction": {
+      "execution_model": "in-process",
+      "atomicity": "prepare-validate-commit-or-no-change",
+      "candidate_config_isolated": true,
+      "commit_only_after_full_validation": true,
+      "exec_or_exit": false,
+      "phases": [
+        "parse replacement configuration into isolated candidate state",
+        "validate the complete candidate without mutating the active generation",
+        "atomically publish the candidate and refresh compositor-owned observable state",
+        "on any failure discard the candidate and retain the active generation and session"
+      ]
+    },
+    "client_continuity": {
+      "required_protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "connection_identity_preserved": true,
+      "restart_xwayland": false,
+      "disconnect_clients": false,
+      "preserve_managed_state": [
+        "client-and-surface-identity",
+        "mapping-and-iconification",
+        "geometry",
+        "stacking",
+        "focus"
+      ]
+    },
+    "invalid_replacement": {
+      "result": "reject-and-retain-active-session",
+      "active_config_preserved": true,
+      "active_generation_preserved": true,
+      "observable_state_unchanged": true,
+      "clients_preserved": true,
+      "diagnostic_required": true
+    },
+    "observable_refresh": {
+      "trigger": "successful-transaction-commit-only",
+      "publish_as_one_generation": true,
+      "refresh_before_next_input_dispatch": [
+        "bindings-and-action-resolution",
+        "menus-and-named-functions",
+        "configuration-derived-policy",
+        "decorations-colors-fonts-and-cursors",
+        "compositor-owned-icons-and-icon-managers"
+      ],
+      "preserve_unless_new_config_explicitly_changes_presentation": [
+        "managed-client-identity",
+        "mapping-and-iconification",
+        "geometry",
+        "stacking",
+        "focus"
+      ],
+      "failed_transaction_refresh": "none"
+    }
+  },
+  "requirements": [
+    {
+      "id": "restart.action-identity",
+      "level": "MUST",
+      "rule": "f.restart and f.twmrc normalize to F_RESTART and invoke the same handler.",
+      "evidence": [
+        "parse.f-restart",
+        "parse.f-twmrc",
+        "restart.dispatch"
+      ]
+    },
+    {
+      "id": "restart.in-process-atomic",
+      "level": "MUST",
+      "rule": "wtwm performs restart as an in-process candidate-config transaction and never execs or exits for this action.",
+      "evidence": [
+        "restart.exec-original-argv"
+      ]
+    },
+    {
+      "id": "restart.native-continuity",
+      "level": "MUST",
+      "rule": "All existing native Wayland protocol connections and managed surfaces survive the transaction.",
+      "evidence": [
+        "restart.exec-original-argv"
+      ]
+    },
+    {
+      "id": "restart.xwayland-continuity",
+      "level": "MUST",
+      "rule": "The Xwayland server and all existing Xwayland client connections survive the transaction.",
+      "evidence": [
+        "restart.reborder",
+        "restart.exec-original-argv"
+      ]
+    },
+    {
+      "id": "restart.invalid-retention",
+      "level": "MUST",
+      "rule": "An invalid replacement configuration leaves the active configuration generation, clients, and observable session state unchanged and reports a diagnostic.",
+      "evidence": [
+        "restart.exec-original-argv"
+      ]
+    },
+    {
+      "id": "restart.observable-refresh",
+      "level": "MUST",
+      "rule": "A valid replacement is published as one generation and all contracted compositor-owned observable state is refreshed before the next input dispatch.",
+      "evidence": [
+        "restart.dispatch"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "alias-equivalence",
+      "actions": [
+        "f.restart",
+        "f.twmrc"
+      ],
+      "oracle": "Identical traces enter one F_RESTART handler and commit the same candidate generation."
+    },
+    {
+      "id": "valid-restart-with-active-clients",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "Both client connection identities and managed state survive while every observable-refresh category changes to the valid replacement generation."
+    },
+    {
+      "id": "invalid-restart-with-active-clients",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "The action reports a diagnostic; active config generation, observable state, client connections, and managed state are unchanged."
+    },
+    {
+      "id": "repeated-valid-invalid-restart",
+      "protocols": [
+        "native-wayland",
+        "xwayland"
+      ],
+      "oracle": "Alternating valid and invalid candidates commits only valid generations without leaking handlers, duplicating UI, restarting Xwayland, or disconnecting clients."
+    }
+  ]
+}
