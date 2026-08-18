@@ -519,6 +519,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data);
 static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event);
 static void resume_action_continuation(struct server *server);
 static void process_cursor_motion(struct server *server, uint32_t time_msec);
+static void refresh_pointer_after_restart(struct server *server);
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
 static void clear_keyboard_focus(struct server *server);
 static void set_xwayland_input_focus(struct server *server,
@@ -4022,7 +4023,7 @@ static bool restart_compositor_state(struct server *server) {
 	}
 	refresh_icon_managers(server);
 	server->cursor_role[0] = '\0';
-	process_cursor_motion(server, server->current_input_time_ms);
+	refresh_pointer_after_restart(server);
 	schedule_refresh(server);
 	wlr_log(WLR_INFO, "%s",
 		"restarted compositor configuration in place; clients preserved");
@@ -4480,6 +4481,28 @@ static void update_pointer_toplevel(struct server *server,
 				result.send_take_focus, "frame");
 	}
 	if (entered->auto_raise) raise_toplevel(entered);
+}
+
+static void refresh_pointer_after_restart(struct server *server) {
+	struct hit_result hit = desktop_at(server, server->cursor->x,
+		server->cursor->y);
+	/* Re-resolve scene hit testing after rebuilding decorations without
+	 * treating the refresh as a pointer crossing.  A synthetic crossing here
+	 * would run focus-follows-mouse and AutoRaise, violating restart's promise
+	 * to retain keyboard focus and managed stacking. */
+	server->pointer_toplevel = hit.toplevel;
+	server->pointer_context = hit.context;
+	if (hit.surface != NULL) {
+		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
+		wlr_seat_pointer_notify_motion(server->seat,
+			server->current_input_time_ms, hit.sx, hit.sy);
+		return;
+	}
+	const char *role = hit.on_title_button ? "Button" :
+		(hit.context == WTWM_CONTEXT_TITLE ? "Title" :
+		(hit.context == WTWM_CONTEXT_ICON ? "Icon" : "Frame"));
+	set_cursor_role(server, role);
+	wlr_seat_pointer_clear_focus(server->seat);
 }
 
 static void process_cursor_motion(struct server *server, uint32_t time_msec) {

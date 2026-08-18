@@ -9,7 +9,6 @@ from pathlib import Path
 import shlex
 import subprocess
 import tempfile
-import time
 
 from run_client_stress import ClientChannel, wait_path, wait_process, wait_state
 from run_compositor import Control
@@ -56,6 +55,21 @@ def snapshot(state: dict[str, object]) -> dict[str, tuple[int, str, int | None]]
     return result
 
 
+def session_snapshot(state: dict[str, object]) -> dict[str, object]:
+    return {
+        "focus": state["focus"],
+        "active": state["active"],
+        "focus_root": state["focus_root"],
+        "windows": {
+            str(item["title"]): {
+                key: item[key]
+                for key in ("stack", "x", "y", "width", "height", "iconified")
+            }
+            for item in state["windows"]
+        },
+    }
+
+
 def send_prefix(channel: ClientChannel, command: str, prefix: str) -> None:
     channel.stdin.write((command + "\n").encode("utf-8"))
     channel.stdin.flush()
@@ -65,6 +79,7 @@ def send_prefix(channel: ClientChannel, command: str, prefix: str) -> None:
 def assert_preserved(
     control: Control,
     expected: dict[str, tuple[int, str, int | None]],
+    expected_session: dict[str, object],
     decorated: bool,
     native_process: subprocess.Popen[bytes],
     native: ClientChannel,
@@ -75,6 +90,10 @@ def assert_preserved(
     if snapshot(state) != expected:
         raise RuntimeError(
             f"restart replaced or changed client identities: {state!r}"
+        )
+    if session_snapshot(state) != expected_session:
+        raise RuntimeError(
+            f"restart changed focus, stacking, geometry, or iconic state: {state!r}"
         )
     if any(bool(item["decorated"]) != decorated for item in state["windows"]):
         raise RuntimeError(
@@ -157,6 +176,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
 
             initial = wait_state(control, mapped_pair, "initial restart clients")
             identities = snapshot(initial)
+            session = session_snapshot(initial)
             if identities[NATIVE_TITLE][1] != "wayland" or \
                     identities[X11_TITLE][1] != "x11":
                 raise RuntimeError(f"restart fixtures used wrong protocols: {initial!r}")
@@ -167,7 +187,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
             config.write_text(config_text(no_title=True), encoding="utf-8")
             restart(control, 272)
             assert_preserved(
-                control, identities, False, native_process, native,
+                control, identities, session, False, native_process, native,
                 x11_process, x11,
             )
 
@@ -177,7 +197,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
                               encoding="utf-8")
             restart(control, 273)
             assert_preserved(
-                control, identities, False, native_process, native,
+                control, identities, session, False, native_process, native,
                 x11_process, x11,
             )
 
@@ -186,7 +206,7 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
             config.write_text(config_text(no_title=False), encoding="utf-8")
             restart(control, 273)
             assert_preserved(
-                control, identities, True, native_process, native,
+                control, identities, session, True, native_process, native,
                 x11_process, x11,
             )
 
