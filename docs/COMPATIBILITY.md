@@ -12,7 +12,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Frame, border, and title extents | Exact in the canonical profile | Managed windows retain a frame border with or without a title; `ClientBorderWidth` preserves the original X11 border on the frame. Title height, padding, lower border, squeeze placement, text baseline and clipping, button spacing, and focus/tile patterns use the frozen reference formulas. Initial and managed `ConfigureRequest` coordinates use the reference gravity translations |
 | Client size constraints | Effective during compositor-driven resize | X11 min/max/base/increment/aspect hints use reference `ConstrainSize` ordering; native xdg-shell exposes only min/max constraints, which use the same model. Ordinary client configure requests and hint-only changes do not resize a window |
 | `ButtonN` and quoted key bindings | Effective | libinput buttons and exact, case-sensitive xkbcommon key-symbol names; later declarations replace the same twm trigger slot |
-| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all`, and named contexts | Effective | Scene hit-test contexts; `all` expands to the six concrete contexts. Named keys use case-sensitive title, resource/`app_id`, then class prefixes and execute for every client in the first successful category |
+| `root`, `window`, `title`, `icon`, `frame`, `iconmgr`, `all`, and named contexts | Effective | Scene hit-test contexts; `all` expands to the six concrete contexts. Each enabled output background is one root-equivalent hit box; gaps and the zero-output state have no root target. Named keys use case-sensitive title, resource/`app_id`, then class prefixes and execute for every client in the first successful category |
 | Shift, Control, Lock, Meta modifiers | Effective | Shift, Control, Lock, and Mod1 through Mod5 use xkb state. As in twm, Shift, Control, and Mod1 are always significant; configuring any other modifier makes it globally significant, so a configured Lock binding makes Caps Lock distinguish every binding |
 | `Function` and `f.function` | Effective | Nested action sequences preserve reference order and pause across interactive move/resize; `f.deltastop` observes the completed gesture. The continuation stack permits the root function plus eight nested calls |
 | Move, force-move, resize, raise, lower | Effective for move/resize interaction | Non-opaque moves and all resizes use compositor-owned outlines with release commit; `OpaqueMove` updates the live window, while second-button abort restores the original geometry. Raise/lower never imply focus |
@@ -20,12 +20,12 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `f.raiselower`, `f.circleup`, `f.circledown` | Effective | The shared native/Xwayland stack uses actual visible overlap: overlap-dependent `f.raiselower` matches X `Opposite`, while circulation moves the bottommost occluded or topmost occluding item. Parent/transient actions are not grouped |
 | Native `xdg-shell` windows and popups | Effective | Toplevel map, unmap, remap, metadata, focus cleanup, and destruction are managed; nested popups retain parent-relative placement in the shared unmanaged overlay and are constrained to the output bounds |
 | `NoTitle`, `MakeTitle`, `DecorateTransients`, `AutoRaise`, `StartIconified` | Effective | X11 lists match `WM_NAME`, then `WM_CLASS` instance and class; native lists match xdg title, then `app_id`. X11 transient title suppression is applied after `MakeTitle` and `NoTitle`, as in reference `twm` |
-| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. Pull-right hover opens a bounded nested stack, moving back into a parent pops its descendants, a second press cancels the stack, and release dispatches only an enabled leaf. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
+| `Menu` and `f.menu` | Effective | Press-drag-release root and window menus use a compositor-owned scene layer above client overlays. A root menu is pinned to its invocation output; a window menu is pinned to the target's owner output, and the whole submenu stack clamps to that box rather than the layout union. Pull-right hover opens a bounded nested stack, moving back into a parent pops its descendants, a second press cancels the stack, and release dispatches only an enabled leaf. Source-derived row, text, border, separator, pull-arrow, highlight, interpolation, title-entry, submenu, and five-pixel shadow rendering uses the configured X core font and colors |
 | `NoBackingStore`, `NoSaveUnders`, `NoGrabServer` | Verified Wayland-translated no-ops | wtwm menus and opaque moves are compositor-owned scene operations: they neither request X backing-store/save-under resources nor wrap the operation in a global X server grab. The spellings remain accepted and explicitly classified without changing native or managed-Xwayland pixels, state, input traces, or liveness |
 | Title buttons | Effective | Default and configured left/right buttons retain reference ordering, borders, spacing, XBM/built-in glyphs, and full hit boxes. Reference `twm` has no distinct hover/pressed pixels; the held-pointer captures are therefore identical while the action still fires on press |
 | Icon windows and icon manager | Effective | Compositor-owned configured-XBM and client-image icon scenes use the reference font, per-window colors, border, bitmap/text layout, mapping state, regions, and animation endpoints. X11 `WM_HINTS` one-bit pixmaps and `_NET_WM_ICON` pixels are copied into owned buffers; configured `Icons`/`ForceIcons`, `UnknownIcon`, and `IconDirectory` preserve reference precedence. Managers implement matching, geometry, columns, sorting, visibility, highlighting, pointer focus, and all navigation actions across the ordered Wayland output layout |
 | Cursors and monochrome assets | Effective | Classic role-specific Xcursor shapes are selected for frame, title, button, move, resize, menu, wait, select, and destroy contexts. Two-XBM configured cursors preserve hotspots, masks, and `PointerForeground`/`PointerBackground`; XBM also feeds title buttons, title highlights, and configured icons |
-| Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use reference geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
+| Zoom/maximize variants | Effective | Vertical, horizontal, full, and four half-output variants use the target's current owner-output geometry, retain one pre-zoom client box while switching modes, and restore it when the current mode is repeated |
 | Warp actions | Behaviorally equivalent | Window, next/previous, and window-ring warps use the shared native/Xwayland identity and stacking model. `WarpUnmapped` and `NoRaiseOnWarp` retain their reference gates. A numeric `f.warptoscreen` target selects the canonical Wayland output index and preserves the cursor's output-relative position; next/prev/back screen history and topology changes remain later Milestone 8 work |
 | Fonts / XLFD strings | Exact for canonical ASCII; translated for general Unicode | Xwayland's X core font server supplies exact canonical `fixed` metrics and glyph pixels for ASCII decoration text. Numeric aliases and 14-field XLFDs map family, weight, slant, spacing, pixel size, and decipoint size into bounded Pango descriptions; non-ASCII text falls back to Pango without corrupting title geometry |
 | Output scaling | Deterministic translation | Canonical layout remains integer 1×. Fractional output projection rounds coordinates expressed in Wayland 120ths by shared edges, so adjacent title/menu boxes remain adjacent and negative origins are symmetric |
@@ -34,7 +34,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `f.cut`, `f.cutfile`, `f.file` | Exact X cut-buffer result; Wayland clipboard translation | Successful actions replace a persistent compositor-owned byte buffer, publish it as ordinary Wayland `CLIPBOARD` text, and mirror the same bytes to Xwayland root `CUT_BUFFER0` with `STRING` type and 8-bit format. Native clients observe `CLIPBOARD`, not a nonexistent native global cut-buffer protocol; `PRIMARY` remains independent |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
-| Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | X11 `USPosition`, all `UsePPosition` modes, transient positions, the `(50,50)`/`(30,30)` random sequence with independent edge reset, maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Native clients have no position hints; random placement is exact, while non-random maps use the current pointer immediately because xdg-shell cannot suspend the client's initial map for an X11-style confirm grab. |
+| Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
 | Canonical X11 reference differential | Exact through Milestone 5 | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, and stacking after every event; a 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The Milestone 5 pixel comparison adds two stable 260×180 canonical phases whose complete PPM bytes, geometry classification, configured-color counts, and X core font pixels match the frozen reference with zero masks and zero mismatched pixels. Native/cross-protocol visual equivalence remains a separate boundary. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
@@ -211,9 +211,53 @@ apply on both roots, `HEADLESS-1` remains index zero despite reverse compositor
 list insertion, an out-of-range target preserves exact pointer coordinates,
 and root `f.restart` retains the source and mapping. A second session proves an
 explicit unsuffixed file is global and HOME screen files are ignored. This
-mapping does not claim completion of output-aware placement, complete root
-behavior, next/previous/back screen history, output hotplug/removal/restoration,
-scale/mode transactions, or input hotplug.
+mapping does not by itself claim placement or topology behavior.
+
+Reference twm confines placement and spatial root actions to the selected X
+screen's `RootWindow`, width, and height. wtwm maps each enabled Wayland
+output's current logical layout box to one such spatial root. The layout-union
+bounding rectangle is never a root: disabled outputs, empty gaps, and space
+outside all output boxes cannot supply root bindings, backgrounds, placement,
+menu, zoom, fill, or `DontMoveOff` bounds. Every enabled output owns one
+`DefaultBackground` rectangle covering exactly its box, while the one Wayland
+seat deliberately retains one compositor-global PointerRoot-style focus state.
+
+A point inside an output selects that output; overlaps use canonical output
+index order. A point in a gap or outside the layout selects the nearest closed
+output box by squared Euclidean distance, with the same canonical tie-break,
+without turning the gap into root surface. Existing window and manually moved
+icon ownership uses the greatest positive intersection area, then the nearest
+output to the outer-box center. Menus, initial-placement prompts/fills, zooms,
+and interactive moves capture that output for the operation, so pointer motion
+cannot switch bounds mid-gesture. After `f.forcemove` commits across an output
+boundary, the next operation recomputes ownership from the committed geometry.
+
+Unparented native maps select from the pointer; parented native maps inherit
+their managed parent's current owner. Xwayland windows that require a prompt or
+`RandomPlacement` select from the pointer. An accepted gravity-adjusted
+`USPosition`/`PPosition` selects by its global frame origin (or nearest output
+when the origin is in a gap/outside) but retains that requested position exactly
+and bypasses `DontMoveOff`, as in reference twm. The random cursor is one
+process-global cascade because upstream `PlaceX`/`PlaceY` are file-scope
+statics: placements on different outputs consume successive pairs, apply only
+the selected output's local edge reset, then add that output's global origin.
+No output means no selected root; a managed first map stays pending and
+unexposed until an output appears and neither random nor diagnostic placement
+state advances.
+
+The bounded model covers real gaps, outside points, overlaps, canonical ties,
+per-output background/root hits, owner recomputation, and zero-output state.
+The Linux live runner adds two auto-laid-out outputs and exact native/Xwayland
+`STATE`/`TRACE` checks for global random placement, requested positions,
+selected-output `MaxWindowSize`, root-menu/submenu clamping, full zoom on both
+sides, Button3 fill, pinned window/icon moves, `f.forcemove`, restart continuity,
+and deferred zero-output mapping. This steady-state slice deliberately leaves
+next/previous/back screen history, output add/remove/scale/mode transaction
+repair, restoration after output disappearance, persistent topology
+reassociation, multiple-seat/input hotplug, and session lifecycle work for the
+following Milestone 8 tasks. Milestone 7's globally ordered IconRegion and
+icon-manager allocation pools also remain global; only an explicit icon move's
+`DontMoveOff` bounds are output-pinned here.
 
 Reference `f.startwm` replaces twm by passing its decoded argument to
 `/bin/sh -c`. Wayland has no generic transfer for an existing compositor's

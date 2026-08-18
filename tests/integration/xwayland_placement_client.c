@@ -132,6 +132,14 @@ static void create_scenario(struct client *client, const char *scenario) {
 		client->remap = create_window(client, "placement-remap", 66, 77,
 			100, 80, HINT_US_POSITION);
 		map(client, client->remap);
+	} else if (strcmp(scenario, "m8-outputs") == 0) {
+		map(client, create_window(client, "m8-output-left", 40, 40,
+			100, 80, HINT_US_POSITION));
+		map(client, create_window(client, "m8-output-right", 370, 50,
+			100, 80, HINT_US_POSITION));
+	} else if (strcmp(scenario, "m8-defaultmax") == 0) {
+		map(client, create_window(client, "m8-output-defaultmax", 370, 20,
+			32200, 16, HINT_US_POSITION));
 	} else {
 		die("unknown scenario");
 	}

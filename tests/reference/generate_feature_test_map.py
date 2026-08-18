@@ -44,6 +44,18 @@ SCREEN_OUTPUT_RUNTIME_ID = "test.current-feature.m8-screen-output-runtime"
 SCREEN_OUTPUT_RUNTIME_FEATURES = {
     "runtime_dispatch.configuration-load-at-startup",
 }
+OUTPUT_PLACEMENT_RUNTIME_PATH = "tests/integration/run_m8_output_placement.py"
+OUTPUT_PLACEMENT_RUNTIME_TEST = "Milestone 8 output-aware placement/root integration"
+OUTPUT_PLACEMENT_RUNTIME_ID = "test.current-feature.m8-output-placement-runtime"
+OUTPUT_PLACEMENT_RUNTIME_FEATURES = {
+    "action.f-forcemove",
+    "action.f-fullzoom",
+    "action.f-menu",
+    "action.f-move",
+    "directive.dontmoveoff",
+    "directive.randomplacement",
+    "runtime_dispatch.execute-configured-action",
+}
 STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
 STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
 STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
@@ -509,6 +521,28 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
+                "path": OUTPUT_PLACEMENT_RUNTIME_PATH,
+                "meson_test": OUTPUT_PLACEMENT_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux two-output runner exercises {feature_id} "
+                    "through exact STATE/TRACE geometry and liveness barriers.",
+                    "Native and managed Xwayland initial placement, accepted "
+                    "X11 coordinates, global random state, output-pinned menus, "
+                    "zoom, fill, window/icon moves, and zero-output deferral "
+                    "distinguish actual output boxes from the layout union.",
+                    "A portable model independently fixes gap/outside/overlap "
+                    "selection, canonical ties, per-output backgrounds/root hits, "
+                    "owner recomputation, and deferred topology boundaries.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in STARTWM_RUNTIME_FEATURES:
             tests.append({
                 "test_id": STARTWM_RUNTIME_ID,
@@ -648,6 +682,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "ledger_features": list(NOOP_OPTIONS_LEDGER_FEATURES),
             },
             {
+                "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
+                "path": OUTPUT_PLACEMENT_RUNTIME_PATH,
+                "meson_test": OUTPUT_PLACEMENT_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
                 "test_id": RESTART_RUNTIME_ID,
                 "path": RESTART_RUNTIME_PATH,
                 "meson_test": RESTART_RUNTIME_TEST,
@@ -756,6 +796,9 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
         "  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`",
         "  through configured-action dispatch.",
+        "- The output-placement runtime mapping covers the steady-state spatial/root",
+        "  translation only. Warp history, topology mutation, removed-output repair,",
+        "  input hotplug, and session lifecycle remain separate Milestone 8 work.",
         "",
     ]
     return result, "\n".join(lines)

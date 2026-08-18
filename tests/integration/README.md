@@ -81,8 +81,24 @@ three `UsePPosition` modes, `USPosition`, missing hints, transients, random
 sequences and edge resets (including an oversized client), explicit and
 screen-derived maximum sizes, `DontMoveOff`, and unmap/remap. It checks both
 `STATE` and `TRACE` placement classifications. The ordinary native headless
-test separately fixes the pointer before map and verifies the first origin in
-the documented pointer-anchored cascade used where xdg-shell has no hints.
+test separately fixes the pointer before map and verifies the immediate pointer
+origin used where xdg-shell has no global position hints.
+
+`run_m8_output_placement.py` adds the two-output spatial-root matrix. Its
+portable `--self-test-model` cases cover gapped, negative, overlapping, and
+outside layouts; half-open containment, nearest-box fallback, canonical ties,
+greatest-intersection ownership, global random state, operation pinning, root
+hits/backgrounds, and zero-output non-consumption. Live Linux sessions then
+use two 320x240 headless outputs and exact predicate-driven `STATE`/`TRACE`
+barriers for native and managed Xwayland random placement, accepted X11
+coordinates, output-derived default maximum size, inner-edge root menus and
+submenus, full zoom on each side, Button3 initial fill, `DontMoveOff` window
+and icon movement, cross-output `f.forcemove`, owner recomputation, restart
+continuity, and a deferred zero-output map. Every session has bounded client,
+control, and compositor liveness checks and cleanup. The runner intentionally
+does not simulate topology mutation: warp history, output removal/repair,
+scale/mode changes, input hotplug, and session lifecycle remain later
+Milestone 8 slices.
 
 Run the headless stability check explicitly with:
 

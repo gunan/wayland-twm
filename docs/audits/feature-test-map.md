@@ -10,7 +10,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 
 **Features mapped:** 134 of 134
 
-**Automated case mappings:** 193
+**Automated case mappings:** 200
 
 ## Mapping counts
 
@@ -18,14 +18,14 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 | --- | ---: |
 | `syntax` | 122 |
 | `source_contract` | 54 |
-| `runtime` | 17 |
+| `runtime` | 24 |
 
 | Category | Features | Syntax | Source contract | Runtime |
 | --- | ---: | ---: | ---: | ---: |
-| `action` | 38 | 38 | 18 | 6 |
+| `action` | 38 | 38 | 18 | 10 |
 | `construct` | 19 | 19 | 0 | 1 |
-| `directive` | 65 | 65 | 24 | 7 |
-| `runtime_dispatch` | 12 | 0 | 12 | 3 |
+| `directive` | 65 | 65 | 24 | 9 |
+| `runtime_dispatch` | 12 | 0 | 12 | 4 |
 
 | Implementation status | Features |
 | --- | ---: |
@@ -49,3 +49,6 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
   X-resource keywords, the colormap runner maps `keyword.f.colormap`, and
   the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`
   through configured-action dispatch.
+- The output-placement runtime mapping covers the steady-state spatial/root
+  translation only. Warp history, topology mutation, removed-output repair,
+  input hotplug, and session lifecycle remain separate Milestone 8 work.

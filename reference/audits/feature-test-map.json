@@ -46,6 +46,12 @@
       ]
     },
     {
+      "test_id": "test.current-feature.m8-output-placement-runtime",
+      "path": "tests/integration/run_m8_output_placement.py",
+      "meson_test": "Milestone 8 output-aware placement/root integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.m8-restart-runtime",
       "path": "tests/integration/run_m8_restart.py",
       "meson_test": "Milestone 8 in-place restart integration",
@@ -436,6 +442,21 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-forcemove",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-forcemove through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
           "meson_test": "move and resize interaction integration",
@@ -493,6 +514,21 @@
       "category": "action",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-fullzoom",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-fullzoom through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -752,6 +788,21 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-menu",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-menu through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -795,6 +846,21 @@
       "category": "action",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-move",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-move through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
@@ -2184,6 +2250,21 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "directive.dontmoveoff",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises directive.dontmoveoff through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
           "meson_test": "move and resize interaction integration",
@@ -3307,6 +3388,21 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "directive.randomplacement",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises directive.randomplacement through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -3880,6 +3976,21 @@
             "Byte-exact native and X11 CLIPBOARD plus CUT_BUFFER0 STRING observations cover the newline rule, embedded NUL data, 4095-byte limit, first filename token, atomic failure, PRIMARY independence, replacement, restart, and liveness.",
             "The Linux headless runner invokes runtime_dispatch.execute-configured-action bindings on managed Xwayland and native Wayland targets.",
             "The catalog ledger_features separately map the exact keyword.f.cut, keyword.f.cutfile, keyword.f.file, and lexical.cut-shorthand frozen upstream ledger entries."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises runtime_dispatch.execute-configured-action through exact STATE/TRACE geometry and liveness barriers."
           ],
           "fixture": "",
           "checks": []

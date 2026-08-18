@@ -270,7 +270,7 @@ def verify_zero_and_outputs(session: Session, *, check_ignored: bool) -> None:
     if session.control.command("PING") != "OK WTWM_TEST_CONTROL 1":
         raise RuntimeError("zero-output compositor control did not survive startup")
     zero = session.control.state()
-    if zero["windows"] or zero["pointer_context"] != "root":
+    if zero["windows"] or zero["pointer_context"] != "none":
         raise RuntimeError(f"unexpected zero-output state: {zero!r}")
 
     first = session.add_output()

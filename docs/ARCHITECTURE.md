@@ -45,14 +45,29 @@ output, cursor, scene, and process effects around those portable decisions.
 Initial Xwayland placement reads `USPosition`/`PPosition` from
 `WM_NORMAL_HINTS`, applies `UsePPosition` exactly, and always preserves a
 transient's requested position. Windows that still require placement use the
-reference random sequence when `RandomPlacement` is enabled. Without it, wtwm
-uses an explicit Wayland translation of twm's blocking rubber-band prompt: an
-instant 24-pixel cascade anchored at the current pointer supplies requested
-client origins, with `DontMoveOff` applied to each resulting outer frame. This
-map-time adapter does not take an input grab or wait for a confirm click. Native xdg-shell has no
-position-hint fields, so every first map follows the same random-or-pointer
-policy; remaps retain the managed frame position. Both protocols receive the
-initial `MaxWindowSize` clip, including twm's screen-derived default.
+reference process-global random sequence when `RandomPlacement` is enabled.
+Without it, managed Xwayland windows retain the blocking outline/confirm path
+on the pointer-selected output. Native xdg-shell has no global position-hint
+fields or X11 placement-grab contract, so an unparented first map uses the
+current pointer immediately and a parented first map inherits its managed
+parent's output; remaps retain the managed frame position. Both protocols
+receive the initial `MaxWindowSize` clip derived from the selected output.
+Accepted Xwayland positions remain exact even when they fall in a layout gap or
+outside all outputs. When no output exists, initial management remains deferred
+and hidden and does not consume the global random or diagnostic placement
+sequence.
+
+Each enabled output's logical layout box is an X-root-equivalent spatial box.
+Point selection uses half-open containment and nearest-box fallback; existing
+window/icon ownership uses greatest positive outer-box intersection and then a
+nearest-center fallback. Canonical output order resolves ties. The compositor
+captures one selected output for each initial placement, menu stack, move,
+fill, or zoom operation and never substitutes the whole-layout bounding box.
+Consequently gaps have no root hit or background and cannot become usable
+geometry. An unconstrained move may commit across outputs, after which the next
+operation recomputes ownership from the committed outer box. This selection is
+spatial adapter state, not a second configuration namespace or independent
+per-output keyboard focus.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide
@@ -66,7 +81,8 @@ receives selection and release.
 
 The compositor holds at most one interactive session. It saves original and
 preview client geometry, the initiating pointer coordinates, selected resize
-edges or constrained-move axis, and whether `MoveDelta` was crossed. A scene
+edges or constrained-move axis, the pinned output box for spatial operations,
+and whether `MoveDelta` was crossed. A scene
 overlay renders the outline path; only opaque moves mutate the managed scene
 during motion. Release or second-button abort is the single terminal boundary,
 which also resumes a bounded function-continuation stack so `f.deltastop`
