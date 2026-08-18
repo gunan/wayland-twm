@@ -96,6 +96,13 @@ enum interaction_intent {
 
 struct server;
 
+struct cut_buffer_source {
+	struct wlr_data_source source;
+	struct server *server;
+	char *bytes;
+	size_t length;
+};
+
 #ifdef WTWM_TEST_CONTROL
 enum {
 	TEST_TRACE_INITIAL_CAPACITY = 64,
@@ -496,6 +503,9 @@ struct server {
 	xcb_atom_t atom_wm_icon_name;
 	xcb_atom_t atom_net_wm_icon;
 	xcb_atom_t atom_wm_colormap_windows;
+	char *cut_buffer_bytes;
+	size_t cut_buffer_length;
+	struct cut_buffer_source *cut_buffer_source;
 	char *previous_display;
 	bool had_previous_display;
 	bool xwayland_display_exported;
@@ -552,6 +562,8 @@ static void finish_icon_animation(struct server *server);
 static void manage_bufferless_start_iconified(struct toplevel *toplevel);
 static bool icon_selector_matches(const struct wtwm_client_identity *identity,
 	const char *selector, unsigned int pass);
+static bool store_cut_buffer(struct server *server, const char *bytes,
+	size_t length);
 static struct server *xwayland_event_server;
 
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
@@ -582,6 +594,12 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
 		server->atom_wm_colormap_windows = xwayland_atom(connection,
 			"WM_COLORMAP_WINDOWS");
+		if (server->cut_buffer_length > 0 &&
+				!store_cut_buffer(server, server->cut_buffer_bytes,
+					server->cut_buffer_length)) {
+			wlr_log(WLR_DEBUG, "%s",
+				"failed to mirror persistent cut buffer to Xwayland");
+		}
 		set_xwayland_input_focus(server, NULL);
 		struct toplevel *toplevel;
 		wl_list_for_each(toplevel, &server->toplevels, link) {
@@ -4269,28 +4287,165 @@ static bool store_cut_buffer(struct server *server, const char *bytes,
 	xcb_window_t root = XCB_WINDOW_NONE;
 	if (!xwayland_root(server, &connection, &root) || length > UINT32_MAX)
 		return false;
-	xcb_change_property(connection, XCB_PROP_MODE_REPLACE, root,
-		server->atom_cut_buffer0, XCB_ATOM_STRING, 8, (uint32_t)length, bytes);
-	xcb_flush(connection);
-	return true;
+	xcb_void_cookie_t cookie = xcb_change_property_checked(connection,
+		XCB_PROP_MODE_REPLACE, root, server->atom_cut_buffer0, XCB_ATOM_STRING,
+		8, (uint32_t)length, bytes);
+	xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+	if (error != NULL) {
+		free(error);
+		return false;
+	}
+	return xcb_flush(connection) > 0;
 }
 
-static char *fetch_cut_buffer(struct server *server) {
+static char *fetch_cut_buffer(struct server *server, size_t *length_out,
+		bool *truncated_out) {
+	*length_out = 0;
+	*truncated_out = false;
 	xcb_connection_t *connection = NULL;
 	xcb_window_t root = XCB_WINDOW_NONE;
 	if (!xwayland_root(server, &connection, &root)) return NULL;
+	xcb_generic_error_t *error = NULL;
 	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
 		xcb_get_property(connection, false, root, server->atom_cut_buffer0,
-			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), NULL);
-	if (reply == NULL) return NULL;
+			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), &error);
+	if (error != NULL) {
+		free(error);
+		free(reply);
+		return NULL;
+	}
+	if (reply == NULL || reply->type != XCB_ATOM_STRING || reply->format != 8) {
+		free(reply);
+		return NULL;
+	}
 	int length = xcb_get_property_value_length(reply);
-	char *value = length > 0 ? malloc((size_t)length + 1) : NULL;
+	char *value = length > 0 ? malloc((size_t)length) : NULL;
 	if (value != NULL) {
 		memcpy(value, xcb_get_property_value(reply), (size_t)length);
-		value[length] = '\0';
+		*length_out = (size_t)length;
+		*truncated_out = reply->bytes_after > 0;
 	}
 	free(reply);
 	return value;
+}
+
+static void cut_buffer_source_send(struct wlr_data_source *wlr_source,
+		const char *mime_type, int32_t descriptor) {
+	(void)mime_type;
+	struct cut_buffer_source *source =
+		wl_container_of(wlr_source, source, source);
+	size_t offset = 0;
+	int write_error = 0;
+	while (offset < source->length) {
+		ssize_t count = write(descriptor, source->bytes + offset,
+			source->length - offset);
+		if (count > 0) {
+			offset += (size_t)count;
+			continue;
+		}
+		if (count < 0 && errno == EINTR) continue;
+		write_error = count < 0 ? errno : EIO;
+		break;
+	}
+	if (write_error != 0) {
+		wlr_log(WLR_DEBUG, "cut-buffer clipboard send stopped after %zu of "
+			"%zu bytes: %s", offset, source->length, strerror(write_error));
+	}
+	if (close(descriptor) < 0) {
+		wlr_log_errno(WLR_DEBUG, "%s",
+			"failed to close cut-buffer clipboard descriptor");
+	}
+}
+
+static void cut_buffer_source_destroy(struct wlr_data_source *wlr_source) {
+	struct cut_buffer_source *source =
+		wl_container_of(wlr_source, source, source);
+	if (source->server->cut_buffer_source == source)
+		source->server->cut_buffer_source = NULL;
+	free(source->bytes);
+	free(source);
+}
+
+static const struct wlr_data_source_impl cut_buffer_source_impl = {
+	.send = cut_buffer_source_send,
+	.destroy = cut_buffer_source_destroy,
+};
+
+static bool cut_buffer_source_add_mime(struct cut_buffer_source *source,
+		const char *mime_type) {
+	char *copy = strdup(mime_type);
+	if (copy == NULL) return false;
+	char **slot = wl_array_add(&source->source.mime_types, sizeof(*slot));
+	if (slot == NULL) {
+		free(copy);
+		return false;
+	}
+	*slot = copy;
+	return true;
+}
+
+static struct cut_buffer_source *cut_buffer_source_create(
+		struct server *server, const char *bytes, size_t length) {
+	struct cut_buffer_source *source = calloc(1, sizeof(*source));
+	if (source == NULL) return NULL;
+	wlr_data_source_init(&source->source, &cut_buffer_source_impl);
+	source->server = server;
+	source->bytes = malloc(length);
+	if (source->bytes == NULL ||
+			!cut_buffer_source_add_mime(source, "text/plain;charset=utf-8") ||
+			!cut_buffer_source_add_mime(source, "text/plain")) {
+		wlr_data_source_destroy(&source->source);
+		return NULL;
+	}
+	memcpy(source->bytes, bytes, length);
+	source->length = length;
+	return source;
+}
+
+static bool replace_cut_buffer(struct server *server, const char *bytes,
+		size_t length) {
+	if (length == 0 || server->display == NULL || server->seat == NULL)
+		return false;
+	char *persistent = malloc(length);
+	if (persistent == NULL) return false;
+	memcpy(persistent, bytes, length);
+	struct cut_buffer_source *source =
+		cut_buffer_source_create(server, bytes, length);
+	if (source == NULL) {
+		free(persistent);
+		return false;
+	}
+
+	char *previous = server->cut_buffer_bytes;
+	server->cut_buffer_bytes = persistent;
+	server->cut_buffer_length = length;
+	server->cut_buffer_source = source;
+	wlr_seat_set_selection(server->seat, &source->source,
+		wl_display_next_serial(server->display));
+	free(previous);
+	if (!store_cut_buffer(server, persistent, length)) {
+		wlr_log(WLR_DEBUG, "%s",
+			"cut-buffer action published CLIPBOARD without an Xwayland mirror");
+	}
+	return true;
+}
+
+static char *cut_buffer_filename(const char *bytes, size_t length,
+		bool truncated) {
+	size_t begin = 0;
+	while (begin < length && isspace((unsigned char)bytes[begin])) ++begin;
+	if (begin == length) return NULL;
+	size_t end = begin;
+	while (end < length && !isspace((unsigned char)bytes[end])) {
+		if (bytes[end] == '\0') return NULL;
+		++end;
+	}
+	if (end == length && truncated) return NULL;
+	char *filename = malloc(end - begin + 1);
+	if (filename == NULL) return NULL;
+	memcpy(filename, bytes + begin, end - begin);
+	filename[end - begin] = '\0';
+	return filename;
 }
 
 static char *expand_filename(const char *name) {
@@ -4298,7 +4453,11 @@ static char *expand_filename(const char *name) {
 	if (name[0] != '~') return strdup(name);
 	const char *home = getenv("HOME");
 	if (home == NULL) return NULL;
-	size_t length = strlen(home) + strlen(name) + 2;
+	size_t home_length = strlen(home);
+	size_t name_length = strlen(name);
+	if (name_length > SIZE_MAX - 2 ||
+			home_length > SIZE_MAX - name_length - 2) return NULL;
+	size_t length = home_length + name_length + 2;
 	char *expanded = malloc(length);
 	if (expanded != NULL)
 		(void)snprintf(expanded, length, "%s/%s", home, name + 1);
@@ -4316,23 +4475,56 @@ static bool file_to_cut_buffer(struct server *server, const char *name) {
 	}
 	char bytes[4095];
 	ssize_t count = read(descriptor, bytes, sizeof(bytes));
-	close(descriptor);
+	int read_error = count < 0 ? errno : 0;
+	if (close(descriptor) < 0)
+		wlr_log_errno(WLR_DEBUG, "%s", "failed to close cut-buffer file");
 	free(expanded);
-	return count > 0 && store_cut_buffer(server, bytes, (size_t)count);
+	if (count < 0) {
+		wlr_log(WLR_ERROR, "unable to read cut-buffer file: %s",
+			strerror(read_error));
+		return false;
+	}
+	return count > 0 && replace_cut_buffer(server, bytes, (size_t)count);
 }
 
 static void cut_text(struct server *server, const char *text) {
 	if (text == NULL) text = "";
 	size_t length = strlen(text);
-	char *line = malloc(length + 2);
+	if (length == SIZE_MAX) return;
+	char *line = malloc(length + 1);
 	if (line == NULL) return;
 	memcpy(line, text, length);
 	line[length] = '\n';
-	line[length + 1] = '\0';
-	if (!store_cut_buffer(server, line, length + 1))
-		wlr_log(WLR_DEBUG, "%s",
-			"f.cut has no native Wayland cut-buffer equivalent");
+	(void)replace_cut_buffer(server, line, length + 1);
 	free(line);
+}
+
+static void cut_file_from_buffer(struct server *server) {
+	const char *bytes = server->cut_buffer_bytes;
+	size_t length = server->cut_buffer_length;
+	bool truncated = false;
+	char *fetched = NULL;
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (xwayland_root(server, &connection, &root)) {
+		fetched = fetch_cut_buffer(server, &length, &truncated);
+		if (fetched == NULL) return;
+		bytes = fetched;
+	}
+	char *filename = cut_buffer_filename(bytes, length, truncated);
+	if (filename != NULL) {
+		(void)file_to_cut_buffer(server, filename);
+		free(filename);
+	}
+	free(fetched);
+}
+
+static void finish_cut_buffer(struct server *server) {
+	if (server->cut_buffer_source != NULL)
+		wlr_data_source_destroy(&server->cut_buffer_source->source);
+	free(server->cut_buffer_bytes);
+	server->cut_buffer_bytes = NULL;
+	server->cut_buffer_length = 0;
 }
 
 static void refresh_output_configuration(struct server *server) {
@@ -4698,15 +4890,8 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 		break;
 	case WTWM_ACTION_CUT:
 		cut_text(server, action->argument); break;
-	case WTWM_ACTION_CUTFILE: {
-		char *filename = fetch_cut_buffer(server);
-		if (filename != NULL) {
-			filename[strcspn(filename, " \t\r\n")] = '\0';
-			if (filename[0] != '\0') (void)file_to_cut_buffer(server, filename);
-			free(filename);
-		}
-		break;
-	}
+	case WTWM_ACTION_CUTFILE:
+		cut_file_from_buffer(server); break;
 	case WTWM_ACTION_FILE:
 		(void)file_to_cut_buffer(server, action->argument); break;
 	case WTWM_ACTION_COLORMAP:
@@ -8172,9 +8357,10 @@ int main(int argc, char **argv) {
 		wlr_log_errno(WLR_ERROR, "%s", "failed to restore SIGCHLD handling");
 		return 1;
 	}
-#ifdef WTWM_TEST_CONTROL
-	signal(SIGPIPE, SIG_IGN);
-#endif
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+		wlr_log_errno(WLR_ERROR, "%s", "failed to ignore SIGPIPE");
+		return 1;
+	}
 	struct server server = {0};
 	server.program_name = argv[0];
 	server.config_path = config_path;
@@ -8310,6 +8496,7 @@ int main(int argc, char **argv) {
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	finish_compositor_reload(&server);
+	finish_cut_buffer(&server);
 	xwayland_finish(&server);
 	wl_display_destroy_clients(server.display);
 #ifdef WTWM_TEST_CONTROL
@@ -8339,6 +8526,7 @@ int main(int argc, char **argv) {
 
 fail_runtime:
 	finish_compositor_reload(&server);
+	finish_cut_buffer(&server);
 	xwayland_finish(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
