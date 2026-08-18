@@ -697,6 +697,24 @@ test(
   ],
 )
 test(
+  'Milestone 8 f.colormap translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_colormap_contract.py'),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 colormap selection model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_colormap.py'),
+    '--self-test-model',
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -1003,6 +1021,12 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_m8_colormap_client = executable(
+    'wtwm-m8-colormap-client',
+    'tests/integration/m8_colormap_client.c',
+    dependencies: xcb,
+    install: false,
+  )
   canonical_xterm = find_program('xterm', required: true)
   canonical_xclock = find_program('xclock', required: true)
   canonical_xload = find_program('xload', required: true)
@@ -1160,6 +1184,18 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 360,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 Xwayland and native colormap integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_colormap.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_m8_colormap_client,
+    ],
+    timeout: 120,
     is_parallel: false,
   )
   test(
