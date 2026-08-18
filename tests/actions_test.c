@@ -52,7 +52,21 @@ static void navigation_cases(void) {
 	assert(wtwm_action_screen_target("prev", 0, 1, 3) == 2);
 	assert(wtwm_action_screen_target("back", 0, 2, 3) == 2);
 	assert(wtwm_action_screen_target("1", 0, 2, 3) == 1);
+	assert(wtwm_action_screen_target("00", 2, 1, 3) == 0);
+	assert(wtwm_action_screen_target("02", 0, 1, 3) == 2);
 	assert(wtwm_action_screen_target("4", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target(NULL, 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("0", 0, 2, 0) == -1);
+	assert(wtwm_action_screen_target("", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("-1", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("+1", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target(" 1", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("1 ", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("\t1", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("1x", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("x", 0, 2, 3) == -1);
+	assert(wtwm_action_screen_target("999999999999999999999999999999999",
+		0, 2, 3) == -1);
 }
 
 int main(void) {

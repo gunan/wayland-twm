@@ -2,9 +2,7 @@
 
 #include "wtwm/actions.h"
 
-#include <errno.h>
 #include <limits.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int at_least_one(int value) {
@@ -107,10 +105,14 @@ int wtwm_action_screen_target(const char *argument, int current,
 		return (current + count - 1) % count;
 	if (strcmp(argument, "back") == 0)
 		return previous >= 0 && previous < count ? previous : current;
-	errno = 0;
-	char *end = NULL;
-	long parsed = strtol(argument, &end, 10);
-	if (errno != 0 || end == argument || *end != '\0' || parsed < 0 ||
-			parsed >= count || parsed > INT_MAX) return -1;
-	return (int)parsed;
+	if (argument[0] == '\0') return -1;
+	int parsed = 0;
+	for (const unsigned char *cursor = (const unsigned char *)argument;
+			*cursor != '\0'; ++cursor) {
+		if (*cursor < '0' || *cursor > '9') return -1;
+		int digit = *cursor - '0';
+		if (parsed > (INT_MAX - digit) / 10) return -1;
+		parsed = parsed * 10 + digit;
+	}
+	return parsed < count ? parsed : -1;
 }

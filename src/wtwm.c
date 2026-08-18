@@ -17,6 +17,7 @@
 #include "wtwm/icon_layout.h"
 #include "wtwm/icon_manager.h"
 #include "wtwm/interaction.h"
+#include "wtwm/output_order.h"
 #include "wtwm/placement.h"
 #include "wtwm/session_state.h"
 #include "wtwm/visual.h"
@@ -325,6 +326,7 @@ struct output {
 	struct wl_list link;
 	struct server *server;
 	struct wlr_output *wlr;
+	struct wtwm_output_identity identity;
 	struct wlr_scene_rect *background;
 	struct wl_listener background_destroy;
 	struct wl_listener frame;
@@ -454,6 +456,8 @@ struct server {
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
+	uint64_t next_output_announcement_ordinal;
+	bool output_announcement_ordinal_exhausted;
 	struct wl_listener new_output;
 	struct wlr_xdg_shell *xdg_shell;
 	struct wl_listener new_toplevel;
@@ -3867,32 +3871,64 @@ static void warp_cycle(struct server *server, bool forward, bool ring_only) {
 	free(items);
 }
 
-static void warp_to_screen(struct server *server, const char *argument) {
-	int count = (int)wl_list_length(&server->outputs);
-	if (count <= 0) return;
-	int current = 0;
-	int index = 0;
+static bool output_order_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot) {
+	size_t count = 0;
 	struct output *output;
+	wl_list_for_each(output, &server->outputs, link)
+		if (output->wlr->enabled) ++count;
+	if (!wtwm_output_order_create(count, snapshot)) return false;
+	size_t index = 0;
 	wl_list_for_each(output, &server->outputs, link) {
+		if (!output->wlr->enabled) continue;
+		if (!wtwm_output_order_set(*snapshot, index, &output->identity, output)) {
+			wtwm_output_order_destroy(*snapshot);
+			*snapshot = NULL;
+			return false;
+		}
+		++index;
+	}
+	if (wtwm_output_order_sort(*snapshot)) return true;
+	wtwm_output_order_destroy(*snapshot);
+	*snapshot = NULL;
+	return false;
+}
+
+static void warp_to_screen(struct server *server, const char *argument) {
+	struct wtwm_output_order *snapshot = NULL;
+	if (!output_order_snapshot(server, &snapshot)) return;
+	size_t output_count = wtwm_output_order_count(snapshot);
+	if (output_count == 0 || output_count > INT_MAX) {
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
+	int current = -1;
+	for (size_t index = 0; index < output_count; ++index) {
+		struct output *output = wtwm_output_order_at(snapshot, index);
 		struct wlr_box box = {0};
 		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
 		if (server->cursor->x >= box.x && server->cursor->x < box.x + box.width &&
-				server->cursor->y >= box.y && server->cursor->y < box.y + box.height)
-			current = index;
-		++index;
+				server->cursor->y >= box.y && server->cursor->y < box.y + box.height) {
+			current = (int)index;
+			break;
+		}
+	}
+	if (current < 0) {
+		wtwm_output_order_destroy(snapshot);
+		return;
 	}
 	int target = wtwm_action_screen_target(argument, current,
-		server->previous_output_index, count);
-	if (target < 0 || target == current) return;
-	struct output *from = NULL;
-	struct output *to = NULL;
-	index = 0;
-	wl_list_for_each(output, &server->outputs, link) {
-		if (index == current) from = output;
-		if (index == target) to = output;
-		++index;
+		server->previous_output_index, (int)output_count);
+	if (target < 0 || target == current) {
+		wtwm_output_order_destroy(snapshot);
+		return;
 	}
-	if (from == NULL || to == NULL) return;
+	struct output *from = wtwm_output_order_at(snapshot, (size_t)current);
+	struct output *to = wtwm_output_order_at(snapshot, (size_t)target);
+	if (from == NULL || to == NULL) {
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
 	struct wlr_box from_box = {0};
 	struct wlr_box to_box = {0};
 	wlr_output_layout_get_box(server->output_layout, from->wlr, &from_box);
@@ -3902,6 +3938,7 @@ static void warp_to_screen(struct server *server, const char *argument) {
 	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
 	server->previous_output_index = current;
 	process_cursor_motion(server, server->current_input_time_ms);
+	wtwm_output_order_destroy(snapshot);
 }
 
 static bool persistable_session_toplevel(const struct toplevel *toplevel) {
@@ -4590,7 +4627,7 @@ static bool restart_compositor_state(struct server *server,
 	struct wtwm_config replacement;
 	wtwm_config_init(&replacement);
 	char error[1024];
-	if (!wtwm_config_load(&replacement, config_path, error,
+	if (!wtwm_config_load_for_screen(&replacement, config_path, 0, error,
 			sizeof(error))) {
 		wlr_log(WLR_ERROR, "restart configuration rejected: %s", error);
 		wtwm_config_finish(&replacement);
@@ -5741,22 +5778,60 @@ static void output_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&output->link);
 	if (output->background != NULL)
 		wlr_scene_node_destroy(&output->background->node);
+	wtwm_output_identity_finish(&output->identity);
 	free(output);
+}
+
+static bool next_output_announcement_ordinal(struct server *server,
+		uint64_t *ordinal) {
+	if (server->output_announcement_ordinal_exhausted || ordinal == NULL)
+		return false;
+	*ordinal = server->next_output_announcement_ordinal;
+	if (*ordinal == UINT64_MAX)
+		server->output_announcement_ordinal_exhausted = true;
+	else
+		++server->next_output_announcement_ordinal;
+	return true;
 }
 
 static void new_output(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, new_output);
 	struct wlr_output *wlr_output = data;
-	wlr_output_init_render(wlr_output, server->allocator, server->renderer);
+	struct output *output = calloc(1, sizeof(*output));
+	if (output == NULL) return;
+	uint64_t announcement_ordinal;
+	if (!next_output_announcement_ordinal(server, &announcement_ordinal)) {
+		wlr_log(WLR_ERROR, "%s", "output announcement ordinal exhausted");
+		free(output);
+		return;
+	}
+	if (!wtwm_output_identity_init(&output->identity, wlr_output->name,
+			wlr_output->make, wlr_output->model, wlr_output->serial,
+			announcement_ordinal)) {
+		wlr_log(WLR_ERROR, "%s", "unable to copy output identity");
+		free(output);
+		return;
+	}
+	if (!wlr_output_init_render(wlr_output, server->allocator,
+			server->renderer)) {
+		wlr_log(WLR_ERROR, "%s", "unable to initialize output rendering");
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	struct wlr_output_state state;
 	wlr_output_state_init(&state);
 	wlr_output_state_set_enabled(&state, true);
 	struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
 	if (mode != NULL) wlr_output_state_set_mode(&state, mode);
-	wlr_output_commit_state(wlr_output, &state);
+	bool committed = wlr_output_commit_state(wlr_output, &state);
 	wlr_output_state_finish(&state);
-	struct output *output = calloc(1, sizeof(*output));
-	if (output == NULL) return;
+	if (!committed) {
+		wlr_log(WLR_ERROR, "%s", "unable to enable announced output");
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	output->server = server;
 	output->wlr = wlr_output;
 	output->frame.notify = output_frame;
@@ -8379,7 +8454,8 @@ int main(int argc, char **argv) {
 #endif
 	wtwm_config_init(&server.config);
 	char config_error[1024];
-	if (!wtwm_config_load(&server.config, config_path, config_error, sizeof(config_error))) {
+	if (!wtwm_config_load_for_screen(&server.config, config_path, 0,
+			config_error, sizeof(config_error))) {
 		fprintf(stderr, "wtwm: %s\n", config_error);
 		wtwm_config_finish(&server.config);
 		return 1;
