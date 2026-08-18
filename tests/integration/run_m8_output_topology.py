@@ -706,7 +706,8 @@ class Session:
             raise RuntimeError(f"{token}: client scene identities are not live: {state!r}")
         if (
             state.get("menu") is not None
-            or state.get("interactive") is not None
+            or state.get("interactive") is not False
+            or state.get("interaction") is not None
             or state.get("popups") != []
             or state.get("override_redirect") != []
         ):
