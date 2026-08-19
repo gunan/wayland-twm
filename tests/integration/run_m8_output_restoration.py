@@ -1195,7 +1195,19 @@ def topology_transition(
 ) -> tuple[dict[str, object], set[int]]:
     expect_command(control, "TRACE CLEAR", "OK TRACE CLEAR")
     expect_command(control, command, expected)
-    after = frame_barrier(control, label) if active_after else control.state()
+    if active_after:
+        expected_frames, _ = planned_frames(before, outputs(control.state()))
+
+        def committed_geometry(state: dict[str, object]) -> bool:
+            records = windows(state)
+            return set(records) == set(expected_frames) and all(
+                outer(records[identity]) == frame
+                for identity, frame in expected_frames.items()
+            )
+
+        after = bounded_state(control, committed_geometry, label)
+    else:
+        after = control.state()
     changed = assert_transition(before, after, label)
     events = validate_trace(control.trace())
     restored = [
