@@ -183,14 +183,22 @@ def validate(
         ):
             errors.append("environment.package_lock_sha256 must be 64 lowercase hex digits")
         if isinstance(platform, dict) and platform.get("kind") == "utm-arm64":
-            definition = read_vm_definition(source_root, errors)
-            if environment.get("vm_image_build") != definition.get("WTWM_VM_IMAGE_BUILD"):
-                errors.append("VM image build does not match the checked-in definition")
+            image_build = environment.get("vm_image_build")
             image_digest = environment.get("vm_image_sha512")
-            if not isinstance(image_digest, str) or not HEX_128.fullmatch(image_digest):
-                errors.append("environment.vm_image_sha512 must be 128 lowercase hex digits")
-            elif image_digest != definition.get("WTWM_VM_IMAGE_SHA512"):
-                errors.append("VM image digest does not match the checked-in definition")
+            if (image_build is None) != (image_digest is None):
+                errors.append(
+                    "environment VM image build and digest must both be recorded or both be null"
+                )
+            elif image_build is not None:
+                definition = read_vm_definition(source_root, errors)
+                if not isinstance(image_build, str) or not image_build.strip():
+                    errors.append("environment.vm_image_build must be a non-empty string")
+                elif image_build != definition.get("WTWM_VM_IMAGE_BUILD"):
+                    errors.append("VM image build does not match the checked-in definition")
+                if not isinstance(image_digest, str) or not HEX_128.fullmatch(image_digest):
+                    errors.append("environment.vm_image_sha512 must be 128 lowercase hex digits")
+                elif image_digest != definition.get("WTWM_VM_IMAGE_SHA512"):
+                    errors.append("VM image digest does not match the checked-in definition")
         elif environment.get("vm_image_build") is not None or environment.get("vm_image_sha512") is not None:
             errors.append("physical-linux evidence must use null VM image fields")
 
@@ -319,6 +327,55 @@ def self_test(source_root: Path) -> None:
         errors = validate(evidence, bundle, source_root, False)
         if not any("does not match" in error for error in errors):
             raise AssertionError("tampered artifact was accepted")
+        evidence["checks"]["nested_wayland"]["log"]["sha256"] = digest
+
+        utm = json.loads(json.dumps(evidence))
+        utm["run_id"] = "self-test-utm"
+        utm["platform"].update(
+            {
+                "kind": "utm-arm64",
+                "architecture": "arm64",
+                "os_release": "Debian GNU/Linux forky/sid",
+                "virtualized": True,
+                "manufacturer": "UTM",
+                "model": "Apple Virtualization ARM64",
+            }
+        )
+        errors = validate(utm, bundle, source_root, False)
+        if errors:
+            raise AssertionError(f"valid unpinned UTM evidence rejected: {errors}")
+
+        utm["environment"]["vm_image_build"] = "forky-current"
+        errors = validate(utm, bundle, source_root, False)
+        if not any("both be recorded or both be null" in error for error in errors):
+            raise AssertionError("partially identified UTM image was accepted")
+
+        utm["environment"]["vm_image_build"] = None
+        utm["environment"]["vm_image_sha512"] = "c" * 128
+        errors = validate(utm, bundle, source_root, False)
+        if not any("both be recorded or both be null" in error for error in errors):
+            raise AssertionError("digest-only UTM image identity was accepted")
+
+        definition_errors: list[str] = []
+        definition = read_vm_definition(source_root, definition_errors)
+        if definition_errors:
+            raise AssertionError(f"cannot load self-test VM definition: {definition_errors}")
+        utm["environment"]["vm_image_build"] = definition["WTWM_VM_IMAGE_BUILD"]
+        utm["environment"]["vm_image_sha512"] = definition["WTWM_VM_IMAGE_SHA512"]
+        errors = validate(utm, bundle, source_root, False)
+        if errors:
+            raise AssertionError(f"valid recorded UTM image identity rejected: {errors}")
+
+        utm["environment"]["vm_image_build"] = "wrong-build"
+        errors = validate(utm, bundle, source_root, False)
+        if not any("build does not match" in error for error in errors):
+            raise AssertionError("mismatched pinned UTM image build was accepted")
+
+        utm["environment"]["vm_image_build"] = definition["WTWM_VM_IMAGE_BUILD"]
+        utm["environment"]["vm_image_sha512"] = "c" * 128
+        errors = validate(utm, bundle, source_root, False)
+        if not any("digest does not match" in error for error in errors):
+            raise AssertionError("mismatched pinned UTM image digest was accepted")
 
 
 def main() -> int:
