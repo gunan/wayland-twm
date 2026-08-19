@@ -483,21 +483,21 @@ Implementation work:
 - [x] Handle output addition, removal, scale changes, and mode changes.
 - [x] Restore windows safely when an output disappears.
 - [x] Support input hotplugging and multiple keyboards and pointers.
-- [ ] Define session startup, logout, failure recovery, and state-file behavior.
+- [x] Define session startup, logout, failure recovery, and state-file behavior.
 
 Testing:
 
-- [ ] Reload good and invalid configurations while clients are active.
-- [ ] Exercise output hotplug and rearrangement.
-- [ ] Test one-output and multi-output screen-specific configurations.
-- [ ] Verify lifecycle translations with both native and Xwayland clients.
-- [ ] Confirm that every X11-only directive has no unexplained visible consequence.
+- [x] Reload good and invalid configurations while clients are active.
+- [x] Exercise output hotplug and rearrangement.
+- [x] Test one-output and multi-output screen-specific configurations.
+- [x] Verify lifecycle translations with both native and Xwayland clients.
+- [x] Confirm that every X11-only directive has no unexplained visible consequence.
 
 Exit criteria:
 
-- [ ] All compatibility translations are documented and tested.
-- [ ] Reload and restart-style operations preserve active clients.
-- [ ] Output changes cannot strand or permanently hide a managed window.
+- [x] All compatibility translations are documented and tested.
+- [x] Reload and restart-style operations preserve active clients.
+- [x] Output changes cannot strand or permanently hide a managed window.
 
 ### Milestone 9: Hardening, packaging, and long-duration testing
 
