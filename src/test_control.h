@@ -30,9 +30,24 @@ enum wtwm_test_output_transform {
 	WTWM_TEST_TRANSFORM_FLIPPED_270,
 };
 
+enum wtwm_test_input_operation {
+	WTWM_TEST_INPUT_CLEAR,
+	WTWM_TEST_INPUT_ADD,
+	WTWM_TEST_INPUT_REMOVE,
+	WTWM_TEST_INPUT_KEY,
+	WTWM_TEST_INPUT_POINTER,
+	WTWM_TEST_INPUT_BUTTON,
+};
+
+enum wtwm_test_input_device_type {
+	WTWM_TEST_INPUT_DEVICE_KEYBOARD,
+	WTWM_TEST_INPUT_DEVICE_POINTER,
+};
+
 enum wtwm_test_command_type {
 	WTWM_TEST_COMMAND_PING,
 	WTWM_TEST_COMMAND_OUTPUT,
+	WTWM_TEST_COMMAND_INPUT,
 	WTWM_TEST_COMMAND_POINTER,
 	WTWM_TEST_COMMAND_BUTTON,
 	WTWM_TEST_COMMAND_KEY,
@@ -51,6 +66,8 @@ struct wtwm_test_command {
 	enum wtwm_test_command_type type;
 	enum wtwm_test_output_operation output_operation;
 	enum wtwm_test_output_transform output_transform;
+	enum wtwm_test_input_operation input_operation;
+	enum wtwm_test_input_device_type input_device_type;
 	int first;
 	int second;
 	int third;
@@ -60,6 +77,7 @@ struct wtwm_test_command {
 	bool pressed;
 	bool output_auto;
 	char output_name[WTWM_TEST_CONTROL_TEXT_MAX];
+	char input_name[WTWM_TEST_CONTROL_TEXT_MAX];
 	char text[WTWM_TEST_CONTROL_TEXT_MAX];
 };
 

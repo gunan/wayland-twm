@@ -84,6 +84,31 @@ int main(void) {
 	assert(!command.output_auto);
 	assert(command.first == -1000000 && command.second == 1000000);
 
+	command = parse("INPUT CLEAR");
+	assert(command.type == WTWM_TEST_COMMAND_INPUT);
+	assert(command.input_operation == WTWM_TEST_INPUT_CLEAR);
+	command = parse("INPUT ADD KEYBOARD alpha-keyboard");
+	assert(command.type == WTWM_TEST_COMMAND_INPUT);
+	assert(command.input_operation == WTWM_TEST_INPUT_ADD);
+	assert(command.input_device_type == WTWM_TEST_INPUT_DEVICE_KEYBOARD);
+	assert(strcmp(command.input_name, "alpha-keyboard") == 0);
+	command = parse("INPUT ADD POINTER alpha-pointer");
+	assert(command.input_device_type == WTWM_TEST_INPUT_DEVICE_POINTER);
+	assert(strcmp(command.input_name, "alpha-pointer") == 0);
+	command = parse("INPUT REMOVE alpha-keyboard");
+	assert(command.input_operation == WTWM_TEST_INPUT_REMOVE);
+	command = parse("INPUT KEY alpha-keyboard 56 press");
+	assert(command.input_operation == WTWM_TEST_INPUT_KEY);
+	assert(command.code == 56 && command.pressed);
+	command = parse("INPUT KEY alpha-keyboard 56 release");
+	assert(!command.pressed);
+	command = parse("INPUT POINTER alpha-pointer -12.5 900");
+	assert(command.input_operation == WTWM_TEST_INPUT_POINTER);
+	assert(command.x == -12.5 && command.y == 900.0);
+	command = parse("INPUT BUTTON alpha-pointer 272 press");
+	assert(command.input_operation == WTWM_TEST_INPUT_BUTTON);
+	assert(command.code == 272 && command.pressed);
+
 	command = parse("POINTER 123.5 67");
 	assert(command.type == WTWM_TEST_COMMAND_POINTER);
 	assert(command.x == 123.5 && command.y == 67.0);
@@ -150,6 +175,23 @@ int main(void) {
 	reject("OUTPUT POSITION HEADLESS-1 0 1000001");
 	reject_with("OUTPUT FROB HEADLESS-1",
 		"unknown OUTPUT operation: FROB");
+	reject_with("INPUT", "usage: INPUT operation ...");
+	reject_with("INPUT CLEAR now", "INPUT CLEAR takes no arguments");
+	reject_with("INPUT ADD keyboard device",
+		"usage: INPUT ADD KEYBOARD|POINTER name");
+	reject("INPUT ADD KEYBOARD");
+	reject("INPUT ADD POINTER pointer extra");
+	reject_with("INPUT REMOVE", "INPUT REMOVE requires a device name");
+	reject_with("INPUT REMOVE pointer extra", "usage: INPUT REMOVE name");
+	reject_with("INPUT KEY keyboard 1 down",
+		"usage: INPUT KEY name code press|release");
+	reject("INPUT KEY keyboard -1 press");
+	reject("INPUT KEY keyboard 1 press extra");
+	reject_with("INPUT POINTER pointer nan 0",
+		"usage: INPUT POINTER name x y");
+	reject("INPUT POINTER pointer 0");
+	reject("INPUT BUTTON pointer 272 release extra");
+	reject_with("INPUT FROB device", "unknown INPUT operation: FROB");
 	reject("BUTTON 1 down");
 	reject("POINTER nan 1");
 	reject("WAIT 0");

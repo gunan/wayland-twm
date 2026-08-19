@@ -86,6 +86,14 @@ static bool set_output_name(struct wtwm_test_command *command,
 	return true;
 }
 
+static bool set_input_name(struct wtwm_test_command *command,
+		const char *name) {
+	if (name == NULL || *name == '\0' ||
+			strlen(name) >= sizeof(command->input_name)) return false;
+	strcpy(command->input_name, name);
+	return true;
+}
+
 static bool parse_output_transform(const char *text,
 		enum wtwm_test_output_transform *transform) {
 	static const struct {
@@ -213,6 +221,86 @@ static bool parse_output_command(char *cursor,
 	return false;
 }
 
+static bool parse_input_command(char *cursor,
+		struct wtwm_test_command *command, char *error, size_t error_size) {
+	char *operation = next_word(&cursor);
+	if (operation == NULL) {
+		set_error(error, error_size, "usage: INPUT operation ...");
+		return false;
+	}
+	if (strcmp(operation, "CLEAR") == 0) {
+		if (!no_more_words(cursor)) {
+			set_error(error, error_size, "INPUT CLEAR takes no arguments");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_CLEAR;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+
+	if (strcmp(operation, "ADD") == 0) {
+		char *type = next_word(&cursor);
+		char *name = next_word(&cursor);
+		if (type == NULL || (strcmp(type, "KEYBOARD") != 0 &&
+				strcmp(type, "POINTER") != 0) ||
+				!set_input_name(command, name) || !no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: INPUT ADD KEYBOARD|POINTER name");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_ADD;
+		command->input_device_type = strcmp(type, "KEYBOARD") == 0 ?
+			WTWM_TEST_INPUT_DEVICE_KEYBOARD : WTWM_TEST_INPUT_DEVICE_POINTER;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+
+	char *name = next_word(&cursor);
+	if (!set_input_name(command, name)) {
+		set_error(error, error_size, "INPUT %s requires a device name", operation);
+		return false;
+	}
+	if (strcmp(operation, "REMOVE") == 0) {
+		if (!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: INPUT REMOVE name");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_REMOVE;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	if (strcmp(operation, "KEY") == 0 || strcmp(operation, "BUTTON") == 0) {
+		int code = 0;
+		char *code_text = next_word(&cursor);
+		char *state = next_word(&cursor);
+		if (!parse_int(code_text, 0, INT_MAX, &code) ||
+				!parse_state(state, &command->pressed) || !no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: INPUT %s name code press|release", operation);
+			return false;
+		}
+		command->code = (uint32_t)code;
+		command->input_operation = strcmp(operation, "KEY") == 0 ?
+			WTWM_TEST_INPUT_KEY : WTWM_TEST_INPUT_BUTTON;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	if (strcmp(operation, "POINTER") == 0) {
+		char *x = next_word(&cursor);
+		char *y = next_word(&cursor);
+		if (!parse_double(x, &command->x) || !parse_double(y, &command->y) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: INPUT POINTER name x y");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_POINTER;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	set_error(error, error_size, "unknown INPUT operation: %s", operation);
+	return false;
+}
+
 bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command,
 	char *error, size_t error_size) {
 	if (line == NULL || command == NULL) {
@@ -258,6 +346,9 @@ bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command
 	}
 	if (strcmp(verb, "OUTPUT") == 0) {
 		return parse_output_command(cursor, command, error, error_size);
+	}
+	if (strcmp(verb, "INPUT") == 0) {
+		return parse_input_command(cursor, command, error, error_size);
 	}
 	if (strcmp(verb, "POINTER") == 0) {
 		char *x = next_word(&cursor);
