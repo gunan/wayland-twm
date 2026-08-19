@@ -30,6 +30,7 @@ CLIENT_MARKERS = {
     "separate healthy survivor mode": (
         '[MODE_SURVIVOR] = "m9-protocol-survivor"'
     ),
+    "client display cleanup": "wl_display_disconnect(client->display);",
 }
 
 RUNNER_MARKERS = {

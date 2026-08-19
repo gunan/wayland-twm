@@ -49,6 +49,14 @@ static void emit(const char *message) {
 	fflush(stdout);
 }
 
+static int disconnect_client(struct client *client, int status) {
+	if (client->display != NULL) {
+		wl_display_disconnect(client->display);
+		client->display = NULL;
+	}
+	return status;
+}
+
 static struct wl_buffer *create_buffer(struct client *client, int width,
 		int height) {
 	char name[] = "/wtwm-m9-protocol-XXXXXX";
@@ -380,12 +388,12 @@ int main(int argc, char **argv) {
 			wl_display_roundtrip(client.display) < 0 ||
 			client.pointer == NULL) {
 		fprintf(stderr, "protocol fuzz client: required globals unavailable\n");
-		return 1;
+		return disconnect_client(&client, 1);
 	}
 	client.cursor_surface = wl_compositor_create_surface(client.compositor);
 	if (client.cursor_surface == NULL) {
 		fprintf(stderr, "protocol fuzz client: cursor surface setup failed\n");
-		return 1;
+		return disconnect_client(&client, 1);
 	}
 	const char *titles[] = {
 		[MODE_SURVIVOR] = "m9-protocol-survivor",
@@ -395,26 +403,28 @@ int main(int argc, char **argv) {
 	};
 	if (!create_toplevel(&client, titles[client.mode])) {
 		fprintf(stderr, "protocol fuzz client: toplevel setup failed\n");
-		return 1;
+		return disconnect_client(&client, 1);
 	}
 	while (!client.mapped && wl_display_dispatch(client.display) >= 0) {}
-	if (!client.mapped) return 1;
+	if (!client.mapped) return disconnect_client(&client, 1);
 	if (client.mode == MODE_GEOMETRY) send_oversized_geometry(&client);
 	if (client.mode == MODE_POSITIONER) send_oversized_positioner(&client);
 	if (client.mode == MODE_GEOMETRY || client.mode == MODE_POSITIONER) {
 		if (wl_display_roundtrip(client.display) < 0) {
 			emit("DISCONNECTED");
-			return client.mode == MODE_POSITIONER ? 0 : 1;
+			return disconnect_client(&client,
+				client.mode == MODE_POSITIONER ? 0 : 1);
 		}
 		emit("SURVIVED");
-		return 0;
+		return disconnect_client(&client, 0);
 	}
 	while (!client.closed &&
 			(client.mode == MODE_SURVIVOR || !client.fuzz_sent) &&
 			wl_display_dispatch(client.display) >= 0) {}
 	if (client.mode == MODE_SERIALS && client.fuzz_sent) {
-		if (wl_display_roundtrip(client.display) < 0) return 1;
+		if (wl_display_roundtrip(client.display) < 0)
+			return disconnect_client(&client, 1);
 		emit("SURVIVED");
 	}
-	return 0;
+	return disconnect_client(&client, 0);
 }
