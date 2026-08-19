@@ -86,6 +86,9 @@ def validate(client: str, runner: str) -> None:
         requirements["runner: responsiveness checked between every hostile client"] = False
     if client.count("INT32_MAX") < 8:
         requirements["client: multiple maximum-boundary request fields"] = False
+    main_setup = client[client.find("int main("):client.find("if (!create_toplevel")]
+    if main_setup.count("wl_display_roundtrip(client.display)") < 2:
+        requirements["client: seat capabilities synchronized after registry globals"] = False
     failed = [name for name, present in requirements.items() if not present]
     if failed:
         raise AssertionError("missing protocol-fuzz contract: " + ", ".join(failed))
@@ -112,6 +115,18 @@ def self_test_tamper(client: str, runner: str) -> None:
             pass
         else:
             raise AssertionError(f"contract accepted missing runner marker: {name}")
+    barrier = "wl_display_roundtrip(client.display)"
+    first = client.find(barrier, client.find("int main("))
+    second = client.find(barrier, first + len(barrier))
+    if first < 0 or second < 0:
+        raise AssertionError("could not locate two setup round trips")
+    tampered = client[:second] + "REMOVED" + client[second + len(barrier):]
+    try:
+        validate(tampered, runner)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("contract accepted missing seat-capability round trip")
 
 
 def main() -> None:

@@ -374,8 +374,9 @@ int main(int argc, char **argv) {
 	wl_registry_add_listener(client.registry, &registry_listener, &client);
 	if (wl_display_roundtrip(client.display) < 0 ||
 			client.compositor == NULL || client.shm == NULL ||
-			client.seat == NULL || client.pointer == NULL ||
-			client.wm_base == NULL) {
+			client.seat == NULL || client.wm_base == NULL ||
+			wl_display_roundtrip(client.display) < 0 ||
+			client.pointer == NULL) {
 		fprintf(stderr, "protocol fuzz client: required globals unavailable\n");
 		return 1;
 	}

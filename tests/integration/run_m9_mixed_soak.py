@@ -443,11 +443,32 @@ def pair_ready(state: dict[str, Any], clients: dict[str, SoakClient]) -> bool:
     return True
 
 
-def content_point(item: dict[str, Any]) -> tuple[int, int]:
-    return (
-        int(item["x"]) + int(item["width"]) // 2,
-        int(item["y"]) + int(item["title_height"]) + int(item["height"]) // 2,
-    )
+def visible_content_point(
+    state: dict[str, Any], title: str
+) -> tuple[int, int]:
+    target = window(state, title)
+    above = [
+        item for item in state["windows"]
+        if int(item["stack"]) < int(target["stack"])
+    ]
+    left = int(target["x"]) + int(target["content_x"])
+    top = int(target["y"]) + int(target["content_y"])
+    right = left + int(target["width"])
+    bottom = top + int(target["height"])
+    xs = (left + 12, right - 12, (left + right) // 2)
+    ys = (top + 12, bottom - 12, (top + bottom) // 2)
+    for point_y in ys:
+        for point_x in xs:
+            covered = any(
+                int(other["x"]) <= point_x
+                < int(other["x"]) + int(other["outer_width"])
+                and int(other["y"]) <= point_y
+                < int(other["y"]) + int(other["outer_height"])
+                for other in above
+            )
+            if not covered:
+                return point_x, point_y
+    raise RuntimeError(f"no visible content point for {title!r}: {state!r}")
 
 
 def point_and_wait(
@@ -471,8 +492,7 @@ def focus_and_raise(
     if protocol == "wayland":
         client.channel.command(f"ARM {token}", f"OK ARMED {token}")
     state = control.state()
-    item = window(state, client.title)
-    point = content_point(item)
+    point = visible_content_point(state, client.title)
     point_and_wait(control, client.title, point, "window")
     control.command("BUTTON 272 press")
     control.command("BUTTON 272 release")

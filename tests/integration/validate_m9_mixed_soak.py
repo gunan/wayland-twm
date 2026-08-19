@@ -102,6 +102,29 @@ def self_test(module) -> None:
     }:
         raise RuntimeError(f"unexpected default profile: {default_profile!r}")
 
+    obscured = {
+        "windows": [
+            {
+                "title": "front", "stack": 0, "x": 80, "y": 80,
+                "content_x": 2, "content_y": 21, "width": 180,
+                "height": 120, "outer_width": 184, "outer_height": 143,
+            },
+            {
+                "title": "back", "stack": 1, "x": 50, "y": 50,
+                "content_x": 2, "content_y": 21, "width": 180,
+                "height": 120, "outer_width": 184, "outer_height": 143,
+            },
+        ]
+    }
+    point = module.visible_content_point(obscured, "back")
+    front = obscured["windows"][0]
+    if (
+        int(front["x"]) <= point[0] < int(front["x"]) + int(front["outer_width"])
+        and int(front["y"]) <= point[1]
+        < int(front["y"]) + int(front["outer_height"])
+    ):
+        raise RuntimeError(f"selected content point is obscured: {point!r}")
+
     smoke = baseline(module)
     long = baseline(module, long=True)
     for evidence, label in ((smoke, "smoke"), (long, "72-hour")):
