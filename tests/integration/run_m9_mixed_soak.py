@@ -431,8 +431,13 @@ def assert_pair(state: dict[str, Any], clients: dict[str, SoakClient]) -> None:
         or entry["override_redirect"]
     ):
         raise RuntimeError(f"Xwayland association is not live: {state!r}")
-    if state["active"] != state["focus"]:
-        raise RuntimeError(f"logical and protocol focus disagree: {state!r}")
+    if state["active"] is not None and state["active"] not in titles:
+        raise RuntimeError(f"activation names a stale mixed window: {state!r}")
+    if state["focus_root"]:
+        if state["focus"] is not None:
+            raise RuntimeError(f"PointerRoot retained direct client focus: {state!r}")
+    elif state["active"] != state["focus"] or state["focus"] not in titles:
+        raise RuntimeError(f"locked logical and protocol focus disagree: {state!r}")
 
 
 def pair_ready(state: dict[str, Any], clients: dict[str, SoakClient]) -> bool:
