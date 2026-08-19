@@ -873,6 +873,15 @@ test(
   ],
 )
 test(
+  'Milestone 8 output restoration model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_output_restoration.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -1413,6 +1422,20 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output disappearance restoration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_restoration.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--x11-family-client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 240,
     is_parallel: false,
   )
   test(
