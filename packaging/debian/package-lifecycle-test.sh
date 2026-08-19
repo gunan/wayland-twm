@@ -90,7 +90,8 @@ cleanup()
 {
 	rm -f -- "$old_list_file"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
 test -s "$old_list_file" || fail 'no old packages were provided'
 
 if test -n "$rollback_deb"; then
