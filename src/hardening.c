@@ -42,3 +42,10 @@ unsigned wtwm_client_size_sanitize(int requested_width, int requested_height,
 bool wtwm_client_size_adjusted(unsigned adjustment) {
 	return adjustment != WTWM_CLIENT_SIZE_UNCHANGED;
 }
+
+bool wtwm_client_geometry_in_bounds(int x, int y, int width, int height) {
+	return x >= -WTWM_CLIENT_SIZE_MAX && x <= WTWM_CLIENT_SIZE_MAX &&
+		y >= -WTWM_CLIENT_SIZE_MAX && y <= WTWM_CLIENT_SIZE_MAX &&
+		width >= 1 && width <= WTWM_CLIENT_SIZE_MAX &&
+		height >= 1 && height <= WTWM_CLIENT_SIZE_MAX;
+}

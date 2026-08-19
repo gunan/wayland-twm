@@ -52,6 +52,12 @@ def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> N
             "#define WTWM_CLIENT_SIZE_MAX 65535" in header
             and "sanitize_fallback" in hardening
         ),
+        "scene geometry is normalized before wlroots listeners": (
+            "wtwm_client_geometry_in_bounds" in hardening
+            and "normalize_xdg_surface_geometry" in wtwm
+            and wtwm.find("wl_signal_add(&xdg->base->surface->events.commit")
+            < wtwm.find("wlr_scene_xdg_surface_create(toplevel->tree")
+        ),
         "bounded SIGUSR2 diagnostic dump": all(
             marker in wtwm
             for marker in (
@@ -108,6 +114,7 @@ def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
         '"xwayland_commit"',
         '"xwayland_geometry"',
         "popup_size_valid",
+        "normalize_xdg_surface_geometry",
         "DIAGNOSTIC_MAX_WINDOWS = 256",
     )
     for gate in wtwm_gates:

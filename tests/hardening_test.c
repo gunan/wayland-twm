@@ -34,6 +34,13 @@ int main(void) {
 	expect_size(WTWM_CLIENT_SIZE_MAX + 1, INT_MAX, 1, 1,
 		WTWM_CLIENT_SIZE_MAX, WTWM_CLIENT_SIZE_MAX,
 		WTWM_CLIENT_WIDTH_CLAMPED | WTWM_CLIENT_HEIGHT_CLAMPED);
+	assert(wtwm_client_geometry_in_bounds(0, 0, 640, 480));
+	assert(wtwm_client_geometry_in_bounds(-WTWM_CLIENT_SIZE_MAX,
+		WTWM_CLIENT_SIZE_MAX, 1, WTWM_CLIENT_SIZE_MAX));
+	assert(!wtwm_client_geometry_in_bounds(INT_MIN, 0, 640, 480));
+	assert(!wtwm_client_geometry_in_bounds(0, INT_MAX, 640, 480));
+	assert(!wtwm_client_geometry_in_bounds(0, 0, INT_MAX, INT_MAX));
+	assert(!wtwm_client_geometry_in_bounds(0, 0, 0, 480));
 
 	/* Exercise the boundary policy over a deterministic hostile-size stream.
 	 * This catches wraparound and guarantees that no input can escape the range

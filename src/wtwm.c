@@ -1156,6 +1156,39 @@ static unsigned sanitize_toplevel_client_size(struct toplevel *toplevel,
 	return adjustment;
 }
 
+static bool normalize_xdg_surface_geometry(struct toplevel *toplevel,
+		const char *boundary) {
+#if WTWM_WLROOTS_API_MINOR >= 20
+	struct wlr_box *geometry = &toplevel->xdg->base->geometry;
+	if (wtwm_client_geometry_in_bounds(geometry->x, geometry->y,
+			geometry->width, geometry->height)) return false;
+	struct wlr_box requested = *geometry;
+	struct wlr_box extents;
+	wlr_surface_get_extents(toplevel->xdg->base->surface, &extents);
+	int width, height;
+	(void)wtwm_client_size_sanitize(extents.width, extents.height,
+		toplevel->width, toplevel->height, &width, &height);
+	int x = extents.x;
+	int y = extents.y;
+	if (x < -WTWM_CLIENT_SIZE_MAX) x = -WTWM_CLIENT_SIZE_MAX;
+	else if (x > WTWM_CLIENT_SIZE_MAX) x = WTWM_CLIENT_SIZE_MAX;
+	if (y < -WTWM_CLIENT_SIZE_MAX) y = -WTWM_CLIENT_SIZE_MAX;
+	else if (y > WTWM_CLIENT_SIZE_MAX) y = WTWM_CLIENT_SIZE_MAX;
+	*geometry = (struct wlr_box){x, y, width, height};
+	wlr_log(WLR_DEBUG,
+		"event=client_size protocol=xdg_shell boundary=%s outcome=adjusted "
+		"requested_x=%d requested_y=%d requested_width=%d requested_height=%d "
+		"x=%d y=%d width=%d height=%d adjustment=geometry_bounds",
+		boundary, requested.x, requested.y, requested.width, requested.height,
+		geometry->x, geometry->y, geometry->width, geometry->height);
+	return true;
+#else
+	(void)toplevel;
+	(void)boundary;
+	return false;
+#endif
+}
+
 #ifdef WTWM_TEST_CONTROL
 static void test_trace_copy(char destination[TEST_TRACE_IDENTITY_MAX],
 		const char *source) {
@@ -7691,6 +7724,7 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	if (toplevel->mapped) return;
+	(void)normalize_xdg_surface_geometry(toplevel, "xdg_map");
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
 	struct wlr_box geometry;
@@ -7782,6 +7816,7 @@ static void toplevel_unmap(struct wl_listener *listener, void *data) {
 static void toplevel_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
+	(void)normalize_xdg_surface_geometry(toplevel, "xdg_commit");
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
 	if (toplevel->xdg->base->initial_commit) {
@@ -7977,15 +8012,15 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 		wlr_xdg_toplevel_send_close(xdg);
 		return;
 	}
+	toplevel->map.notify = toplevel_map;
+	wl_signal_add(&xdg->base->surface->events.map, &toplevel->map);
+	toplevel->commit.notify = toplevel_commit;
+	wl_signal_add(&xdg->base->surface->events.commit, &toplevel->commit);
 	toplevel->content = wlr_scene_xdg_surface_create(toplevel->tree, xdg->base);
 	xdg->base->data = toplevel->content;
 	update_toplevel_metadata(toplevel, true);
-	toplevel->map.notify = toplevel_map;
-	wl_signal_add(&xdg->base->surface->events.map, &toplevel->map);
 	toplevel->unmap.notify = toplevel_unmap;
 	wl_signal_add(&xdg->base->surface->events.unmap, &toplevel->unmap);
-	toplevel->commit.notify = toplevel_commit;
-	wl_signal_add(&xdg->base->surface->events.commit, &toplevel->commit);
 	toplevel->destroy.notify = toplevel_destroy;
 	wl_signal_add(&xdg->events.destroy, &toplevel->destroy);
 	toplevel->request_move.notify = request_move;
