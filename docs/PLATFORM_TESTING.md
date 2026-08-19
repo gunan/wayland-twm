@@ -71,3 +71,52 @@ tests/platform/session-launcher-test.sh
 
 They are not substitutes for a successful nested display or DRM-backed VM
 evidence record.
+
+## Package lifecycle and rollback
+
+Use a clean Debian Trixie VM snapshot, not a development host. Build or copy one
+candidate `.deb` and every genuinely older released `.deb` for the VM's
+architecture. Mark the disposable VM only after verifying the snapshot:
+
+```sh
+sudo touch /etc/wtwm-platform-test-vm
+sudo packaging/debian/package-lifecycle-test.sh \
+  --old /tmp/wtwm_OLD1_ARCH.deb \
+  --old /tmp/wtwm_OLD2_ARCH.deb \
+  --new /tmp/wtwm_CANDIDATE_ARCH.deb \
+  --rollback /tmp/wtwm_OLD2_ARCH.deb \
+  --protect /usr/bin/EXISTING_COMPOSITOR \
+  --protect /usr/share/wayland-sessions/EXISTING.desktop \
+  --evidence /var/tmp/wtwm-package-lifecycle
+```
+
+The script requires an initially absent wtwm package. For each `--old` it
+performs a clean old-version install, direct upgrade to the candidate, and
+purge. It then tests a clean candidate install, remove, purge, candidate install,
+explicit downgrade, and upgrade back to the candidate. Every phase checks user
+configuration and protected-session hashes, installed paths and manuals,
+package ownership boundaries, and the distinct Wayland entry. It leaves the
+candidate installed so the tester can confirm both old and new login sessions.
+
+Copy the evidence directory out before restoring the snapshot. Repeat on every
+supported package architecture. The local command-double test verifies control
+flow only and must not be reported as a clean-system package pass.
+
+## Stress, renderer, and soak records
+
+Short stress and sanitizer runs are useful gates before a long run, but they do
+not satisfy the 72-hour or hardware Roadmap items. A release record must name
+the exact clean commit, build profile, backend, renderer, architecture, native
+and Xwayland clients, start/end UTC timestamps, and the assertions sampled
+during the run. Preserve bounded resource samples and the final exit status.
+
+Run the mixed rapid map/unmap, popup, resize, title-change, and client-crash
+scenarios first. Then exercise the required high window count. Only after those
+pass should the same candidate enter a 72-hour mixed-client soak. Any restart
+resets the duration; a process that merely remains alive is insufficient.
+
+Test the GPU renderer on representative physical AMD and Intel systems and the
+software renderer through the controlled pixman/headless profile. ARM coverage
+must state whether it is native VM hardware, physical hardware, or emulation.
+Do not infer physical-machine, DRM-login, GPU, architecture, or soak success
+from GitHub Actions labels or portable tests.

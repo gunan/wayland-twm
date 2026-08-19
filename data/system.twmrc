@@ -1,4 +1,7 @@
-# wtwm's packaged default.  It intentionally retains ordinary twm syntax.
+# wtwm's packaged default.  It intentionally retains ordinary twm syntax so it
+# can also serve as a small migration example.  Xwayland lists match WM_NAME,
+# then WM_CLASS instance/class; native lists match title, then app_id.
+# Meta+Return starts foot.  Alt+Escape remains the compositor's emergency exit.
 DecorateTransients
 OpaqueMove
 TitleFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
@@ -29,7 +32,7 @@ Button3 = m : window|icon : f.function "move-or-raise"
 Button1 = : title : f.function "move-or-raise"
 Button2 = : title : f.raiselower
 
-# A practical escape hatch while the root menu renderer is under development.
+# A terminal shortcut that does not depend on opening the root menu.
 "Return" = m : all : f.exec "foot"
 
 Menu "defops"

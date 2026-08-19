@@ -1660,3 +1660,4 @@ install_data(
   install_mode: 'rwxr-xr-x',
 )
 install_man('data/wtwm-config.1')
+install_man('data/wtwmrc.5')

@@ -1,36 +1,186 @@
-.TH WTWM 1 "August 2026" "wtwm 0.1.0" "User Commands"
+.TH WTWM 1 "2026-08-18" "wtwm 0.1.0" "User Commands"
 .SH NAME
-wtwm \- a twm-compatible Wayland compositor
+wtwm \- run the twm-compatible Wayland compositor
 .SH SYNOPSIS
 .B wtwm
 .RB [ \-d ]
 .RB [ \-f " twmrc" ]
 .RB [ \-s " command" ]
+.RB [ \-\-visual-mode " mode" ]
 .SH DESCRIPTION
 .B wtwm
-is a wlroots-based Wayland compositor that uses twm configuration syntax and
-classic server-side title bars.  It installs alongside X11 twm and appears as
-a separate login session.
+is a wlroots-based Wayland compositor that implements the observable window
+management and appearance of X11 twm where the Wayland protocols permit it.
+It manages native xdg-shell and Xwayland windows in one stack and draws classic
+server-side title bars, menus, icons, and icon managers.
 .PP
-Without
-.BR \-f ,
-configuration is read from ~/.twmrc.0, then ~/.twmrc, then the packaged
-system.twmrc.  Run
-.B wtwm-config
-to inspect how a file is interpreted.
+The executable, state directory, and login entry are named
+.BR wtwm .
+Installing wtwm does not replace
+.BR twm (1),
+an Xorg session, another Wayland compositor, or the display manager's default
+session.  The packaged login entry is displayed as
+.BR "Wayland twm" .
 .SH OPTIONS
 .TP
-.B \-d
-Enable debug logging.
+.BR \-d ", " \-\-debug
+Enable verbose wlroots and compositor logging.
 .TP
 .BI \-f " file"
-Read the named twm configuration file.
+.TQ
+.BI \-\-config " file"
+Try the named twm configuration first.  See
+.BR wtwmrc (5)
+for normal search order and fallback behavior.
 .TP
 .BI \-s " command"
-Run a shell command after the Wayland socket starts.
+.TQ
+.BI \-\-startup " command"
+Run one command after runtime initialization and Wayland socket creation.
+Configuration and startup failures that occur before this point prevent the
+command from running.  Shell metacharacters select execution through
+.BR sh (1);
+simple commands are executed directly.
 .TP
-.B \-h
-Show usage.
-.SH NOTES
-Alt+Escape is an emergency compositor exit.  Wayland-native applications are
-supported in this release; see the project compatibility document for gaps.
+.BI \-\-visual-mode " mode"
+Select
+.BR color ,
+.BR grayscale ,
+or
+.BR monochrome .
+The default is
+.BR color .
+.TP
+.BR \-h ", " \-\-help
+Print command-line usage and exit.
+.SH CONFIGURATION
+With no
+.B \-f
+argument, wtwm tries
+.IR $HOME/.twmrc.0 ,
+then
+.IR $HOME/.twmrc ,
+then the packaged
+.IR system.twmrc .
+If none is readable, compiled-in defaults are used.  Existing user files are
+read in place and are never rewritten by install, upgrade, reload, or removal.
+.PP
+Check a file before logging in with:
+.PP
+.EX
+wtwm-config "$HOME/.twmrc"
+.EE
+.PP
+Configuration is compatible with twm syntax.  Native applications are matched
+by title and Wayland
+.BR app_id ;
+Xwayland applications are matched by
+.B WM_NAME
+and both parts of
+.BR WM_CLASS .
+See
+.BR wtwmrc (5)
+and the installed migration guide for translations of X11-only behavior.
+.SH SESSION USE
+For a real login, select
+.B Wayland twm
+in the display manager.  The
+.B wtwm-session
+wrapper starts exactly one compositor, forwards termination signals, records a
+private log, and returns the compositor's status to the display manager.  It
+does not restart wtwm or the display manager.  A normal exit or a failed start
+therefore returns control to the login manager.
+.PP
+For testing inside an existing Wayland session, use a nested backend, for
+example:
+.PP
+.EX
+WLR_BACKENDS=wayland wtwm -s foot
+.EE
+.PP
+Do not select a DRM backend from an SSH shell.  DRM login testing requires an
+active local logind session and a usable DRM device.
+.SH ENVIRONMENT
+.TP
+.B HOME
+Locates user configuration and, when
+.B XDG_STATE_HOME
+is unset, compositor state and the session log.
+.TP
+.B XDG_RUNTIME_DIR
+Required by Wayland.  The login-session wrapper rejects a missing,
+non-directory, or non-writable value.
+.TP
+.B XDG_STATE_HOME
+Overrides the base directory for persistent state and
+.IR wtwm/session.log .
+.TP
+.B WTWM_SYSTEM_CONFIG
+Overrides the compiled-in packaged configuration path.  Intended for builds and
+tests; normal user configuration belongs in
+.IR ~/.twmrc .
+.TP
+.B WLR_BACKENDS
+.TQ
+.B WLR_RENDERER
+wlroots backend and renderer selection.  These are useful for controlled
+headless or nested testing.  A normal login should let the session choose its
+platform backend.
+.SH FILES
+.TP
+.I $HOME/.twmrc.0
+First user configuration tried for screen zero.
+.TP
+.I $HOME/.twmrc
+General user configuration.
+.TP
+.I /usr/share/wtwm/system.twmrc
+Packaged fallback configuration for a default-prefix install.
+.TP
+.I ${XDG_STATE_HOME:-$HOME/.local/state}/wtwm/state
+State explicitly written by the
+.B f.saveyourself
+action.  Ordinary exit, failure, and signals do not replace it.
+.TP
+.I ${XDG_STATE_HOME:-$HOME/.local/state}/wtwm/session.log
+Private login-wrapper log.
+.TP
+.I /usr/share/wayland-sessions/wtwm.desktop
+Distinct Wayland login entry.
+.SH SIGNALS
+.B SIGHUP ,
+.B SIGINT ,
+.B SIGQUIT ,
+and
+.B SIGTERM
+request orderly compositor termination.  The login wrapper forwards each as
+.B SIGTERM
+to its compositor child and waits for that child to be reaped.
+.SH EXIT STATUS
+Zero indicates a normal compositor exit, including
+.B f.quit
+and orderly signal termination.  Invalid arguments return 2.  Configuration,
+backend, renderer, socket, or other initialization failures return nonzero.
+The login wrapper returns the same child status; 127 means it could not execute
+the configured compositor binary.
+.SH SECURITY
+.B f.exec
+and the
+.B \-s
+option execute commands with the user's privileges.  Review an imported
+\&.twmrc before use.  Do not run wtwm or wtwm-session as root.
+.SH DIAGNOSTICS
+Use
+.B \-d
+and inspect
+.I session.log
+after a login failure.  Run
+.B wtwm-config
+separately to distinguish configuration errors from backend or device errors.
+The installed troubleshooting guide covers blank displays, unavailable
+Xwayland, fonts, permissions, recovery, and useful evidence to collect.
+.SH SEE ALSO
+.BR wtwm-config (1),
+.BR wtwmrc (5),
+.BR twm (1),
+.BR Xwayland (1)

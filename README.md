@@ -508,7 +508,7 @@ Implementation work:
   metadata handling.
 - [ ] Eliminate compositor crashes caused by malformed or hostile clients.
 - [ ] Add structured logging and an optional diagnostic state dump.
-- [ ] Complete manual pages, sample configurations, migration notes, and
+- [x] Complete manual pages, sample configurations, migration notes, and
   troubleshooting documentation.
 - [ ] Produce packages for the initially supported distributions.
 - [ ] Ship a session file under a distinct name; never replace the user's default
