@@ -226,7 +226,11 @@ def run_f_quit_mixed_clients(
             "f.quit root binding",
         )
         control.command("BUTTON 272 press")
-        control.command("BUTTON 272 release")
+        # f.quit may destroy the test-control connection before its terminal
+        # release acknowledgement reaches the runner.  The process status,
+        # client disconnects, and removed sockets below are the logout oracle.
+        control.stream.write("BUTTON 272 release\n")
+        control.stream.flush()
         if process.wait(timeout=10) != 0:
             raise RuntimeError("f.quit did not exit successfully")
         if wait_process(native_process, NATIVE_TITLE) == 0:
