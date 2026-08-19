@@ -494,6 +494,15 @@ def focus_and_raise(
     state = control.state()
     point = visible_content_point(state, client.title)
     point_and_wait(control, client.title, point, "window")
+    control.command("BUTTON 274 press")
+    control.command("BUTTON 274 release")
+    wait_state(
+        control,
+        lambda candidate: candidate["focus_root"]
+        and candidate["active"] is None
+        and candidate["focus"] is None,
+        f"{protocol} deterministic PointerRoot reset",
+    )
     control.command("BUTTON 272 press")
     control.command("BUTTON 272 release")
     state = wait_state(
@@ -636,6 +645,7 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
             'Function "focus-raise" { f.focus f.raise }\n'
             'Button1 = : window : f.function "focus-raise"\n'
             "Button2 = : window : f.resize\n"
+            "Button3 = : window : f.unfocus\n"
         )
         config.write_text(config_text, encoding="utf-8")
         evidence["provenance"]["configuration_sha256"] = hashlib.sha256(

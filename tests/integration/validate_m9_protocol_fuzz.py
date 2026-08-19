@@ -15,6 +15,8 @@ CLIENT_MARKERS = {
     "xdg resize request": "xdg_toplevel_resize(client->toplevel",
     "xdg show-window-menu request": "xdg_toplevel_show_window_menu(client->toplevel",
     "wl_pointer cursor request": "wl_pointer_set_cursor(client->pointer",
+    "dedicated cursor surface": "client->cursor_surface, INT32_MIN, INT32_MAX",
+    "cursor corpus excludes released-button serial": "if (serials[i] != stale)",
     "released button becomes stale corpus input": "send_serial_fuzz(client);",
     "oversized toplevel geometry": (
         "xdg_surface_set_window_geometry(client->xdg_surface, INT32_MIN, INT32_MIN,"

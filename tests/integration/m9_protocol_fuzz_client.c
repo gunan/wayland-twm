@@ -30,6 +30,7 @@ struct client {
 	struct wl_shm *shm;
 	struct wl_seat *seat;
 	struct wl_pointer *pointer;
+	struct wl_surface *cursor_surface;
 	struct xdg_wm_base *wm_base;
 	struct wl_surface *surface;
 	struct xdg_surface *xdg_surface;
@@ -98,8 +99,9 @@ static void send_serial_fuzz(struct client *client) {
 			XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT);
 		xdg_toplevel_show_window_menu(client->toplevel, client->seat,
 			serials[i], INT32_MIN, INT32_MAX);
-		wl_pointer_set_cursor(client->pointer, serials[i], client->surface,
-			INT32_MIN, INT32_MAX);
+		if (serials[i] != stale)
+			wl_pointer_set_cursor(client->pointer, serials[i],
+				client->cursor_surface, INT32_MIN, INT32_MAX);
 	}
 	client->fuzz_sent = true;
 	printf("FUZZ_SENT stale=%" PRIu32 "\n", stale);
@@ -378,6 +380,11 @@ int main(int argc, char **argv) {
 			wl_display_roundtrip(client.display) < 0 ||
 			client.pointer == NULL) {
 		fprintf(stderr, "protocol fuzz client: required globals unavailable\n");
+		return 1;
+	}
+	client.cursor_surface = wl_compositor_create_surface(client.compositor);
+	if (client.cursor_surface == NULL) {
+		fprintf(stderr, "protocol fuzz client: cursor surface setup failed\n");
 		return 1;
 	}
 	const char *titles[] = {
