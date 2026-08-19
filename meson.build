@@ -302,6 +302,23 @@ output_restore_test = executable(
 )
 test('Wayland disappeared-output restoration model', output_restore_test)
 
+input_hotplug_lib = static_library(
+  'wtwm-input-hotplug-lib',
+  'src/input_hotplug.c',
+  include_directories: inc,
+)
+input_hotplug_dep = declare_dependency(
+  link_with: input_hotplug_lib,
+  include_directories: inc,
+)
+
+input_hotplug_test = executable(
+  'input-hotplug-test',
+  'tests/input_hotplug_test.c',
+  dependencies: input_hotplug_dep,
+)
+test('Wayland input hotplug state model', input_hotplug_test)
+
 command_lib = static_library(
   'wtwm-command-lib',
   'src/command.c',
@@ -800,6 +817,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 input hotplug contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_input_hotplug_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 8 output placement and root contract',
   find_program('python3'),
   args: [
@@ -877,6 +904,15 @@ test(
   find_program('python3'),
   args: [
     '-B', files('tests/integration/run_m8_output_restoration.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
+  'Milestone 8 input hotplug model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_input_hotplug.py'),
     '--self-test-model',
     '--config-tool', config_tool,
   ],
@@ -993,7 +1029,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -1001,7 +1037,7 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
-      output_order_dep, output_restore_dep,
+      output_order_dep, output_restore_dep, input_hotplug_dep,
       command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
@@ -1171,6 +1207,16 @@ if wlroots.found()
     'wtwm-mixed-x11-client',
     'tests/integration/mixed_x11_client.c',
     dependencies: xcb,
+    install: false,
+  )
+  wtwm_input_hotplug_wayland_client = executable(
+    'wtwm-input-hotplug-wayland-client',
+    [
+      'tests/integration/input_hotplug_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
     install: false,
   )
   wtwm_stress_wayland_client = executable(
@@ -1436,6 +1482,19 @@ if wlroots.found()
       '--x11-family-client', wtwm_focus_stack_x11_client,
     ],
     timeout: 240,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 input hotplug integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_input_hotplug.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-observer', wtwm_input_hotplug_wayland_client,
+      '--x11-client', wtwm_mixed_x11_client,
+    ],
+    timeout: 300,
     is_parallel: false,
   )
   test(
