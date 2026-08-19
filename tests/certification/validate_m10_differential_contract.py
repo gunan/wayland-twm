@@ -36,6 +36,19 @@ ALLOWED_COVERAGE = {
     "live-reference-differential",
     "partial-existing-infrastructure",
 }
+EXPECTED_COVERAGE = {
+    "parsed-configuration": "live-reference-differential",
+    "window-position-and-dimensions": "live-reference-differential",
+    "frame-extents": "live-reference-differential",
+    "focus-owner": "live-reference-differential",
+    "stacking-order": "live-reference-differential",
+    "pointer-location": "partial-existing-infrastructure",
+    "menu-state": "partial-existing-infrastructure",
+    "icons-and-icon-managers": "live-reference-differential",
+    "commands-launched": "partial-existing-infrastructure",
+    "client-close-and-destruction": "partial-existing-infrastructure",
+    "screenshots-after-significant-actions": "partial-existing-infrastructure",
+}
 
 
 def duplicate_rejecting_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -132,6 +145,11 @@ def validate_dimension(
     coverage = value.get("coverage_status")
     if coverage not in ALLOWED_COVERAGE:
         errors.append(f"{expected_id}: unknown coverage_status {coverage!r}")
+    elif coverage != EXPECTED_COVERAGE[expected_id]:
+        errors.append(
+            f"{expected_id}: coverage_status must be "
+            f"{EXPECTED_COVERAGE[expected_id]!r}, found {coverage!r}"
+        )
     if coverage == "partial-existing-infrastructure":
         note = value.get("coverage_note")
         if not isinstance(note, str) or not note.strip():
@@ -249,6 +267,13 @@ def self_test_tamper(contract: object, source_root: Path) -> list[str]:
     )
     if not validate_contract(nonexistent_mapping, source_root):
         failures.append("nonexistent mapping was accepted")
+
+    overclaimed_pointer = copy.deepcopy(contract)
+    overclaimed_pointer["dimensions"][5]["coverage_status"] = (
+        "live-reference-differential"
+    )
+    if not validate_contract(overclaimed_pointer, source_root):
+        failures.append("exact pointer-coordinate coverage overclaim was accepted")
     return failures
 
 

@@ -151,11 +151,12 @@
     {
       "id": "pointer-location",
       "roadmap_text": "Pointer location.",
-      "coverage_status": "live-reference-differential",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "The icon differential records each backend's root coordinates but compares only classified icon-manager destination cells. The interaction trace injects the same coordinates without including pointer position in normalized state, so exact pointer-coordinate parity is not yet compared.",
       "comparison_semantics": [
-        "exact root coordinates after icon-manager navigation",
-        "classified icon-manager destination cell",
-        "identical injected pointer coordinates in interaction traces"
+        "per-backend root coordinates recorded after icon-manager navigation",
+        "classified icon-manager destination cells compared between backends",
+        "identical requested coordinates injected without pointer-state comparison in interaction traces"
       ],
       "mappings": {
         "runners": [
