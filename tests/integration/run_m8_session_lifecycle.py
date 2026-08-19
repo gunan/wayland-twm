@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import fcntl
 import os
 from pathlib import Path
 import shlex
@@ -59,7 +58,7 @@ def compositor_command(
     ]
 
 
-def run_failed_startups(compositor: Path, temporary: Path) -> tuple[Path, Path]:
+def run_failed_startups(compositor: Path, temporary: Path) -> Path:
     runtime = temporary / "failure-runtime"
     state_home = temporary / "failure-state"
     runtime.mkdir(mode=0o700)
@@ -101,28 +100,25 @@ def run_failed_startups(compositor: Path, temporary: Path) -> tuple[Path, Path]:
     valid.write_text(config_text(), encoding="utf-8")
     runtime_marker = temporary / "runtime-failure-startup-command"
     runtime_control = temporary / "runtime-failure-control.sock"
-    runtime_display = f"wm8-lifecycle-busy-{os.getpid()}"
-    lock_path = runtime / f"{runtime_display}.lock"
-    lock_descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
-    try:
-        fcntl.lockf(lock_descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        process = subprocess.run(
-            compositor_command(
-                compositor,
-                valid,
-                runtime_control,
-                runtime_display,
-                f"touch {shlex.quote(str(runtime_marker))}",
-            ),
-            env=environment(runtime, state_home),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=10,
-            check=False,
-        )
-    finally:
-        os.close(lock_descriptor)
+    # A socket name longer than sockaddr_un.sun_path cannot be published on
+    # any supported platform.  This reaches the compositor's bounded runtime
+    # initialization failure path without depending on advisory-lock flavor.
+    runtime_display = "w" * 200
+    process = subprocess.run(
+        compositor_command(
+            compositor,
+            valid,
+            runtime_control,
+            runtime_display,
+            f"touch {shlex.quote(str(runtime_marker))}",
+        ),
+        env=environment(runtime, state_home),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=10,
+        check=False,
+    )
     if process.returncode != 1:
         raise RuntimeError(
             "runtime initialization failure did not return 1: "
@@ -132,7 +128,7 @@ def run_failed_startups(compositor: Path, temporary: Path) -> tuple[Path, Path]:
         raise RuntimeError("runtime initialization failure ran the startup command")
     if state_path.read_bytes() != PRESERVED_STATE:
         raise RuntimeError("runtime initialization failure changed saved state")
-    return runtime, state_home
+    return state_home
 
 
 def mapped_pair(state: dict[str, object]) -> bool:
@@ -326,7 +322,7 @@ def run_signal_logout(
 def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="wtwm-m8-session-lifecycle-") as value:
         temporary = Path(value)
-        _, recovery_state_home = run_failed_startups(compositor, temporary)
+        recovery_state_home = run_failed_startups(compositor, temporary)
         run_f_quit_mixed_clients(
             compositor, wayland_client, x11_client, temporary
         )
