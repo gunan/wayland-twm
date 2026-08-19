@@ -23,6 +23,8 @@ from run_compositor import Control
 
 NATIVE_TITLE = "wtwm-input-hotplug-native"
 NATIVE_APP_ID = "org.wtwm.InputHotplug"
+X11_A_TITLE = "wtwm-mixed-x11-a"
+X11_B_TITLE = "wtwm-mixed-x11-b"
 KEY_A = 30
 KEY_C = 46
 KEY_B = 48
@@ -836,7 +838,7 @@ class Session:
                 lambda state: {
                     item.get("title") for item in state.get("windows", [])
                     if isinstance(item, dict)
-                } == {NATIVE_TITLE, "x11-a", "x11-b"},
+                } == {NATIVE_TITLE, X11_A_TITLE, X11_B_TITLE},
                 "native and Xwayland input clients",
             )
         except Exception:
@@ -903,7 +905,7 @@ def run(
                 keyboard="TEST-KEYBOARD-0",
                 pointer="TEST-POINTER-0",
             )
-            if [initial_records[name]["ordinal"] for name in initial_records] != [0, 1]:
+            if [initial_records[name]["ordinal"] for name in initial_records] != [1, 2]:
                 raise RuntimeError(f"initial synthetic ordinals changed: {initial!r}")
             focus_with_pointer(control, "TEST-POINTER-0", initial, NATIVE_TITLE)
             arm_observer(observer, "clear")
@@ -1190,7 +1192,7 @@ def run(
                 raise RuntimeError(f"last pointer retained protocol focus/capability: {state!r}")
 
             state = input_add(control, "pointer", "P7")
-            state = focus_with_pointer(control, "P7", state, "x11-a")
+            state = focus_with_pointer(control, "P7", state, X11_A_TITLE)
             x11.command("WAIT FOCUS x11-a", "OK FOCUS x11-a")
             logical_focus = state.get("active")
             arm_observer(observer, "last-keyboard")
@@ -1221,7 +1223,10 @@ def run(
                 )
             arm_observer(observer, "keyboard-return")
             state = input_add(control, "keyboard", "K6")
-            if state["seat_keyboard_focus"] != "x11-a" or state.get("active") != "x11-a":
+            if (
+                state["seat_keyboard_focus"] != X11_A_TITLE
+                or state.get("active") != X11_A_TITLE
+            ):
                 raise RuntimeError(f"first keyboard did not reassert X focus: {state!r}")
             return_events, return_report = observer_report(observer, "keyboard-return")
             return_caps = [

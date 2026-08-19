@@ -3939,7 +3939,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:10508",
+              "location": "src/wtwm.c:10518",
               "contains": "wtwm_config_load_for_screen(&server.config, config_path, 0,"
             }
           ]

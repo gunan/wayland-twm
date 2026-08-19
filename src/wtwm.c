@@ -10160,21 +10160,28 @@ static void test_execute(struct test_control *control,
 		break;
 	}
 	case WTWM_TEST_COMMAND_POINTER:
-	case WTWM_TEST_COMMAND_SET_CURSOR:
-		if (!test_pointer(control->legacy_pointer, command->x, command->y)) {
+	case WTWM_TEST_COMMAND_SET_CURSOR: {
+		struct test_input_device *legacy_pointer = control->legacy_pointer;
+		if (legacy_pointer == NULL)
+			legacy_pointer = test_input_find(control, "TEST-POINTER-0");
+		if (!test_pointer(legacy_pointer, command->x, command->y)) {
 			test_write(control, "ERROR legacy pointer is unavailable\n");
 			break;
 		}
 		test_trace_input_snapshot(server, "pointer");
 		test_write(control, "OK CURSOR %.3f %.3f\n", server->cursor->x, server->cursor->y);
 		break;
+	}
 	case WTWM_TEST_COMMAND_BUTTON: {
-		if (control->legacy_pointer == NULL) {
+		struct test_input_device *legacy_pointer = control->legacy_pointer;
+		if (legacy_pointer == NULL)
+			legacy_pointer = test_input_find(control, "TEST-POINTER-0");
+		if (legacy_pointer == NULL) {
 			test_write(control, "ERROR legacy pointer is unavailable\n");
 			break;
 		}
 		struct wlr_pointer_button_event event = {
-			.pointer = &control->legacy_pointer->wlr.pointer,
+			.pointer = &legacy_pointer->wlr.pointer,
 			.time_msec = ++control->input_time_ms,
 			.button = command->code,
 			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
@@ -10188,7 +10195,10 @@ static void test_execute(struct test_control *control,
 		break;
 	}
 	case WTWM_TEST_COMMAND_KEY: {
-		if (control->legacy_keyboard == NULL) {
+		struct test_input_device *legacy_keyboard = control->legacy_keyboard;
+		if (legacy_keyboard == NULL)
+			legacy_keyboard = test_input_find(control, "TEST-KEYBOARD-0");
+		if (legacy_keyboard == NULL) {
 			test_write(control, "ERROR legacy keyboard is unavailable\n");
 			break;
 		}
@@ -10199,7 +10209,7 @@ static void test_execute(struct test_control *control,
 			.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
 				WL_KEYBOARD_KEY_STATE_RELEASED,
 		};
-		wlr_keyboard_notify_key(&control->legacy_keyboard->wlr.keyboard, &event);
+		wlr_keyboard_notify_key(&legacy_keyboard->wlr.keyboard, &event);
 		test_trace_input_snapshot(server, "key");
 		test_write(control, "OK KEY %u %s\n", command->code,
 			command->pressed ? "press" : "release");
