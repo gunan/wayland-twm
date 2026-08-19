@@ -1083,6 +1083,36 @@ test(
   ],
 )
 test(
+  'Milestone 10 differential coverage contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/certification/validate_m10_differential_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 10 certification corpus',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/certification/validate_m10_corpus.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 10 release gate evidence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/certification/validate_m10_release_gates.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'randomized lifecycle model contract',
   find_program('python3'),
   args: [

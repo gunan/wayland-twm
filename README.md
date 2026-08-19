@@ -538,29 +538,34 @@ Exit criteria:
 The final milestone runs identical scenarios against reference `twm` and the
 Wayland implementation.
 
+Machine-readable coverage, corpus, and release-gate records live under
+`reference/certification/`; `docs/PARITY_CERTIFICATION.md` documents the
+fail-closed evidence policy. A mapped scenario or earlier milestone result is
+not by itself a passed final release gate.
+
 The differential harness will compare:
 
-- [ ] Parsed configuration.
-- [ ] Window position and dimensions.
-- [ ] Frame extents.
-- [ ] Focus owner.
-- [ ] Stacking order.
+- [x] Parsed configuration.
+- [x] Window position and dimensions.
+- [x] Frame extents.
+- [x] Focus owner.
+- [x] Stacking order.
 - [ ] Pointer location.
 - [ ] Menu state.
-- [ ] Icon and icon-manager state.
+- [x] Icon and icon-manager state.
 - [ ] Commands launched.
 - [ ] Client close and destruction behavior.
 - [ ] Screenshots after every significant action.
 
 The certification corpus will include:
 
-- [ ] Upstream sample configurations.
-- [ ] The project's exhaustive generated configurations.
-- [ ] Collected real-world `.twmrc` files.
-- [ ] Legacy X11 applications.
-- [ ] Native Wayland equivalents.
-- [ ] Single-output, multi-output, monochrome, and color scenarios.
-- [ ] Keyboard-driven, mouse-driven, and mixed workflows.
+- [x] Upstream sample configurations.
+- [x] The project's exhaustive generated configurations.
+- [x] Collected real-world `.twmrc` files.
+- [x] Legacy X11 applications.
+- [x] Native Wayland equivalents.
+- [x] Single-output, multi-output, monochrome, and color scenarios.
+- [x] Keyboard-driven, mouse-driven, and mixed workflows.
 
 Final 1.0 release gates:
 

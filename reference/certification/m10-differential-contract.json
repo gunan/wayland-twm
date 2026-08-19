@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "contract_id": "milestone-10-differential-parity",
+  "reference": {
+    "implementation": "twm",
+    "version": "1.0.13.1"
+  },
+  "scope": "This inventory maps every Milestone 10 comparison dimension to existing repository infrastructure. A coverage mapping is not evidence that a certification run passed.",
+  "certification_result": {
+    "status": "not-recorded",
+    "artifact": null,
+    "note": "No complete eleven-dimension Milestone 10 run artifact is committed by this contract."
+  },
+  "dimensions": [
+    {
+      "id": "parsed-configuration",
+      "roadmap_text": "Parsed configuration.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "acceptance and rejection classification",
+        "normalized effective configuration fields",
+        "grammar trace coverage"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/reference/run_reference_parser_comparison.sh",
+          "tests/reference/compare_reference_parser.py"
+        ],
+        "validators": [
+          "tests/reference/validate_parser_fixture_coverage.py",
+          "tests/reference/validate_twmrc_corpus.py"
+        ],
+        "committed_evidence": [
+          "reference/grammar/manifest.json",
+          "reference/fixtures/twmrc/manifest.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "window-position-and-dimensions",
+      "roadmap_text": "Window position and dimensions.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "client inner geometry",
+        "frame outer geometry",
+        "geometry after each trace event"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m4_geometry_differential.py",
+          "tests/integration/run_m4_trace_differential.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m4_trace_differential.py",
+          "tests/reference/validate_geometry_cross_product.py"
+        ],
+        "committed_evidence": [
+          "reference/geometry/twm-1.0.13.1/cross-product.json",
+          "reference/interactions/twm-1.0.13.1/trace-differential.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "frame-extents",
+      "roadmap_text": "Frame extents.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "left, right, top, and bottom client-to-frame extents",
+        "title outer geometry",
+        "border and title combinations"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m4_geometry_differential.py"
+        ],
+        "validators": [
+          "tests/reference/validate_geometry_cross_product.py",
+          "tests/reference/validate_reference_geometry_matrix.py"
+        ],
+        "committed_evidence": [
+          "reference/geometry/twm-1.0.13.1/matrix.json",
+          "reference/geometry/twm-1.0.13.1/cross-product.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "focus-owner",
+      "roadmap_text": "Focus owner.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "normalized focus role after every event",
+        "mapped and iconified focus eligibility"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m4_trace_differential.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m4_trace_differential.py",
+          "tests/reference/validate_reference_interaction_contract.py"
+        ],
+        "committed_evidence": [
+          "reference/interactions/twm-1.0.13.1/trace-differential.json",
+          "reference/interactions/twm-1.0.13.1/source-contract.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "stacking-order",
+      "roadmap_text": "Stacking order.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "normalized bottom-to-top managed window order",
+        "raise and lower transitions after every event"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m4_trace_differential.py",
+          "tests/integration/run_x11_differential.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m4_trace_differential.py",
+          "tests/integration/validate_x11_differential.py"
+        ],
+        "committed_evidence": [
+          "reference/interactions/twm-1.0.13.1/trace-differential.json",
+          "reference/captures/twm-1.0.13.1/manifest.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "pointer-location",
+      "roadmap_text": "Pointer location.",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "The icon differential records each backend's root coordinates but compares only classified icon-manager destination cells. The interaction trace injects the same coordinates without including pointer position in normalized state, so exact pointer-coordinate parity is not yet compared.",
+      "comparison_semantics": [
+        "per-backend root coordinates recorded after icon-manager navigation",
+        "classified icon-manager destination cells compared between backends",
+        "identical requested coordinates injected without pointer-state comparison in interaction traces"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m7_icon_differential.py",
+          "tests/integration/run_m4_trace_differential.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m7_icon_runtime.py",
+          "tests/integration/validate_m4_trace_differential.py"
+        ],
+        "committed_evidence": [
+          "reference/icons/twm-1.0.13.1/icon-contract.json",
+          "reference/interactions/twm-1.0.13.1/trace-differential.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "menu-state",
+      "roadmap_text": "Menu state.",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "Existing runtime and visual-state runners cover wtwm menus and the frozen action contract covers reference semantics, but no complete live reference/wtwm menu-state differential is recorded.",
+      "comparison_semantics": [
+        "open menu name and depth",
+        "selected row and pull-right submenu state",
+        "normal, title, highlight, pull-right, and child visuals"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m6_actions.py",
+          "tests/integration/run_m5_visual_states.py"
+        ],
+        "validators": [
+          "tests/reference/validate_m6_implementation_matrix.py",
+          "tests/integration/validate_m5_visual.py"
+        ],
+        "committed_evidence": [
+          "reference/actions/twm-1.0.13.1/action-contract.json",
+          "reference/captures/twm-1.0.13.1/manifest.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "icons-and-icon-managers",
+      "roadmap_text": "Icon and icon-manager state.",
+      "coverage_status": "live-reference-differential",
+      "comparison_semantics": [
+        "icon and icon-manager structural geometry",
+        "configured structural colors",
+        "icon-manager navigation destinations"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m7_icon_differential.py",
+          "tests/integration/run_m7_lifecycle_churn.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m7_icon_runtime.py",
+          "tests/reference/validate_reference_icon_contract.py"
+        ],
+        "committed_evidence": [
+          "reference/icons/twm-1.0.13.1/icon-contract.json",
+          "reference/captures/twm-1.0.13.1/manifest.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "commands-launched",
+      "roadmap_text": "Commands launched.",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "Reference command semantics, configured-action dispatch, and safe f.startwm command handling exist, but launched-command observations are not yet compared in one live reference/wtwm scenario.",
+      "comparison_semantics": [
+        "decoded command string and action alias",
+        "configured action dispatch",
+        "safe handoff or explicit non-execution"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m6_actions.py",
+          "tests/integration/run_m8_startwm.py"
+        ],
+        "validators": [
+          "tests/reference/validate_reference_action_contract.py",
+          "tests/reference/validate_m6_implementation_matrix.py",
+          "tests/reference/validate_reference_startwm_contract.py"
+        ],
+        "committed_evidence": [
+          "reference/actions/twm-1.0.13.1/action-contract.json",
+          "reference/lifecycle/twm-1.0.13.1/startwm-contract.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "client-close-and-destruction",
+      "roadmap_text": "Client close and destruction behavior.",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "Xwayland close/kill, icon lifecycle churn, and popup destruction are exercised under wtwm, while reference action semantics are frozen separately; a single live end-to-end differential is not recorded.",
+      "comparison_semantics": [
+        "WM_DELETE_WINDOW graceful close",
+        "forced destruction fallback",
+        "destroy and recreate cleanup without stale state"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_xwayland_bridge.py",
+          "tests/integration/run_m7_lifecycle_churn.py",
+          "tests/integration/run_m9_popup_lifecycle_stress.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m9_popup_lifecycle_stress.py",
+          "tests/reference/validate_reference_action_contract.py",
+          "tests/reference/validate_reference_state_contract.py"
+        ],
+        "committed_evidence": [
+          "reference/actions/twm-1.0.13.1/action-contract.json",
+          "reference/lifecycle/twm-1.0.13.1/state-contract.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    },
+    {
+      "id": "screenshots-after-significant-actions",
+      "roadmap_text": "Screenshots after every significant action.",
+      "coverage_status": "partial-existing-infrastructure",
+      "coverage_note": "Exact reference/wtwm pixels exist for stable canonical phases and icons, and wtwm captures the enumerated visual states, but screenshots are not yet paired after every significant Milestone 10 action.",
+      "comparison_semantics": [
+        "full PPM bytes for canonical stable phases",
+        "geometry and configured-color classifications",
+        "enumerated focus, title, border, menu, icon, and button states"
+      ],
+      "mappings": {
+        "runners": [
+          "tests/integration/run_m5_visual_differential.py",
+          "tests/integration/run_m5_visual_states.py",
+          "tests/integration/run_m7_icon_differential.py"
+        ],
+        "validators": [
+          "tests/integration/validate_m5_visual.py",
+          "tests/reference/validate_reference_capture.py",
+          "tests/reference/validate_reference_icon_contract.py"
+        ],
+        "committed_evidence": [
+          "reference/captures/twm-1.0.13.1/manifest.json",
+          "reference/icons/twm-1.0.13.1/icon-contract.json"
+        ]
+      },
+      "actual_pass_evidence": {
+        "status": "not-recorded",
+        "artifact": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "reference": "twm 1.0.13.1",
+  "policy": "Full observable twm parity may be claimed only when every final 1.0 release gate is passed with validated checked-in evidence.",
+  "full_parity_claim_allowed": false,
+  "gates": [
+    {
+      "id": "grammar-coverage",
+      "title": "One hundred percent grammar coverage.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No consolidated Milestone 10 grammar-coverage evidence report is checked in."
+    },
+    {
+      "id": "builtin-action-coverage",
+      "title": "One hundred percent built-in action coverage.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No consolidated Milestone 10 built-in-action coverage evidence report is checked in."
+    },
+    {
+      "id": "compatibility-entry-closure",
+      "title": "No “partial,” “parsed only,” or unexplained compatibility entries.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "The compatibility ledger has not been certified by a Milestone 10 closure report."
+    },
+    {
+      "id": "canonical-geometry",
+      "title": "Zero geometry differences in the canonical profile.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No complete canonical-profile geometry certification report is checked in."
+    },
+    {
+      "id": "focus-stacking",
+      "title": "Zero unexplained focus or stacking differences.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No complete focus-and-stacking differential certification report is checked in."
+    },
+    {
+      "id": "golden-images",
+      "title": "No unreviewed golden-image differences.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No complete golden-image review report is checked in."
+    },
+    {
+      "id": "soak-72-hours",
+      "title": "Successful 72-hour soak testing.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "A continuous successful 72-hour soak has not been recorded as checked-in release evidence."
+    },
+    {
+      "id": "supported-package-matrix",
+      "title": "Successful package tests on every supported distribution and architecture.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "Package lifecycle evidence is not complete for the full supported Debian 13 amd64 and arm64 matrix."
+    },
+    {
+      "id": "deployment-environments",
+      "title": "Successful testing in nested, VM login, and physical hardware environments.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "Checked-in passing evidence is not available for all three required environment classes."
+    },
+    {
+      "id": "blind-ab-evaluation",
+      "title": "Blind A/B evaluation by experienced `twm` users, with no repeatable distinguishing behavior in the canonical profile.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No completed blind A/B evaluation by multiple experienced twm users is checked in."
+    },
+    {
+      "id": "wayland-translation-documentation",
+      "title": "All unavoidable Wayland translations documented in the manual and compatibility ledger.",
+      "status": "pending",
+      "evidence": [],
+      "pending_reason": "No release-wide audit proves that every unavoidable translation is documented in both required locations."
+    }
+  ]
+}
