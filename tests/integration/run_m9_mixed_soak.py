@@ -494,8 +494,8 @@ def focus_and_raise(
     state = control.state()
     point = visible_content_point(state, client.title)
     point_and_wait(control, client.title, point, "window")
-    control.command("BUTTON 274 press")
-    control.command("BUTTON 274 release")
+    control.command("BUTTON 273 press")
+    control.command("BUTTON 273 release")
     wait_state(
         control,
         lambda candidate: candidate["focus_root"]
@@ -537,7 +537,7 @@ def resize(control: Control, clients: dict[str, SoakClient], protocol: str,
         + int(before["height"]) * 5 // 6,
     )
     point_and_wait(control, client.title, point, "window")
-    control.command("BUTTON 273 press")
+    control.command("BUTTON 274 press")
     active = control.state()["interaction"]
     if not isinstance(active, dict) or active.get("mode") != "resize":
         raise RuntimeError(f"f.resize did not start for {protocol}: {active!r}")
@@ -547,7 +547,7 @@ def resize(control: Control, clients: dict[str, SoakClient], protocol: str,
     if not isinstance(preview, dict) or not preview.get("started"):
         raise RuntimeError(f"resize motion did not start for {protocol}: {preview!r}")
     expected = (int(preview["preview"]["width"]), int(preview["preview"]["height"]))
-    control.command("BUTTON 273 release")
+    control.command("BUTTON 274 release")
     state = wait_state(
         control,
         lambda candidate: (

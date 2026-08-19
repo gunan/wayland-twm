@@ -15,6 +15,23 @@ from typing import Any
 
 EXPECTED_DURATION = 259200
 EXPECTED_SMOKE_ITERATIONS = 2
+RUNNER_MARKERS = {
+    "explicit PointerRoot reset binding": '"Button3 = : window : f.unfocus\\n"',
+    "Linux BTN_RIGHT drives Button3": (
+        'control.command("BUTTON 273 press")\n'
+        '    control.command("BUTTON 273 release")'
+    ),
+    "Linux BTN_MIDDLE drives Button2 resize": (
+        'control.command("BUTTON 274 press")\n'
+        '    active = control.state()["interaction"]'
+    ),
+}
+
+
+def validate_runner_contract(source: str) -> None:
+    missing = [name for name, marker in RUNNER_MARKERS.items() if marker not in source]
+    if missing:
+        raise RuntimeError("missing mixed-soak runner contract: " + ", ".join(missing))
 
 
 def load_runner(path: Path):
@@ -83,6 +100,17 @@ def require_rejected(module, evidence: dict[str, Any], description: str,
 
 
 def self_test(module) -> None:
+    source = Path(module.__file__).read_text(encoding="utf-8")
+    validate_runner_contract(source)
+    for name, marker in RUNNER_MARKERS.items():
+        tampered = source.replace(marker, "REMOVED", 1)
+        try:
+            validate_runner_contract(tampered)
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(f"runner contract accepted missing marker: {name}")
+
     if module.DEFAULT_DURATION_SECONDS != EXPECTED_DURATION:
         raise RuntimeError("default soak duration is not exactly 72 hours")
     if module.SMOKE_ITERATIONS != EXPECTED_SMOKE_ITERATIONS:
