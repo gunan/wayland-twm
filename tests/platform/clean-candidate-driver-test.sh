@@ -24,6 +24,11 @@ mock_command()
 		dpkg)
 			case ${1:-} in
 				--print-architecture) printf '%s\n' arm64 ;;
+				--purge)
+					test "$#" -eq 2 && test "$2" = wtwm || exit 2
+					rm -f -- "$WTWM_MOCK_STATE"
+					printf '%s\n' purge >> "$WTWM_MOCK_TRACE"
+					;;
 				-L)
 					test -f "$WTWM_MOCK_STATE" || exit 1
 					printf '%s\n' \

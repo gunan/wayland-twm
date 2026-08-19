@@ -197,7 +197,10 @@ verify_candidate_files_absent remove
 "$assert_script" "$package_root" absent > "$evidence_dir/remove-assertion.txt"
 verify_protected remove
 
-apt-get purge -y wtwm > "$evidence_dir/purge.log" 2>&1
+# The candidate is installed from a local artifact rather than an APT source.
+# After removal APT can no longer resolve its package name, while dpkg still
+# provides the exact package-record purge operation this phase requires.
+dpkg --purge wtwm > "$evidence_dir/purge.log" 2>&1
 verify_not_installed purge
 verify_purged
 verify_candidate_files_absent purge

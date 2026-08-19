@@ -251,7 +251,7 @@ def validate(source_root: Path) -> list[str]:
         "clean-candidate-only",
         "apt-get install -y --no-install-recommends",
         "apt-get remove -y wtwm",
-        "apt-get purge -y wtwm",
+        "dpkg --purge wtwm",
         "candidate-owned file remains",
         "prior_release_upgrade\\tnot-tested",
         "rollback\\tnot-tested",
