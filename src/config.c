@@ -1352,45 +1352,81 @@ bool wtwm_config_parse(struct wtwm_config *config, const char *source_name,
 static bool read_file(const char *path, char **text, char *error, size_t error_size) {
 	FILE *file = fopen(path, "rb");
 	if (file == NULL) return false;
-	if (fseek(file, 0, SEEK_END) != 0) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
-		fclose(file);
-		return false;
-	}
-	long length = ftell(file);
-	if (length < 0 || fseek(file, 0, SEEK_SET) != 0) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
-		fclose(file);
-		return false;
-	}
-	if ((unsigned long)length > WTWM_CONFIG_MAX_FILE_BYTES) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size,
-			"%s: file exceeds limit %u", path, WTWM_CONFIG_MAX_FILE_BYTES);
-		fclose(file);
-		return false;
-	}
-	char *buffer = malloc((size_t)length + 1);
+	size_t capacity = 4096;
+	char *buffer = malloc(capacity + 1);
 	if (buffer == NULL) {
 		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: out of memory", path);
-		fclose(file);
+		(void)fclose(file);
 		return false;
 	}
-	size_t count = fread(buffer, 1, (size_t)length, file);
-	if (count != (size_t)length && ferror(file)) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
-		free(buffer);
-		fclose(file);
-		return false;
+	size_t used = 0;
+	for (;;) {
+		if (used == capacity) {
+			if (capacity == WTWM_CONFIG_MAX_FILE_BYTES) {
+				int next = fgetc(file);
+				if (next != EOF) {
+					if (error != NULL && error_size > 0) snprintf(error, error_size,
+						"%s: file exceeds limit %u", path,
+						WTWM_CONFIG_MAX_FILE_BYTES);
+					free(buffer);
+					(void)fclose(file);
+					return false;
+				}
+				if (ferror(file)) {
+					if (error != NULL && error_size > 0) snprintf(error, error_size,
+						"%s: unable to read: %s", path, strerror(errno));
+					free(buffer);
+					(void)fclose(file);
+					return false;
+				}
+				break;
+			}
+			size_t next_capacity = capacity * 2;
+			if (next_capacity > WTWM_CONFIG_MAX_FILE_BYTES)
+				next_capacity = WTWM_CONFIG_MAX_FILE_BYTES;
+			char *replacement = realloc(buffer, next_capacity + 1);
+			if (replacement == NULL) {
+				if (error != NULL && error_size > 0) snprintf(error, error_size,
+					"%s: out of memory", path);
+				free(buffer);
+				(void)fclose(file);
+				return false;
+			}
+			buffer = replacement;
+			capacity = next_capacity;
+		}
+		size_t count = fread(buffer + used, 1, capacity - used, file);
+		if (memchr(buffer + used, '\0', count) != NULL) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: file contains a NUL byte", path);
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
+		used += count;
+		if (ferror(file)) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: unable to read: %s", path, strerror(errno));
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
+		if (feof(file)) break;
+		if (count == 0) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: unable to read", path);
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
 	}
-	if (memchr(buffer, '\0', count) != NULL) {
+	if (fclose(file) != 0) {
 		if (error != NULL && error_size > 0) snprintf(error, error_size,
-			"%s: file contains a NUL byte", path);
+			"%s: unable to close: %s", path, strerror(errno));
 		free(buffer);
-		fclose(file);
 		return false;
 	}
-	buffer[count] = '\0';
-	fclose(file);
+	buffer[used] = '\0';
 	*text = buffer;
 	return true;
 }
