@@ -58,7 +58,7 @@
       "title": "Successful package tests on every supported distribution and architecture.",
       "status": "pending",
       "evidence": [],
-      "pending_reason": "Package lifecycle evidence is not complete for the full supported Debian 13 amd64 and arm64 matrix."
+      "pending_reason": "Package lifecycle evidence is not complete for amd64 and arm64 on one selected release line: Debian 13 (Trixie) or Debian 14 (Forky)."
     },
     {
       "id": "deployment-environments",

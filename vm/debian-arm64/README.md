@@ -5,6 +5,11 @@ guest used for nested, headless, and DRM/login checks.  The base qcow2 is an
 immutable Debian cloud build whose SHA-512 is pinned in `image.env`.  No login
 password or repository credential is stored in the tree.
 
+This is one accepted 1.0 VM recipe, not a Debian-13-only release policy. A
+Debian 14/Forky ARM64 UTM guest may be used instead, but it needs its own pinned
+image definition before its evidence can be promoted; do not reuse this
+Trixie image build or digest for a Forky guest.
+
 ## Create the guest
 
 On the Apple Silicon host, install UTM, QEMU tools, and `xorriso`.  Create a

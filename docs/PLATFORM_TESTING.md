@@ -73,11 +73,21 @@ tests/platform/session-launcher-test.sh
 They are not substitutes for a successful nested display or DRM-backed VM
 evidence record.
 
+The checked-in reproducible UTM image definition remains the pinned Debian 13
+recipe under `vm/debian-arm64`. A separately provisioned Debian 14/Forky guest
+is valid for interactive development and the platform task, but its VM evidence
+must not be promoted until its immutable base-image build and digest are checked
+in as a Forky definition. Never label the existing Trixie image digest as a
+Forky image.
+
 ## Package lifecycle and rollback
 
-Use a clean Debian Trixie VM snapshot, not a development host. Build or copy one
-candidate `.deb` and every genuinely older released `.deb` for the VM's
-architecture. Mark the disposable VM only after verifying the snapshot:
+Use a clean VM snapshot of the selected 1.0 release line, Debian 13 (Trixie) or
+Debian 14 (Forky), not a development host. The same release must be used for the
+amd64 and arm64 certification runs; certification does not require both release
+lines. Build or copy one candidate `.deb` and every genuinely older released
+`.deb` for the VM's architecture. Mark the disposable VM only after verifying
+the snapshot:
 
 ```sh
 sudo touch /etc/wtwm-platform-test-vm
