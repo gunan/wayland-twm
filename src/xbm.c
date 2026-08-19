@@ -618,6 +618,13 @@ static bool read_file(const char *filename, char **source, size_t *length,
 					(void)fclose(file);
 					return false;
 				}
+				if (ferror(file)) {
+					set_error(error, error_size, "%s: unable to read: %s", filename,
+						strerror(errno));
+					free(buffer);
+					(void)fclose(file);
+					return false;
+				}
 				break;
 			}
 			size_t next_capacity = capacity * 2u;
@@ -636,16 +643,14 @@ static bool read_file(const char *filename, char **source, size_t *length,
 		}
 		size_t count = fread(buffer + used, 1, capacity - used, file);
 		used += count;
-		if (count == 0) {
-			if (ferror(file)) {
-				set_error(error, error_size, "%s: unable to read: %s", filename,
-					strerror(errno));
-				free(buffer);
-				(void)fclose(file);
-				return false;
-			}
-			break;
+		if (ferror(file)) {
+			set_error(error, error_size, "%s: unable to read: %s", filename,
+				strerror(errno));
+			free(buffer);
+			(void)fclose(file);
+			return false;
 		}
+		if (feof(file)) break;
 	}
 	if (fclose(file) != 0) {
 		set_error(error, error_size, "%s: unable to close: %s", filename,
