@@ -8,29 +8,38 @@ from pathlib import Path
 import re
 
 
-CAPABILITY_CALL = re.compile(
-    r"new_keyboard\(&server, &server\.test_control\.keyboard\.base\);\s*"
-    r"(?:/\*.*?\*/\s*)?"
-    r"wlr_seat_set_capabilities\(server\.seat,\s*"
-    r"WL_SEAT_CAPABILITY_KEYBOARD\s*\|\s*WL_SEAT_CAPABILITY_POINTER\);",
+DEFAULT_INPUTS = re.compile(
+    r"test_input_add\(&server\.test_control,\s*"
+    r"WTWM_INPUT_DEVICE_KEYBOARD,\s*\"TEST-KEYBOARD-0\"\)\s*\|\|\s*"
+    r"!test_input_add\(&server\.test_control,\s*"
+    r"WTWM_INPUT_DEVICE_POINTER,\s*\"TEST-POINTER-0\"\)",
     re.DOTALL,
 )
 
 
 def validate(source: str) -> None:
-    anchor = source.find("static const struct wlr_keyboard_impl test_keyboard_impl")
+    anchor = source.find("server.test_control.server = &server;")
     if anchor < 0:
-        raise ValueError("synthetic test keyboard setup is missing")
+        raise ValueError("synthetic test input setup is missing")
     branch_start = source.rfind("#ifdef WTWM_TEST_CONTROL", 0, anchor)
     branch_end = source.find("#else", anchor)
     if branch_start < 0 or branch_end < 0:
         raise ValueError("synthetic input setup escaped the test-control branch")
     branch = source[branch_start:branch_end]
-    if CAPABILITY_CALL.search(branch) is None:
+    if DEFAULT_INPUTS.search(branch) is None:
         raise ValueError(
-            "test control must advertise POINTER|KEYBOARD after installing "
-            "its synthetic keyboard"
+            "test control must install the exact initial keyboard and pointer"
         )
+    for fragment in (
+        "static const struct wlr_keyboard_impl aggregate_keyboard_impl",
+        "wlr_keyboard_init(&server.aggregate_keyboard",
+        "wlr_seat_set_keyboard(server.seat, &server.aggregate_keyboard);",
+        "wlr_seat_set_capabilities(server.seat, 0);",
+        "wtwm_input_hotplug_plan_apply(&server->input, plan)",
+        "input_capabilities(plan->capabilities_after)",
+    ):
+        if fragment not in source:
+            raise ValueError(f"dynamic aggregate seat setup lacks {fragment}")
     for fragment in (
         "sync_xwayland_input_focus(server, toplevel)",
         "wlr_xwayland_surface_activate(toplevel->xwayland, true);",
@@ -134,8 +143,8 @@ def main() -> None:
     validate_overlay_menu_button(overlay_runner)
     if arguments.self_test_tamper:
         tampered = source.replace(
-            "WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER",
-            "WL_SEAT_CAPABILITY_KEYBOARD",
+            "WTWM_INPUT_DEVICE_POINTER,\n\t\t\t\"TEST-POINTER-0\"",
+            "WTWM_INPUT_DEVICE_KEYBOARD,\n\t\t\t\"TEST-POINTER-0\"",
             1,
         )
         try:
@@ -143,7 +152,7 @@ def main() -> None:
         except ValueError:
             pass
         else:
-            raise ValueError("synthetic seat contract accepted missing POINTER")
+            raise ValueError("synthetic seat contract accepted missing pointer")
         tampered_runner = runner.replace('x11, "WAIT BRIDGE"', 'x11, "STATUS"', 1)
         try:
             validate_bridge_handshake(wayland_client, x11_client, tampered_runner)
