@@ -77,6 +77,7 @@ RUNNER_FRAGMENTS = (
     "NoRaiseOnResize did not preserve stacking",
     "f.deltastop stopped a below-threshold function",
     "f.deltastop did not stop after threshold movement",
+    "pointer did not reach root context before press",
 )
 
 
