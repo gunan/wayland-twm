@@ -1,7 +1,7 @@
 # twm 1.0.13.1 interaction source contract
 
 `source-contract.json` is a deterministic, executable contract for the
-Milestone 4 interaction behavior that can be derived directly from the frozen
+interaction behavior that can be derived directly from the frozen
 X.Org twm 1.0.13.1 source archive.  It does not claim to be a live X11 capture.
 The local development host did not provide Xvfb, so `committed_live_baseline`
 and `live_capture_run` deliberately remain false.
@@ -92,6 +92,6 @@ validator checks the event program, normalization boundary, frozen-oracle
 hashes, runner/observer/driver sources, and CI wiring with negative tamper
 tests.  The companion headless interaction, placement, focus/stack, and
 randomized lifecycle integrations cover pointer warps, `Opposite`/circulation,
-repeated random placement, and every Milestone 4 option.  Decoration pixels
-and exact rasterization remain Milestone 5 work rather than part of this
-normalized state differential.
+repeated random placement, and every geometry-interaction option. Decoration
+pixels and exact rasterization belong to the separate visual differential,
+rather than this normalized state differential.

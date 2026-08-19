@@ -71,7 +71,7 @@ reference matrix deliberately has no committed numeric observation baseline,
 so this structural runner records `reference_numeric_baseline: false` and does
 not claim a live differential pass.
 
-The CI-only Milestone 4 geometry differential supplements that representative
+The CI-only frame-geometry differential supplements that representative
 matrix with a generated 48-case Cartesian product. It starts the same client
 semantics under frozen reference twm and wtwm, requires three stable samples per
 backend in each of two clean runs, and compares the normalized client-inner,
@@ -100,7 +100,7 @@ continuity, and a deferred zero-output map. Every session has bounded client,
 control, and compositor liveness checks and cleanup. The runner intentionally
 does not simulate topology mutation: warp history, output removal/repair,
 scale/mode changes, and session lifecycle are covered by separate bounded
-Milestone 8 runners.
+topology and session-lifecycle runners.
 
 `run_m8_input_hotplug.py` exercises the single logical `seat0` translation over
 zero, one, and several physical keyboard/pointer wrappers. Its portable
@@ -155,7 +155,8 @@ observer normalizes client properties without window IDs. Managed reference
 clients must have a reparent frame, while the matching wtwm test-control entry
 must have a scene decoration; the normalized results must otherwise match
 exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
-native/cross-protocol semantics assigned to later tests and milestones.
+native/cross-protocol semantics assigned to separate tests and final
+certification.
 
 The `mixed native and Xwayland client integration` test maps two native xdg
 toplevels and two managed X11 toplevels together. It checks their exact

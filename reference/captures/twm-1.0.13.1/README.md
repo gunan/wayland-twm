@@ -1,9 +1,9 @@
 # X.Org `twm` 1.0.13.1 reference capture
 
 This directory records a deliberately small, deterministic observation of the
-frozen reference window manager. It is evidence for Milestone 0's reference
-capture task, not the comprehensive canonical-application matrix in the next
-task.
+frozen reference window manager. It is baseline reference-capture evidence,
+not the comprehensive canonical-application matrix used for final
+certification.
 
 `scenario.twmrc` is the exact configuration supplied with `twm -f`. The
 `parser.json` artifact calls its result an accepted parser outcome and reports

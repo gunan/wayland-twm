@@ -78,4 +78,4 @@ python3 -B tests/reference/validate_upstream_inventory.py \
 ```
 
 Do not use regeneration to change the compatibility status of `wtwm`; that
-belongs in the separate Milestone 0 compatibility ledger.
+belongs in the separate compatibility ledger.

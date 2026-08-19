@@ -1,7 +1,7 @@
 # Reference `twm` geometry matrix
 
-This directory defines the live X11 oracle for the Milestone 4 frame-geometry
-work. `matrix.json` pins the frozen `twm` release and Debian Trixie X11
+This directory defines the live X11 oracle for the frame-geometry differential.
+`matrix.json` pins the frozen `twm` release and Debian Trixie X11
 environment, the exact configurations, and the ordered client cases. The
 matrix covers ordinary decorated windows, both outcomes of
 `ClientBorderWidth`, global `NoTitle` with a `MakeTitle` exception, transient

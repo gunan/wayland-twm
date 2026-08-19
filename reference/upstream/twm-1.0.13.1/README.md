@@ -1,6 +1,7 @@
 # X.Org `twm` 1.0.13.1 reference freeze
 
-This directory freezes the upstream reference selected by the project roadmap.
+This directory freezes the upstream reference selected by the project's
+compatibility and certification requirements.
 The canonical source is the complete `twm-1.0.13.1.tar.xz` release archive;
 the other `twm` files here are byte-for-byte convenience copies of named
 members in that archive. Do not replace files in this directory when a newer

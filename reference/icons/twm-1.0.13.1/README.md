@@ -1,6 +1,6 @@
 # twm 1.0.13.1 icon reference contract
 
-`icon-contract.json` is the frozen-source behavioral contract for Milestone 7.
+`icon-contract.json` is the frozen-source behavioral contract for icon parity.
 It describes what the `wtwm` compositor and differential tests must reproduce;
 it is not a statement that the behaviors are implemented yet.
 
