@@ -216,6 +216,19 @@ def restore_family(
     return root_plan.box, restored
 
 
+def restore_full_zoom(
+    current: Box,
+    planned: Box,
+    before: list[tuple[str, Box]],
+    after: list[tuple[str, Box]],
+) -> Box:
+    source = select_owner(before, current)
+    target = select_owner(after, planned)
+    if target is not None and source != target:
+        return target[1]
+    return planned
+
+
 def validate_model() -> None:
     left = ("LEFT", Box(-320, 0, 320, 240))
     right = ("RIGHT", Box(0, 0, 400, 300))
@@ -279,6 +292,20 @@ def validate_model() -> None:
         raise RuntimeError("zoom model mutated its output input")
     if restore_box(visible, before, after).box != visible:
         raise RuntimeError("visible saved zoom geometry moved")
+    if restore_full_zoom(
+        Box(0, 0, 300, 220),
+        Box(0, 0, 300, 220),
+        [("OLD", Box(0, 0, 300, 220))],
+        [("NEW", Box(0, 0, 360, 260))],
+    ) != Box(0, 0, 360, 260):
+        raise RuntimeError("changed full-zoom owner box was not recomputed")
+    if restore_full_zoom(
+        Box(0, 0, 300, 220),
+        Box(0, 0, 300, 220),
+        [("OWNER", Box(0, 0, 300, 220))],
+        [("OWNER", Box(0, 0, 300, 220)), ("OTHER", Box(300, 0, 360, 260))],
+    ) != Box(0, 0, 300, 220):
+        raise RuntimeError("unchanged full-zoom owner was recomputed")
 
     pending = restore_box(stranded, before, [])
     if pending.box != stranded or pending.target is not None or pending.changed:
@@ -580,12 +607,10 @@ def planned_frames(
                 expected = clamp_box(target, current)
             else:
                 expected = current
-            if (
-                record["zoom"] == "full"
-                and expected != current
-                and target is not None
-            ):
-                expected = target
+            if record["zoom"] == "full":
+                expected = restore_full_zoom(
+                    current, expected, before_outputs, after_outputs
+                )
             planned[identity] = expected
             if expected != current:
                 changed.add(identity)
