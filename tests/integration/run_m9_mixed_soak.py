@@ -799,7 +799,12 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
                                    f"{crash_protocol} replacement")
                 assert_pair(state, clients)
                 operations["crash_replacements"] += 1
-                operations[f"{crash_protocol}_crash_replacements"] += 1
+                replacement_counter = (
+                    "native_crash_replacements"
+                    if crash_protocol == "wayland"
+                    else "x11_crash_replacements"
+                )
+                operations[replacement_counter] += 1
 
                 evidence["iterations_completed"] = iteration
                 elapsed = time.monotonic() - monotonic_start

@@ -31,6 +31,10 @@ RUNNER_MARKERS = {
         'if not state["focus_root"] and (\n'
         '        state["active"] != state["focus"]'
     ),
+    "native replacement counter schema mapping": (
+        '"native_crash_replacements"\n'
+        '                    if crash_protocol == "wayland"'
+    ),
 }
 
 
