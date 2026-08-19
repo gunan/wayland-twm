@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: wtwm
-Source: https://example.invalid/wtwm
+Source: https://github.com/gunan/wayland-twm
 
 Files: *
 Copyright: 2026 wtwm contributors

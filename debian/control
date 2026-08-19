@@ -2,12 +2,17 @@ Source: wtwm
 Section: x11
 Priority: optional
 Maintainer: wtwm contributors <noreply@example.invalid>
+Homepage: https://github.com/gunan/wayland-twm
+Vcs-Browser: https://github.com/gunan/wayland-twm
+Vcs-Git: https://github.com/gunan/wayland-twm.git
 Build-Depends:
  debhelper-compat (= 13),
  libfontconfig-dev,
  libpango1.0-dev,
  libwayland-dev,
  libwlroots-0.18-dev,
+ libx11-dev,
+ libxcb1-dev,
  libxkbcommon-dev,
  meson,
  ninja-build,
@@ -18,9 +23,9 @@ Rules-Requires-Root: no
 
 Package: wtwm
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Recommends: foot
+Depends: ${misc:Depends}, ${shlibs:Depends}, xkb-data
+Recommends: foot, xwayland
 Description: classic twm-style Wayland compositor
- wtwm is a small wlroots compositor with classic server-side titlebars and a
+ wtwm is a small wlroots compositor with classic server-side title bars and a
  compatibility parser for twm configuration files. It installs as a separate
  Wayland login session and is co-installable with X11 twm and other desktops.

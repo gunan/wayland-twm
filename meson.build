@@ -548,6 +548,11 @@ test(
   args: [files('tests/platform/package-isolation-test.sh')],
 )
 test(
+  'package lifecycle driver contract',
+  find_program('sh'),
+  args: [files('tests/platform/package-lifecycle-driver-test.sh')],
+)
+test(
   'headless stability runner contract',
   find_program('sh'),
   args: [files('tests/platform/headless-stability-runner-test.sh')],

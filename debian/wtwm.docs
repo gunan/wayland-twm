@@ -1,0 +1,6 @@
+docs/BUILD_AND_TEST.md
+docs/COMPATIBILITY.md
+docs/MIGRATING_FROM_TWM.md
+docs/PLATFORM_TESTING.md
+docs/TROUBLESHOOTING.md
+packaging/debian/README.md

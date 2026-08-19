@@ -2,5 +2,6 @@ wtwm (0.1.0) unstable; urgency=medium
 
   * Initial development package.
   * Add wlroots compositor core and twmrc compatibility parser.
+  * Ship a distinct Wayland session, complete manuals, and lifecycle tests.
 
  -- wtwm contributors <noreply@example.invalid>  Thu, 13 Aug 2026 21:00:00 -0700

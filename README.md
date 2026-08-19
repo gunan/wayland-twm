@@ -511,7 +511,7 @@ Implementation work:
 - [x] Complete manual pages, sample configurations, migration notes, and
   troubleshooting documentation.
 - [ ] Produce packages for the initially supported distributions.
-- [ ] Ship a session file under a distinct name; never replace the user's default
+- [x] Ship a session file under a distinct name; never replace the user's default
   desktop automatically.
 
 Testing:
