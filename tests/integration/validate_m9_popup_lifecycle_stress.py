@@ -64,14 +64,17 @@ def validate_source(source: str) -> list[str]:
 def self_test(source: str) -> None:
     if validate_source(source):
         raise RuntimeError("valid popup lifecycle stress source was rejected")
-    for marker in (
-        "DEFAULT_ITERATIONS = 128",
-        'client_command(client, "UNMAP_TOPLEVEL", "TOPLEVEL_UNMAPPED")',
-        'assert_bounded_state(state, mapped=True, popup_mapped=True)',
-        'control.command("PING")',
-        'control.command("QUIT")',
-    ):
-        tampered = source.replace(marker, marker + "_TAMPERED", 1)
+    tampers = {
+        "DEFAULT_ITERATIONS = 128": "DEFAULT_ITERATIONS = 127",
+        'client_command(client, "UNMAP_TOPLEVEL", "TOPLEVEL_UNMAPPED")':
+            'client_command(client, "UNMAP_TOPLEVEL_BAD", "TOPLEVEL_UNMAPPED")',
+        'assert_bounded_state(state, mapped=True, popup_mapped=True)':
+            'assert_bounded_state(state, mapped=True, popup_mapped=False)',
+        'control.command("PING")': 'control.command("PONG")',
+        'control.command("QUIT")': 'control.command("QUIT_NOW")',
+    }
+    for marker, replacement in tampers.items():
+        tampered = source.replace(marker, replacement, 1)
         if not validate_source(tampered):
             raise RuntimeError(f"popup lifecycle stress tamper was accepted: {marker!r}")
 
