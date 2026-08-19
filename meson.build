@@ -336,6 +336,33 @@ command_test = executable(
 )
 test('twm command execution planning', command_test)
 
+hardening_lib = static_library(
+  'wtwm-hardening-lib',
+  'src/hardening.c',
+  include_directories: include_directories('src'),
+)
+hardening_dep = declare_dependency(
+  link_with: hardening_lib,
+  include_directories: include_directories('src'),
+)
+
+hardening_test = executable(
+  'hardening-test',
+  'tests/hardening_test.c',
+  dependencies: hardening_dep,
+)
+test('client input hardening model', hardening_test)
+test(
+  'client request hardening contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_hardening_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 session_state_lib = static_library(
   'wtwm-session-state-lib',
   'src/session_state.c',
@@ -1044,7 +1071,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, hardening_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -1053,7 +1080,7 @@ if wlroots.found()
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
       output_order_dep, output_restore_dep, input_hotplug_dep,
-      command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
+      command_dep, hardening_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,

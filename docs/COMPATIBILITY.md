@@ -42,6 +42,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
 | Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
+| Client request hardening | Public wlroots 0.18 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with oversized popup positioners rejected. wlroots 0.18 consumes `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
@@ -653,6 +654,14 @@ errors with filename and line diagnostics. The original source and unbounded
 normalized directive value are dynamically retained even when a legacy
 fixed-size compositor-facing projection must be shortened; such a projection
 is counted and reported rather than silently truncated.
+
+Hostile input is bounded before parsing. Configuration files are streamed to
+EOF with a 32 MiB ceiling, including non-seekable inputs, and a byte beyond the
+ceiling is probed rather than silently ignored. Raw NUL bytes and quoted
+escapes that would produce embedded NUL are rejected because downstream C
+strings cannot represent their trailing content safely. Read, close,
+allocation, and zero-progress failures leave the active configuration
+unchanged.
 
 Parsing and loading are transactional. A successful parse replaces the prior
 model; any lexical, syntactic, I/O, or allocation failure destroys only the

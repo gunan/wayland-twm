@@ -138,6 +138,12 @@ int main(void) {
 
 	assert(parse("PING").type == WTWM_TEST_COMMAND_PING);
 	assert(parse("STATE").type == WTWM_TEST_COMMAND_STATE);
+	command = parse("DUMP");
+	assert(command.type == WTWM_TEST_COMMAND_DUMP && command.first == 64);
+	command = parse("DUMP 1");
+	assert(command.type == WTWM_TEST_COMMAND_DUMP && command.first == 1);
+	command = parse("DUMP 256");
+	assert(command.first == 256);
 	command = parse("TRACE");
 	assert(command.type == WTWM_TEST_COMMAND_TRACE && command.first == 0);
 	command = parse("TRACE CLEAR");
@@ -198,6 +204,9 @@ int main(void) {
 	reject("WAIT 121");
 	reject("SET FONT");
 	reject("PING now");
+	reject_with("DUMP 0", "usage: DUMP [max_windows]");
+	reject("DUMP 257");
+	reject("DUMP 2 extra");
 	reject("TRACE RESET");
 	reject("TRACE CLEAR now");
 	reject("UNKNOWN");

@@ -333,6 +333,17 @@ bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command
 			WTWM_TEST_COMMAND_QUIT;
 		return true;
 	}
+	if (strcmp(verb, "DUMP") == 0) {
+		char *limit = next_word(&cursor);
+		command->first = 64;
+		if ((limit != NULL && !parse_int(limit, 1, 256, &command->first)) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: DUMP [max_windows]");
+			return false;
+		}
+		command->type = WTWM_TEST_COMMAND_DUMP;
+		return true;
+	}
 	if (strcmp(verb, "TRACE") == 0) {
 		char *option = next_word(&cursor);
 		if (option != NULL && strcmp(option, "CLEAR") == 0 && no_more_words(cursor)) {

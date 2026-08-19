@@ -7,6 +7,7 @@ wtwm \- run the twm-compatible Wayland compositor
 .RB [ \-f " twmrc" ]
 .RB [ \-s " command" ]
 .RB [ \-\-visual-mode " mode" ]
+.RB [ \-\-diagnostic-dump " path" ]
 .SH DESCRIPTION
 .B wtwm
 is a wlroots-based Wayland compositor that implements the observable window
@@ -50,6 +51,15 @@ or
 .BR monochrome .
 The default is
 .BR color .
+.TP
+.BI \-\-diagnostic-dump " path"
+Enable a bounded JSON state dump at
+.IR path .
+Sending
+.B SIGUSR2
+writes current outputs, managed windows, focus, cursor coordinates, and
+resource counts.  The file is created with mode 0600; symbolic links and
+non-regular targets are rejected.
 .TP
 .BR \-h ", " \-\-help
 Print command-line usage and exit.
@@ -147,6 +157,10 @@ Private login-wrapper log.
 .TP
 .I /usr/share/wayland-sessions/wtwm.desktop
 Distinct Wayland login entry.
+.TP
+.I diagnostic-dump-path
+Optional private JSON state file selected by
+.BR \-\-diagnostic-dump .
 .SH SIGNALS
 .B SIGHUP ,
 .B SIGINT ,
@@ -156,6 +170,9 @@ and
 request orderly compositor termination.  The login wrapper forwards each as
 .B SIGTERM
 to its compositor child and waits for that child to be reaped.
+.PP
+.B SIGUSR2
+writes the optional diagnostic state file without terminating the compositor.
 .SH EXIT STATUS
 Zero indicates a normal compositor exit, including
 .B f.quit

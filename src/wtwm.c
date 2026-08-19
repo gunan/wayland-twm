@@ -14,6 +14,7 @@
 #include "wtwm/color.h"
 #include "wtwm/focus_stack.h"
 #include "wtwm/geometry.h"
+#include "hardening.h"
 #include "wtwm/icon_layout.h"
 #include "wtwm/icon_manager.h"
 #include "wtwm/input_hotplug.h"
@@ -50,6 +51,7 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
@@ -291,6 +293,7 @@ struct toplevel {
 	struct wl_listener destroy;
 	struct wl_listener request_move;
 	struct wl_listener request_resize;
+	struct wl_listener request_show_window_menu;
 	struct wl_listener request_maximize;
 	struct wl_listener request_fullscreen;
 	struct wl_listener request_minimize;
@@ -514,6 +517,8 @@ struct server {
 	enum wtwm_color_mode color_mode;
 	struct wl_display *display;
 	struct wl_event_source *session_signals[WTWM_SESSION_SIGNAL_COUNT];
+	struct wl_event_source *diagnostic_signal;
+	const char *diagnostic_dump_path;
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
@@ -1055,6 +1060,26 @@ static void toplevel_geometry(const struct toplevel *toplevel,
 		toplevel_has_frame(toplevel) ? toplevel->border_width : 0,
 		toplevel->title_bar_height,
 		toplevel_has_frame(toplevel) && toplevel->decorated, geometry);
+}
+
+static const char *toplevel_protocol_name(const struct toplevel *toplevel) {
+	return toplevel->xwayland != NULL ? "xwayland" : "xdg_shell";
+}
+
+static unsigned sanitize_toplevel_client_size(struct toplevel *toplevel,
+		const char *boundary, int requested_width, int requested_height,
+		int *width, int *height) {
+	unsigned adjustment = wtwm_client_size_sanitize(requested_width,
+		requested_height, toplevel->width, toplevel->height, width, height);
+	if (wtwm_client_size_adjusted(adjustment)) {
+		wlr_log(WLR_DEBUG,
+			"event=client_size protocol=%s boundary=%s outcome=adjusted "
+			"requested_width=%d requested_height=%d width=%d height=%d "
+			"adjustment=0x%x",
+			toplevel_protocol_name(toplevel), boundary, requested_width,
+			requested_height, *width, *height, adjustment);
+	}
+	return adjustment;
 }
 
 #ifdef WTWM_TEST_CONTROL
@@ -2525,7 +2550,7 @@ static int toplevel_content_y(const struct toplevel *toplevel) {
 static void constrain_toplevel_size(struct toplevel *toplevel,
 		int *width, int *height) {
 	struct wtwm_size_hints constraints = {0};
-	int limit = toplevel->xwayland != NULL ? UINT16_MAX : INT_MAX;
+	int limit = WTWM_CLIENT_SIZE_MAX;
 	if (toplevel->xwayland != NULL && toplevel->xwayland->size_hints != NULL) {
 		xcb_size_hints_t *hints = toplevel->xwayland->size_hints;
 		if ((hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) != 0)
@@ -2567,14 +2592,14 @@ static void constrain_toplevel_size(struct toplevel *toplevel,
 			toplevel->xdg->current.max_height : limit;
 	}
 	wtwm_constrain_size(&constraints, limit, limit, width, height);
+	(void)sanitize_toplevel_client_size(toplevel, "size_constraints",
+		*width, *height, width, height);
 }
 
 static void configure_xwayland_frame(struct toplevel *toplevel,
 		int frame_x, int frame_y, int width, int height) {
-	if (width < 1) width = 1;
-	if (height < 1) height = 1;
-	if (width > UINT16_MAX) width = UINT16_MAX;
-	if (height > UINT16_MAX) height = UINT16_MAX;
+	(void)sanitize_toplevel_client_size(toplevel, "xwayland_configure",
+		width, height, &width, &height);
 	toplevel->width = width;
 	toplevel->height = height;
 	if (toplevel->tree != NULL) {
@@ -6989,15 +7014,30 @@ static void finish_input_adapter(struct server *server) {
 static void request_cursor(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, request_cursor);
 	struct wlr_seat_pointer_request_set_cursor_event *event = data;
-	if (server->seat->pointer_state.focused_client == event->seat_client) {
-		server->cursor_role[0] = '\0';
-		wlr_cursor_set_surface(server->cursor, event->surface, event->hotspot_x, event->hotspot_y);
+	if (event == NULL || event->seat_client == NULL ||
+			server->seat->pointer_state.focused_client != event->seat_client ||
+			!wlr_seat_client_validate_event_serial(event->seat_client,
+				event->serial)) {
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_pointer action=set_cursor "
+			"outcome=rejected reason=focus_or_serial serial=%" PRIu32,
+			event != NULL ? event->serial : 0);
+		return;
 	}
+	server->cursor_role[0] = '\0';
+	wlr_cursor_set_surface(server->cursor, event->surface, event->hotspot_x,
+		event->hotspot_y);
 }
 
 static void request_selection(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, request_selection);
 	struct wlr_seat_request_set_selection_event *event = data;
+	if (event == NULL || event->serial == 0) {
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_data_device action=set_selection "
+			"outcome=rejected reason=invalid_serial serial=0");
+		return;
+	}
 	wlr_seat_set_selection(server->seat, event->source, event->serial);
 }
 
@@ -7005,6 +7045,12 @@ static void request_primary_selection(struct wl_listener *listener, void *data) 
 	struct server *server =
 		wl_container_of(listener, server, request_primary_selection);
 	struct wlr_seat_request_set_primary_selection_event *event = data;
+	if (event == NULL || event->serial == 0) {
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=primary_selection action=set_selection "
+			"outcome=rejected reason=invalid_serial serial=0");
+		return;
+	}
 	wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
 }
 
@@ -7510,8 +7556,8 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	int previous_height = toplevel->height;
 	struct wlr_box geometry;
 	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
-	if (geometry.width > 0) toplevel->width = geometry.width;
-	if (geometry.height > 0) toplevel->height = geometry.height;
+	(void)sanitize_toplevel_client_size(toplevel, "xdg_map",
+		geometry.width, geometry.height, &toplevel->width, &toplevel->height);
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
@@ -7605,8 +7651,8 @@ static void toplevel_commit(struct wl_listener *listener, void *data) {
 	}
 	struct wlr_box geometry;
 	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
-	if (geometry.width > 0) toplevel->width = geometry.width;
-	if (geometry.height > 0) toplevel->height = geometry.height;
+	(void)sanitize_toplevel_client_size(toplevel, "xdg_commit",
+		geometry.width, geometry.height, &toplevel->width, &toplevel->height);
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
@@ -7623,6 +7669,7 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->destroy.link);
 	wl_list_remove(&toplevel->request_move.link);
 	wl_list_remove(&toplevel->request_resize.link);
+	wl_list_remove(&toplevel->request_show_window_menu.link);
 	wl_list_remove(&toplevel->request_maximize.link);
 	wl_list_remove(&toplevel->request_fullscreen.link);
 	wl_list_remove(&toplevel->request_minimize.link);
@@ -7639,9 +7686,50 @@ static void toplevel_destroy(struct wl_listener *listener, void *data) {
 	free(toplevel);
 }
 
+static bool validate_xdg_pointer_request(struct toplevel *toplevel,
+		struct wlr_seat_client *seat_client, uint32_t serial,
+		const char *action) {
+	struct server *server = toplevel->server;
+	bool seat_matches = seat_client != NULL && seat_client->seat == server->seat;
+	bool client_matches = seat_matches && toplevel->xdg->base->client != NULL &&
+		seat_client->client == toplevel->xdg->base->client->client;
+	struct wlr_surface *pointer_surface =
+		server->seat->pointer_state.focused_surface;
+	bool pointer_surface_matches = client_matches &&
+		server->seat->pointer_state.focused_client == seat_client &&
+		pointer_surface != NULL &&
+		wlr_surface_get_root_surface(pointer_surface) ==
+			toplevel->xdg->base->surface;
+	/* A grab may have started on a subsurface.  Validate the root explicitly,
+	 * then let wlroots enforce the one-button/contact and exact-serial rules. */
+	bool pointer_valid = pointer_surface_matches &&
+		server->seat->pointer_state.grab_serial == serial &&
+		wlr_seat_validate_pointer_grab_serial(server->seat, NULL, serial);
+	struct wlr_touch_point *touch_point = NULL;
+	bool touch_valid = client_matches && !pointer_valid &&
+		server->seat->touch_state.grab_serial == serial &&
+		wlr_seat_validate_touch_grab_serial(server->seat, NULL, serial,
+			&touch_point) && touch_point != NULL &&
+		touch_point->client == seat_client && touch_point->surface != NULL &&
+		wlr_surface_get_root_surface(touch_point->surface) ==
+			toplevel->xdg->base->surface;
+	bool serial_valid = pointer_valid || touch_valid;
+	if (!serial_valid) {
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=xdg_shell action=%s "
+			"outcome=rejected reason=%s serial=%" PRIu32,
+			action, !seat_matches ? "seat" : (!client_matches ? "client" :
+			"surface_or_grab"), serial);
+	}
+	return serial_valid;
+}
+
 static void request_move(struct wl_listener *listener, void *data) {
-	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, request_move);
+	struct wlr_xdg_toplevel_move_event *event = data;
+	if (event == NULL || event->toplevel != toplevel->xdg ||
+			!validate_xdg_pointer_request(toplevel,
+				event->seat, event->serial, "move")) return;
 	begin_interactive(toplevel, CURSOR_MOVE, 0, false, false,
 		toplevel->server->current_input_time_ms);
 }
@@ -7649,8 +7737,26 @@ static void request_move(struct wl_listener *listener, void *data) {
 static void request_resize(struct wl_listener *listener, void *data) {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, request_resize);
 	struct wlr_xdg_toplevel_resize_event *event = data;
+	if (event == NULL || event->toplevel != toplevel->xdg ||
+			!validate_xdg_pointer_request(toplevel,
+				event->seat, event->serial, "resize")) return;
 	begin_interactive(toplevel, CURSOR_RESIZE, event->edges, false, false,
 		toplevel->server->current_input_time_ms);
+}
+
+static void request_show_window_menu(struct wl_listener *listener, void *data) {
+	struct toplevel *toplevel =
+		wl_container_of(listener, toplevel, request_show_window_menu);
+	struct wlr_xdg_toplevel_show_window_menu_event *event = data;
+	if (event == NULL || event->toplevel != toplevel->xdg ||
+			!validate_xdg_pointer_request(toplevel,
+				event->seat, event->serial, "show_window_menu")) return;
+	/* twm menus are controlled by configured bindings, not the CSD protocol.
+	 * The validated request is deliberately a visible no-op. */
+	wlr_log(WLR_DEBUG,
+		"event=client_request protocol=xdg_shell action=show_window_menu "
+		"outcome=ignored reason=binding_policy serial=%" PRIu32,
+		event->serial);
 }
 
 static void request_maximize(struct wl_listener *listener, void *data) {
@@ -7747,6 +7853,9 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xdg->events.request_move, &toplevel->request_move);
 	toplevel->request_resize.notify = request_resize;
 	wl_signal_add(&xdg->events.request_resize, &toplevel->request_resize);
+	toplevel->request_show_window_menu.notify = request_show_window_menu;
+	wl_signal_add(&xdg->events.request_show_window_menu,
+		&toplevel->request_show_window_menu);
 	toplevel->request_maximize.notify = request_maximize;
 	wl_signal_add(&xdg->events.request_maximize, &toplevel->request_maximize);
 	toplevel->request_fullscreen.notify = request_fullscreen;
@@ -8181,8 +8290,9 @@ static void xwayland_surface_commit(struct wl_listener *listener, void *data) {
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
-	toplevel->width = toplevel->xwayland->width;
-	toplevel->height = toplevel->xwayland->height;
+	(void)sanitize_toplevel_client_size(toplevel, "xwayland_commit",
+		toplevel->xwayland->width, toplevel->xwayland->height,
+		&toplevel->width, &toplevel->height);
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
@@ -8652,8 +8762,9 @@ static void xwayland_set_geometry(struct wl_listener *listener, void *data) {
 	int previous_y = toplevel->tree != NULL ? toplevel->tree->node.y : 0;
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
-	toplevel->width = toplevel->xwayland->width;
-	toplevel->height = toplevel->xwayland->height;
+	(void)sanitize_toplevel_client_size(toplevel, "xwayland_geometry",
+		toplevel->xwayland->width, toplevel->xwayland->height,
+		&toplevel->width, &toplevel->height);
 	if (toplevel->tree != NULL) {
 		int x = toplevel->xwayland->x;
 		int y = toplevel->xwayland->y;
@@ -8735,8 +8846,9 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data) {
 	toplevel->xwayland = xwayland;
 	toplevel->icon_identity = ++server->next_icon_identity;
 	test_trace_assign_id(toplevel);
-	toplevel->width = xwayland->width;
-	toplevel->height = xwayland->height;
+	(void)sanitize_toplevel_client_size(toplevel, "xwayland_create",
+		xwayland->width, xwayland->height,
+		&toplevel->width, &toplevel->height);
 	toplevel->border_width = configured_border_width(server);
 	toplevel->title_bar_height = configured_title_bar_height(server);
 	wl_list_init(&toplevel->link);
@@ -8995,12 +9107,29 @@ static bool popup_constraint_box(struct popup *popup, struct wlr_box *box) {
 	return box->width > 0 && box->height > 0;
 }
 
-static void configure_popup(struct popup *popup) {
+static bool popup_size_valid(struct popup *popup, const char *boundary) {
+	int width = popup->xdg->scheduled.rules.size.width;
+	int height = popup->xdg->scheduled.rules.size.height;
+	if (width >= 1 && height >= 1 && width <= WTWM_CLIENT_SIZE_MAX &&
+			height <= WTWM_CLIENT_SIZE_MAX) return true;
+	wlr_log(WLR_DEBUG,
+		"event=client_size protocol=xdg_shell role=popup boundary=%s "
+		"outcome=rejected width=%d height=%d limit=%d",
+		boundary, width, height, WTWM_CLIENT_SIZE_MAX);
+	return false;
+}
+
+static bool configure_popup(struct popup *popup) {
+	if (!popup_size_valid(popup, "popup_configure")) {
+		wlr_xdg_popup_destroy(popup->xdg);
+		return false;
+	}
 	struct wlr_box box;
 	if (popup_constraint_box(popup, &box))
 		wlr_xdg_popup_unconstrain_from_box(popup->xdg, &box);
 	else
 		wlr_xdg_surface_schedule_configure(popup->xdg->base);
+	return true;
 }
 
 static void popup_map(struct wl_listener *listener, void *data) {
@@ -9023,14 +9152,14 @@ static void popup_unmap(struct wl_listener *listener, void *data) {
 static void popup_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct popup *popup = wl_container_of(listener, popup, commit);
-	if (popup->xdg->base->initial_commit) configure_popup(popup);
+	if (popup->xdg->base->initial_commit && !configure_popup(popup)) return;
 	sync_popup_position(popup);
 }
 
 static void popup_reposition(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct popup *popup = wl_container_of(listener, popup, reposition);
-	configure_popup(popup);
+	(void)configure_popup(popup);
 }
 
 static void popup_scene_destroy(struct wl_listener *listener, void *data) {
@@ -9076,6 +9205,11 @@ static void new_popup(struct wl_listener *listener, void *data) {
 			&popup->root, &popup->depth)) {
 		wlr_log(WLR_ERROR, "%s",
 			"dismissing xdg popup with an unmanaged parent");
+		free(popup);
+		wlr_xdg_popup_destroy(xdg);
+		return;
+	}
+	if (!popup_size_valid(popup, "popup_create")) {
 		free(popup);
 		wlr_xdg_popup_destroy(xdg);
 		return;
@@ -9322,6 +9456,43 @@ static const char *test_input_active_name(const struct server *server,
 	const struct wtwm_input_hotplug_device *device = valid ?
 		input_device_for_ordinal(&server->input, ordinal) : NULL;
 	return device != NULL ? device->name : NULL;
+}
+
+static void test_write_diagnostic_dump(struct test_control *control,
+		size_t max_windows) {
+	struct server *server = control->server;
+	size_t output_count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) ++output_count;
+	size_t popup_count = 0;
+	struct popup *popup;
+	wl_list_for_each(popup, &server->popups, link) ++popup_count;
+	size_t window_count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) ++window_count;
+
+	test_write(control,
+		"OK DUMP {\"schema\":\"wtwm-diagnostic-v1\",\"frame\":%" PRIu64
+		",\"topology_epoch\":%" PRIu64 ",\"counts\":{\"outputs\":%zu,"
+		"\"windows\":%zu,\"popups\":%zu,\"inputs\":%zu},\"windows\":[",
+		server->frame_sequence, server->topology_epoch, output_count,
+		window_count, popup_count, server->input.device_count);
+	size_t emitted = 0;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (emitted == max_windows) break;
+		if (emitted != 0) test_write(control, ",");
+		test_write(control, "{\"id\":%" PRIu64 ",\"protocol\":\"%s\",\"title\":",
+			toplevel->test_id, toplevel_protocol_name(toplevel));
+		test_write_json_string(control, toplevel->test_title);
+		test_write(control,
+			",\"mapped\":%s,\"iconified\":%s,\"width\":%d,\"height\":%d}",
+			toplevel->mapped ? "true" : "false",
+			toplevel->iconified ? "true" : "false",
+			toplevel->width, toplevel->height);
+		++emitted;
+	}
+	test_write(control, "],\"emitted_windows\":%zu,\"truncated\":%s}\n",
+		emitted, emitted < window_count ? "true" : "false");
 }
 
 static void test_write_state(struct test_control *control) {
@@ -10283,6 +10454,9 @@ static void test_execute(struct test_control *control,
 	case WTWM_TEST_COMMAND_STATE:
 		test_write_state(control);
 		break;
+	case WTWM_TEST_COMMAND_DUMP:
+		test_write_diagnostic_dump(control, (size_t)command->first);
+		break;
 	case WTWM_TEST_COMMAND_TRACE:
 		if (command->first != 0) {
 			test_trace_clear(control);
@@ -10507,9 +10681,172 @@ static void finish_session_signals(struct server *server) {
 	}
 }
 
+enum {
+	DIAGNOSTIC_MAX_OUTPUTS = 64,
+	DIAGNOSTIC_MAX_WINDOWS = 256,
+	DIAGNOSTIC_STRING_MAX = 256,
+};
+
+static void diagnostic_json_string(FILE *stream, const char *value) {
+	if (value == NULL) value = "";
+	fputc('"', stream);
+	size_t length = strnlen(value, DIAGNOSTIC_STRING_MAX + 1);
+	bool truncated = length > DIAGNOSTIC_STRING_MAX;
+	if (truncated) length = DIAGNOSTIC_STRING_MAX;
+	for (size_t index = 0; index < length; ++index) {
+		unsigned char byte = (unsigned char)value[index];
+		switch (byte) {
+		case '\\': fputs("\\\\", stream); break;
+		case '"': fputs("\\\"", stream); break;
+		case '\n': fputs("\\n", stream); break;
+		case '\r': fputs("\\r", stream); break;
+		case '\t': fputs("\\t", stream); break;
+		default:
+			if (byte < 0x20 || byte >= 0x7f)
+				fprintf(stream, "\\u%04x", byte);
+			else fputc(byte, stream);
+			break;
+		}
+	}
+	if (truncated) fputs("...", stream);
+	fputc('"', stream);
+}
+
+static bool write_diagnostic_state(struct server *server) {
+	int flags = O_WRONLY | O_CREAT | O_CLOEXEC | O_NONBLOCK;
+#ifdef O_NOFOLLOW
+	flags |= O_NOFOLLOW;
+#endif
+	int fd = open(server->diagnostic_dump_path, flags, 0600);
+	if (fd < 0) return false;
+	struct stat status;
+	if (fstat(fd, &status) < 0) {
+		int saved_errno = errno;
+		close(fd);
+		errno = saved_errno;
+		return false;
+	}
+	if (!S_ISREG(status.st_mode)) {
+		close(fd);
+		errno = EINVAL;
+		return false;
+	}
+	if (fchmod(fd, S_IRUSR | S_IWUSR) < 0 || ftruncate(fd, 0) < 0 ||
+			lseek(fd, 0, SEEK_SET) < 0) {
+		int saved_errno = errno;
+		close(fd);
+		errno = saved_errno;
+		return false;
+	}
+	FILE *stream = fdopen(fd, "w");
+	if (stream == NULL) {
+		close(fd);
+		return false;
+	}
+
+	size_t output_count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) ++output_count;
+	size_t window_count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) ++window_count;
+	size_t popup_count = 0;
+	struct popup *popup;
+	wl_list_for_each(popup, &server->popups, link) ++popup_count;
+
+	fprintf(stream,
+		"{\"schema\":\"wtwm-diagnostic-v1\",\"frame\":%" PRIu64
+		",\"topology_epoch\":%" PRIu64 ",\"focus_root\":%s,"
+		"\"cursor\":{\"x\":%.17e,\"y\":%.17e},"
+		"\"counts\":{\"outputs\":%zu,\"windows\":%zu,\"popups\":%zu,"
+		"\"inputs\":%zu},\"outputs\":[",
+		server->frame_sequence, server->topology_epoch,
+		server->focus_root ? "true" : "false",
+		server->cursor != NULL ? server->cursor->x : 0.0,
+		server->cursor != NULL ? server->cursor->y : 0.0,
+		output_count, window_count, popup_count, server->input.device_count);
+
+	size_t emitted_outputs = 0;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (emitted_outputs == DIAGNOSTIC_MAX_OUTPUTS) break;
+		if (emitted_outputs != 0) fputc(',', stream);
+		fputs("{\"name\":", stream);
+		diagnostic_json_string(stream, output->identity.name);
+		fprintf(stream,
+			",\"enabled\":%s,\"in_layout\":%s,\"width\":%d,\"height\":%d}",
+			output->wlr->enabled ? "true" : "false",
+			output->in_layout ? "true" : "false",
+			output->wlr->width, output->wlr->height);
+		++emitted_outputs;
+	}
+	fprintf(stream,
+		"],\"outputs_truncated\":%s,\"windows\":[",
+		emitted_outputs < output_count ? "true" : "false");
+
+	size_t emitted_windows = 0;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (emitted_windows == DIAGNOSTIC_MAX_WINDOWS) break;
+		if (emitted_windows != 0) fputc(',', stream);
+		fputs("{\"protocol\":", stream);
+		diagnostic_json_string(stream, toplevel_protocol_name(toplevel));
+		fputs(",\"title\":", stream);
+		diagnostic_json_string(stream, toplevel_title(toplevel));
+		fprintf(stream,
+			",\"mapped\":%s,\"iconified\":%s,\"focused\":%s,"
+			"\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+			toplevel->mapped ? "true" : "false",
+			toplevel->iconified ? "true" : "false",
+			server->focus == toplevel ? "true" : "false",
+			toplevel->tree != NULL ? toplevel->tree->node.x : toplevel->frame_x,
+			toplevel->tree != NULL ? toplevel->tree->node.y : toplevel->frame_y,
+			toplevel->width, toplevel->height);
+		++emitted_windows;
+	}
+	fprintf(stream,
+		"],\"windows_truncated\":%s}\n",
+		emitted_windows < window_count ? "true" : "false");
+	bool ok = !ferror(stream);
+	if (fclose(stream) != 0) ok = false;
+	return ok;
+}
+
+static int diagnostic_dump_signal(int signal_number, void *data) {
+	struct server *server = data;
+	if (write_diagnostic_state(server)) {
+		wlr_log(WLR_INFO,
+			"event=diagnostic_dump outcome=written signal=%d "
+			"max_outputs=%d max_windows=%d",
+			signal_number,
+			DIAGNOSTIC_MAX_OUTPUTS, DIAGNOSTIC_MAX_WINDOWS);
+	} else {
+		wlr_log_errno(WLR_ERROR,
+			"event=diagnostic_dump outcome=failed signal=%d",
+			signal_number);
+	}
+	return 0;
+}
+
+static bool initialize_diagnostic_signal(struct server *server) {
+	if (server->diagnostic_dump_path == NULL) return true;
+	server->diagnostic_signal = wl_event_loop_add_signal(
+		wl_display_get_event_loop(server->display), SIGUSR2,
+		diagnostic_dump_signal, server);
+	if (server->diagnostic_signal == NULL)
+		wlr_log_errno(WLR_ERROR, "%s",
+			"failed to register diagnostic dump signal");
+	return server->diagnostic_signal != NULL;
+}
+
+static void finish_diagnostic_signal(struct server *server) {
+	if (server->diagnostic_signal == NULL) return;
+	wl_event_source_remove(server->diagnostic_signal);
+	server->diagnostic_signal = NULL;
+}
+
 static void usage(FILE *stream, const char *program) {
 	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]"
-		" [--visual-mode color|grayscale|monochrome]", program);
+		" [--visual-mode color|grayscale|monochrome]"
+		" [--diagnostic-dump path]", program);
 #ifdef WTWM_TEST_CONTROL
 	fprintf(stream, " [--test-control path] [--test-socket name]"
 		" [--test-backend auto|headless|wayland]");
@@ -10521,8 +10858,10 @@ int main(int argc, char **argv) {
 	const char *config_path = NULL;
 	const char *startup = NULL;
 	const char *visual_mode = "color";
+	const char *diagnostic_dump_path = NULL;
 	enum {
 		OPTION_VISUAL_MODE = 256,
+		OPTION_DIAGNOSTIC_DUMP,
 		OPTION_TEST_CONTROL,
 		OPTION_TEST_SOCKET,
 		OPTION_TEST_BACKEND,
@@ -10537,6 +10876,7 @@ int main(int argc, char **argv) {
 		{"help", no_argument, NULL, 'h'},
 		{"startup", required_argument, NULL, 's'},
 		{"visual-mode", required_argument, NULL, OPTION_VISUAL_MODE},
+		{"diagnostic-dump", required_argument, NULL, OPTION_DIAGNOSTIC_DUMP},
 		{"test-control", required_argument, NULL, OPTION_TEST_CONTROL},
 		{"test-socket", required_argument, NULL, OPTION_TEST_SOCKET},
 		{"test-backend", required_argument, NULL, OPTION_TEST_BACKEND},
@@ -10549,6 +10889,7 @@ int main(int argc, char **argv) {
 		{"help", no_argument, NULL, 'h'},
 		{"startup", required_argument, NULL, 's'},
 		{"visual-mode", required_argument, NULL, OPTION_VISUAL_MODE},
+		{"diagnostic-dump", required_argument, NULL, OPTION_DIAGNOSTIC_DUMP},
 		{NULL, 0, NULL, 0},
 	};
 #endif
@@ -10561,6 +10902,7 @@ int main(int argc, char **argv) {
 		case 's': startup = optarg; break;
 		case 'h': usage(stdout, argv[0]); return 0;
 		case OPTION_VISUAL_MODE: visual_mode = optarg; break;
+		case OPTION_DIAGNOSTIC_DUMP: diagnostic_dump_path = optarg; break;
 #ifdef WTWM_TEST_CONTROL
 		case OPTION_TEST_CONTROL: test_control_path = optarg; break;
 		case OPTION_TEST_SOCKET: test_socket = optarg; break;
@@ -10594,6 +10936,7 @@ int main(int argc, char **argv) {
 	struct server server = {0};
 	server.program_name = argv[0];
 	server.config_path = config_path;
+	server.diagnostic_dump_path = diagnostic_dump_path;
 	wtwm_action_screen_warp_init(&server.screen_warp);
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
 		WTWM_COLOR_MODE_MONOCHROME :
@@ -10715,6 +11058,7 @@ int main(int argc, char **argv) {
 	server.request_primary_selection.notify = request_primary_selection;
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
+	if (!initialize_diagnostic_signal(&server)) goto fail_runtime;
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.server = &server;
 	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,
@@ -10745,6 +11089,7 @@ int main(int argc, char **argv) {
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	server.shutting_down = true;
+	finish_diagnostic_signal(&server);
 	finish_compositor_reload(&server);
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);
@@ -10780,6 +11125,7 @@ int main(int argc, char **argv) {
 
 fail_runtime:
 	server.shutting_down = true;
+	finish_diagnostic_signal(&server);
 	finish_compositor_reload(&server);
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);

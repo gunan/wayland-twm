@@ -504,10 +504,10 @@ Exit criteria:
 Implementation work:
 
 - [ ] Validate all Wayland request serials and client-supplied sizes.
-- [ ] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
+- [x] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
   metadata handling.
 - [ ] Eliminate compositor crashes caused by malformed or hostile clients.
-- [ ] Add structured logging and an optional diagnostic state dump.
+- [x] Add structured logging and an optional diagnostic state dump.
 - [x] Complete manual pages, sample configurations, migration notes, and
   troubleshooting documentation.
 - [ ] Produce packages for the initially supported distributions.
