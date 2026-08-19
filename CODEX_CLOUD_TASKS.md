@@ -10,7 +10,7 @@ completeness, or change any compatibility claim.
 
 Create a deterministic inventory of what the repository currently parses,
 dispatches at runtime, and tests. This raw evidence will later feed the
-Milestone 0 ledger/audit, but this task does not create or update that ledger.
+compatibility-ledger audit, but this task does not create or update that ledger.
 
 ## Branch and starting state
 
@@ -29,7 +29,7 @@ Milestone 0 ledger/audit, but this task does not create or update that ledger.
 
 ## Scope
 
-Roadmap ownership: **none**. Do not change any Roadmap checkbox.
+Task-list ownership: **none**. Do not change any task checkbox.
 
 The actual audit task may create or edit only:
 
@@ -94,7 +94,7 @@ bad data. Keep temporary output outside the repository and clean it up.
 5. The focused test passes valid audit data and demonstrably rejects malformed
    audit data.
 6. No compatibility status, implementation, existing test, ledger, Meson
-   registration, or Roadmap checkbox changes.
+   registration, or task-checkbox changes.
 
 ## Internet and verification
 
@@ -127,7 +127,7 @@ bad data. Keep temporary output outside the repository and clean it up.
   published history.
 - Return the commit SHA, changed files, inventory counts, explicit unknowns,
   every verification command/result, checkout mode (`agent_impl_audit` or
-  `work`), final branch/status, and confirmation that no Roadmap checkbox or
+  `work`), final branch/status, and confirmation that no task checkbox or
   compatibility claim changed. State whether `agent_impl_audit` was pushed;
   confirm that `work`, `agent`, and `main` were not pushed.
 

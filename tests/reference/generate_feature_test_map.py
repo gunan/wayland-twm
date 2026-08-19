@@ -933,7 +933,8 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "- Parser acceptance proves only that the feature spelling/form loads. It does not",
         "  prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.",
         "- The immutable current audit retains the tests visible at its audited commit; this",
-        "  map is the authoritative current test-coverage layer for the Milestone 0 gate.",
+        "  map is the authoritative current test-coverage layer for compatibility-ledger",
+        "  reconciliation.",
         "- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately",
         "  from honest current-audit runtime mappings: the no-op option runner maps three",
         "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
@@ -942,7 +943,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "- The output-placement, topology, restoration, and input-hotplug runtime",
         "  mappings separate steady-state spatial selection, atomic output mutation,",
         "  managed-scene repair, and physical-device churn. Session lifecycle remains",
-        "  separate Milestone 8 work.",
+        "  separate task-list work.",
         "",
     ]
     return result, "\n".join(lines)

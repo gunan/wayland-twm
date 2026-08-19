@@ -1,6 +1,7 @@
 # Compositor platform testing
 
-Milestone 1 uses separate entry points for the three wlroots environments.
+The platform-validation tasks use separate entry points for the three wlroots
+environments.
 They deliberately do not guess that an SSH shell owns a physical seat.
 
 ## Headless and nested runs
@@ -22,7 +23,7 @@ changes the user's login session.
 Run the headless scenario 100 consecutive times with a fresh compositor per
 iteration.  Preserve the test control transcript and screenshot from every
 failure, plus the first and last successful runs.  A loop that merely starts
-the process without mapping a native client does not meet the Roadmap item.
+the process without mapping a native client does not meet the task item.
 
 ## DRM login run
 
@@ -105,7 +106,7 @@ flow only and must not be reported as a clean-system package pass.
 ## Stress, renderer, and soak records
 
 Short stress and sanitizer runs are useful gates before a long run, but they do
-not satisfy the 72-hour or hardware Roadmap items. A release record must name
+not satisfy the 72-hour or hardware task items. A release record must name
 the exact clean commit, build profile, backend, renderer, architecture, native
 and Xwayland clients, start/end UTC timestamps, and the assertions sampled
 during the run. Preserve bounded resource samples and the final exit status.

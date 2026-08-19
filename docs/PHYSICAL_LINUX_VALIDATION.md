@@ -71,5 +71,5 @@ The final validator requires a clean full commit ID, all seven checks marked
 `pass`, at least 100 headless iterations, matching on-disk artifact hashes, and
 `virtualized: false` for physical Linux.  A reviewer must still compare the
 commands and assertions with the procedure; schema validity does not prove the
-observations were performed.  Keep the Roadmap physical-system and DRM/login
+observations were performed.  Keep the physical-system and DRM/login task
 checkboxes unchecked until this reviewed bundle exists.

@@ -11,11 +11,11 @@ test commands, architecture constraints, commit rules, and completion
 reporting. If a task prompt conflicts with `AGENTS.md`, stop and ask the
 coordinating human to resolve the conflict.
 
-The `## Roadmap` in `README.md` is the authoritative ordered work queue,
+The `## Tasks` section in `README.md` is the authoritative ordered work queue,
 progress record, and release gate. After the immediate GitHub Actions task in
-`AGENTS.md` is complete, choose the earliest eligible unchecked Roadmap item.
-Do not treat the global parity checklist as the day-to-day queue, and do not
-check an item until its implementation and required tests are complete.
+`AGENTS.md` is complete, choose the earliest eligible unchecked task item.
+Do not treat the Full parity acceptance checklist as the day-to-day queue, and
+do not check an item until its implementation and required tests are complete.
 
 Also consult `docs/ARCHITECTURE.md` for subsystem boundaries and
 `docs/COMPATIBILITY.md` for current compatibility claims and Wayland
@@ -29,7 +29,7 @@ Replace every bracketed field. Delete optional lines that do not apply.
 Repository: wtwm
 
 Read and follow the root AGENTS.md before doing anything. The README.md
-"Roadmap" is the authoritative ordered task list and progress record.
+"Tasks" section is the authoritative ordered task list and progress record.
 
 Objective
 - [One concrete outcome that can be implemented and verified in this task.]
@@ -44,7 +44,7 @@ Branch and workspace
 Allowed scope
 - May edit: [exact files, directories, or subsystem].
 - Must not edit: [overlapping subsystems, generated files, unrelated docs].
-- Roadmap ownership: [exact checkbox text, or "none"]. Do not change any other
+- Task-list ownership: [exact checkbox text, or "none"]. Do not change any other
   checkbox.
 
 Acceptance criteria
@@ -58,13 +58,13 @@ Verification
 - Required full suite: `meson compile -C build`
 - Required full suite: `meson test -C build --print-errorlogs`
 - Before commit: `git diff --check`
-- If a required test cannot run, leave the Roadmap checkbox unchecked and
+- If a required test cannot run, leave the task checkbox unchecked and
   report the exact missing dependency or external blocker.
 
-Documentation and Roadmap
+Documentation and Tasks
 - Update [docs/COMPATIBILITY.md and/or docs/ARCHITECTURE.md] if behavior,
   compatibility status, or a Wayland translation changes.
-- Change only [exact README.md Roadmap checkbox] from `[ ]` to `[x]`, in the
+- Change only [exact README.md Tasks checkbox] from `[ ]` to `[x]`, in the
   feature commit, and only after all acceptance criteria are verified.
 
 Commit and push boundaries
@@ -77,7 +77,7 @@ Commit and push boundaries
 
 Completion evidence
 - Return commit SHA(s) and one-line purpose for each.
-- List the Roadmap checkbox completed and the next unchecked eligible task.
+- List the task checkbox completed and the next unchecked eligible task.
 - List every test command and result, plus anything not run and why.
 - Summarize remaining compatibility differences or follow-up work.
 - Confirm the final branch name, clean/dirty status, files changed, and that
@@ -94,7 +94,7 @@ whether it is complete from the returned evidence.
 Repository: wtwm
 
 Read and follow the root AGENTS.md before doing anything. This is the immediate
-CI task and takes priority over new Roadmap work.
+CI task and takes priority over new task-list work.
 
 Objective
 - Make the latest GitHub Actions workflow pass on agent and on the pull request
@@ -108,7 +108,7 @@ Branch and workspace
 Allowed scope
 - May inspect the complete latest Actions run and edit only the workflow,
   source, tests, or packaging files proven to cause the failure.
-- Do not start Roadmap features or change Roadmap checkboxes.
+- Do not start task-list features or change task checkboxes.
 
 Acceptance criteria
 1. Record the failing job, step, and relevant error output before changing code.
@@ -138,7 +138,7 @@ Completion evidence
   confirmation that nothing was pushed to main.
 ```
 
-## Example: one Roadmap vertical slice
+## Example: one task-list vertical slice
 
 Use this only after the CI completion condition in `AGENTS.md` is satisfied.
 Replace the sample checkbox and paths with the actual earliest eligible item.
@@ -148,10 +148,10 @@ Repository: wtwm
 
 Read and follow the root AGENTS.md before doing anything. Confirm the immediate
 GitHub Actions task is complete, then verify this is the earliest eligible
-unchecked item in the earliest unfinished Roadmap milestone.
+unchecked item in the earliest unfinished task group.
 
 Objective
-- Complete this single Roadmap slice: "[paste the exact checkbox text]."
+- Complete this single task-list slice: "[paste the exact checkbox text]."
 
 Branch and workspace
 - Base/start and working branch: agent.
@@ -161,7 +161,7 @@ Branch and workspace
 Allowed scope
 - May edit: [implementation files], [focused tests/fixtures], README.md only for
   the named checkbox, and [specific compatibility/architecture documentation].
-- Must not edit unrelated subsystems or any other Roadmap checkbox.
+- Must not edit unrelated subsystems or any other task checkbox.
 
 Acceptance criteria
 1. Add a focused failing regression test or fixture for [exact behavior].
@@ -180,7 +180,7 @@ Verification
 - Run `git diff --check` before committing.
 
 Documentation, commit, and handoff
-- Update only the named Roadmap checkbox after all required evidence passes.
+- Update only the named task checkbox after all required evidence passes.
 - Commit implementation, tests, directly related docs, and its checkbox as one
   cohesive feature commit with an imperative subject.
 - Do not push. Return the commit SHA, exact tests/results, changed checkbox,
@@ -194,7 +194,7 @@ Split work only at genuine non-overlapping boundaries. Good candidates include
 separate reference-behavior research, parser fixtures, CI-log diagnosis, or a
 review pass when each task has distinct owned files and output. Do not run two
 tasks that edit the same functions, generated artifacts, compatibility entry,
-or Roadmap checkbox. Do not split implementation from the tests and
+or task checkbox. Do not split implementation from the tests and
 documentation required to prove that same checkbox.
 
 Before dispatching parallel tasks, the coordinating human should:
@@ -210,6 +210,6 @@ Before dispatching parallel tasks, the coordinating human should:
 The coordinating human reviews every returned commit, diff, test result, and
 scope boundary. Integrate approved commits into `agent` one at a time, preserve
 their focused commit boundaries, resolve conflicts only on `agent`, and run the
-combined full suite. Check or retain a Roadmap checkbox only after the combined
+combined full suite. Check or retain a task checkbox only after the combined
 tree verifies it. Only then may the coordinating `agent` branch be pushed for
 CI and a human-reviewed pull request to `main`; cloud agents must not merge it.

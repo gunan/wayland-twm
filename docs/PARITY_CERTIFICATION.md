@@ -1,10 +1,10 @@
 # Parity certification
 
-The Milestone 10 release manifest is
+The final 1.0 certification manifest is
 `reference/certification/m10-release-gates.json`. It mirrors the eleven final
 1.0 release gates in `README.md` in their authoritative order. A gate has only
 two valid states: `pending` or `passed`. The initial manifest intentionally
-keeps every gate pending because a milestone checkbox, a local smoke test, or a
+keeps every gate pending because a task checkbox, a local smoke test, or a
 successful CI job is not itself complete release-certification evidence.
 
 The project cannot claim full observable `twm` parity until all eleven gates
@@ -90,7 +90,7 @@ that a report cannot look complete while quietly dropping a required result.
    in the change that promotes the eleventh and final gate.
 
 Some collection must happen outside ordinary local and GitHub Actions runs. In
-particular, do not promote the soak gate from the short Milestone 9 smoke run;
+particular, do not promote the soak gate from the short stability smoke run;
 the recorded timestamps must cover a successful continuous 72 hours. Do not
 promote package coverage from compiler jobs; package lifecycle results are
 required for every declared distribution/architecture pair. Environment

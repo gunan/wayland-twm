@@ -187,7 +187,7 @@ def validate_text(
         "A 21-event trace",
         "48-case Cartesian product",
         "no numeric tolerances or geometry exclusions",
-        "Milestone 5 pixel comparison",
+        "canonical pixel comparison",
     ):
         if marker not in compatibility:
             errors.append(f"compatibility boundary lacks {marker!r}")
@@ -314,7 +314,7 @@ def self_test_tamper(source_root: Path) -> list[str]:
             runner,
             probe,
             compatibility.replace(
-                "Milestone 5 pixel comparison",
+                "canonical pixel comparison",
                 "Later work remains",
                 1,
             ),

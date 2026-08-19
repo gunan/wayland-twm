@@ -14,46 +14,133 @@ window menus, xdg-shell windows, clipboard plumbing, multi-output layout, and
 a portable `.twmrc` parser. Xwayland clients share the managed stack, and
 compositor-owned icons and icon managers implement the reference allocation,
 ordering, and navigation model. The stock `twm` 1.0.13.1 `system.twmrc` and all
-three upstream sample files parse successfully. Lifecycle/output translations,
-hardening, and final differential certification remain release blockers for a
-claim of drop-in compatibility.
+three upstream sample files parse successfully. Platform validation,
+long-duration and hardware testing, compatibility-ledger reconciliation, and
+final differential certification remain release blockers for a claim of
+drop-in compatibility.
 
-## Build
+## How to install
 
-On Debian 13 (trixie), install the build dependencies and compile:
+`wtwm` currently targets Debian 13 (Trixie) with wlroots 0.18. There is no
+published package repository yet, so build either a co-installable Debian
+package or a local development tree. The Debian package is recommended for a
+real display-manager login because it installs and tracks the complete session
+entry; a source-tree build is the quickest way to test `wtwm` nested inside an
+existing Wayland desktop.
+
+Do not run `wtwm` or `wtwm-session` as root. Keep your existing compositor
+available until you have tested the applications, configuration, input devices,
+and displays that matter to you.
+
+### Install a Debian package
+
+Install the package build dependencies, clone the source, build the binary
+package, and install the resulting artifact:
 
 ```sh
-sudo apt install build-essential meson ninja-build pkg-config \
-  libwlroots-0.18-dev libwayland-dev libxkbcommon-dev libpango1.0-dev wayland-protocols
-meson setup build -Dcompositor=enabled
-meson compile -C build
-meson test -C build
+sudo apt update
+sudo apt install build-essential debhelper devscripts dpkg-dev meson ninja-build \
+  pkgconf libfontconfig-dev libpango1.0-dev libwayland-dev \
+  libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
+  wayland-protocols lintian mandoc xkb-data xwayland foot xfonts-base
+git clone https://github.com/gunan/wayland-twm.git
+cd wayland-twm
+dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
+sudo apt install ../wtwm_0.1.0_*.deb
 ```
 
-To install into `/usr/local`:
+The package installs `wtwm`, `wtwm-config`, `wtwm-session`, manual pages, the
+fallback `system.twmrc`, and a distinct
+`/usr/share/wayland-sessions/wtwm.desktop`. It does not install an X11 session,
+replace `/usr/bin/twm`, use the alternatives system, or change the display
+manager's default session.
+
+To remove the package later:
+
+```sh
+sudo apt remove wtwm
+```
+
+Removal and purge leave user-owned `.twmrc`, saved state, and session logs in
+place.
+
+### Build and test from source
+
+For a development build without Debian packaging:
+
+```sh
+sudo apt update
+sudo apt install build-essential meson ninja-build pkgconf \
+  libfontconfig-dev libpango1.0-dev libwayland-dev \
+  libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
+  wayland-protocols xkb-data xwayland foot xfonts-base
+git clone https://github.com/gunan/wayland-twm.git
+cd wayland-twm
+meson setup build -Dcompositor=enabled -Dwerror=true
+meson compile -C build
+meson test -C build --print-errorlogs
+```
+
+If the repository is already cloned, start at `meson setup`. Reconfigure an
+existing build directory with `meson setup build --reconfigure` rather than
+deleting it. To install the development build under `/usr/local`:
 
 ```sh
 sudo meson install -C build
 ```
 
-To produce a co-installable Debian package instead:
+Some display managers do not search `/usr/local/share/wayland-sessions`; use the
+Debian package above when you need a reliable login-session entry.
+
+### Configure wtwm
+
+With no `-f` option, `wtwm` tries `~/.twmrc.0`, then `~/.twmrc`, then the
+packaged `system.twmrc`, and finally its compiled-in defaults. Existing files
+are read in place and are never rewritten by installation, reload, upgrade, or
+removal.
+
+Validate an existing configuration before starting a session:
 
 ```sh
-sudo apt install build-essential devscripts debhelper meson ninja-build \
-  pkg-config libwlroots-0.18-dev libwayland-dev libxkbcommon-dev libpango1.0-dev wayland-protocols
-dpkg-buildpackage -b -uc -us
-sudo apt install ../wtwm_0.1.0_*.deb
+wtwm-config "$HOME/.twmrc"
 ```
 
-Log out and select **Wayland twm**, or test without replacing your current
-session by running it nested:
+For an uninstalled source build, use `build/wtwm-config` instead. Review every
+`f.exec` command in an imported configuration because it runs with your user
+privileges. The packaged default binds `Meta+Return` to `foot`; install `foot`
+or change that command to your preferred terminal.
+
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for exact support and
+Wayland translations, and [docs/MIGRATING_FROM_TWM.md](docs/MIGRATING_FROM_TWM.md)
+for a reversible migration procedure.
+
+### Run nested inside an existing Wayland session
+
+Nested mode is the safest first run. From a terminal inside an existing Wayland
+desktop, confirm that `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` are set, then run:
 
 ```sh
-WLR_BACKENDS=wayland build/wtwm -s foot
+WLR_BACKENDS=wayland wtwm -s foot
 ```
 
-The compositor prints its new `WAYLAND_DISPLAY` socket. `Alt+Escape` is an
-emergency exit. The packaged configuration also maps `Meta+Return` to `foot`.
+From an uninstalled source tree, replace `wtwm` with `build/wtwm`. A new window
+containing the nested compositor should appear, and `foot` should open inside
+it. `Alt+Escape` is the emergency exit. Use `-d` for verbose logging or
+`-f /path/to/file` to select a specific configuration.
+
+### Run as a login session
+
+After installing the Debian package, log out, choose **Wayland twm** in the
+display manager, and log in normally. The `wtwm-session` wrapper starts one
+foreground compositor, writes a private log to
+`${XDG_STATE_HOME:-$HOME/.local/state}/wtwm/session.log`, and returns the exact
+exit status to the display manager. A normal exit or failed startup should
+therefore return to the greeter.
+
+Do not force the DRM backend from SSH. A direct DRM session requires an active
+local logind session, a usable DRM device, and local keyboard and pointer
+access. If login returns immediately or the display is blank, return to your
+previous session and follow [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Configuration compatibility
 
@@ -82,506 +169,168 @@ MIT. The compositor's event-loop structure is informed by wlroots' `tinywl`
 reference compositor, also distributed under the wlroots MIT license. The
 configuration behavior is based on the public twm grammar and manual.
 
-## Roadmap
+## Tasks
 
-The goal of this project is observable `twm` parity on Wayland: given the same
-configuration, applications, screen geometry, and user input, a user familiar
-with `twm` should see the same decorations and receive the same window-management
-behavior.
+This section is the authoritative remaining-work list for `wtwm` 1.0. The goal
+is observable `twm` 1.0.13.1 parity: given the same configuration,
+applications, screen geometry, and input, an experienced user should see the
+same decorations and receive the same window-management behavior wherever
+Wayland protocols permit it.
 
-Native Wayland cannot reproduce X11 at the protocol level. Some X11 concepts,
-including server grabs, backing-store hints, save-unders, and global colormap
-installation, do not exist in Wayland. For those features, parity means
-reproducing their observable effect or proving that a no-op produces no
-user-visible difference. Xwayland clients should receive the closest possible
-ICCCM-compatible behavior.
+Task ownership is recorded as:
+
+- **Agent:** repository implementation, automation, validation, or evidence
+  work that can be completed without physical observation.
+- **Manual:** hardware access, interactive observation, policy approval, or
+  human judgment that cannot be replaced by an automated result.
+- **Shared:** the agent can drive commands and prepare evidence after a person
+  supplies the environment, access, hardware, or reviewers.
+
+Work through the numbered task groups in order. Within the current group,
+select the earliest unchecked item whose prerequisites are satisfied. Change
+`[ ]` to `[x]` only after implementation, required testing, and documentation
+are complete, and update the checkbox in the same focused commit. Leave partial
+or blocked work unchecked and record the remaining work in the task report.
+Keep the latest `agent` workflow and the pull-request checks against `main`
+green before starting a later task group.
+
+Testing uses two profiles:
+
+1. The **canonical parity profile** is fixed at one output, 1× scale, fixed DPI,
+   and controlled fonts, cursors, colors, applications, and screen size for
+   exact comparison with X11 `twm`.
+2. The **extended Wayland profile** covers native applications, Xwayland,
+   multiple outputs, fractional scaling, hotplugging, modern input devices, and
+   mixed-DPI operation.
 
 Development with Codex Cloud is documented in
-[`docs/CODEX_CLOUD.md`](docs/CODEX_CLOUD.md), including environment setup and
-internet-access policy. Use [`docs/CODEX_CLOUD_TASKS.md`](docs/CODEX_CLOUD_TASKS.md)
-for bounded cloud-agent task prompts.
+[docs/CODEX_CLOUD.md](docs/CODEX_CLOUD.md); bounded cloud-agent prompts are in
+[docs/CODEX_CLOUD_TASKS.md](docs/CODEX_CLOUD_TASKS.md).
 
-### Progress tracking
+### 1. Platform and session validation
 
-The checkboxes in this section are the project's authoritative progress record.
-Work through Milestones 0–10 in order. Within the current milestone, complete
-implementation work and its associated testing before treating an exit
-criterion as satisfied. Change `[ ]` to `[x]` only after the work is implemented,
-verified by the required tests, and documented where applicable. Update the
-checkbox in the same feature-focused commit as the completed work. Leave
-partially completed or blocked items unchecked and record the remaining work in
-the task report.
+- [ ] **Shared:** Provision a Debian 13 ARM64 VM under UTM for interactive
+  development on Apple Silicon.
+- [ ] **Shared:** Establish a nested Wayland environment inside a working parent
+  compositor.
+- [ ] **Shared:** Establish a full display-manager login session using the DRM
+  backend in a disposable VM.
+- [ ] **Manual:** Supply at least one non-virtualized Linux system with a real DRM
+  device, display, keyboard, and pointer before the parity release.
+- [ ] **Shared:** Start `wtwm` nested, map a native client, verify visible output,
+  keyboard and pointer input, capture a stable frame, and exit cleanly to the
+  unchanged parent session.
+- [ ] **Shared:** Install the candidate package and start `wtwm` as the VM's
+  **Wayland twm** login session.
+- [ ] **Manual/shared:** Deliberately fail startup with an invalid configuration,
+  observe return to the greeter within 30 seconds, and successfully log into the
+  original compositor afterward.
+- [ ] **Shared:** Run real clean install, upgrade, uninstall, reinstall, purge,
+  and rollback tests in disposable Debian VMs, using every genuinely older
+  released package for the target architecture.
+- [ ] **Shared:** Check in validated evidence that the compositor works in
+  headless, nested, and DRM-backed VM sessions.
+- [ ] **Manual/shared:** Prove the package installs a separate Wayland session,
+  leaves X11 `twm` and the existing compositor untouched, and preserves a usable
+  original login session.
 
-The definition-of-parity items below are global release gates, not the execution
-queue. Track them as the milestone work progresses, but select day-to-day work
-from the earliest milestone that still has unchecked tasks.
+Use [docs/PLATFORM_TESTING.md](docs/PLATFORM_TESTING.md) and
+[docs/PHYSICAL_LINUX_VALIDATION.md](docs/PHYSICAL_LINUX_VALIDATION.md) as the
+acceptance procedures for this group.
 
-### Definition of full parity
+### 2. Hardening and endurance
 
-A release can claim full `twm` parity only when:
+- [ ] **Shared:** Validate every Wayland request serial and client-supplied size.
+  Resolve the `xdg_popup.grab` limitation by approving and testing a wlroots
+  patch/fork or upgrade, or by explicitly narrowing the contract to the public
+  wlroots 0.18 boundary.
+- [ ] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
+  clean candidate commit, with bounded resource samples and no compositor
+  restart.
+- [ ] **Shared:** Test both the controlled pixman/software renderer and real GPU
+  rendering on representative systems.
+- [ ] **Shared:** Complete the clean install, every-prior-release upgrade,
+  removal, purge, rollback, and reinstall matrix for Debian 13 amd64 and arm64.
+- [ ] **Manual/shared:** Perform physical-machine validation on representative
+  AMD, Intel, and ARM systems where available, recording which runs are physical,
+  virtualized, or emulated.
+- [ ] **Shared:** Establish from sanitizer, fuzz, stress, renderer, soak, and
+  hardware evidence that there is no known crash, hang, protocol violation, or
+  unbounded resource leak.
+- [ ] **Manual/shared:** Establish on a real login path that compositor failure
+  returns the user to a recoverable greeter and original session.
 
-- [ ] Every directive and action accepted by the reference `twm` is recorded in a
+### 3. Differential parity
+
+- [ ] **Agent:** Extend normalized reference and `wtwm` traces to record and
+  compare exact pointer coordinates after every significant input action.
+- [ ] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
+  depth, selected row, pull-right submenu state, and rendered states.
+- [ ] **Agent:** Add controlled command observers and compare the action spelling,
+  decoded command, direct argument vector or unchanged shell text, execution,
+  and intentional non-execution.
+- [ ] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction
+  differential, and separately record the unavoidable native Wayland close-only
+  translation.
+- [ ] **Agent/shared:** Capture paired stable screenshots after every significant
+  certification action, compare them without unexplained masks, and submit every
+  nonzero difference for review.
+
+The machine-readable coverage contract is
+`reference/certification/m10-differential-contract.json`. Existing mappings are
+not final pass evidence until the complete clean-candidate run is checked in.
+
+### 4. Final 1.0 certification
+
+- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+  grammar coverage with no uncovered productions.
+- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+  built-in action coverage with no uncovered spellings or behaviors.
+- [ ] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
+  runtime and test evidence; implement genuine gaps and reach zero partial,
+  parsed-only, unavailable-without-explanation, or otherwise unexplained entries.
+- [ ] **Agent:** Run the complete canonical one-output 1× matrix and check in a
+  report showing zero geometry differences.
+- [ ] **Agent:** Run the complete focus and stacking differential and check in a
+  report showing zero unexplained differences.
+- [ ] **Shared:** Review every golden image and check in a review log with zero
+  unreviewed differences.
+- [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
+- [ ] **Shared:** Check in successful package lifecycle evidence for every
+  supported distribution and architecture, initially Debian 13 amd64 and arm64.
+- [ ] **Manual/shared:** Check in passing nested Wayland, VM login, and
+  non-virtualized physical-hardware evidence.
+- [ ] **Manual:** Conduct a blinded canonical-profile A/B evaluation with at
+  least two distinct experienced `twm` users and no repeatable distinguishing
+  behavior.
+- [ ] **Agent/shared:** Audit every unavoidable Wayland translation and check in
+  matching translation inventories in the manual, compatibility ledger, and
+  certification report.
+
+Each passed gate must reference one consolidated, tracked JSON report produced
+from a clean release-candidate commit. Follow
+[docs/PARITY_CERTIFICATION.md](docs/PARITY_CERTIFICATION.md); a smoke test or
+expiring CI artifact is not release evidence.
+
+### Full parity acceptance
+
+These are derived acceptance gates, not a separate execution queue. Check them
+only after the numbered task groups provide complete evidence.
+
+- [ ] Every directive and action accepted by reference `twm` is present in the
   machine-readable compatibility ledger.
-- [ ] Every valid reference `.twmrc` parses successfully.
-- [ ] Every recognized feature is classified as an exact implementation, a
-  behaviorally equivalent Wayland implementation, or a verified no-op with no
-  observable effect.
-- [ ] No feature remains merely “parsed,” “partial,” or “pending.”
-- [ ] Window geometry, stacking, focus, input behavior, menus, icons, and
-  decorations match the reference implementation in differential tests.
-- [ ] Configuration matching works for both Xwayland and native Wayland
+- [ ] Every valid reference `.twmrc` parses successfully in the final candidate.
+- [ ] Every recognized feature is classified as exact, behaviorally equivalent,
+  or a verified no-op with no observable effect.
+- [ ] No feature remains merely parsed, partial, pending, or unexplained.
+- [ ] Geometry, stacking, focus, input, menus, icons, and decorations match the
+  reference implementation in the complete differential suite.
+- [ ] Configuration matching is certified for both Xwayland and native Wayland
   applications.
 - [ ] Experienced `twm` users cannot reliably distinguish the implementations in
-  controlled A/B testing.
+  the controlled blind A/B evaluation.
 - [ ] Installation and removal do not modify, replace, or require removal of the
-  system's existing Wayland compositor.
+  system's existing Wayland compositor or X11 `twm`.
 
-The initial reference implementation will be `twm` 1.0.13.1. Changing the
-reference version after the compatibility ledger is frozen will require an
-explicit review.
-
-### Parity profiles
-
-Testing will use two related profiles:
-
-1. **Canonical parity profile:** a fixed one-output, 1× scale, fixed-DPI
-   environment with controlled fonts, cursors, colors, applications, and screen
-   size. This profile is used for pixel-level comparison against X11 `twm`.
-2. **Extended Wayland profile:** native Wayland applications, Xwayland, multiple
-   outputs, fractional scaling, hotplugging, modern input devices, and mixed-DPI
-   operation. This profile verifies that the `twm` model remains coherent
-   outside the canonical X11 environment.
-
-### Milestone 0: Freeze the reference and measure the current implementation
-
-Start by converting the existing compatibility documentation into an auditable
-specification.
-
-Implementation work:
-
-- [x] Freeze the upstream `twm` source, manual, default bindings, and sample
-  configurations used as the reference.
-- [x] Inventory every configuration directive, color and monochrome option,
-  window-list directive, mouse and key binding form, context and modifier,
-  built-in function, menu construct, icon and icon-manager option, cursor,
-  pixmap, font, placement option, and title-button option.
-- [x] Create a machine-readable compatibility ledger containing syntax support,
-  runtime support, native Wayland behavior, Xwayland behavior, test coverage,
-  and known visual or semantic differences.
-- [x] Audit the current implementation against that ledger.
-- [x] Preserve representative real-world `.twmrc` files as regression fixtures.
-
-Testing:
-
-- [x] Build the reference `twm` in a controlled X11 environment.
-- [x] Record its parsed configuration, window geometry, focus, stacking order, and
-  screenshots.
-- [x] Establish canonical test applications for normal windows, dialogs and
-  transients, fixed-size windows, resize-increment and aspect-ratio hints, long
-  and changing titles, icon names and icon bitmaps, urgency and focus behavior,
-  override-redirect windows, and legacy X11 applications.
-
-Exit criteria:
-
-- [x] One hundred percent of upstream syntax and actions are represented in the
-  ledger.
-- [x] Every existing project feature is mapped to at least one test.
-- [x] The reference environment can produce repeatable results from a clean VM
-  snapshot.
-
-### Milestone 1: Establish the build and test platforms
-
-Use several environments rather than relying on a single VM.
-
-Development environments:
-
-- [x] Host-native unit tests for the parser and platform-independent logic.
-- [ ] A Debian ARM64 VM under UTM for interactive development on Apple Silicon.
-- [x] A headless wlroots backend for automated compositor tests.
-- [ ] A nested Wayland session for rapid visual testing.
-- [ ] A full VM login session using the DRM backend for realistic startup, input,
-  and session testing.
-- [ ] At least one physical Linux system before a parity release.
-
-Automation:
-
-- [x] Provide a script or image definition that provisions the reference VM.
-- [x] Build debug, release, AddressSanitizer, and UndefinedBehaviorSanitizer
-  configurations.
-- [x] Add CI builds on x86-64 and ARM64.
-- [x] Introduce a test-only control interface that can create deterministic virtual
-  outputs, inject pointer and keyboard input, query focus, geometry, stacking,
-  icons, and menus, wait for a stable frame, capture compositor output, and
-  terminate a test cleanly.
-- [x] Add deterministic test controls for animation timing, placement, cursor
-  position, and font selection.
-
-Testing:
-
-- [x] Start the compositor headlessly and map a native Wayland test client.
-- [ ] Start it nested inside another compositor.
-- [ ] Start it as the VM's login compositor.
-- [ ] Verify that a failed launch returns the user to a usable session.
-- [ ] Run package install, upgrade, uninstall, and reinstall tests.
-
-Exit criteria:
-
-- [x] A clean checkout builds and passes tests without manual configuration.
-- [x] Headless tests are stable over at least 100 consecutive runs.
-- [ ] The compositor works in headless, nested, and DRM-backed VM sessions.
-- [ ] Installation adds a separate session entry and does not alter the existing
-  compositor.
-
-### Milestone 2: Complete `.twmrc` language compatibility
-
-The parser must accept the complete reference language before feature
-implementation is considered complete.
-
-Implementation work:
-
-- [x] Match reference lexical behavior for comments, quoting, escapes, case
-  handling, aliases, and errors.
-- [x] Implement every scalar, flag, list, color-list, menu, function, cursor,
-  pixmap, icon-region, icon-manager, and title-button construct.
-- [x] Match configuration search order, including screen-specific files and system
-  defaults.
-- [x] Match name, resource-name, resource-class, and wildcard selection behavior.
-- [x] Preserve directive ordering and last-assignment behavior where it affects
-  results.
-- [x] Make configuration reload atomic: retain the current configuration if a
-  replacement fails.
-- [x] Produce filename and line-number diagnostics for invalid configurations.
-- [x] Distinguish unsupported syntax from accepted Wayland translations; never
-  silently ignore a recognized directive.
-
-Testing:
-
-- [x] Parse upstream examples and a corpus of real `.twmrc` files.
-- [x] Compare normalized parser output with the reference parser.
-- [x] Add a fixture for every grammar production.
-- [x] Test malformed and truncated input.
-- [x] Fuzz the lexer and parser.
-- [x] Test repeated reloads and failed reload rollback.
-- [x] Test matching against X11 `WM_NAME`, `WM_CLASS`, and native Wayland `title`
-  and `app_id`.
-
-Exit criteria:
-
-- [x] Every valid reference configuration in the corpus parses.
-- [x] Every upstream directive has a test.
-- [x] Recognized directives are never silently discarded.
-- [x] The parser survives a sustained fuzzing run without crashes, leaks, or hangs.
-
-### Milestone 3: Complete the client model and Xwayland integration
-
-Xwayland is required both for legacy applications and for the strongest
-comparison with the original `twm`.
-
-Implementation work:
-
-- [x] Manage native `xdg-shell` toplevels and popups correctly.
-- [x] Integrate Xwayland lifecycle management and `DISPLAY` export.
-- [x] Implement an X window-manager bridge for names and classes, transient
-  relationships, normal and size hints, delete-window requests, forced client
-  termination, icon names and supplied icons, urgency and input hints,
-  override-redirect windows, stacking, and configure requests.
-- [x] Apply `.twmrc` window lists identically to Xwayland clients.
-- [x] Define a documented mapping from native `app_id` and title to `twm` name/class
-  rules.
-- [x] Implement clipboard and selection interoperation where legacy actions require
-  it.
-- [x] Ensure popups, menus, and unmanaged X11 windows stack correctly.
-
-Testing:
-
-- [x] Run xterm, xclock, xload, emacs, terminal dialogs, and purpose-built ICCCM
-  test clients.
-- [x] Exercise changing titles, classes, hints, transients, icons, and resize
-  constraints.
-- [x] Compare Xwayland client results with the same clients under reference `twm`.
-- [x] Mix native Wayland and Xwayland clients in the same session.
-- [x] Test clients that crash, hang, ignore close requests, or rapidly map and unmap
-  windows.
-
-Exit criteria:
-
-- [x] Xwayland applications receive the same visible management behavior as under
-  `twm`.
-- [x] Native and Xwayland applications can coexist without incorrect focus or
-  stacking.
-- [x] `f.delete` requests a graceful close.
-- [x] `f.destroy` forcibly disconnects or terminates the selected client with
-  appropriate safeguards.
-
-### Milestone 4: Match core window-management behavior
-
-Implementation work:
-
-- [x] Match frame geometry, client geometry, border calculations, and title
-  extents.
-- [x] Honor minimum, maximum, base-size, resize-increment, and aspect-ratio
-  constraints.
-- [x] Implement exact move and resize interaction, including outline and opaque
-  movement, `MoveDelta`, `ConstrainedMoveTime`, `DontMoveOff`,
-  `AutoRelativeResize`, `f.forcemove`, and `f.deltastop`.
-- [x] Match focus behavior for root, frame, title, icon, menu, and client contexts.
-- [x] Implement `NoTitleFocus`, click-to-focus, pointer focus, focus/unfocus, and
-  auto-raise semantics.
-- [x] Match raise, lower, raise-or-lower, and circulation order.
-- [x] Implement initial placement, random placement, position-hint handling,
-  maximum window sizes, and transient placement.
-- [x] Handle map, unmap, remap, destruction, and title changes without stale
-  compositor state.
-
-Testing:
-
-- [x] Record geometry and stacking after every input event.
-- [x] Replay identical input traces against reference `twm` and the Wayland
-  implementation.
-- [x] Test every combination of title, border, transient, and size-hint state.
-- [x] Test focus transitions across windows, menus, icons, and empty root space.
-- [x] Run randomized window lifecycle and stacking model tests.
-
-Exit criteria:
-
-- [x] Geometry matches the reference exactly in the canonical 1× profile.
-- [x] Focus and stacking traces contain no unexplained differences.
-- [x] Every move, resize, placement, and focus option has an integration test.
-
-### Milestone 5: Achieve pixel-level visual parity
-
-Implementation work:
-
-- [x] Match title height, padding, borders, button indentation, spacing, menu
-  borders, and shadows.
-- [x] Implement XBM loading for title buttons, icons, cursors, and other monochrome
-  assets.
-- [x] Match title-button ordering, hit areas, pressed state, and highlight state.
-- [x] Implement title squeezing and justification.
-- [x] Match focused and unfocused border tiling and highlight behavior.
-- [x] Support the complete color and monochrome configuration model.
-- [x] Match menu typography, per-entry colors, interpolation, separators, disabled
-  entries, submenus, and shadows.
-- [x] Reproduce classic cursor shapes and configured foreground/background colors.
-- [x] Provide a bitmap-compatible font path for canonical parity, including
-  practical XLFD mapping.
-- [x] Define deterministic scaling rules for HiDPI and fractional-scale displays.
-
-Testing:
-
-- [x] Capture screenshots for every focus, title, border, menu, icon, and button
-  state.
-- [x] Compare screenshots with masks only for genuinely nondeterministic client
-  content.
-- [x] Separately compare geometry, color, and font rasterization.
-- [x] Test color, grayscale, and monochrome configurations.
-- [x] Test long, empty, non-ASCII, and rapidly changing titles.
-
-Exit criteria:
-
-- [x] Frame and menu geometry differ by zero pixels in the canonical profile.
-- [x] Configured colors match exactly after the defined color conversion.
-- [x] Golden-image differences are either eliminated or individually reviewed and
-  documented.
-- [x] A blind reviewer cannot identify the compositor from decorations alone.
-
-### Milestone 6: Complete menus, bindings, and built-in functions
-
-Implementation work:
-
-- [x] Reproduce exact key and pointer binding behavior for all modifiers and
-  contexts.
-- [x] Match press, drag, threshold, release, cancellation, and submenu interaction.
-- [x] Implement nested menus and named functions with reference ordering and
-  interruption behavior.
-- [x] Complete every built-in function family: raise, lower, move, resize, focus,
-  delete, destroy, iconify, circulation, raise-or-lower, all zoom variants and
-  aliases, warp-to-window, warp-ring, warp-screen, icon-manager navigation,
-  menu, function, title, no-op, delta-stop, execute, priority, quit, restart,
-  the `f.twmrc` restart alias, start-window-manager, identify, version, beep,
-  refresh, window-refresh, and the legacy cut-buffer, file, colormap, and
-  save-yourself actions.
-- [x] Reproduce `DefaultFunction` and `WindowFunction`.
-- [x] Preserve exact command execution and quoting behavior without invoking an
-  unnecessary shell.
-
-Testing:
-
-- [x] Give every function an initial-state, input-sequence, and expected-state test.
-- [x] Test functions both directly and from nested named functions.
-- [x] Test all root, window, title, frame, icon, icon-manager, and all-context
-  bindings.
-- [x] Test modifier-lock handling, repeated input, canceled gestures, and
-  simultaneous client changes.
-- [x] Compare function traces with reference `twm`.
-
-Exit criteria:
-
-- [x] Every upstream function is effective, behaviorally equivalent, or a verified
-  no-op.
-- [x] Every binding context and modifier combination has automated coverage.
-- [x] No function remains in a parser-only state.
-
-### Milestone 7: Complete icons and icon managers
-
-Implementation work:
-
-- [x] Implement compositor-owned icon windows with reference text, borders, colors,
-  and images.
-- [x] Complete `IconifyByUnmapping`, icon-window mapping, `ForceIcons`,
-  `UnknownIcon`, and `IconDirectory`.
-- [x] Implement icon regions, gravity, placement direction, grid behavior, and
-  collision handling.
-- [x] Implement per-window icon selection and supplied client icons.
-- [x] Complete single and multiple icon managers, including window matching,
-  geometry and columns, sorting, show and hide rules, active-row highlighting,
-  focus and pointer interaction, and all directional and cross-manager
-  navigation functions.
-- [x] Match `StartIconified`, iconify/deiconify animation, and associated raise
-  behavior.
-
-Testing:
-
-- [x] Compare icon placement for identical creation and destruction sequences.
-- [x] Exercise full and partially occupied icon regions.
-- [x] Test multiple icon managers across outputs.
-- [x] Compare icon and icon-manager screenshots and navigation traces.
-- [x] Repeatedly iconify, deiconify, close, and recreate large window sets.
-
-Exit criteria:
-
-- [x] Icon placement and manager ordering match reference `twm`.
-- [x] Every icon-related directive and action is covered.
-- [x] Long-running icon lifecycle tests produce no stale entries or overlapping
-  allocations.
-
-### Milestone 8: Reconcile Wayland-specific lifecycle and screen behavior
-
-Some X11 operations require a compatibility contract rather than literal
-implementation.
-
-Required mappings:
-
-- [x] Keep `f.twmrc` as the exact `f.restart` alias; restart compositor state in
-  place so existing clients are not disconnected.
-- [x] `f.startwm` supports a safe configured handoff where possible, and reports
-  unsupported handoffs without destroying the session.
-- [x] `f.saveyourself` and `RestartPreviousState` persist all compositor-owned state
-  that can be restored safely.
-- [x] Backing-store, save-under, and server-grab options become verified no-ops
-  unless they have a visible compatibility effect.
-- [x] Colormap actions operate for relevant Xwayland clients and become a documented
-  no-op for native true-color Wayland clients.
-- [x] Legacy cut-buffer actions map to the appropriate Wayland/Xwayland clipboard
-  mechanism.
-- [x] X screen-specific configuration maps predictably to Wayland outputs.
-
-Implementation work:
-
-- [x] Implement output-aware placement and per-output root behavior.
-- [x] Complete warp-to-screen behavior and screen history.
-- [x] Handle output addition, removal, scale changes, and mode changes.
-- [x] Restore windows safely when an output disappears.
-- [x] Support input hotplugging and multiple keyboards and pointers.
-- [x] Define session startup, logout, failure recovery, and state-file behavior.
-
-Testing:
-
-- [x] Reload good and invalid configurations while clients are active.
-- [x] Exercise output hotplug and rearrangement.
-- [x] Test one-output and multi-output screen-specific configurations.
-- [x] Verify lifecycle translations with both native and Xwayland clients.
-- [x] Confirm that every X11-only directive has no unexplained visible consequence.
-
-Exit criteria:
-
-- [x] All compatibility translations are documented and tested.
-- [x] Reload and restart-style operations preserve active clients.
-- [x] Output changes cannot strand or permanently hide a managed window.
-
-### Milestone 9: Hardening, packaging, and long-duration testing
-
-Implementation work:
-
-- [ ] Validate all Wayland request serials and client-supplied sizes.
-- [x] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
-  metadata handling.
-- [x] Eliminate compositor crashes caused by malformed or hostile clients.
-- [x] Add structured logging and an optional diagnostic state dump.
-- [x] Complete manual pages, sample configurations, migration notes, and
-  troubleshooting documentation.
-- [x] Produce packages for the initially supported distributions.
-- [x] Ship a session file under a distinct name; never replace the user's default
-  desktop automatically.
-
-Testing:
-
-- [x] Run sanitizers, parser fuzzing, and protocol fuzzing.
-- [x] Run rapid map/unmap, popup, resize, title-change, and client-crash stress
-  tests.
-- [x] Test hundreds of simultaneously managed windows.
-- [ ] Run at least a 72-hour mixed native/Xwayland soak test.
-- [ ] Test GPU and software rendering.
-- [ ] Test clean installation, upgrade from each prior release, removal, and
-  rollback.
-- [ ] Perform physical-machine tests across representative AMD, Intel, and ARM
-  systems where available.
-
-Exit criteria:
-
-- [ ] No known crash, hang, protocol violation, or unbounded resource leak.
-- [x] Packages pass clean-system installation and removal tests.
-- [ ] A compositor failure returns the user to a recoverable login state.
-
-### Milestone 10: Differential parity certification
-
-The final milestone runs identical scenarios against reference `twm` and the
-Wayland implementation.
-
-Machine-readable coverage, corpus, and release-gate records live under
-`reference/certification/`; `docs/PARITY_CERTIFICATION.md` documents the
-fail-closed evidence policy. A mapped scenario or earlier milestone result is
-not by itself a passed final release gate.
-
-The differential harness will compare:
-
-- [x] Parsed configuration.
-- [x] Window position and dimensions.
-- [x] Frame extents.
-- [x] Focus owner.
-- [x] Stacking order.
-- [ ] Pointer location.
-- [ ] Menu state.
-- [x] Icon and icon-manager state.
-- [ ] Commands launched.
-- [ ] Client close and destruction behavior.
-- [ ] Screenshots after every significant action.
-
-The certification corpus will include:
-
-- [x] Upstream sample configurations.
-- [x] The project's exhaustive generated configurations.
-- [x] Collected real-world `.twmrc` files.
-- [x] Legacy X11 applications.
-- [x] Native Wayland equivalents.
-- [x] Single-output, multi-output, monochrome, and color scenarios.
-- [x] Keyboard-driven, mouse-driven, and mixed workflows.
-
-Final 1.0 release gates:
-
-- [ ] One hundred percent grammar coverage.
-- [ ] One hundred percent built-in action coverage.
-- [ ] No “partial,” “parsed only,” or unexplained compatibility entries.
-- [ ] Zero geometry differences in the canonical profile.
-- [ ] Zero unexplained focus or stacking differences.
-- [ ] No unreviewed golden-image differences.
-- [ ] Successful 72-hour soak testing.
-- [ ] Successful package tests on every supported distribution and architecture.
-- [ ] Successful testing in nested, VM login, and physical hardware environments.
-- [ ] Blind A/B evaluation by experienced `twm` users, with no repeatable
-  distinguishing behavior in the canonical profile.
-- [ ] All unavoidable Wayland translations documented in the manual and
-  compatibility ledger.
-
-Only after these gates pass should the project describe itself as providing
-full observable `twm` parity on Wayland.
+Only after every numbered task and derived acceptance gate is checked may the
+project describe itself as providing full observable `twm` parity on Wayland.
