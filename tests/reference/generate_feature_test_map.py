@@ -105,6 +105,9 @@ CUT_BUFFER_LEDGER_FEATURES = (
     "keyword.f.file",
     "lexical.cut-shorthand",
 )
+INPUT_HOTPLUG_RUNTIME_PATH = "tests/integration/run_m8_input_hotplug.py"
+INPUT_HOTPLUG_RUNTIME_TEST = "Milestone 8 input hotplug integration"
+INPUT_HOTPLUG_RUNTIME_ID = "test.current-feature.m8-input-hotplug-runtime"
 NOOP_OPTIONS_RUNTIME_PATH = "tests/integration/run_m8_noop_options.py"
 NOOP_OPTIONS_RUNTIME_TEST = "Milestone 8 X11 server resource no-op integration"
 NOOP_OPTIONS_RUNTIME_ID = "test.current-feature.m8-noop-options-runtime"
@@ -759,6 +762,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "ledger_features": list(CUT_BUFFER_LEDGER_FEATURES),
             },
             {
+                "test_id": INPUT_HOTPLUG_RUNTIME_ID,
+                "path": INPUT_HOTPLUG_RUNTIME_PATH,
+                "meson_test": INPUT_HOTPLUG_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
                 "test_id": NOOP_OPTIONS_RUNTIME_ID,
                 "path": NOOP_OPTIONS_RUNTIME_PATH,
                 "meson_test": NOOP_OPTIONS_RUNTIME_TEST,
@@ -899,9 +908,10 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
         "  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`",
         "  through configured-action dispatch.",
-        "- The output-placement, topology, and restoration runtime mappings separate",
-        "  steady-state spatial selection, atomic output mutation, and managed-scene",
-        "  repair. Input hotplug and session lifecycle remain separate Milestone 8 work.",
+        "- The output-placement, topology, restoration, and input-hotplug runtime",
+        "  mappings separate steady-state spatial selection, atomic output mutation,",
+        "  managed-scene repair, and physical-device churn. Session lifecycle remains",
+        "  separate Milestone 8 work.",
         "",
     ]
     return result, "\n".join(lines)

@@ -297,9 +297,8 @@ position, mode, fractional scale, all transform repair paths, disable/reenable,
 automatic layout, canonical renumbering, repeated destruction, zero active and
 zero managed states, and a new post-destruction output. Exact `STATE`, rollback,
 pointer/history, protocol-roundtrip, and trace assertions distinguish topology
-repair from presentation restoration. Persistent topology reassociation, input
-hotplug/multiple seats, and session lifecycle are still separate Milestone 8
-work.
+repair from presentation restoration. Persistent topology reassociation,
+multiple seats, and session lifecycle are still separate Milestone 8 work.
 
 After a successful output transaction, a managed outer frame that retains any
 positive intersection with an enabled output remains byte-exact. A stranded
@@ -329,6 +328,52 @@ restores existing pending families before resuming those new maps. The dedicated
 headless runner covers disable and destroy, native and Xwayland normal,
 iconified, zoomed, and transient windows, exact `STATE`/`TRACE` ordering,
 protocol roundtrips, failure rollback, no repatriation, and repeated churn.
+
+Input hotplug is translated through one logical Wayland `seat0`, not one seat per
+physical device. The seat advertises keyboard or pointer capability exactly
+while at least one wrapper of that type exists. Each wrapper retains a stable,
+never-reused announcement ordinal, per-device pressed ownership, raw keyboard
+modifier diagnostics, and a last-activity serial. Addition does not steal the
+active physical source; an event makes its source active, and removal selects
+the surviving greatest activity serial with lowest ordinal as the exact tie
+break. Duplicate admission and unknown removal are atomic failures. `INPUT
+CLEAR` drains the inventory in one published transaction without resetting the
+ordinal or activity generators.
+
+All keyboards feed one compositor-owned aggregate xkb keyboard. Only an
+aggregate client-visible key transition from zero owners to one emits a press,
+and only the final such owner emits a release; handled bindings keep their
+physical ownership/disposition but never acquire a synthetic client release.
+The aggregate xkb state, rather than a bitwise union of device masks, supplies
+the Wayland/X core modifier state, so a modifier held on one keyboard affects a
+key from another without double toggling locks or latches. Removing the last
+keyboard drains eligible client-visible releases and protocol keyboard focus,
+then removes the capability while retaining logical compositor focus,
+activation, and stacking. The first returning keyboard reasserts the stored
+logical target without raising or redispatching a focus action. Native Wayland
+and managed Xwayland therefore share physical key state while retaining their
+distinct focus protocols.
+
+All pointers share one global cursor. Removing a non-last pointer preserves its
+exact coordinates and hit/protocol focus. An active move or resize continues
+only while a surviving pointer owns the required button; loss of its final
+physical owner rolls the operation back even when another pointer survives.
+Last-pointer removal also closes pointer menus and deferred actions, rolls back
+move/resize, requeues an active initial placement without exposing it, clears
+protocol pointer focus, and removes the capability. The first returning pointer
+publishes capability before re-entering the current visible hit at the preserved
+coordinates, without focus-follows-mouse, AutoRaise, or a warp.
+
+Reload and in-place restart retain the live inventory, ordinals, active sources,
+owned key/button disposition, aggregate modifiers, cursor, and logical focus;
+restart's separately defined transient-UI cancellation still applies. With no
+outputs, input churn leaves window restoration bookkeeping and cursor
+coordinates unchanged and never creates pointer protocol focus. Existing
+restoration publishes before a returning scene refreshes the pointer hit. The
+dedicated headless runner observes exact `wl_seat` capability generations and
+native key/button streams, X core focus and key delivery, failure rollback,
+required-button cancellation, held-state restart/reload, zero-output churn, and
+bounded ordinal/device churn.
 
 Reference `f.startwm` replaces twm by passing its decoded argument to
 `/bin/sh -c`. Wayland has no generic transfer for an existing compositor's

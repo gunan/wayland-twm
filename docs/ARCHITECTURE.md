@@ -19,6 +19,9 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
                        output_restore.c
           (portable family and presentation repair plans)
                               │
+                       input_hotplug.c
+       (portable device ownership, activity, drain, and repair plans)
+                              │
                        session_state.c
           (portable atomic persistence and identity matching)
                               │
@@ -96,6 +99,25 @@ visibility, zoom-mode recomputation, focus/stack preservation, and ordered
 restore trace publication. With no outputs it hides presentations and retains
 the exact plan as pending; the first returning output restores those existing
 families before releasing newly mapped placement waiters.
+
+`src/input_hotplug.c` owns no wlroots objects. It validates a bounded,
+ordinal-sorted physical-device snapshot and builds generation-checked add,
+remove, clear, key, modifier, pointer, and button plans. Each plan owns the next
+complete state plus aggregate zero-to-one/one-to-zero transitions, active-source
+repair, capability changes, and explicit keyboard-focus/pointer-interaction
+repair flags. Stable ordinals are never reused; last-activity overflow is
+renormalized atomically across live devices. The compositor adapter owns the
+per-device wlroots wrappers and one permanent aggregate xkb keyboard selected
+for `seat0`; this avoids treating physical keyboard modifier snapshots as a
+mergeable protocol state.
+
+The adapter publishes one seat capability transaction after a successful plan,
+forwards only aggregate client-visible key/button transitions, and applies
+focus or interaction repair before releasing removed wlroots objects. Logical
+window activation remains separate from Wayland keyboard/pointer protocol
+focus, which permits exact last-device removal and first-device return without
+raising a client or synthesizing a configured action. Output restoration is
+published before a zero-output pointer hit can be refreshed.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide

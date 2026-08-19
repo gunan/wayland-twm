@@ -35,6 +35,12 @@
       ]
     },
     {
+      "test_id": "test.current-feature.m8-input-hotplug-runtime",
+      "path": "tests/integration/run_m8_input_hotplug.py",
+      "meson_test": "Milestone 8 input hotplug integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.m8-noop-options-runtime",
       "path": "tests/integration/run_m8_noop_options.py",
       "meson_test": "Milestone 8 X11 server resource no-op integration",

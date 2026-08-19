@@ -24,6 +24,7 @@ from generate_feature_test_map import (
     CUT_BUFFER_LEDGER_FEATURES,
     CUT_BUFFER_RUNTIME_FEATURES,
     CUT_BUFFER_RUNTIME_ID,
+    INPUT_HOTPLUG_RUNTIME_ID,
     INTERACTION_RUNTIME_FEATURES,
     NOOP_OPTIONS_LEDGER_FEATURES,
     NOOP_OPTIONS_RUNTIME_FEATURES,
@@ -203,8 +204,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 14:
-        errors.append("feature_map.test_catalog must contain the fourteen registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 15:
+        errors.append("feature_map.test_catalog must contain the fifteen registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -522,6 +523,13 @@ def tamper_self_test(
     )
     topology_catalog["path"] = "tests/integration/run_m8_screen_output.py"
     mutations.append(("wrong-output-topology-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    input_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == INPUT_HOTPLUG_RUNTIME_ID
+    )
+    input_catalog["path"] = "tests/integration/run_m8_output_topology.py"
+    mutations.append(("wrong-input-hotplug-catalog-path", changed))
     changed = copy.deepcopy(feature_map)
     noop_catalog = next(
         item for item in changed["test_catalog"]  # type: ignore[union-attr]

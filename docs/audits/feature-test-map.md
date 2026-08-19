@@ -49,6 +49,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
   X-resource keywords, the colormap runner maps `keyword.f.colormap`, and
   the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`
   through configured-action dispatch.
-- The output-placement, topology, and restoration runtime mappings separate
-  steady-state spatial selection, atomic output mutation, and managed-scene
-  repair. Input hotplug and session lifecycle remain separate Milestone 8 work.
+- The output-placement, topology, restoration, and input-hotplug runtime
+  mappings separate steady-state spatial selection, atomic output mutation,
+  managed-scene repair, and physical-device churn. Session lifecycle remains
+  separate Milestone 8 work.

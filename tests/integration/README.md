@@ -99,8 +99,33 @@ and icon movement, cross-output `f.forcemove`, owner recomputation, restart
 continuity, and a deferred zero-output map. Every session has bounded client,
 control, and compositor liveness checks and cleanup. The runner intentionally
 does not simulate topology mutation: warp history, output removal/repair,
-scale/mode changes, input hotplug, and session lifecycle remain later
-Milestone 8 slices.
+scale/mode changes, and session lifecycle remain later Milestone 8 slices.
+
+`run_m8_input_hotplug.py` exercises the single logical `seat0` translation over
+zero, one, and several physical keyboard/pointer wrappers. Its portable
+`--self-test-model` fixes announcement ordinals, activity fallback, overlapping
+key/button ownership, handled-key disposition, final-required-button
+cancellation, clear semantics, restart snapshots, and activity overflow without
+wlroots. The live Linux run uses only bounded control `STATE`/frame predicates
+and protocol roundtrips: a dedicated native Wayland observer records exact
+`wl_seat` capability generations, focus entry/leave, modifiers, and key/button
+events while the mixed X11 fixture proves X core focus and delivery remain live.
+
+The live matrix covers atomic clear/add/remove and failure rollback, additional
+device no-steal, most-recent-activity fallback, same-code refcounts, cross-device
+Alt plus a handled F1 binding, pointer focus/cursor continuity, required-button
+continuation and rollback with a survivor, last-device capability removal,
+first-device focus return, held-state valid and rejected restart, zero-output
+restoration invariance, and repeated name/ordinal churn. It intentionally tests
+one logical seat; multiple independent Wayland seats remain out of scope.
+The private control grammar used by this runner is deliberately named and
+bounded: `INPUT CLEAR`, `INPUT ADD KEYBOARD|POINTER name`, `INPUT REMOVE name`,
+`INPUT KEY name code press|release`, `INPUT POINTER name global-x global-y`, and
+`INPUT BUTTON name code press|release`. `STATE.inputs` is ordinal-sorted and
+uses exact records `{name,type,ordinal,last_activity,active,pressed,modifiers}`;
+the top level adds `seat_capabilities`, `seat_modifiers`,
+`seat_pressed_keys`, `seat_pressed_buttons`, `active_keyboard`,
+`active_pointer`, `seat_keyboard_focus`, and `seat_pointer_focus`.
 
 Run the headless stability check explicitly with:
 
