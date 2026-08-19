@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "corpus_id": "wtwm-milestone-10-differential-parity",
+  "reference": "X.Org twm 1.0.13.1",
+  "result_policy": "Scenario inventory only; inclusion does not assert execution or parity.",
+  "categories": {
+    "upstream_sample_configurations": {
+      "roadmap_category": "Upstream sample configurations",
+      "cases": [
+        {
+          "id": "upstream-sample-jim",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "source_release": "signed twm 1.0.13.1 archive",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/jim.twmrc",
+          "coverage_claims": [
+            "color and monochrome settings",
+            "mouse bindings, functions, menus, and icon-manager rules"
+          ]
+        },
+        {
+          "id": "upstream-sample-keith",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "source_release": "signed twm 1.0.13.1 archive",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/keith.twmrc",
+          "coverage_claims": [
+            "cursor, font, color, and monochrome settings",
+            "mouse modifiers, per-window rules, functions, and menus"
+          ]
+        },
+        {
+          "id": "upstream-sample-lemke",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "source_release": "signed twm 1.0.13.1 archive",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+          "coverage_claims": [
+            "iconification, auto-raise, cursor, font, and monochrome settings",
+            "abbreviated mouse contexts and command-heavy menus"
+          ]
+        }
+      ]
+    },
+    "exhaustive_generated_configurations": {
+      "roadmap_category": "The project's exhaustive generated configurations",
+      "cases": [
+        {
+          "id": "geometry-cartesian-product",
+          "paths": [
+            "reference/geometry/twm-1.0.13.1/cross-product.json",
+            "reference/geometry/twm-1.0.13.1/matrix.json",
+            "tests/reference/geometry_cross_product.py"
+          ],
+          "generation_method": "deterministic Cartesian product",
+          "configuration_count": 12,
+          "scenario_count": 48,
+          "axes": [
+            "title_policy",
+            "border_policy",
+            "transient_policy",
+            "hint_profile"
+          ],
+          "coverage_claims": [
+            "all declared title, border, transient, and size-hint axis values",
+            "generated configuration and case digests pinned by the cross-product manifest"
+          ]
+        }
+      ]
+    },
+    "collected_real_world_twmrc": {
+      "roadmap_category": "Collected real-world .twmrc files",
+      "cases": [
+        {
+          "id": "historical-user-jim",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/jim.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "provenance": "historical user configuration distributed in the signed upstream sample collection",
+          "source_kind": "user-authored-twmrc",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/jim.twmrc",
+          "coverage_claims": [
+            "combined decoration, color, binding, menu, and icon-manager customizations"
+          ]
+        },
+        {
+          "id": "historical-user-keith",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/keith.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "provenance": "historical user configuration distributed in the signed upstream sample collection",
+          "source_kind": "user-authored-twmrc",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/keith.twmrc",
+          "coverage_claims": [
+            "combined resource, per-window, binding, function, and menu customizations"
+          ]
+        },
+        {
+          "id": "historical-user-lemke",
+          "paths": [
+            "reference/upstream/twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+            "reference/fixtures/twmrc/manifest.json"
+          ],
+          "provenance": "historical user configuration distributed in the signed upstream sample collection",
+          "source_kind": "user-authored-twmrc",
+          "archive_member": "twm-1.0.13.1/sample-twmrc/lemke.twmrc",
+          "coverage_claims": [
+            "combined icon-manager, auto-raise, mouse-context, function, and menu customizations"
+          ]
+        }
+      ]
+    },
+    "legacy_x11_applications": {
+      "roadmap_category": "Legacy X11 applications",
+      "cases": [
+        {
+          "id": "legacy-xterm",
+          "paths": [
+            "reference/fixtures/canonical-x11/manifest.json",
+            "reference/fixtures/canonical-x11/scenario.twmrc",
+            "tests/reference/verify_canonical_x11_apps.sh"
+          ],
+          "protocol": "X11",
+          "client_kind": "packaged legacy application",
+          "executable": "xterm",
+          "roles": [
+            "legacy-xterm"
+          ],
+          "coverage_claims": [
+            "real xterm WM_CLASS matching and reference-twm frame management"
+          ]
+        },
+        {
+          "id": "canonical-icccm-xlib-clients",
+          "paths": [
+            "reference/fixtures/canonical-x11/manifest.json",
+            "tests/reference/canonical_x11_client.c"
+          ],
+          "protocol": "X11",
+          "client_kind": "purpose-built Xlib compatibility applications",
+          "executable": "canonical_x11_client",
+          "roles": [
+            "normal",
+            "dialog",
+            "fixed",
+            "resize",
+            "title",
+            "icon",
+            "urgent",
+            "override"
+          ],
+          "coverage_claims": [
+            "ICCCM transient, size-hint, title, icon, urgency, focus, and override-redirect behavior"
+          ]
+        }
+      ]
+    },
+    "native_wayland_equivalents": {
+      "roadmap_category": "Native Wayland equivalents",
+      "cases": [
+        {
+          "id": "managed-toplevel-pair",
+          "paths": [
+            "tests/integration/mixed_x11_client.c",
+            "tests/integration/mixed_wayland_client.c",
+            "tests/integration/run_mixed_clients.py"
+          ],
+          "native_protocol": "xdg-shell",
+          "x11_protocol": "ICCCM/EWMH over Xwayland",
+          "equivalence_surface": "managed toplevel identity, mapping, decoration, focus, input, stacking, and destruction",
+          "coverage_claims": [
+            "paired native and X11 managed windows share one observable stack and input workflow"
+          ]
+        },
+        {
+          "id": "temporary-surface-pair",
+          "paths": [
+            "tests/integration/overlay_x11_client.c",
+            "tests/integration/overlay_wayland_client.c",
+            "tests/integration/run_overlay_stacking.py"
+          ],
+          "native_protocol": "xdg-popup",
+          "x11_protocol": "override-redirect over Xwayland",
+          "equivalence_surface": "temporary surface placement, stacking, hit testing, input routing, and dismissal",
+          "coverage_claims": [
+            "paired popup and override-redirect surfaces exercise corresponding temporary-window behavior"
+          ]
+        },
+        {
+          "id": "selection-pair",
+          "paths": [
+            "tests/integration/selection_x11_client.c",
+            "tests/integration/selection_wayland_client.c",
+            "tests/integration/run_selection_bridge.py"
+          ],
+          "native_protocol": "wl_data_device",
+          "x11_protocol": "X selections over Xwayland",
+          "equivalence_surface": "selection ownership and data transfer in both directions",
+          "coverage_claims": [
+            "paired native and X11 clients verify cross-protocol selection transfer"
+          ]
+        }
+      ]
+    },
+    "output_and_color_scenarios": {
+      "roadmap_category": "Single-output, multi-output, monochrome, and color scenarios",
+      "cases": [
+        {
+          "id": "single-output-color",
+          "paths": [
+            "tests/integration/run_m5_visual_states.py",
+            "tests/integration/m5_visual_client.c"
+          ],
+          "output_profile": "single",
+          "color_profile": "color",
+          "palette_mode": "Color",
+          "coverage_claims": [
+            "single 260x180 headless output using the explicit color palette"
+          ]
+        },
+        {
+          "id": "single-output-monochrome",
+          "paths": [
+            "tests/integration/run_m5_visual_states.py",
+            "tests/integration/m5_visual_client.c"
+          ],
+          "output_profile": "single",
+          "color_profile": "monochrome",
+          "palette_mode": "Monochrome",
+          "coverage_claims": [
+            "single 260x180 headless output using black-and-white compositor-owned visuals"
+          ]
+        },
+        {
+          "id": "multi-output-color",
+          "paths": [
+            "tests/integration/run_m8_output_topology.py",
+            "reference/lifecycle/twm-1.0.13.1/output-topology-contract.json",
+            "tests/integration/run_m5_visual_states.py"
+          ],
+          "output_profile": "multi",
+          "color_profile": "color",
+          "palette_mode": "Color",
+          "coverage_claims": [
+            "multi-head topology mutations composed with the explicit color visual profile"
+          ]
+        },
+        {
+          "id": "multi-output-monochrome",
+          "paths": [
+            "tests/integration/run_m8_output_topology.py",
+            "reference/lifecycle/twm-1.0.13.1/output-topology-contract.json",
+            "tests/integration/run_m5_visual_states.py"
+          ],
+          "output_profile": "multi",
+          "color_profile": "monochrome",
+          "palette_mode": "Monochrome",
+          "coverage_claims": [
+            "multi-head topology mutations composed with the black-and-white visual profile"
+          ]
+        }
+      ]
+    },
+    "interaction_workflows": {
+      "roadmap_category": "Keyboard-driven, mouse-driven, and mixed workflows",
+      "cases": [
+        {
+          "id": "keyboard-actions",
+          "paths": [
+            "tests/integration/run_m6_actions.py",
+            "reference/actions/twm-1.0.13.1/action-contract.json"
+          ],
+          "modality": "keyboard",
+          "event_surface": "configured key bindings and keyboard-triggered built-in actions",
+          "coverage_claims": [
+            "key press and release pairs trigger action, focus, iconification, and stacking paths"
+          ]
+        },
+        {
+          "id": "mouse-move-resize",
+          "paths": [
+            "tests/integration/run_move_resize.py",
+            "tests/integration/interaction_x11_client.c"
+          ],
+          "modality": "mouse",
+          "event_surface": "pointer positioning, button bindings, motion, release, and menu selection",
+          "coverage_claims": [
+            "mouse-only move, constrained move, resize, raise/lower, and menu workflows"
+          ]
+        },
+        {
+          "id": "mixed-differential-trace",
+          "paths": [
+            "reference/interactions/twm-1.0.13.1/trace-differential.json",
+            "tests/integration/m4_trace_differential.twmrc",
+            "tests/integration/run_m4_trace_differential.py"
+          ],
+          "modality": "mixed",
+          "event_surface": "interleaved pointer motion, button bindings, and key bindings",
+          "coverage_claims": [
+            "one ordered reference/wtwm trace mixes mouse focus, raise, move, and keyboard stack/icon actions"
+          ]
+        }
+      ]
+    }
+  }
+}
