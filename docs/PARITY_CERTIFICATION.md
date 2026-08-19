@@ -63,7 +63,7 @@ Every report has these exact top-level fields:
 | `focus-stacking` | At least one scenario, zero unexplained focus and stacking differences, and a checked-in differential trace. |
 | `golden-images` | A positive image count, review counts with zero unreviewed differences, and a checked-in review log. |
 | `soak-72-hours` | RFC 3339 start/end times covering at least 72 continuous hours, matching duration, success, zero crashes/hangs/protocol violations/unbounded leaks, and a checked-in log. |
-| `supported-package-matrix` | The checked-in support policy and successful install, upgrade, uninstall, and reinstall evidence for both supported Debian 13 architectures: amd64 and arm64. |
+| `supported-package-matrix` | The checked-in support policy and successful install, upgrade, uninstall, and reinstall evidence for amd64 and arm64 on one selected release line: Debian 13 (Trixie) or Debian 14 (Forky). Evidence from both releases is not required. |
 | `deployment-environments` | Passing, checked-in results for exactly nested Wayland, VM login, and physical hardware. Physical evidence must identify the hardware and report `virtualized=false`. |
 | `blind-ab-evaluation` | The canonical profile, a checked-in blind protocol, at least two distinct experienced-`twm` reviewers with trial results, and no repeatable distinguishing behavior. |
 | `wayland-translation-documentation` | Checked-in manual, ledger, and audit paths, plus the same non-empty, unique set of unavoidable translation IDs in both documentation inventories. |
@@ -93,7 +93,10 @@ Some collection must happen outside ordinary local and GitHub Actions runs. In
 particular, do not promote the soak gate from the short stability smoke run;
 the recorded timestamps must cover a successful continuous 72 hours. Do not
 promote package coverage from compiler jobs; package lifecycle results are
-required for every declared distribution/architecture pair. Environment
+required for every declared distribution/architecture pair. The package gate
+accepts exactly two pairs: amd64 and arm64 for either Debian 13 or Debian 14;
+it rejects a mixed-release pair and does not require the union of both releases.
+Environment
 certification needs separate nested, login-session VM, and non-virtualized
 physical-machine results. Blind A/B evidence must preserve the protocol and
 per-reviewer results without exposing reviewer identity unnecessarily.

@@ -20,10 +20,8 @@ POLICY = (
     "release gate is passed with validated checked-in evidence."
 )
 COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
-SUPPORTED_PACKAGES = {
-    ("Debian", "13 (Trixie)", "amd64"),
-    ("Debian", "13 (Trixie)", "arm64"),
-}
+SUPPORTED_PACKAGE_RELEASES = {"13 (Trixie)", "14 (Forky)"}
+SUPPORTED_PACKAGE_ARCHITECTURES = {"amd64", "arm64"}
 
 
 def exact_fields(value: Any, expected: set[str], label: str, errors: list[str]) -> bool:
@@ -251,6 +249,24 @@ def platform_tuple(value: Any, prefix: str, errors: list[str]) -> tuple[str, str
     return value["distribution"], value["release"], value["architecture"]
 
 
+def supported_package_selection(declared: set[tuple[str, str, str]]) -> bool:
+    releases = {
+        release
+        for distribution, release, architecture in declared
+        if distribution == "Debian" and architecture in SUPPORTED_PACKAGE_ARCHITECTURES
+    }
+    if len(releases) != 1:
+        return False
+    release = next(iter(releases))
+    if release not in SUPPORTED_PACKAGE_RELEASES:
+        return False
+    expected = {
+        ("Debian", release, architecture)
+        for architecture in SUPPORTED_PACKAGE_ARCHITECTURES
+    }
+    return declared == expected
+
+
 def package_matrix(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     if not exact_fields(result, {"support_policy_path", "supported_platforms", "results"}, prefix, errors):
         return
@@ -268,8 +284,11 @@ def package_matrix(result: Any, prefix: str, root: Path, errors: list[str]) -> N
                 errors.append(f"{prefix}.supported_platforms contains a duplicate: {key}")
             elif key is not None:
                 declared.add(key)
-    if declared != SUPPORTED_PACKAGES:
-        errors.append(f"{prefix}.supported_platforms must exactly cover Debian 13 amd64 and arm64")
+    if not supported_package_selection(declared):
+        errors.append(
+            f"{prefix}.supported_platforms must exactly cover amd64 and arm64 for one "
+            "selected release: Debian 13 (Trixie) or Debian 14 (Forky)"
+        )
 
     observed: set[tuple[str, str, str]] = set()
     results = result["results"]
@@ -568,6 +587,32 @@ def read_manifest(path: Path) -> Any:
 
 def self_test_tamper(data: Any, root: Path) -> list[str]:
     failures: list[str] = []
+    accepted_package_sets = (
+        {
+            ("Debian", "13 (Trixie)", "amd64"),
+            ("Debian", "13 (Trixie)", "arm64"),
+        },
+        {
+            ("Debian", "14 (Forky)", "amd64"),
+            ("Debian", "14 (Forky)", "arm64"),
+        },
+    )
+    for declared in accepted_package_sets:
+        if not supported_package_selection(declared):
+            failures.append(f"self-test rejected supported package matrix: {sorted(declared)}")
+    rejected_package_sets = (
+        accepted_package_sets[0] | accepted_package_sets[1],
+        {
+            ("Debian", "13 (Trixie)", "amd64"),
+            ("Debian", "14 (Forky)", "arm64"),
+        },
+        {("Debian", "14 (Forky)", "arm64")},
+    )
+    for declared in rejected_package_sets:
+        if supported_package_selection(declared):
+            failures.append(f"self-test accepted invalid package matrix: {sorted(declared)}")
+    if not failures:
+        print("PASS: accepted either complete Debian release matrix and rejected mixed matrices")
     cases: list[tuple[str, Any, str]] = []
 
     unsupported = copy.deepcopy(data)

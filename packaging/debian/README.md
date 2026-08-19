@@ -3,8 +3,9 @@
 `package-lifecycle-test.sh` performs real clean installs, direct upgrades from
 every supplied prior release, removal, purge, rollback to a selected prior
 release, and an upgrade back to the candidate.  It refuses to run unless
-`/etc/wtwm-platform-test-vm` exists, so it is intended for a disposable Debian
-Trixie VM's `clean-provisioned` snapshot.  It leaves the candidate installed.
+`/etc/wtwm-platform-test-vm` exists, so it is intended for a disposable VM of
+the selected Debian 13 (Trixie) or Debian 14 (Forky) release line.  Use the same
+line for amd64 and arm64 certification.  It leaves the candidate installed.
 
 Build independently versioned wtwm packages, copy them into the VM, and protect
 at least the existing compositor binary and its session entry:

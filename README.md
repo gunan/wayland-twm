@@ -21,13 +21,14 @@ drop-in compatibility.
 
 ## How to install
 
-`wtwm` targets Debian 13 (Trixie) with wlroots 0.18 and is also built and tested
-against Debian testing with wlroots 0.20. Debian 13 remains the initial packaged
-1.0 distribution. There is no published package repository yet, so build either
-a co-installable Debian package or a local development tree. The Debian package
-is recommended for a real display-manager login because it installs and tracks
-the complete session entry; a source-tree build is the quickest way to test
-`wtwm` nested inside an existing Wayland desktop.
+`wtwm` targets Debian 13 (Trixie) with wlroots 0.18 and Debian 14 (Forky) with
+wlroots 0.20. Forky is exercised through Debian testing until Debian 14 is
+released. The 1.0 candidate may be certified on either release; certification
+does not require both releases or submission to an official Debian repository.
+Build either a co-installable Debian package or a local development tree. The
+Debian package is recommended for a real display-manager login because it
+installs and tracks the complete session entry; a source-tree build is the
+quickest way to test `wtwm` nested inside an existing Wayland desktop.
 
 Do not run `wtwm` or `wtwm-session` as root. Keep your existing compositor
 available until you have tested the applications, configuration, input devices,
@@ -39,7 +40,7 @@ Install the package build dependencies, clone the source, build the binary
 package, and install the resulting artifact:
 
 ```sh
-wlroots_dev=libwlroots-0.18-dev # Debian testing: libwlroots-0.20-dev
+wlroots_dev=libwlroots-0.18-dev # Debian 14/Forky: libwlroots-0.20-dev
 sudo apt update
 sudo apt install build-essential debhelper devscripts dpkg-dev meson ninja-build \
   pkgconf libfontconfig-dev libpango1.0-dev libwayland-dev \
@@ -72,7 +73,7 @@ place.
 For a development build without Debian packaging:
 
 ```sh
-wlroots_dev=libwlroots-0.18-dev # Debian testing: libwlroots-0.20-dev
+wlroots_dev=libwlroots-0.18-dev # Debian 14/Forky: libwlroots-0.20-dev
 sudo apt update
 sudo apt install build-essential meson ninja-build pkgconf \
   libfontconfig-dev libpango1.0-dev libwayland-dev \
@@ -214,8 +215,8 @@ Development with Codex Cloud is documented in
 
 ### 1. Platform and session validation
 
-- [ ] **Shared:** Provision a Debian 13 ARM64 VM under UTM for interactive
-  development on Apple Silicon.
+- [x] **Shared:** Provision a Debian 13 or Debian 14 ARM64 VM under UTM for
+  interactive development on Apple Silicon.
 - [ ] **Shared:** Establish a nested Wayland environment inside a working parent
   compositor.
 - [ ] **Shared:** Establish a full display-manager login session using the DRM
@@ -255,7 +256,8 @@ acceptance procedures for this group.
 - [ ] **Shared:** Test both the controlled pixman/software renderer and real GPU
   rendering on representative systems.
 - [ ] **Shared:** Complete the clean install, every-prior-release upgrade,
-  removal, purge, rollback, and reinstall matrix for Debian 13 amd64 and arm64.
+  removal, purge, rollback, and reinstall matrix on amd64 and arm64 for one
+  selected 1.0 release line: Debian 13 or Debian 14.
 - [ ] **Manual/shared:** Perform physical-machine validation on representative
   AMD, Intel, and ARM systems where available, recording which runs are physical,
   virtualized, or emulated.
@@ -301,8 +303,8 @@ not final pass evidence until the complete clean-candidate run is checked in.
 - [ ] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.
 - [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
-- [ ] **Shared:** Check in successful package lifecycle evidence for every
-  supported distribution and architecture, initially Debian 13 amd64 and arm64.
+- [ ] **Shared:** Check in successful package lifecycle evidence for amd64 and
+  arm64 on the selected supported release line, either Debian 13 or Debian 14.
 - [ ] **Manual/shared:** Check in passing nested Wayland, VM login, and
   non-virtualized physical-hardware evidence.
 - [ ] **Manual:** Conduct a blinded canonical-profile A/B evaluation with at

@@ -18,9 +18,11 @@ portable targets and runs every test registered by the parser-only Meson build.
 
 ## Debian Trixie profiles
 
-Debian 13 (Trixie) is the initial packaged distribution. The package is built
-for each architecture exercised by the Debian CI jobs; a successful compiler
-job alone is not package-install evidence for that architecture.
+Debian 13 (Trixie) remains the pinned package and reference-comparison baseline.
+That pin makes CI repeatable; it is not a requirement to publish through the
+official Debian archive. The package is built for each architecture exercised
+by the Debian CI jobs; a successful compiler job alone is not package-install
+evidence for that architecture.
 
 Install the controlled dependency set on Debian Trixie with:
 
@@ -44,12 +46,14 @@ profiles also make AddressSanitizer or UndefinedBehaviorSanitizer abort the test
 run on the first reported defect. Separate build directories keep profile
 artifacts from contaminating one another.
 
-## Debian testing profile
+## Debian 14 / testing profile
 
-Debian testing is a continuously tested development target using wlroots 0.20;
-it does not replace the Debian 13 release and package-certification baseline.
-Install the same dependency set used by its CI lane and run the full debug
-profile with:
+Debian 14 (Forky) is a continuously tested target through Debian testing until
+it is released, using wlroots 0.20. For 1.0, select either Debian 13 or Debian 14
+as the package-certification release and run the complete amd64 and arm64 matrix
+on that one release; testing both releases is not required. This project does
+not require an official Debian repository submission. Install the dependency
+set used by the Forky/testing CI lane and run the full debug profile with:
 
 ```sh
 apt-get update
@@ -84,8 +88,9 @@ python3 -B tests/platform/validate_build_platforms.py \
 
 ## Debian package build and local contracts
 
-Build the binary package from a clean source tree on Debian Trixie. Substitute
-`libwlroots-0.20-dev` on Debian testing:
+Build the binary package from a clean source tree on the selected Debian 13 or
+Debian 14 release. The example below is the pinned Trixie profile; substitute
+`libwlroots-0.20-dev` on Forky:
 
 ```sh
 sudo apt-get install -y --no-install-recommends \
