@@ -233,7 +233,7 @@
       },
       "runtime.clear-keyboard-focus": {
         "path": "src/wtwm.c",
-        "text": "wlr_seat_keyboard_clear_focus(server->seat);"
+        "text": "(plan->capabilities_after & WTWM_INPUT_CAPABILITY_KEYBOARD) == 0)\n\t\twlr_seat_keyboard_clear_focus(server->seat);"
       },
       "runtime.reset-cursor": {
         "path": "src/wtwm.c",
@@ -281,7 +281,7 @@
       },
       "runtime.new-keyboard": {
         "path": "src/wtwm.c",
-        "text": "static void new_keyboard(struct server *server, struct wlr_input_device *device) {"
+        "text": "static bool new_keyboard(struct server *server, struct wlr_input_device *device,\n\t\tconst char *requested_name) {"
       },
       "runtime.new-input": {
         "path": "src/wtwm.c",

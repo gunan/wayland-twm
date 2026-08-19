@@ -16,6 +16,7 @@
 #include "wtwm/geometry.h"
 #include "wtwm/icon_layout.h"
 #include "wtwm/icon_manager.h"
+#include "wtwm/input_hotplug.h"
 #include "wtwm/interaction.h"
 #include "wtwm/output_order.h"
 #include "wtwm/output_restore.h"
@@ -53,6 +54,7 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/interfaces/wlr_keyboard.h>
 #ifdef WTWM_TEST_CONTROL
 #include <drm_fourcc.h>
 #include <fontconfig/fontconfig.h>
@@ -60,7 +62,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <wlr/backend/headless.h>
-#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/interfaces/wlr_pointer.h>
 #include <wlr/types/wlr_buffer.h>
 #endif
 #include <wlr/render/allocator.h>
@@ -98,6 +100,9 @@ enum interaction_intent {
 
 struct server;
 struct output;
+#ifdef WTWM_TEST_CONTROL
+struct test_input_device;
+#endif
 
 struct cut_buffer_source {
 	struct wlr_data_source source;
@@ -156,8 +161,10 @@ struct test_control {
 	struct wl_event_source *client_source;
 	char input[4096];
 	size_t input_length;
-	struct wlr_keyboard keyboard;
-	bool keyboard_initialized;
+	struct wl_list input_devices;
+	struct test_input_device *legacy_keyboard;
+	struct test_input_device *legacy_pointer;
+	bool clearing_inputs;
 	unsigned animation_ms;
 	uint32_t input_time_ms;
 	struct test_trace_event *trace_events;
@@ -329,7 +336,30 @@ struct keyboard {
 	struct wl_listener modifiers;
 	struct wl_listener key;
 	struct wl_listener destroy;
+	uint64_t input_ordinal;
 };
+
+struct pointer {
+	struct wl_list link;
+	struct server *server;
+	struct wlr_pointer *wlr;
+	struct wl_listener destroy;
+	uint64_t input_ordinal;
+};
+
+#ifdef WTWM_TEST_CONTROL
+struct test_input_device {
+	struct wl_list link;
+	struct test_control *control;
+	char name[WTWM_INPUT_NAME_MAX];
+	enum wtwm_input_device_type type;
+	bool initialized;
+	union {
+		struct wlr_keyboard keyboard;
+		struct wlr_pointer pointer;
+	} wlr;
+};
+#endif
 
 struct output {
 	struct wl_list link;
@@ -433,6 +463,8 @@ struct interaction_session {
 	double resize_offset_y;
 	enum interaction_intent intent;
 	uint32_t confirming_button;
+	uint32_t required_button;
+	bool required_button_valid;
 	bool force_move;
 	bool opaque_move;
 	bool constrained_move;
@@ -531,11 +563,16 @@ struct server {
 	struct wl_listener cursor_axis;
 	struct wl_listener cursor_frame;
 	struct wlr_seat *seat;
+	struct wlr_keyboard aggregate_keyboard;
+	bool aggregate_keyboard_initialized;
+	struct wtwm_input_hotplug_state input;
+	struct wtwm_input_hotplug_plan *input_plan;
 	struct wl_listener new_input;
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
 	struct wl_listener request_primary_selection;
 	struct wl_list keyboards;
+	struct wl_list pointers;
 	struct wlr_xwayland *xwayland;
 	struct wl_listener xwayland_ready;
 	struct wl_listener xwayland_new_surface;
@@ -565,6 +602,8 @@ struct server {
 	uint32_t last_move_time_ms;
 	bool last_interaction_moved;
 	bool action_from_key;
+	uint32_t dispatch_pointer_button;
+	bool dispatch_pointer_button_valid;
 	uint64_t frame_sequence;
 	struct toplevel *focus;
 	struct toplevel *xwayland_input_focus;
@@ -2704,7 +2743,7 @@ static void focus_toplevel(struct toplevel *toplevel, bool set_input_focus,
 			set_xwayland_input_focus(server, NULL);
 		}
 		struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
-		if (keyboard != NULL) {
+		if (server->input.keyboard_count != 0 && keyboard != NULL) {
 			wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
 				keyboard->num_keycodes, &keyboard->modifiers);
 		}
@@ -2983,6 +3022,8 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.output_area_valid = true,
 		.output_area = output_area,
 		.output = operation_output,
+		.required_button = server->dispatch_pointer_button,
+		.required_button_valid = server->dispatch_pointer_button_valid,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -6033,6 +6074,12 @@ static void update_pointer_toplevel(struct server *server,
 }
 
 static void refresh_pointer_after_restart(struct server *server) {
+	if (server->input.pointer_count == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
 	struct hit_result hit = desktop_at(server, server->cursor->x,
 		server->cursor->y);
 	/* Re-resolve scene hit testing after rebuilding decorations without
@@ -6056,6 +6103,12 @@ static void refresh_pointer_after_restart(struct server *server) {
 
 static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	server->current_input_time_ms = time_msec;
+	if (server->input.pointer_count == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
 	if (server->cursor_mode == CURSOR_MOVE &&
 			server->interaction.intent == INTERACTION_INITIAL_CONFIRM) return;
 	if (server->cursor_mode == CURSOR_MOVE &&
@@ -6219,10 +6272,164 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	}
 }
 
+static struct pointer *pointer_for_wlr(struct server *server,
+		const struct wlr_pointer *wlr) {
+	struct pointer *pointer;
+	wl_list_for_each(pointer, &server->pointers, link)
+		if (pointer->wlr == wlr) return pointer;
+	return NULL;
+}
+
+#ifdef WTWM_TEST_CONTROL
+static const struct wtwm_input_hotplug_device *input_device_for_ordinal(
+		const struct wtwm_input_hotplug_state *state, uint64_t ordinal) {
+	for (size_t index = 0; index < state->device_count; ++index)
+		if (state->devices[index].ordinal == ordinal) return &state->devices[index];
+	return NULL;
+}
+#endif
+
+static uint64_t input_focus_cookie(struct toplevel *toplevel) {
+	return toplevel != NULL ? toplevel->icon_identity : 0;
+}
+
+static void sync_input_context(struct server *server) {
+	struct wtwm_input_hotplug_state *state = &server->input;
+	struct toplevel *keyboard_focus = toplevel_for_surface(
+		server->seat->keyboard_state.focused_surface);
+	struct toplevel *pointer_focus = toplevel_for_surface(
+		server->seat->pointer_state.focused_surface);
+	if (state->keyboard_count > 0) {
+		state->keyboard_focus_valid = keyboard_focus != NULL;
+		state->keyboard_focus = input_focus_cookie(keyboard_focus);
+	}
+	state->pointer_focus_valid = state->pointer_count > 0 && pointer_focus != NULL;
+	state->pointer_focus = state->pointer_focus_valid ?
+		input_focus_cookie(pointer_focus) : 0;
+	state->cursor_x = server->cursor->x;
+	state->cursor_y = server->cursor->y;
+	state->pointer_operation = WTWM_INPUT_POINTER_IDLE;
+	state->pointer_operation_button_valid = false;
+	state->pointer_operation_button = 0;
+	if (server->menu.tree != NULL) {
+		state->pointer_operation = WTWM_INPUT_POINTER_MENU;
+	} else if (server->deferred_root_action_active) {
+		state->pointer_operation = WTWM_INPUT_POINTER_DEFERRED_ACTION;
+	} else if (server->grabbed != NULL) {
+		if (server->interaction.intent == INTERACTION_INITIAL_POSITION ||
+				server->interaction.intent == INTERACTION_INITIAL_CONFIRM ||
+				server->interaction.intent == INTERACTION_INITIAL_RESIZE)
+			state->pointer_operation = WTWM_INPUT_POINTER_INITIAL_PLACEMENT;
+		else state->pointer_operation = server->cursor_mode == CURSOR_RESIZE ?
+			WTWM_INPUT_POINTER_RESIZE : WTWM_INPUT_POINTER_MOVE;
+		state->pointer_operation_button_valid =
+			server->interaction.required_button_valid;
+		state->pointer_operation_button =
+			server->interaction.required_button_valid ?
+			server->interaction.required_button : 0;
+		if (server->interaction.intent == INTERACTION_INITIAL_CONFIRM) {
+			state->pointer_operation_button_valid = true;
+			state->pointer_operation_button =
+				server->interaction.confirming_button;
+		}
+	}
+}
+
+static uint32_t input_capabilities(uint32_t capabilities) {
+	uint32_t result = 0;
+	if ((capabilities & WTWM_INPUT_CAPABILITY_KEYBOARD) != 0)
+		result |= WL_SEAT_CAPABILITY_KEYBOARD;
+	if ((capabilities & WTWM_INPUT_CAPABILITY_POINTER) != 0)
+		result |= WL_SEAT_CAPABILITY_POINTER;
+	return result;
+}
+
+static void requeue_input_initial_placement(struct server *server) {
+	if (server->grabbed == NULL) return;
+	clear_interaction_outline(server);
+	reset_cursor(server);
+}
+
+static bool apply_input_plan(struct server *server,
+		struct wtwm_input_hotplug_plan *plan) {
+	if (!wtwm_input_hotplug_plan_apply(&server->input, plan)) return false;
+	for (size_t index = 0; index < plan->key_transition_count; ++index) {
+		const struct wtwm_input_transition *transition =
+			&plan->key_transitions[index];
+		struct wlr_keyboard_key_event event = {
+			.time_msec = server->current_input_time_ms,
+			.keycode = transition->code,
+			.update_state = true,
+			.state = transition->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
+				WL_KEYBOARD_KEY_STATE_RELEASED,
+		};
+		wlr_keyboard_notify_key(&server->aggregate_keyboard, &event);
+		wlr_seat_keyboard_notify_key(server->seat, event.time_msec,
+			event.keycode, event.state);
+	}
+	if (plan->recompute_seat_modifiers)
+		wlr_seat_keyboard_notify_modifiers(server->seat,
+			&server->aggregate_keyboard.modifiers);
+	for (size_t index = 0; index < plan->button_transition_count; ++index) {
+		const struct wtwm_input_transition *transition =
+			&plan->button_transitions[index];
+		wlr_seat_pointer_notify_button(server->seat,
+			server->current_input_time_ms, transition->code,
+			transition->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
+				WL_POINTER_BUTTON_STATE_RELEASED);
+	}
+	if (plan->close_menu) {
+		hide_menu(server);
+		memset(&server->continuation, 0, sizeof(server->continuation));
+	}
+	if (plan->cancel_deferred_action)
+		server->deferred_root_action_active = false;
+	if (plan->abort_move_resize) finish_interactive(server, true);
+	if (plan->requeue_initial_placement)
+		requeue_input_initial_placement(server);
+	if (plan->clear_pointer_focus) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+	}
+	if ((plan->capabilities_before & WTWM_INPUT_CAPABILITY_KEYBOARD) != 0 &&
+			(plan->capabilities_after & WTWM_INPUT_CAPABILITY_KEYBOARD) == 0)
+		wlr_seat_keyboard_clear_focus(server->seat);
+	if (plan->capabilities_changed)
+		wlr_seat_set_capabilities(server->seat,
+			input_capabilities(plan->capabilities_after));
+	struct wlr_surface *keyboard_surface =
+		server->seat->keyboard_state.focused_surface;
+	if (keyboard_surface == NULL && server->focus != NULL)
+		keyboard_surface = toplevel_surface(server->focus);
+	if (plan->reassert_keyboard_focus && keyboard_surface != NULL)
+		wlr_seat_keyboard_notify_enter(server->seat, keyboard_surface,
+			server->aggregate_keyboard.keycodes,
+			server->aggregate_keyboard.num_keycodes,
+			&server->aggregate_keyboard.modifiers);
+	if (plan->refresh_pointer_focus)
+		refresh_pointer_after_restart(server);
+	if ((plan->requeue_initial_placement || plan->refresh_pointer_focus) &&
+			server->input.pointer_count != 0)
+		start_next_initial_placement(server);
+	return true;
+}
+
+static bool plan_pointer_motion(struct server *server, uint64_t ordinal) {
+	if (server->input_plan == NULL) return false;
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	return wtwm_input_hotplug_plan_pointer_motion(&server->input, ordinal,
+		server->cursor->x, server->cursor->y, server->input_plan) &&
+		apply_input_plan(server, server->input_plan);
+}
+
 static void cursor_motion(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_motion);
 	struct wlr_pointer_motion_event *event = data;
 	wlr_cursor_move(server->cursor, &event->pointer->base, event->delta_x, event->delta_y);
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer != NULL) (void)plan_pointer_motion(server, pointer->input_ordinal);
 	process_cursor_motion(server, event->time_msec);
 }
 
@@ -6230,6 +6437,8 @@ static void cursor_motion_absolute(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_motion_absolute);
 	struct wlr_pointer_motion_absolute_event *event = data;
 	wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x, event->y);
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer != NULL) (void)plan_pointer_motion(server, pointer->input_ordinal);
 	process_cursor_motion(server, event->time_msec);
 }
 
@@ -6257,6 +6466,9 @@ static void begin_initial_resize(struct server *server) {
 	set_cursor_role(server, "Resize");
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
+	server->interaction.required_button = server->dispatch_pointer_button;
+	server->interaction.required_button_valid =
+		server->dispatch_pointer_button_valid;
 	show_interaction_outline(server);
 }
 
@@ -6295,6 +6507,8 @@ static bool handle_active_interaction_button(struct server *server,
 		case WTWM_PLACEMENT_BUTTON_CONFIRM:
 			interaction->intent = INTERACTION_INITIAL_CONFIRM;
 			interaction->confirming_button = event->button;
+			interaction->required_button = event->button;
+			interaction->required_button_valid = true;
 			test_trace_toplevel_event_at(server->grabbed, "confirm", "placement",
 				interaction->preview.x, interaction->preview.y,
 				interaction->preview.width, interaction->preview.height);
@@ -6326,20 +6540,18 @@ static bool handle_active_interaction_button(struct server *server,
 	return true;
 }
 
-static void cursor_button(struct wl_listener *listener, void *data) {
-	struct server *server = wl_container_of(listener, server, cursor_button);
-	struct wlr_pointer_button_event *event = data;
-	server->current_input_time_ms = event->time_msec;
+static bool dispatch_cursor_button(struct server *server,
+		const struct wlr_pointer_button_event *event) {
 	if (server->grabbed != NULL) {
 		handle_active_interaction_button(server, event);
-		return;
+		return false;
 	}
 	if (event->state == WL_POINTER_BUTTON_STATE_PRESSED)
 		server->last_interaction_moved = false;
 	if (server->menu.tree != NULL) {
 		if (event->state == WL_POINTER_BUTTON_STATE_PRESSED) {
 			hide_menu(server);
-			return;
+			return false;
 		}
 		if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
 			int selected = menu_item_at(server);
@@ -6373,7 +6585,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 					target != NULL ? WTWM_CONTEXT_FRAME : WTWM_CONTEXT_ROOT);
 			}
 		}
-		return;
+		return false;
 	}
 	struct hit_result hit = desktop_at(server, server->cursor->x, server->cursor->y);
 	if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
@@ -6381,10 +6593,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			server->icon_manager_down_identity = 0;
 			refresh_icon_managers(server);
 		}
-		if (hit.surface != NULL)
-			wlr_seat_pointer_notify_button(server->seat, event->time_msec,
-				event->button, event->state);
-		return;
+		return hit.surface != NULL;
 	}
 	if (hit.context == WTWM_CONTEXT_ICONMGR && hit.toplevel != NULL) {
 		server->icon_manager_down_identity = hit.toplevel->icon_identity;
@@ -6395,7 +6604,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		server->deferred_root_action_active = false;
 		if (hit.toplevel != NULL)
 			execute_action(server, hit.toplevel, &action, hit.context);
-		return;
+		return false;
 	}
 	bool handled = false;
 	if (hit.on_title_button && event->button == BTN_LEFT &&
@@ -6421,14 +6630,37 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			hit.context);
 		handled = true;
 	}
-	if (!handled && hit.surface != NULL)
-		wlr_seat_pointer_notify_button(server->seat, event->time_msec,
-			event->button, event->state);
+	return !handled && hit.surface != NULL;
+}
+
+static void cursor_button(struct wl_listener *listener, void *data) {
+	struct server *server = wl_container_of(listener, server, cursor_button);
+	struct wlr_pointer_button_event *event = data;
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer == NULL || server->input_plan == NULL) return;
+	server->current_input_time_ms = event->time_msec;
+	server->dispatch_pointer_button = event->button;
+	server->dispatch_pointer_button_valid = true;
+	bool client_visible = dispatch_cursor_button(server, event);
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	bool built = event->state == WL_POINTER_BUTTON_STATE_PRESSED ?
+		wtwm_input_hotplug_plan_button_press(&server->input,
+			pointer->input_ordinal, event->button, client_visible,
+			server->input_plan) :
+		wtwm_input_hotplug_plan_button_release(&server->input,
+			pointer->input_ordinal, event->button, server->input_plan);
+	if (built) (void)apply_input_plan(server, server->input_plan);
+	server->dispatch_pointer_button_valid = false;
 }
 
 static void cursor_axis(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_axis);
 	struct wlr_pointer_axis_event *event = data;
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer == NULL) return;
+	server->current_input_time_ms = event->time_msec;
+	(void)plan_pointer_motion(server, pointer->input_ordinal);
 	wlr_seat_pointer_notify_axis(server->seat, event->time_msec, event->orientation,
 		event->delta, event->delta_discrete, event->source, event->relative_direction);
 }
@@ -6442,8 +6674,19 @@ static void cursor_frame(struct wl_listener *listener, void *data) {
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
-	wlr_seat_set_keyboard(keyboard->server->seat, keyboard->wlr);
-	wlr_seat_keyboard_notify_modifiers(keyboard->server->seat, &keyboard->wlr->modifiers);
+	struct server *server = keyboard->server;
+	if (server->input_plan == NULL) return;
+	struct wtwm_input_modifiers modifiers = {
+		.depressed = keyboard->wlr->modifiers.depressed,
+		.latched = keyboard->wlr->modifiers.latched,
+		.locked = keyboard->wlr->modifiers.locked,
+		.group = keyboard->wlr->modifiers.group,
+	};
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (wtwm_input_hotplug_plan_modifiers(&server->input,
+			keyboard->input_ordinal, modifiers, server->input_plan))
+		(void)apply_input_plan(server, server->input_plan);
 }
 
 static void keyboard_key(struct wl_listener *listener, void *data) {
@@ -6476,16 +6719,47 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 			}
 		}
 	}
-	if (!handled) {
-		wlr_seat_set_keyboard(server->seat, keyboard->wlr);
-		wlr_seat_keyboard_notify_key(server->seat, event->time_msec,
-			event->keycode, event->state);
+	if (server->input_plan == NULL) return;
+	bool client_visible = !handled;
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED && client_visible &&
+			server->aggregate_keyboard.num_keycodes >= WLR_KEYBOARD_KEYS_CAP) {
+		bool aggregate_holds = false;
+		for (size_t index = 0;
+				index < server->aggregate_keyboard.num_keycodes; ++index)
+			if (server->aggregate_keyboard.keycodes[index] == event->keycode)
+				aggregate_holds = true;
+		if (!aggregate_holds) {
+			client_visible = false;
+			wlr_log(WLR_ERROR,
+				"aggregate keyboard capacity dropped key %u", event->keycode);
+		}
 	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	bool built = event->state == WL_KEYBOARD_KEY_STATE_PRESSED ?
+		wtwm_input_hotplug_plan_key_press(&server->input,
+			keyboard->input_ordinal, event->keycode, client_visible,
+			server->input_plan) :
+		wtwm_input_hotplug_plan_key_release(&server->input,
+			keyboard->input_ordinal, event->keycode, server->input_plan);
+	if (built) (void)apply_input_plan(server, server->input_plan);
 }
 
 static void keyboard_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
+	struct server *server = keyboard->server;
+	if (!server->shutting_down && server->input_plan != NULL
+#ifdef WTWM_TEST_CONTROL
+			&& !server->test_control.clearing_inputs
+#endif
+			) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (wtwm_input_hotplug_plan_remove(&server->input,
+				keyboard->input_ordinal, server->input_plan))
+			(void)apply_input_plan(server, server->input_plan);
+	}
 	wl_list_remove(&keyboard->modifiers.link);
 	wl_list_remove(&keyboard->key.link);
 	wl_list_remove(&keyboard->destroy.link);
@@ -6493,18 +6767,74 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
 	free(keyboard);
 }
 
-static void new_keyboard(struct server *server, struct wlr_input_device *device) {
-	struct keyboard *keyboard = calloc(1, sizeof(*keyboard));
-	if (keyboard == NULL) return;
-	keyboard->server = server;
-	keyboard->wlr = wlr_keyboard_from_input_device(device);
+static bool configure_keyboard(struct wlr_keyboard *keyboard) {
 	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (context == NULL) return false;
 	struct xkb_keymap *keymap = xkb_keymap_new_from_names(context, NULL,
 		XKB_KEYMAP_COMPILE_NO_FLAGS);
-	wlr_keyboard_set_keymap(keyboard->wlr, keymap);
-	xkb_keymap_unref(keymap);
+	bool configured = keymap != NULL && wlr_keyboard_set_keymap(keyboard, keymap);
+	if (keymap != NULL) xkb_keymap_unref(keymap);
 	xkb_context_unref(context);
-	wlr_keyboard_set_repeat_info(keyboard->wlr, 25, 600);
+	if (!configured) return false;
+	wlr_keyboard_set_repeat_info(keyboard, 25, 600);
+	return true;
+}
+
+static bool input_name_unique(const struct wtwm_input_hotplug_state *state,
+		const char *name) {
+	for (size_t index = 0; index < state->device_count; ++index)
+		if (strcmp(state->devices[index].name, name) == 0) return false;
+	return true;
+}
+
+static bool allocate_input_name(struct server *server, const char *requested,
+		char name[WTWM_INPUT_NAME_MAX]) {
+	const char *base = requested != NULL && requested[0] != '\0' ? requested :
+		"unnamed-input";
+	if (strlen(base) >= WTWM_INPUT_NAME_MAX) base = "unnamed-input";
+	if (input_name_unique(&server->input, base)) {
+		(void)snprintf(name, WTWM_INPUT_NAME_MAX, "%s", base);
+		return true;
+	}
+	for (uint64_t suffix = 2; suffix < UINT64_C(1000000); ++suffix) {
+		int written = snprintf(name, WTWM_INPUT_NAME_MAX, "%s#%" PRIu64,
+			base, suffix);
+		if (written > 0 && written < WTWM_INPUT_NAME_MAX &&
+				input_name_unique(&server->input, name)) return true;
+	}
+	return false;
+}
+
+static bool new_keyboard(struct server *server, struct wlr_input_device *device,
+		const char *requested_name) {
+	struct keyboard *keyboard = calloc(1, sizeof(*keyboard));
+	if (keyboard == NULL || server->input_plan == NULL) {
+		free(keyboard);
+		return false;
+	}
+	keyboard->server = server;
+	keyboard->wlr = wlr_keyboard_from_input_device(device);
+	if (!configure_keyboard(keyboard->wlr)) {
+		free(keyboard);
+		return false;
+	}
+	char name[WTWM_INPUT_NAME_MAX];
+	if (!allocate_input_name(server, requested_name, name)) {
+		free(keyboard);
+		return false;
+	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (!wtwm_input_hotplug_plan_add(&server->input, name,
+			WTWM_INPUT_DEVICE_KEYBOARD, server->input_plan)) {
+		free(keyboard);
+		return false;
+	}
+	keyboard->input_ordinal = server->input_plan->device_ordinal;
+	if (!apply_input_plan(server, server->input_plan)) {
+		free(keyboard);
+		return false;
+	}
 	keyboard->modifiers.notify = keyboard_modifiers;
 	wl_signal_add(&keyboard->wlr->events.modifiers, &keyboard->modifiers);
 	keyboard->key.notify = keyboard_key;
@@ -6512,17 +6842,83 @@ static void new_keyboard(struct server *server, struct wlr_input_device *device)
 	keyboard->destroy.notify = keyboard_destroy;
 	wl_signal_add(&device->events.destroy, &keyboard->destroy);
 	wl_list_insert(&server->keyboards, &keyboard->link);
-	wlr_seat_set_keyboard(server->seat, keyboard->wlr);
+	return true;
+}
+
+static void pointer_destroy(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct pointer *pointer = wl_container_of(listener, pointer, destroy);
+	struct server *server = pointer->server;
+	if (!server->shutting_down && server->input_plan != NULL
+#ifdef WTWM_TEST_CONTROL
+			&& !server->test_control.clearing_inputs
+#endif
+			) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (wtwm_input_hotplug_plan_remove(&server->input,
+				pointer->input_ordinal, server->input_plan))
+			(void)apply_input_plan(server, server->input_plan);
+	}
+	wl_list_remove(&pointer->destroy.link);
+	wl_list_remove(&pointer->link);
+	free(pointer);
+}
+
+static bool new_pointer(struct server *server, struct wlr_input_device *device,
+		const char *requested_name) {
+	struct pointer *pointer = calloc(1, sizeof(*pointer));
+	if (pointer == NULL || server->input_plan == NULL) {
+		free(pointer);
+		return false;
+	}
+	pointer->server = server;
+	pointer->wlr = wlr_pointer_from_input_device(device);
+	char name[WTWM_INPUT_NAME_MAX];
+	if (!allocate_input_name(server, requested_name, name)) {
+		free(pointer);
+		return false;
+	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (!wtwm_input_hotplug_plan_add(&server->input, name,
+			WTWM_INPUT_DEVICE_POINTER, server->input_plan)) {
+		free(pointer);
+		return false;
+	}
+	pointer->input_ordinal = server->input_plan->device_ordinal;
+	if (!apply_input_plan(server, server->input_plan)) {
+		free(pointer);
+		return false;
+	}
+	wlr_cursor_attach_input_device(server->cursor, device);
+	pointer->destroy.notify = pointer_destroy;
+	wl_signal_add(&device->events.destroy, &pointer->destroy);
+	wl_list_insert(&server->pointers, &pointer->link);
+	return true;
 }
 
 static void new_input(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, new_input);
 	struct wlr_input_device *device = data;
-	if (device->type == WLR_INPUT_DEVICE_KEYBOARD) new_keyboard(server, device);
-	else if (device->type == WLR_INPUT_DEVICE_POINTER) wlr_cursor_attach_input_device(server->cursor, device);
-	uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER;
-	if (!wl_list_empty(&server->keyboards)) capabilities |= WL_SEAT_CAPABILITY_KEYBOARD;
-	wlr_seat_set_capabilities(server->seat, capabilities);
+	bool accepted = false;
+	if (device->type == WLR_INPUT_DEVICE_KEYBOARD)
+		accepted = new_keyboard(server, device, device->name);
+	else if (device->type == WLR_INPUT_DEVICE_POINTER)
+		accepted = new_pointer(server, device, device->name);
+	if (!accepted && (device->type == WLR_INPUT_DEVICE_KEYBOARD ||
+			device->type == WLR_INPUT_DEVICE_POINTER))
+		wlr_log(WLR_ERROR, "failed to register input device %s",
+			device->name != NULL ? device->name : "unnamed-input");
+}
+
+static void finish_input_adapter(struct server *server) {
+	if (server->aggregate_keyboard_initialized) {
+		wlr_keyboard_finish(&server->aggregate_keyboard);
+		server->aggregate_keyboard_initialized = false;
+	}
+	free(server->input_plan);
+	server->input_plan = NULL;
 }
 
 static void request_cursor(struct wl_listener *listener, void *data) {
@@ -7491,7 +7887,7 @@ static void expose_managed_xwayland(struct toplevel *toplevel,
 }
 
 static void start_next_initial_placement(struct server *server) {
-	if (server->grabbed != NULL) return;
+	if (server->grabbed != NULL || server->input.pointer_count == 0) return;
 	struct toplevel *candidate = NULL, *item;
 	wl_list_for_each(item, &server->toplevels, link) {
 		if (!item->placement_pending || item->placement_waiting_output) continue;
@@ -7669,7 +8065,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->xwayland->override_redirect) {
 		if (wlr_xwayland_or_surface_wants_focus(toplevel->xwayland)) {
 			struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(toplevel->server->seat);
-			if (keyboard != NULL) {
+			if (toplevel->server->input.keyboard_count != 0 && keyboard != NULL) {
 				wlr_seat_keyboard_notify_enter(toplevel->server->seat,
 					toplevel->xwayland->surface, keyboard->keycodes,
 					keyboard->num_keycodes, &keyboard->modifiers);
@@ -8809,6 +9205,60 @@ static bool test_toplevel_visible(const struct toplevel *toplevel) {
 		(toplevel->icon_tree != NULL && toplevel->icon_tree->node.enabled);
 }
 
+static size_t test_visible_input_codes(const struct server *server,
+		enum wtwm_input_device_type type, uint32_t *codes, size_t capacity) {
+	size_t count = 0;
+	for (size_t device_index = 0;
+			device_index < server->input.device_count; ++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&server->input.devices[device_index];
+		if (device->type != type) continue;
+		const struct wtwm_input_held *held = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index) {
+			if (!held[held_index].client_visible) continue;
+			size_t at = 0;
+			while (at < count && codes[at] < held[held_index].code) ++at;
+			if (at < count && codes[at] == held[held_index].code) continue;
+			if (count == capacity) return count;
+			memmove(&codes[at + 1], &codes[at],
+				(count - at) * sizeof(codes[0]));
+			codes[at] = held[held_index].code;
+			++count;
+		}
+	}
+	return count;
+}
+
+static void test_write_codes(struct test_control *control,
+		const struct wtwm_input_held *held, size_t count) {
+	test_write(control, "[");
+	for (size_t index = 0; index < count; ++index)
+		test_write(control, "%s%u", index != 0 ? "," : "", held[index].code);
+	test_write(control, "]");
+}
+
+static void test_write_code_values(struct test_control *control,
+		const uint32_t *codes, size_t count) {
+	test_write(control, "[");
+	for (size_t index = 0; index < count; ++index)
+		test_write(control, "%s%u", index != 0 ? "," : "", codes[index]);
+	test_write(control, "]");
+}
+
+static const char *test_input_active_name(const struct server *server,
+		enum wtwm_input_device_type type) {
+	bool valid = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+		server->input.active_keyboard_valid : server->input.active_pointer_valid;
+	uint64_t ordinal = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+		server->input.active_keyboard : server->input.active_pointer;
+	const struct wtwm_input_hotplug_device *device = valid ?
+		input_device_for_ordinal(&server->input, ordinal) : NULL;
+	return device != NULL ? device->name : NULL;
+}
+
 static void test_write_state(struct test_control *control) {
 	struct server *server = control->server;
 	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
@@ -8832,6 +9282,83 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, ",\"pointer_window\":");
 	if (server->pointer_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(server->pointer_toplevel));
+	test_write(control, ",\"inputs\":[");
+	for (size_t index = 0; index < server->input.device_count; ++index) {
+		const struct wtwm_input_hotplug_device *device =
+			&server->input.devices[index];
+		if (index != 0) test_write(control, ",");
+		test_write(control, "{\"name\":");
+		test_write_json_string(control, device->name);
+		test_write(control,
+			",\"type\":\"%s\",\"ordinal\":%" PRIu64
+			",\"last_activity\":%" PRIu64 ",\"active\":%s,\"pressed\":",
+			device->type == WTWM_INPUT_DEVICE_KEYBOARD ? "keyboard" : "pointer",
+			device->ordinal, device->last_activity,
+			(device->type == WTWM_INPUT_DEVICE_KEYBOARD ?
+				server->input.active_keyboard_valid &&
+				server->input.active_keyboard == device->ordinal :
+				server->input.active_pointer_valid &&
+				server->input.active_pointer == device->ordinal) ? "true" : "false");
+		if (device->type == WTWM_INPUT_DEVICE_KEYBOARD)
+			test_write_codes(control, device->keys, device->key_count);
+		else test_write_codes(control, device->buttons, device->button_count);
+		test_write(control, ",\"modifiers\":");
+		if (device->type == WTWM_INPUT_DEVICE_POINTER) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"depressed\":%u,\"latched\":%u,\"locked\":%u,\"group\":%u}",
+				device->modifiers.depressed, device->modifiers.latched,
+				device->modifiers.locked, device->modifiers.group);
+		}
+		test_write(control, "}");
+	}
+	test_write(control, "],\"seat_capabilities\":[");
+	bool wrote_capability = false;
+	if (server->input.keyboard_count != 0) {
+		test_write(control, "\"keyboard\"");
+		wrote_capability = true;
+	}
+	if (server->input.pointer_count != 0)
+		test_write(control, "%s\"pointer\"", wrote_capability ? "," : "");
+	test_write(control,
+		"],\"seat_modifiers\":{\"depressed\":%u,\"latched\":%u,"
+		"\"locked\":%u,\"group\":%u},\"seat_pressed_keys\":",
+		server->aggregate_keyboard.modifiers.depressed,
+		server->aggregate_keyboard.modifiers.latched,
+		server->aggregate_keyboard.modifiers.locked,
+		server->aggregate_keyboard.modifiers.group);
+	uint32_t keycodes[WTWM_INPUT_MAX_DEVICES * WTWM_INPUT_MAX_HELD_KEYS];
+	size_t keycode_count = test_visible_input_codes(server,
+		WTWM_INPUT_DEVICE_KEYBOARD, keycodes,
+		sizeof(keycodes) / sizeof(keycodes[0]));
+	test_write_code_values(control, keycodes, keycode_count);
+	test_write(control, ",\"seat_pressed_buttons\":");
+	uint32_t buttons[WTWM_INPUT_MAX_DEVICES * WTWM_INPUT_MAX_HELD_BUTTONS];
+	size_t button_count = test_visible_input_codes(server,
+		WTWM_INPUT_DEVICE_POINTER, buttons,
+		sizeof(buttons) / sizeof(buttons[0]));
+	test_write_code_values(control, buttons, button_count);
+	test_write(control, ",\"active_keyboard\":");
+	const char *active_keyboard = test_input_active_name(server,
+		WTWM_INPUT_DEVICE_KEYBOARD);
+	if (active_keyboard == NULL) test_write(control, "null");
+	else test_write_json_string(control, active_keyboard);
+	test_write(control, ",\"active_pointer\":");
+	const char *active_pointer = test_input_active_name(server,
+		WTWM_INPUT_DEVICE_POINTER);
+	if (active_pointer == NULL) test_write(control, "null");
+	else test_write_json_string(control, active_pointer);
+	test_write(control, ",\"seat_keyboard_focus\":");
+	if (focused_toplevel == NULL || server->input.keyboard_count == 0)
+		test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(focused_toplevel));
+	test_write(control, ",\"seat_pointer_focus\":");
+	struct toplevel *pointer_focused = toplevel_for_surface(
+		server->seat->pointer_state.focused_surface);
+	if (pointer_focused == NULL || server->input.pointer_count == 0)
+		test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(pointer_focused));
 	test_write(control, ",\"topology_epoch\":%" PRIu64 ",\"outputs\":[",
 		server->topology_epoch);
 	struct wtwm_output_order *output_order = NULL;
@@ -9274,9 +9801,88 @@ static bool test_capture_ppm(struct server *server, const char *path,
 	return ok;
 }
 
-static void test_pointer(struct server *server, double x, double y) {
-	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
-	process_cursor_motion(server, ++server->test_control.input_time_ms);
+static struct test_input_device *test_input_find(struct test_control *control,
+		const char *name) {
+	struct test_input_device *device;
+	wl_list_for_each(device, &control->input_devices, link)
+		if (strcmp(device->name, name) == 0) return device;
+	return NULL;
+}
+
+static bool test_input_add(struct test_control *control,
+		enum wtwm_input_device_type type, const char *name) {
+	if (test_input_find(control, name) != NULL) return false;
+	struct test_input_device *device = calloc(1, sizeof(*device));
+	if (device == NULL) return false;
+	device->control = control;
+	device->type = type;
+	(void)snprintf(device->name, sizeof(device->name), "%s", name);
+	static const struct wlr_keyboard_impl keyboard_impl = {
+		.name = "wtwm-test-keyboard",
+	};
+	static const struct wlr_pointer_impl pointer_impl = {
+		.name = "wtwm-test-pointer",
+	};
+	if (type == WTWM_INPUT_DEVICE_KEYBOARD) {
+		wlr_keyboard_init(&device->wlr.keyboard, &keyboard_impl, name);
+		device->initialized = true;
+		if (!new_keyboard(control->server, &device->wlr.keyboard.base, name)) {
+			wlr_keyboard_finish(&device->wlr.keyboard);
+			free(device);
+			return false;
+		}
+	} else {
+		wlr_pointer_init(&device->wlr.pointer, &pointer_impl, name);
+		device->initialized = true;
+		if (!new_pointer(control->server, &device->wlr.pointer.base, name)) {
+			wlr_pointer_finish(&device->wlr.pointer);
+			free(device);
+			return false;
+		}
+	}
+	wl_list_insert(control->input_devices.prev, &device->link);
+	return true;
+}
+
+static void test_input_destroy(struct test_input_device *device) {
+	struct test_control *control = device->control;
+	if (control->legacy_keyboard == device) control->legacy_keyboard = NULL;
+	if (control->legacy_pointer == device) control->legacy_pointer = NULL;
+	wl_list_remove(&device->link);
+	if (device->initialized) {
+		if (device->type == WTWM_INPUT_DEVICE_KEYBOARD)
+			wlr_keyboard_finish(&device->wlr.keyboard);
+		else wlr_pointer_finish(&device->wlr.pointer);
+	}
+	free(device);
+}
+
+static bool test_input_clear(struct test_control *control) {
+	struct server *server = control->server;
+	if (!server->shutting_down && server->input_plan != NULL) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (!wtwm_input_hotplug_plan_clear(&server->input,
+				server->input_plan) ||
+				!apply_input_plan(server, server->input_plan)) return false;
+	}
+	control->clearing_inputs = true;
+	struct test_input_device *device, *temporary;
+	wl_list_for_each_safe(device, temporary, &control->input_devices, link)
+		test_input_destroy(device);
+	control->clearing_inputs = false;
+	return true;
+}
+
+static bool test_pointer(struct test_input_device *device, double x, double y) {
+	if (device == NULL || device->type != WTWM_INPUT_DEVICE_POINTER) return false;
+	struct server *server = device->control->server;
+	wlr_cursor_warp_closest(server->cursor, &device->wlr.pointer.base, x, y);
+	struct pointer *pointer = pointer_for_wlr(server, &device->wlr.pointer);
+	if (pointer == NULL || !plan_pointer_motion(server, pointer->input_ordinal))
+		return false;
+	process_cursor_motion(server, ++device->control->input_time_ms);
+	return true;
 }
 
 static struct output *test_output_by_name(struct server *server,
@@ -9458,14 +10064,117 @@ static void test_execute(struct test_control *control,
 		test_write(control, "ERROR unsupported OUTPUT operation\n");
 		break;
 	}
+	case WTWM_TEST_COMMAND_INPUT: {
+		if (command->input_operation == WTWM_TEST_INPUT_CLEAR) {
+			if (!test_input_clear(control))
+				test_write(control, "ERROR INPUT CLEAR failed\n");
+			else test_write(control, "OK INPUT CLEAR\n");
+			break;
+		}
+		struct test_input_device *device =
+			test_input_find(control, command->input_name);
+		if (command->input_operation == WTWM_TEST_INPUT_ADD) {
+			if (device != NULL) {
+				test_write(control, "ERROR INPUT duplicate device: %s\n",
+					command->input_name);
+				break;
+			}
+			enum wtwm_input_device_type type =
+				command->input_device_type == WTWM_TEST_INPUT_DEVICE_KEYBOARD ?
+					WTWM_INPUT_DEVICE_KEYBOARD : WTWM_INPUT_DEVICE_POINTER;
+			if (!test_input_add(control, type, command->input_name)) {
+				test_write(control, "ERROR INPUT unable to add device: %s\n",
+					command->input_name);
+			} else {
+				test_write(control, "OK INPUT ADD %s %s\n",
+					type == WTWM_INPUT_DEVICE_KEYBOARD ? "KEYBOARD" : "POINTER",
+					command->input_name);
+			}
+			break;
+		}
+		if (device == NULL) {
+			test_write(control, "ERROR INPUT unknown device: %s\n",
+				command->input_name);
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_REMOVE) {
+			test_input_destroy(device);
+			test_write(control, "OK INPUT REMOVE %s\n", command->input_name);
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_KEY) {
+			if (device->type != WTWM_INPUT_DEVICE_KEYBOARD) {
+				test_write(control, "ERROR INPUT KEY requires keyboard: %s\n",
+					command->input_name);
+				break;
+			}
+			struct wlr_keyboard_key_event event = {
+				.time_msec = ++control->input_time_ms,
+				.keycode = command->code,
+				.update_state = true,
+				.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
+					WL_KEYBOARD_KEY_STATE_RELEASED,
+			};
+			wlr_keyboard_notify_key(&device->wlr.keyboard, &event);
+			test_trace_input_snapshot(server, "input-key");
+			test_write(control, "OK INPUT KEY %s %u %s\n",
+				command->input_name, command->code,
+				command->pressed ? "press" : "release");
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_POINTER) {
+			if (device->type != WTWM_INPUT_DEVICE_POINTER) {
+				test_write(control,
+					"ERROR INPUT POINTER requires pointer: %s\n",
+					command->input_name);
+				break;
+			}
+			if (!test_pointer(device, command->x, command->y)) {
+				test_write(control, "ERROR INPUT POINTER failed: %s\n",
+					command->input_name);
+				break;
+			}
+			test_trace_input_snapshot(server, "input-pointer");
+			test_write(control, "OK INPUT POINTER %s %.3f %.3f\n",
+				command->input_name, server->cursor->x, server->cursor->y);
+			break;
+		}
+		if (device->type != WTWM_INPUT_DEVICE_POINTER) {
+			test_write(control, "ERROR INPUT BUTTON requires pointer: %s\n",
+				command->input_name);
+			break;
+		}
+		struct wlr_pointer_button_event event = {
+			.pointer = &device->wlr.pointer,
+			.time_msec = ++control->input_time_ms,
+			.button = command->code,
+			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
+				WL_POINTER_BUTTON_STATE_RELEASED,
+		};
+		cursor_button(&server->cursor_button, &event);
+		wlr_seat_pointer_notify_frame(server->seat);
+		test_trace_input_snapshot(server, "input-button");
+		test_write(control, "OK INPUT BUTTON %s %u %s\n",
+			command->input_name, command->code,
+			command->pressed ? "press" : "release");
+		break;
+	}
 	case WTWM_TEST_COMMAND_POINTER:
 	case WTWM_TEST_COMMAND_SET_CURSOR:
-		test_pointer(server, command->x, command->y);
+		if (!test_pointer(control->legacy_pointer, command->x, command->y)) {
+			test_write(control, "ERROR legacy pointer is unavailable\n");
+			break;
+		}
 		test_trace_input_snapshot(server, "pointer");
 		test_write(control, "OK CURSOR %.3f %.3f\n", server->cursor->x, server->cursor->y);
 		break;
 	case WTWM_TEST_COMMAND_BUTTON: {
+		if (control->legacy_pointer == NULL) {
+			test_write(control, "ERROR legacy pointer is unavailable\n");
+			break;
+		}
 		struct wlr_pointer_button_event event = {
+			.pointer = &control->legacy_pointer->wlr.pointer,
 			.time_msec = ++control->input_time_ms,
 			.button = command->code,
 			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
@@ -9479,6 +10188,10 @@ static void test_execute(struct test_control *control,
 		break;
 	}
 	case WTWM_TEST_COMMAND_KEY: {
+		if (control->legacy_keyboard == NULL) {
+			test_write(control, "ERROR legacy keyboard is unavailable\n");
+			break;
+		}
 		struct wlr_keyboard_key_event event = {
 			.time_msec = ++control->input_time_ms,
 			.keycode = command->code,
@@ -9486,7 +10199,7 @@ static void test_execute(struct test_control *control,
 			.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
 				WL_KEYBOARD_KEY_STATE_RELEASED,
 		};
-		wlr_keyboard_notify_key(&control->keyboard, &event);
+		wlr_keyboard_notify_key(&control->legacy_keyboard->wlr.keyboard, &event);
 		test_trace_input_snapshot(server, "key");
 		test_write(control, "OK KEY %u %s\n", command->code,
 			command->pressed ? "press" : "release");
@@ -9654,7 +10367,7 @@ static void test_control_finish(struct server *server) {
 	if (control->listen_source != NULL) wl_event_source_remove(control->listen_source);
 	if (control->listen_fd >= 0) close(control->listen_fd);
 	if (control->path[0] != '\0') unlink(control->path);
-	if (control->keyboard_initialized) wlr_keyboard_finish(&control->keyboard);
+	(void)test_input_clear(control);
 	free(control->trace_events);
 	control->trace_events = NULL;
 }
@@ -9783,10 +10496,12 @@ int main(int argc, char **argv) {
 	server.focus_root = true;
 	server.pointer_context = 0;
 	wtwm_random_placement_init(&server.random_placement);
+	wtwm_input_hotplug_state_init(&server.input);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.listen_fd = -1;
 	server.test_control.client_fd = -1;
 	server.test_control.input_time_ms = 1000;
+	wl_list_init(&server.test_control.input_devices);
 #endif
 	wtwm_config_init(&server.config);
 	char config_error[1024];
@@ -9869,7 +10584,20 @@ int main(int argc, char **argv) {
 	server.cursor_frame.notify = cursor_frame;
 	wl_signal_add(&server.cursor->events.frame, &server.cursor_frame);
 	wl_list_init(&server.keyboards);
+	wl_list_init(&server.pointers);
+	server.input_plan = calloc(1, sizeof(*server.input_plan));
+	if (server.input_plan == NULL) goto fail_runtime;
 	server.seat = wlr_seat_create(server.display, "seat0");
+	if (server.seat == NULL) goto fail_runtime;
+	static const struct wlr_keyboard_impl aggregate_keyboard_impl = {
+		.name = "wtwm-aggregate-keyboard",
+	};
+	wlr_keyboard_init(&server.aggregate_keyboard, &aggregate_keyboard_impl,
+		"wtwm-aggregate-keyboard");
+	server.aggregate_keyboard_initialized = true;
+	if (!configure_keyboard(&server.aggregate_keyboard)) goto fail_runtime;
+	wlr_seat_set_keyboard(server.seat, &server.aggregate_keyboard);
+	wlr_seat_set_capabilities(server.seat, 0);
 	server.new_input.notify = new_input;
 	wl_signal_add(&server.backend->events.new_input, &server.new_input);
 	server.request_cursor.notify = request_cursor;
@@ -9880,17 +10608,15 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
 #ifdef WTWM_TEST_CONTROL
-	static const struct wlr_keyboard_impl test_keyboard_impl = {
-		.name = "wtwm-test-keyboard",
-	};
-	wlr_keyboard_init(&server.test_control.keyboard, &test_keyboard_impl,
-		"wtwm-test-keyboard");
-	server.test_control.keyboard_initialized = true;
-	new_keyboard(&server, &server.test_control.keyboard.base);
-	/* Test control injects both key and pointer events without backend input
-	 * devices, so advertise the matching seat resources to test clients. */
-	wlr_seat_set_capabilities(server.seat,
-		WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER);
+	server.test_control.server = &server;
+	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,
+			"TEST-KEYBOARD-0") ||
+			!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_POINTER,
+			"TEST-POINTER-0")) goto fail_runtime;
+	server.test_control.legacy_keyboard = test_input_find(&server.test_control,
+		"TEST-KEYBOARD-0");
+	server.test_control.legacy_pointer = test_input_find(&server.test_control,
+		"TEST-POINTER-0");
 	const char *socket = test_socket;
 	if (socket != NULL && wl_display_add_socket(server.display, socket) < 0) socket = NULL;
 	else if (socket == NULL) socket = wl_display_add_socket_auto(server.display);
@@ -9931,6 +10657,7 @@ int main(int argc, char **argv) {
 	wlr_allocator_destroy(server.allocator);
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
+	finish_input_adapter(&server);
 	wl_display_destroy(server.display);
 	restoration_transaction_finish(&server.restoration);
 	restoration_output_snapshot_finish(&server.restoration_pending_source);
@@ -9966,6 +10693,7 @@ fail_renderer:
 fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
+	finish_input_adapter(&server);
 	wl_display_destroy(server.display);
 	restoration_transaction_finish(&server.restoration);
 	restoration_output_snapshot_finish(&server.restoration_pending_source);

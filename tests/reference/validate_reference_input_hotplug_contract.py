@@ -18,7 +18,7 @@ CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/input-hotplug-contract.json"
 )
 EXPECTED_CANONICAL_SHA256 = (
-    "607e6fe82619ddcd413c09740e00244a3982d543b7a8884f2a67a0008ed47a8a"
+    "f64ba57cda03f41b74528fc1ea1d5f5f1d42da9151263c7c1dcacc4b4a154be3"
 )
 EXPECTED_UPSTREAM = {
     "name": "X.Org twm",
