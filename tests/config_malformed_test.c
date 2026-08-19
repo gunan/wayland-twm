@@ -19,6 +19,12 @@ static const struct malformed_case cases[] = {
 	{"top-level punctuation", "{\n", 1, "expected a directive"},
 	{"unterminated quoted menu name", "Menu \"broken", 1, "unterminated quoted string"},
 	{"trailing escape in quoted name", "Menu \"broken\\", 1, "unterminated escape in string"},
+	{"octal NUL in quoted name", "Menu \"broken\\0tail\" { }", 1,
+		"NUL byte is not allowed"},
+	{"hex NUL in quoted name", "Menu \"broken\\x00tail\" { }", 1,
+		"NUL byte is not allowed"},
+	{"empty hex escape in quoted name", "Menu \"broken\\x\" { }", 1,
+		"NUL byte is not allowed"},
 	{"newline in quote advances line", "Menu \"broken\nname\"", 2, "expected '{'"},
 
 	/* Scalars and flags. */

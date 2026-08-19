@@ -11,6 +11,7 @@
 
 #define WTWM_NAME_MAX 256
 #define WTWM_ACTION_MAX 256
+#define WTWM_CONFIG_MAX_FILE_BYTES (32u * 1024u * 1024u)
 
 enum wtwm_context {
 	WTWM_CONTEXT_ROOT = 1u << 0,
