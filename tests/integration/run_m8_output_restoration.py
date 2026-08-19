@@ -1153,12 +1153,20 @@ def prepare_clients(session: Session) -> dict[str, object]:
     )
     click_action(control, NATIVE_ZOOM, 2, "native fullzoom")
     bounded_state(
-        control, lambda item: by_title(item, NATIVE_ZOOM)["zoom"] == "full",
+        control,
+        lambda item: (
+            by_title(item, NATIVE_ZOOM)["zoom"] == "full"
+            and outer(by_title(item, NATIVE_ZOOM)) == Box(0, 0, 400, 300)
+        ),
         "native zoomed",
     )
     click_action(control, X11_ZOOM, 2, "X11 fullzoom")
     bounded_state(
-        control, lambda item: by_title(item, X11_ZOOM)["zoom"] == "full",
+        control,
+        lambda item: (
+            by_title(item, X11_ZOOM)["zoom"] == "full"
+            and outer(by_title(item, X11_ZOOM)) == Box(0, 0, 400, 300)
+        ),
         "X11 zoomed",
     )
     click_action(control, NATIVE_VISIBLE, 3, "stable survivor focus")

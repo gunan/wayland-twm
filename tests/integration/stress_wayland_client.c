@@ -28,10 +28,18 @@ struct client {
 	struct xdg_surface *xdg_surface;
 	struct xdg_toplevel *toplevel;
 	struct wl_buffer *buffer;
+	int buffer_width;
+	int buffer_height;
+	int pending_width;
+	int pending_height;
 	struct wl_surface *child_surface;
 	struct xdg_surface *child_xdg_surface;
 	struct xdg_toplevel *child_toplevel;
 	struct wl_buffer *child_buffer;
+	int child_buffer_width;
+	int child_buffer_height;
+	int child_pending_width;
+	int child_pending_height;
 	char title[128];
 	const char *app_id;
 	char child_title[128];
@@ -49,7 +57,11 @@ struct client {
 	bool child_focused;
 	bool has_child;
 	bool armed;
+	bool failed;
 };
+
+static struct wl_buffer *create_buffer(struct client *client, int width,
+	int height);
 
 static void wm_base_ping(void *data, struct xdg_wm_base *wm_base,
 		uint32_t serial) {
@@ -208,10 +220,29 @@ static void xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
 		uint32_t serial) {
 	struct client *client = data;
 	xdg_surface_ack_configure(xdg_surface, serial);
-	if (!client->attach_on_configure) return;
+	struct wl_buffer *previous = NULL;
+	if (client->pending_width > 0 && client->pending_height > 0 &&
+			(client->pending_width != client->buffer_width ||
+			client->pending_height != client->buffer_height)) {
+		struct wl_buffer *replacement = create_buffer(client,
+			client->pending_width, client->pending_height);
+		if (replacement == NULL) {
+			fprintf(stderr, "stress Wayland client: resize buffer failed\n");
+			client->failed = true;
+			return;
+		}
+		previous = client->buffer;
+		client->buffer = replacement;
+		client->buffer_width = client->pending_width;
+		client->buffer_height = client->pending_height;
+	}
+	client->pending_width = 0;
+	client->pending_height = 0;
+	if (!client->attach_on_configure && previous == NULL) return;
 	wl_surface_attach(client->surface, client->buffer, 0, 0);
 	wl_surface_damage_buffer(client->surface, 0, 0, INT32_MAX, INT32_MAX);
 	wl_surface_commit(client->surface);
+	if (previous != NULL) wl_buffer_destroy(previous);
 	client->attach_on_configure = false;
 	client->mapped = true;
 }
@@ -224,10 +255,30 @@ static void child_xdg_surface_configure(void *data,
 		struct xdg_surface *xdg_surface, uint32_t serial) {
 	struct client *client = data;
 	xdg_surface_ack_configure(xdg_surface, serial);
-	if (!client->child_attach_on_configure) return;
+	struct wl_buffer *previous = NULL;
+	if (client->child_pending_width > 0 && client->child_pending_height > 0 &&
+			(client->child_pending_width != client->child_buffer_width ||
+			client->child_pending_height != client->child_buffer_height)) {
+		struct wl_buffer *replacement = create_buffer(client,
+			client->child_pending_width, client->child_pending_height);
+		if (replacement == NULL) {
+			fprintf(stderr,
+				"stress Wayland client: child resize buffer failed\n");
+			client->failed = true;
+			return;
+		}
+		previous = client->child_buffer;
+		client->child_buffer = replacement;
+		client->child_buffer_width = client->child_pending_width;
+		client->child_buffer_height = client->child_pending_height;
+	}
+	client->child_pending_width = 0;
+	client->child_pending_height = 0;
+	if (!client->child_attach_on_configure && previous == NULL) return;
 	wl_surface_attach(client->child_surface, client->child_buffer, 0, 0);
 	wl_surface_damage_buffer(client->child_surface, 0, 0, INT32_MAX, INT32_MAX);
 	wl_surface_commit(client->child_surface);
+	if (previous != NULL) wl_buffer_destroy(previous);
 	client->child_attach_on_configure = false;
 	client->child_mapped = true;
 }
@@ -238,10 +289,16 @@ static const struct xdg_surface_listener child_xdg_surface_listener = {
 
 static void toplevel_configure(void *data, struct xdg_toplevel *toplevel,
 		int32_t width, int32_t height, struct wl_array *states) {
-	(void)data;
-	(void)toplevel;
-	(void)width;
-	(void)height;
+	struct client *client = data;
+	if (width > 0 && height > 0) {
+		if (toplevel == client->toplevel) {
+			client->pending_width = width;
+			client->pending_height = height;
+		} else if (toplevel == client->child_toplevel) {
+			client->child_pending_width = width;
+			client->child_pending_height = height;
+		}
+	}
 	(void)states;
 }
 
@@ -324,10 +381,10 @@ static bool map_client(struct client *client) {
 	xdg_toplevel_set_title(client->toplevel, client->title);
 	xdg_toplevel_set_app_id(client->toplevel, client->app_id);
 	wl_surface_commit(client->surface);
-	while (!client->mapped) {
+	while (!client->mapped && !client->failed) {
 		if (wl_display_dispatch(client->display) < 0) return false;
 	}
-	return wl_display_roundtrip(client->display) >= 0;
+	return !client->failed && wl_display_roundtrip(client->display) >= 0;
 }
 
 static bool unmap_client(struct client *client) {
@@ -340,6 +397,8 @@ static bool unmap_client(struct client *client) {
 
 static bool create_child(struct client *client) {
 	client->child_buffer = create_buffer(client, 140, 90);
+	client->child_buffer_width = 140;
+	client->child_buffer_height = 90;
 	client->child_surface = wl_compositor_create_surface(client->compositor);
 	if (client->child_buffer == NULL || client->child_surface == NULL) return false;
 	client->child_xdg_surface = xdg_wm_base_get_xdg_surface(client->wm_base,
@@ -356,10 +415,10 @@ static bool create_child(struct client *client) {
 	xdg_toplevel_set_app_id(client->child_toplevel, client->child_app_id);
 	client->child_attach_on_configure = true;
 	wl_surface_commit(client->child_surface);
-	while (!client->child_mapped) {
+	while (!client->child_mapped && !client->failed) {
 		if (wl_display_dispatch(client->display) < 0) return false;
 	}
-	return wl_display_roundtrip(client->display) >= 0;
+	return !client->failed && wl_display_roundtrip(client->display) >= 0;
 }
 
 static bool handle_command(struct client *client, char *command, bool *done) {
@@ -482,6 +541,8 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	client.buffer = create_buffer(&client, 180, 120);
+	client.buffer_width = 180;
+	client.buffer_height = 120;
 	client.surface = wl_compositor_create_surface(client.compositor);
 	if (client.buffer == NULL || client.surface == NULL) return EXIT_FAILURE;
 	client.xdg_surface = xdg_wm_base_get_xdg_surface(client.wm_base,
@@ -500,7 +561,7 @@ int main(int argc, char **argv) {
 
 	bool done = false;
 	char command[128];
-	while (!done) {
+	while (!done && !client.failed) {
 		if (wl_display_dispatch_pending(client.display) < 0 ||
 				wl_display_flush(client.display) < 0) break;
 		struct pollfd descriptors[] = {
