@@ -482,7 +482,7 @@ Implementation work:
 - [x] Complete warp-to-screen behavior and screen history.
 - [x] Handle output addition, removal, scale changes, and mode changes.
 - [x] Restore windows safely when an output disappears.
-- [ ] Support input hotplugging and multiple keyboards and pointers.
+- [x] Support input hotplugging and multiple keyboards and pointers.
 - [ ] Define session startup, logout, failure recovery, and state-file behavior.
 
 Testing:
