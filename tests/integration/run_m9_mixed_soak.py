@@ -544,8 +544,17 @@ def resize(control: Control, clients: dict[str, SoakClient], protocol: str,
     delta = 11 if iteration % 2 else -11
     control.command(f"POINTER {point[0] + delta} {point[1] + delta}")
     preview = control.state()["interaction"]
-    if not isinstance(preview, dict) or not preview.get("started"):
-        raise RuntimeError(f"resize motion did not start for {protocol}: {preview!r}")
+    if (
+        not isinstance(preview, dict)
+        or not preview.get("moved")
+        or (
+            int(preview["preview"]["width"]),
+            int(preview["preview"]["height"]),
+        ) == old
+    ):
+        raise RuntimeError(
+            f"resize motion did not change preview for {protocol}: {preview!r}"
+        )
     expected = (int(preview["preview"]["width"]), int(preview["preview"]["height"]))
     control.command("BUTTON 274 release")
     state = wait_state(
@@ -642,6 +651,7 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
         config = temporary / "m9-soak.twmrc"
         config_text = (
             "NoDefaults\nRandomPlacement\nNoGrabServer\nNoIconManagers\n"
+            "AutoRelativeResize\n"
             'Function "focus-raise" { f.focus f.raise }\n'
             'Button1 = : window : f.function "focus-raise"\n'
             "Button2 = : window : f.resize\n"

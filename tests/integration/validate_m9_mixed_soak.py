@@ -25,6 +25,8 @@ RUNNER_MARKERS = {
         'control.command("BUTTON 274 press")\n'
         '    active = control.state()["interaction"]'
     ),
+    "auto-relative resize policy enabled": '"AutoRelativeResize\\n"',
+    "resize oracle requires moved preview": 'or not preview.get("moved")',
 }
 
 
