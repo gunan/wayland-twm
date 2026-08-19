@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct direct_case {
@@ -132,11 +133,52 @@ static void test_malformed_commands(void) {
 	}
 
 	struct wtwm_command_plan plan;
+	memset(&plan, 0xff, sizeof(plan));
 	if (wtwm_command_plan_create(NULL, &plan) != WTWM_COMMAND_INVALID_ARGUMENT)
 		fail("malformed", sizeof(cases) / sizeof(cases[0]), "accepted NULL command");
+	if (plan.command != NULL || plan.argv != NULL || plan.argc != 0 ||
+			plan.mode != WTWM_COMMAND_DIRECT)
+		fail("malformed", sizeof(cases) / sizeof(cases[0]) + 1,
+			"did not reset plan for NULL command");
 	if (wtwm_command_plan_create("program", NULL) != WTWM_COMMAND_INVALID_ARGUMENT)
-		fail("malformed", sizeof(cases) / sizeof(cases[0]) + 1, "accepted NULL plan");
+		fail("malformed", sizeof(cases) / sizeof(cases[0]) + 2, "accepted NULL plan");
+	wtwm_command_plan_destroy(&plan);
 	wtwm_command_plan_destroy(NULL);
+}
+
+static void test_large_direct_command(void) {
+	const size_t argument_count = 16384;
+	size_t command_size = 4 + argument_count * 2 + 1;
+	char *command = malloc(command_size);
+	assert(command != NULL);
+	memcpy(command, "prog", 4);
+	for (size_t i = 0; i < argument_count; ++i) {
+		command[4 + i * 2] = ' ';
+		command[5 + i * 2] = 'x';
+	}
+	command[command_size - 1] = '\0';
+
+	struct wtwm_command_plan plan;
+	assert(wtwm_command_plan_create(command, &plan) == WTWM_COMMAND_OK);
+	assert(plan.mode == WTWM_COMMAND_DIRECT);
+	assert(plan.argc == argument_count + 1);
+	assert(strcmp(plan.argv[0], "prog") == 0);
+	assert(strcmp(plan.argv[plan.argc - 1], "x") == 0);
+	assert(plan.argv[plan.argc] == NULL);
+	wtwm_command_plan_destroy(&plan);
+	free(command);
+
+	const size_t argument_length = 256 * 1024;
+	command = malloc(5 + argument_length + 1);
+	assert(command != NULL);
+	memcpy(command, "prog ", 5);
+	memset(command + 5, 'a', argument_length);
+	command[5 + argument_length] = '\0';
+	assert(wtwm_command_plan_create(command, &plan) == WTWM_COMMAND_OK);
+	assert(plan.mode == WTWM_COMMAND_DIRECT && plan.argc == 2);
+	assert(strlen(plan.argv[1]) == argument_length);
+	wtwm_command_plan_destroy(&plan);
+	free(command);
 }
 
 static void test_destroy_resets_plan(void) {
@@ -194,6 +236,7 @@ int main(void) {
 	test_direct_commands();
 	test_shell_commands();
 	test_malformed_commands();
+	test_large_direct_command();
 	test_destroy_resets_plan();
 	test_safe_handoff_planning();
 	return failures == 0 ? 0 : 1;
