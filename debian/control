@@ -7,17 +7,22 @@ Vcs-Browser: https://github.com/gunan/wayland-twm
 Vcs-Git: https://github.com/gunan/wayland-twm.git
 Build-Depends:
  debhelper-compat (= 13),
+ dialog,
+ emacs-gtk,
  libfontconfig-dev,
  libpango1.0-dev,
  libwayland-dev,
- libwlroots-0.18-dev,
+ libwlroots-0.18-dev | libwlroots-0.20-dev,
  libx11-dev,
  libxcb1-dev,
  libxkbcommon-dev,
  meson,
  ninja-build,
  pkgconf,
- wayland-protocols
+ wayland-protocols,
+ x11-apps,
+ xterm,
+ xwayland
 Standards-Version: 4.7.2
 Rules-Requires-Root: no
 

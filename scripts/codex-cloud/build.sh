@@ -15,14 +15,16 @@ esac
 
 compositor="$requested_compositor"
 if [ "$requested_compositor" = auto ]; then
-	if pkg-config --exists wlroots-0.18; then
+	if pkg-config --exists wlroots-0.18 || pkg-config --exists wlroots-0.20; then
 		compositor=enabled
 	else
 		compositor=disabled
 	fi
-elif [ "$requested_compositor" = enabled ] && ! pkg-config --exists wlroots-0.18; then
-	echo "CODEX_CLOUD_COMPOSITOR=enabled requires pkg-config dependency wlroots-0.18" >&2
-	echo "Use auto for a portable parser build, or provide wlroots 0.18 in the environment." >&2
+elif [ "$requested_compositor" = enabled ] \
+		&& ! pkg-config --exists wlroots-0.18 \
+		&& ! pkg-config --exists wlroots-0.20; then
+	echo "CODEX_CLOUD_COMPOSITOR=enabled requires wlroots-0.18 or wlroots-0.20" >&2
+	echo "Use auto for a portable parser build, or provide a supported wlroots API." >&2
 	exit 1
 fi
 

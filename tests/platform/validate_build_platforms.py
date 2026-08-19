@@ -23,6 +23,13 @@ REQUIRED_PACKAGES = {
     "wayland-protocols",
 }
 
+TESTING_REQUIRED_PACKAGES = (REQUIRED_PACKAGES - {"libwlroots-0.18-dev"}) | {
+    "debhelper",
+    "dpkg-dev",
+    "libwlroots-0.20-dev",
+    "libx11-dev",
+}
+
 REQUIRED_PACKAGE_JOB_PACKAGES = {
     "debhelper",
     "dpkg-dev",
@@ -68,6 +75,7 @@ def validate(source_root: Path) -> list[str]:
     workflow_path = source_root / ".github/workflows/build.yml"
     script_path = source_root / "scripts/ci/run-meson-build.sh"
     packages_path = source_root / "scripts/ci/debian-trixie-build-packages.txt"
+    testing_packages_path = source_root / "scripts/ci/debian-testing-build-packages.txt"
     package_script_path = source_root / "scripts/ci/run-debian-package-ci.sh"
     package_packages_path = source_root / "scripts/ci/debian-trixie-package-packages.txt"
     candidate_script_path = source_root / "packaging/debian/clean-candidate-test.sh"
@@ -77,6 +85,7 @@ def validate(source_root: Path) -> list[str]:
         workflow_path,
         script_path,
         packages_path,
+        testing_packages_path,
         package_script_path,
         package_packages_path,
         candidate_script_path,
@@ -94,6 +103,11 @@ def validate(source_root: Path) -> list[str]:
         for line in packages_path.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     }
+    testing_packages = {
+        line.strip()
+        for line in testing_packages_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
     package_job_packages = {
         line.strip()
         for line in package_packages_path.read_text(encoding="utf-8").splitlines()
@@ -105,6 +119,11 @@ def validate(source_root: Path) -> list[str]:
     missing_packages = sorted(REQUIRED_PACKAGES - packages)
     if missing_packages:
         errors.append("Debian Trixie package list is missing: " + ", ".join(missing_packages))
+    missing_testing_packages = sorted(TESTING_REQUIRED_PACKAGES - testing_packages)
+    if missing_testing_packages:
+        errors.append(
+            "Debian testing package list is missing: " + ", ".join(missing_testing_packages)
+        )
     missing_package_job_packages = sorted(REQUIRED_PACKAGE_JOB_PACKAGES - package_job_packages)
     if missing_package_job_packages:
         errors.append(
@@ -131,6 +150,22 @@ def validate(source_root: Path) -> list[str]:
         ):
             if marker not in baseline:
                 errors.append(f"debian-trixie soak upload is missing marker: {marker!r}")
+
+    testing = job_block(workflow, "debian-testing")
+    if not testing:
+        errors.append("workflow is missing the required debian-testing job")
+    else:
+        for marker in (
+            "container: debian:testing",
+            "scripts/ci/debian-testing-build-packages.txt",
+            'test "$(dpkg --print-architecture)" = amd64',
+            "pkg-config --atleast-version=0.20 wlroots-0.20",
+            "pkg-config --max-version=0.20.999 wlroots-0.20",
+            "dpkg-checkbuilddeps",
+            "scripts/ci/run-meson-build.sh build-testing enabled debug",
+        ):
+            if marker not in testing:
+                errors.append(f"debian-testing job is missing contract marker: {marker!r}")
 
     package_job = job_block(workflow, "debian-package")
     if not package_job:
@@ -279,7 +314,7 @@ def self_test_tamper(source_root: Path) -> list[str]:
                 "test -f /usr/share/wayland-sessions/weston.desktop",
                 "test -f /tmp/unprotected-weston.desktop",
                 1,
-            ),
+            ).replace("container: debian:testing", "container: debian:trixie", 1),
             encoding="utf-8",
         )
         (root / "scripts/ci/run-meson-build.sh").write_text(
@@ -288,6 +323,12 @@ def self_test_tamper(source_root: Path) -> list[str]:
         )
         (root / "scripts/ci/debian-trixie-build-packages.txt").write_text(
             (source_root / "scripts/ci/debian-trixie-build-packages.txt").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        (root / "scripts/ci/debian-testing-build-packages.txt").write_text(
+            (source_root / "scripts/ci/debian-testing-build-packages.txt").read_text(
+                encoding="utf-8"
+            ),
             encoding="utf-8",
         )
         for relative in (
@@ -308,6 +349,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
         return ["self-test failed: removing protected Weston session coverage was not detected"]
     if not any("ARM64 debug" in error and "ubuntu-24.04-arm" in error for error in tamper_errors):
         return ["self-test failed: replacing the native ARM64 runner was not detected"]
+    if not any(
+        "debian-testing job" in error and "container: debian:testing" in error
+        for error in tamper_errors
+    ):
+        return ["self-test failed: replacing the Debian testing container was not detected"]
     return []
 
 
@@ -326,7 +372,10 @@ def main() -> int:
             print(f"build-platform validation failed: {error}")
         return 1
 
-    print("build-platform validation passed: native hosts, architectures, and profiles are covered")
+    print(
+        "build-platform validation passed: Debian stable/testing, native hosts, "
+        "architectures, and profiles are covered"
+    )
     return 0
 
 
