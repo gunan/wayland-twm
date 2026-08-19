@@ -143,6 +143,14 @@ class TopologyModel:
         )
 
 
+def frame_barrier_reached(before: int, response: str, after: int) -> bool:
+    match = re.fullmatch(r"OK FRAME ([0-9]+)", response)
+    if match is None:
+        return False
+    sequence = int(match.group(1))
+    return sequence > before and after >= sequence
+
+
 def validate_model() -> None:
     if TRANSFORMS != (
         "normal",
@@ -155,6 +163,12 @@ def validate_model() -> None:
         "flipped-270",
     ):
         raise RuntimeError("frozen output transform spellings changed")
+    if not frame_barrier_reached(0, "OK FRAME 2", 3):
+        raise RuntimeError("a later asynchronously rendered frame was rejected")
+    if frame_barrier_reached(2, "OK FRAME 2", 3):
+        raise RuntimeError("a non-advancing frame response was accepted")
+    if frame_barrier_reached(0, "OK FRAME 2", 1):
+        raise RuntimeError("STATE before the acknowledged frame was accepted")
 
     reordered = TopologyModel()
     reordered.add("HEADLESS-3", 320, 240)
@@ -445,12 +459,10 @@ def expect_command(control: Control, command: str, expected: str) -> None:
 def frame_barrier(control: Control, label: str) -> dict[str, object]:
     before = control.state()
     response = control.command("WAIT 2")
-    match = re.fullmatch(r"OK FRAME ([0-9]+)", response)
     after = control.state()
-    if match is None:
-        raise RuntimeError(f"{label}: malformed frame barrier {response!r}")
-    sequence = int(match.group(1))
-    if sequence <= int(before["frame"]) or after["frame"] != sequence:
+    if not frame_barrier_reached(
+        int(before["frame"]), response, int(after["frame"])
+    ):
         raise RuntimeError(
             f"{label}: frame barrier mismatch before={before['frame']!r}, "
             f"response={response!r}, after={after['frame']!r}"
