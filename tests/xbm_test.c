@@ -1,10 +1,14 @@
 /* SPDX-License-Identifier: MIT */
+#define _POSIX_C_SOURCE 200809L
+
 #include "wtwm/xbm.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 static const char *fixture(const char *name) {
 	static char paths[32][1024];
@@ -103,6 +107,25 @@ static void rejects_malformed_and_bounded_inputs_atomically(void) {
 	}
 	assert_failure(&xbm, FIXTURE("does-not-exist"), "unable to open");
 	assert(xbm.data == original_data);
+
+	const char *temporary_root = getenv("TMPDIR");
+	if (temporary_root == NULL || temporary_root[0] == '\0') temporary_root = "/tmp";
+	char path[1024];
+	int written = snprintf(path, sizeof(path), "%s/wtwm-xbm-test-XXXXXX",
+		temporary_root);
+	assert(written >= 0 && (size_t)written < sizeof(path));
+	int descriptor = mkstemp(path);
+	assert(descriptor >= 0);
+	assert(ftruncate(descriptor, (off_t)WTWM_XBM_MAX_FILE_BYTES + 1) == 0);
+	assert(close(descriptor) == 0);
+	assert_failure(&xbm, path, "file exceeds limit");
+	assert(xbm.data == original_data && xbm.name == original_name);
+	assert(unlink(path) == 0);
+
+	assert(!wtwm_xbm_load(NULL, FIXTURE("classic_char"), error, sizeof(error)));
+	assert(strstr(error, "invalid loader argument") != NULL);
+	assert(!wtwm_xbm_load(&xbm, NULL, error, sizeof(error)));
+	assert(strstr(error, "invalid loader argument") != NULL);
 	wtwm_xbm_finish(&xbm);
 }
 

@@ -1,0 +1,234 @@
+.TH WTWMRC 5 "2026-08-18" "wtwm 0.1.0" "File Formats"
+.SH NAME
+wtwmrc \- configuration file for wtwm
+.SH DESCRIPTION
+.B wtwm
+reads the twm configuration language.  The goal is to let an existing
+.I .twmrc
+control native Wayland and Xwayland windows without renaming or destructively
+migrating that file.  Keywords and action names are case-insensitive; quoted
+names and command arguments retain their text.
+.PP
+The reference grammar is the grammar of twm 1.0.13.1.  This page documents how
+to use that grammar under Wayland and calls out the operational differences a
+user must understand.  The installed compatibility ledger gives the status of
+every recognized directive and action.
+.SH SEARCH ORDER
+For screen zero and no explicit command-line file, wtwm tries these sources in
+order and uses the first readable one:
+.IP 1. 4
+.I $HOME/.twmrc.0
+.IP 2. 4
+.I $HOME/.twmrc
+.IP 3. 4
+the packaged
+.I system.twmrc
+.IP 4. 4
+compiled-in defaults
+.PP
+An explicit
+.B wtwm -f file
+tries
+.I file
+first, then the packaged file, then compiled-in defaults.  Set
+.B WTWM_SYSTEM_CONFIG
+only to override the packaged path for a controlled build or test.
+.SH LEXICAL FORM
+Blank lines and whitespace separate tokens.
+.B #
+introduces a comment outside a quoted string.  Strings use double quotes and
+support the reference escapes and continued lines.  Integer, signed-integer,
+geometry, color, cursor, context, modifier, and action productions follow twm.
+Malformed input is rejected atomically; a failed runtime reload leaves the
+active configuration intact.
+.SH TOP-LEVEL FORMS
+The principal forms are:
+.TP
+.I Keyword
+A boolean setting, for example
+.BR OpaqueMove ,
+.BR NoTitleFocus ,
+or
+.BR DecorateTransients .
+.TP
+.I Keyword value
+A scalar setting such as
+.BR BorderWidth ,
+.BR MoveDelta ,
+.BR ConstrainedMoveTime ,
+font names, cursor names, or geometry.
+.TP
+.I "Keyword { entries }"
+A color, monochrome, pixmap, squeeze-title, icon-manager, or window match list.
+.TP
+.B Function
+.I "name { actions }"
+Defines an ordered reusable action sequence; the name is quoted in the file.
+.TP
+.B Menu
+.I "name { label action ... }"
+Defines a quoted-name menu.  An entry may invoke an action, function, or
+submenu.
+.TP
+.I "ButtonN = modifiers : contexts : action"
+Binds pointer button
+.I N
+to an action.
+.TP
+.I "key = modifiers : contexts : action"
+Binds a quoted key name to an action.
+.PP
+Use
+.B wtwm-config file
+to validate all forms and inspect the resulting configuration before login.
+.SH MODIFIERS AND CONTEXTS
+The reference modifier names
+.BR s ,
+.BR c ,
+.BR m ,
+.BR l ,
+numeric modifier selectors, and combinations separated by
+.B |
+are accepted.  Contexts include
+.BR root ,
+.BR window ,
+.BR title ,
+.BR icon ,
+.BR iconmgr ,
+.BR frame ,
+and
+.BR all .
+Context lists use
+.BR | .
+.PP
+On Wayland the compositor consumes bindings before a client receives them, just
+as twm consumes its window-manager bindings.  A binding without an appropriate
+context does not become a global client shortcut.
+.SH WINDOW MATCHING
+Window lists retain twm's ordered name/class behavior.
+.IP \(bu 2
+For Xwayland, wtwm checks
+.BR WM_NAME ,
+then the instance and class strings in
+.BR WM_CLASS .
+.IP \(bu 2
+For native Wayland, wtwm checks the xdg-shell title, then
+.BR app_id .
+.PP
+Applications choose their own Wayland
+.BR app_id .
+Inspect application documentation or diagnostic output rather than assuming it
+equals the executable name.  Title and identity changes are reapplied where the
+corresponding twm rule is dynamic.
+.SH COLORS, FONTS, AND PIXMAPS
+.B Color
+and
+.B Monochrome
+blocks use twm color names and per-window override lists.  Color, grayscale, and
+monochrome compositor modes can be selected with
+.BR wtwm --visual-mode .
+X core bitmap font descriptions are resolved to matching installed fonts for
+classic metrics.  If an exact legacy font is missing, install the expected font
+package or choose an available Fontconfig/Pango description.
+.PP
+XBM files used for title buttons, icons, and pixmaps are decoded with bounded
+dimensions and input sizes.  Relative paths are resolved according to the
+configuration's pixmap path rules.  A malformed bitmap is rejected or reported;
+it is never treated as executable content.
+.SH PLACEMENT AND OUTPUTS
+twm's screen is translated to the selected Wayland output.  Initial placement,
+move constraints, zoom variants, icon regions, and icon managers operate in
+that output's logical coordinates.  An X11 position request keeps its global
+coordinates where the reference accepts it.  Native Wayland has no client
+position hint: unparented windows use the pointer output, and transient windows
+use their managed parent output.
+.PP
+The reference multi-screen actions are translated to the configured Wayland
+output order.  Output removal repairs visibility of managed windows; output
+return restores eligible prior placement.  See the compatibility ledger for
+the exact translation of each screen action.
+.SH ACTIONS AND COMMANDS
+The complete reference action namespace is recognized.  Effective actions
+cover focus, stacking, move/resize, zoom/fill, iconify, menus, icon managers,
+output traversal, configuration reload, session state, clipboard/cut-buffer
+translation, client close, command execution, and compositor exit.
+.PP
+.B f.exec
+runs the configured text with the user's privileges.  Simple quoted or escaped
+argument vectors execute directly.  Text requiring shell syntax is passed
+unchanged to
+.BR /bin/sh -c .
+Review commands in any imported configuration.
+.PP
+.B f.delete
+requests a graceful client close.
+.B f.destroy
+cannot forcibly kill a native xdg-shell client and is translated to the
+available close request.  Xwayland behavior follows the documented ICCCM path.
+.PP
+.B f.restart
+and
+.B f.twmrc
+reload configuration atomically without replacing the Wayland compositor
+process or disconnecting clients.  This is the Wayland-safe observable
+equivalent of twm restart behavior.
+.PP
+.B f.saveyourself
+writes wtwm's explicit persistent snapshot and also uses the X11
+.B WM_SAVE_YOURSELF
+protocol when an Xwayland target supports it.  Ordinary logout and crashes do
+not replace the snapshot.
+.SH X11-ONLY DIRECTIVES
+Server grabs, backing-store preferences, save-unders, installed colormaps, ring
+bells, and several X resource choices have no native Wayland protocol.  wtwm
+either reproduces their visible result in compositor-owned state, preserves the
+Xwayland behavior where possible, or accepts them as verified no-ops.  It does
+not silently assign an unrelated meaning.  Consult the compatibility ledger
+before relying on one of these directives.
+.SH EXAMPLE
+.EX
+# Keep ordinary twm syntax; native applications match title then app_id.
+OpaqueMove
+DecorateTransients
+MoveDelta 3
+
+Function "move-or-raise" { f.move f.deltastop f.raise }
+Button1 = m : window|icon : f.function "move-or-raise"
+"Return" = m : all : f.exec "foot"
+
+Menu "operations"
+{
+    "Operations" f.title
+    "Move"       f.move
+    "Resize"     f.resize
+    "Iconify"    f.iconify
+    "Terminal"   f.exec "foot"
+    "Exit"       f.quit
+}
+Button1 = : root : f.menu "operations"
+.EE
+.SH FILES
+.TP
+.I $HOME/.twmrc.0
+Screen-zero configuration.
+.TP
+.I $HOME/.twmrc
+General user configuration.
+.TP
+.I /usr/share/wtwm/system.twmrc
+Packaged sample and fallback.
+.TP
+.I ${XDG_STATE_HOME:-$HOME/.local/state}/wtwm/state
+Explicit state snapshot used with
+.BR RestartPreviousState .
+.SH MIGRATION
+Keep the original file, validate it with
+.BR wtwm-config (1),
+then test wtwm nested before choosing a login session.  Retain the old X11 twm
+session until native and Xwayland application identities, fonts, commands, and
+output behavior have been checked.  The installed migration and troubleshooting
+guides provide a reversible procedure.
+.SH SEE ALSO
+.BR wtwm (1),
+.BR wtwm-config (1),
+.BR twm (1)

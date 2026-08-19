@@ -183,6 +183,7 @@ static bool fail(struct parser *parser, const char *format, ...) {
 
 static bool token_set_text(struct parser *parser, struct token *token,
 	const char *start, size_t length) {
+	if (length == SIZE_MAX) return fail_at(parser, token->line, "token is too large");
 	token->text = malloc(length + 1);
 	if (token->text == NULL) return fail_at(parser, token->line, "out of memory");
 	memcpy(token->text, start, length);
@@ -192,6 +193,7 @@ static bool token_set_text(struct parser *parser, struct token *token,
 
 static bool append_char(struct parser *parser, char **text, size_t *length,
 	size_t *capacity, char value, size_t line) {
+	if (*length == SIZE_MAX) return fail_at(parser, line, "string is too large");
 	if (*length + 1 >= *capacity) {
 		size_t next = *capacity == 0 ? 32 : *capacity * 2;
 		if (next <= *capacity) return fail_at(parser, line, "string is too large");
@@ -263,6 +265,11 @@ static bool lex_string(struct parser *parser, struct token *token, size_t *posit
 				} else value = (unsigned char)escaped;
 				break;
 			}
+		}
+		if (value == '\0') {
+			free(text);
+			return fail_at(parser, token->line,
+				"NUL byte is not allowed in a quoted string");
 		}
 		if (!append_char(parser, &text, &length, &capacity, (char)value, token->line)) {
 			free(text);
@@ -1308,9 +1315,10 @@ static void replace_config(struct wtwm_config *destination,
 bool wtwm_config_parse(struct wtwm_config *config, const char *source_name,
 	const char *text, char *error, size_t error_size) {
 	if (error != NULL && error_size > 0) error[0] = '\0';
-	if (text == NULL) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s:1: null input",
-			source_name ? source_name : "<config>");
+	if (config == NULL || text == NULL) {
+		if (error != NULL && error_size > 0) snprintf(error, error_size,
+			"%s:1: %s", source_name ? source_name : "<config>",
+			config == NULL ? "null configuration" : "null input");
 		return false;
 	}
 	struct wtwm_config replacement;
@@ -1344,32 +1352,81 @@ bool wtwm_config_parse(struct wtwm_config *config, const char *source_name,
 static bool read_file(const char *path, char **text, char *error, size_t error_size) {
 	FILE *file = fopen(path, "rb");
 	if (file == NULL) return false;
-	if (fseek(file, 0, SEEK_END) != 0) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
-		fclose(file);
-		return false;
-	}
-	long length = ftell(file);
-	if (length < 0 || fseek(file, 0, SEEK_SET) != 0) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
-		fclose(file);
-		return false;
-	}
-	char *buffer = malloc((size_t)length + 1);
+	size_t capacity = 4096;
+	char *buffer = malloc(capacity + 1);
 	if (buffer == NULL) {
 		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: out of memory", path);
-		fclose(file);
+		(void)fclose(file);
 		return false;
 	}
-	size_t count = fread(buffer, 1, (size_t)length, file);
-	if (count != (size_t)length && ferror(file)) {
-		if (error != NULL && error_size > 0) snprintf(error, error_size, "%s: %s", path, strerror(errno));
+	size_t used = 0;
+	for (;;) {
+		if (used == capacity) {
+			if (capacity == WTWM_CONFIG_MAX_FILE_BYTES) {
+				int next = fgetc(file);
+				if (next != EOF) {
+					if (error != NULL && error_size > 0) snprintf(error, error_size,
+						"%s: file exceeds limit %u", path,
+						WTWM_CONFIG_MAX_FILE_BYTES);
+					free(buffer);
+					(void)fclose(file);
+					return false;
+				}
+				if (ferror(file)) {
+					if (error != NULL && error_size > 0) snprintf(error, error_size,
+						"%s: unable to read: %s", path, strerror(errno));
+					free(buffer);
+					(void)fclose(file);
+					return false;
+				}
+				break;
+			}
+			size_t next_capacity = capacity * 2;
+			if (next_capacity > WTWM_CONFIG_MAX_FILE_BYTES)
+				next_capacity = WTWM_CONFIG_MAX_FILE_BYTES;
+			char *replacement = realloc(buffer, next_capacity + 1);
+			if (replacement == NULL) {
+				if (error != NULL && error_size > 0) snprintf(error, error_size,
+					"%s: out of memory", path);
+				free(buffer);
+				(void)fclose(file);
+				return false;
+			}
+			buffer = replacement;
+			capacity = next_capacity;
+		}
+		size_t count = fread(buffer + used, 1, capacity - used, file);
+		if (memchr(buffer + used, '\0', count) != NULL) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: file contains a NUL byte", path);
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
+		used += count;
+		if (ferror(file)) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: unable to read: %s", path, strerror(errno));
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
+		if (feof(file)) break;
+		if (count == 0) {
+			if (error != NULL && error_size > 0) snprintf(error, error_size,
+				"%s: unable to read", path);
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
+	}
+	if (fclose(file) != 0) {
+		if (error != NULL && error_size > 0) snprintf(error, error_size,
+			"%s: unable to close: %s", path, strerror(errno));
 		free(buffer);
-		fclose(file);
 		return false;
 	}
-	buffer[count] = '\0';
-	fclose(file);
+	buffer[used] = '\0';
 	*text = buffer;
 	return true;
 }
@@ -1418,6 +1475,11 @@ static const char built_in_twmrc[] =
 bool wtwm_config_load_for_screen(struct wtwm_config *config, const char *path,
 	unsigned screen, char *error, size_t error_size) {
 	if (error != NULL && error_size > 0) error[0] = '\0';
+	if (config == NULL) {
+		if (error != NULL && error_size > 0) snprintf(error, error_size,
+			"%s: null configuration", path ? path : "<config>");
+		return false;
+	}
 	char screen_path[4096] = "";
 	char general_path[4096] = "";
 	const char *home = getenv("HOME");

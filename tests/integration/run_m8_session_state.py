@@ -204,6 +204,12 @@ class Lifetime:
         channel.expect_prefix(f"OK READY {X11_TITLE} ")
         self.clients[X11_TITLE] = (process, channel)
 
+    def sync_native(self, token: str) -> None:
+        process, channel = self.clients[NATIVE_TITLE]
+        if process.poll() is not None:
+            raise RuntimeError("native client exited before protocol barrier")
+        channel.command(f"ARM {token}", f"OK ARMED {token}")
+
     def stop(self) -> str:
         for title, (process, channel) in list(self.clients.items()):
             if process.poll() is not None:
@@ -283,6 +289,11 @@ def run(
                 and value["focus"] == NATIVE_TITLE,
                 "saved state focus",
             )
+            # A compositor WAIT advances frames but does not prove that the
+            # native client has acknowledged and committed a pending resize.
+            # Complete a Wayland roundtrip so the saved and expected geometry
+            # describe the same protocol state on every architecture.
+            first.sync_native("session-save")
             click(first.control, window(state, NATIVE_TITLE), 275)
             wait_nonempty_file(state_path)
             expected = saved_snapshot(first.control.state())
@@ -298,6 +309,9 @@ def run(
         try:
             second.spawn_x11(x11_client)
             second.spawn_native(wayland_client)
+            # The initial map can schedule the restored size after the
+            # client's READY roundtrip.  Drain it before comparing state.
+            second.sync_native("session-restore")
             restored = wait_state(
                 second.control,
                 lambda value: mapped_titles(value, {NATIVE_TITLE, X11_TITLE})

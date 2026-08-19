@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Validate compositor boundary hardening and bounded diagnostics wiring."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+
+def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> None:
+    requirements = {
+        "xdg move/resize grab serial validation": (
+            "wlr_seat_validate_pointer_grab_serial" in wtwm
+            and "wlr_seat_validate_touch_grab_serial" in wtwm
+            and "event->seat, event->serial, \"move\"" in wtwm
+            and "event->seat, event->serial, \"resize\"" in wtwm
+            and "event->seat, event->serial, \"show_window_menu\"" in wtwm
+        ),
+        "xdg request seat and client ownership validation": (
+            "seat_client != NULL && seat_client->seat == server->seat" in wtwm
+            and "seat_client->client == toplevel->xdg->base->client->client"
+            in wtwm
+        ),
+        "xdg pointer origin-surface validation": (
+            "server->seat->pointer_state.focused_client == seat_client" in wtwm
+            and "wlr_surface_get_root_surface(pointer_surface) ==" in wtwm
+        ),
+        "xdg touch origin and client validation": (
+            "touch_point->client == seat_client" in wtwm
+            and "wlr_surface_get_root_surface(touch_point->surface) ==" in wtwm
+        ),
+        "cursor event serial validation": (
+            "wlr_seat_client_validate_event_serial" in wtwm
+        ),
+        "selection zero-serial rejection": (
+            wtwm.count("event == NULL || event->serial == 0") >= 2
+        ),
+        "bounded native and Xwayland size ingestion": all(
+            marker in wtwm
+            for marker in (
+                '"xdg_map"',
+                '"xdg_commit"',
+                '"xwayland_create"',
+                '"xwayland_commit"',
+                '"xwayland_geometry"',
+            )
+        ),
+        "bounded popup positioner sizes": (
+            "popup_size_valid" in wtwm and "WTWM_CLIENT_SIZE_MAX" in wtwm
+        ),
+        "portable size ceiling and fallback policy": (
+            "#define WTWM_CLIENT_SIZE_MAX 65535" in header
+            and "sanitize_fallback" in hardening
+        ),
+        "bounded SIGUSR2 diagnostic dump": all(
+            marker in wtwm
+            for marker in (
+                "--diagnostic-dump",
+                "SIGUSR2",
+                "DIAGNOSTIC_MAX_OUTPUTS = 64",
+                "DIAGNOSTIC_MAX_WINDOWS = 256",
+                '"event=diagnostic_dump',
+            )
+        ),
+        "bounded test-control dump": (
+            'strcmp(verb, "DUMP") == 0' in protocol
+            and "parse_int(limit, 1, 256" in protocol
+            and "WTWM_TEST_COMMAND_DUMP" in wtwm
+        ),
+        "structured rejection logging": (
+            '"event=client_request protocol=xdg_shell' in wtwm
+            and '"event=client_size protocol=%s' in wtwm
+        ),
+    }
+    failed = [name for name, present in requirements.items() if not present]
+    if failed:
+        raise AssertionError("missing hardening contract: " + ", ".join(failed))
+
+
+def read_sources(source_root: Path) -> tuple[str, str, str, str]:
+    return (
+        (source_root / "src" / "wtwm.c").read_text(encoding="utf-8"),
+        (source_root / "src" / "test_control.c").read_text(encoding="utf-8"),
+        (source_root / "src" / "hardening.c").read_text(encoding="utf-8"),
+        (source_root / "src" / "hardening.h").read_text(encoding="utf-8"),
+    )
+
+
+def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
+    wtwm, protocol, hardening, header = sources
+    wtwm_gates = (
+        "wlr_seat_validate_pointer_grab_serial",
+        "wlr_seat_validate_touch_grab_serial",
+        "seat_client != NULL && seat_client->seat == server->seat",
+        "seat_client->client == toplevel->xdg->base->client->client",
+        "server->seat->pointer_state.focused_client == seat_client",
+        "wlr_surface_get_root_surface(pointer_surface) ==",
+        "touch_point->client == seat_client",
+        "wlr_surface_get_root_surface(touch_point->surface) ==",
+        "wlr_seat_client_validate_event_serial",
+        'event->seat, event->serial, "move"',
+        'event->seat, event->serial, "resize"',
+        'event->seat, event->serial, "show_window_menu"',
+        "event == NULL || event->serial == 0",
+        '"xdg_map"',
+        '"xdg_commit"',
+        '"xwayland_create"',
+        '"xwayland_commit"',
+        '"xwayland_geometry"',
+        "popup_size_valid",
+        "DIAGNOSTIC_MAX_WINDOWS = 256",
+    )
+    for gate in wtwm_gates:
+        tampered = wtwm.replace(gate, "removed")
+        if tampered == wtwm:
+            raise AssertionError(f"self-test could not locate gate: {gate}")
+        try:
+            validate_sources(tampered, protocol, hardening, header)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"contract accepted missing gate: {gate}")
+
+    tampered_protocol = protocol.replace("parse_int(limit, 1, 256", "removed")
+    try:
+        validate_sources(wtwm, tampered_protocol, hardening, header)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("contract accepted an unbounded DUMP command")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument("--self-test-tamper", action="store_true")
+    args = parser.parse_args()
+    sources = read_sources(args.source_root)
+    validate_sources(*sources)
+    if args.self_test_tamper:
+        self_test_tamper(sources)
+
+
+if __name__ == "__main__":
+    main()

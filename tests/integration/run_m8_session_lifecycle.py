@@ -229,8 +229,11 @@ def run_f_quit_mixed_clients(
         # f.quit may destroy the test-control connection before its terminal
         # release acknowledgement reaches the runner.  The process status,
         # client disconnects, and removed sockets below are the logout oracle.
-        control.stream.write("BUTTON 272 release\n")
-        control.stream.flush()
+        try:
+            control.stream.write("BUTTON 272 release\n")
+            control.stream.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
         if process.wait(timeout=10) != 0:
             raise RuntimeError("f.quit did not exit successfully")
         if wait_process(native_process, NATIVE_TITLE) == 0:
@@ -243,7 +246,10 @@ def run_f_quit_mixed_clients(
             raise RuntimeError("f.quit implicitly created a saved-state file")
     finally:
         if control is not None:
-            control.close()
+            try:
+                control.close()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
         for client in clients:
             if client.poll() is None:
                 client.kill()

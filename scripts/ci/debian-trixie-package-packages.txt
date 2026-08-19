@@ -1,0 +1,7 @@
+debhelper
+dpkg-dev
+libx11-dev
+lintian
+mandoc
+twm
+weston

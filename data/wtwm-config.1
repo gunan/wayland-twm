@@ -1,10 +1,52 @@
-.TH WTWM-CONFIG 1 "August 2026" "wtwm 0.1.0" "User Commands"
+.TH WTWM-CONFIG 1 "2026-08-18" "wtwm 0.1.0" "User Commands"
 .SH NAME
 wtwm-config \- validate and inspect a wtwm/twm configuration file
 .SH SYNOPSIS
 .B wtwm-config
 .I file
+.br
+.B wtwm-config
+.B \-\-help
 .SH DESCRIPTION
-Parses a twm configuration file using the same configuration engine as wtwm
-and prints the effective settings, bindings, menus, functions, and the number
-of accepted compatibility directives that do not yet affect Wayland state.
+.B wtwm-config
+parses one file with the same portable configuration engine used by
+.BR wtwm (1).
+It prints the effective scalar settings, color blocks, match lists, bindings,
+menus, functions, and compatibility classification counts.  It does not start
+a Wayland compositor, execute configured commands, read the normal fallback
+search path, or change the file.
+.PP
+Use this command before selecting a wtwm login session or after editing an
+existing twm configuration:
+.PP
+.EX
+wtwm-config "$HOME/.twmrc" >/tmp/wtwm-config.dump
+.EE
+.PP
+The dump is intended for inspection and regression diagnosis.  Its labels may
+grow as configuration support grows; it is not a stable scripting interface.
+.SH DIAGNOSTICS
+Syntax and input errors are written to standard error with the source filename
+and line number when available.  Recognized compatibility directives that do
+not affect compositor state are accepted and counted in the output rather than
+silently reinterpreted as another feature.
+.SH EXIT STATUS
+.TP
+.B 0
+The file parsed successfully, or help was requested.
+.TP
+.B 1
+The file could not be read or parsed.
+.TP
+.B 2
+The command line was invalid.
+.SH SECURITY
+Parsing does not run
+.B f.exec
+commands, functions, menu entries, or startup commands.  A successful parse does
+not make commands in an imported file trustworthy; review them before starting
+wtwm.
+.SH SEE ALSO
+.BR wtwm (1),
+.BR wtwmrc (5),
+.BR twm (1)

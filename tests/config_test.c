@@ -5,11 +5,13 @@
 #include "wtwm/config.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #ifndef WTWM_SOURCE_ROOT
@@ -367,6 +369,75 @@ static void write_config(const char *path, int width) {
 	assert(file != NULL);
 	fprintf(file, "BorderWidth %d\n", width);
 	assert(fclose(file) == 0);
+}
+
+static void rejects_hostile_file_input_atomically(void) {
+	const char *temporary_root = getenv("TMPDIR");
+	if (temporary_root == NULL || temporary_root[0] == '\0') temporary_root = "/tmp";
+	char path[PATH_MAX];
+	snprintf(path, sizeof(path), "%s/wtwm-hostile-config-XXXXXX", temporary_root);
+	int descriptor = mkstemp(path);
+	assert(descriptor >= 0);
+
+	static const char embedded_nul[] = "BorderWidth 9\n\0BorderWidth 1\n";
+	assert(write(descriptor, embedded_nul, sizeof(embedded_nul) - 1) ==
+		(ssize_t)(sizeof(embedded_nul) - 1));
+	assert(close(descriptor) == 0);
+
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "baseline", "BorderWidth 7\n",
+		error, sizeof(error)));
+	char *source_text = config.source_text;
+	assert(!wtwm_config_load(&config, path, error, sizeof(error)));
+	assert(strstr(error, "contains a NUL byte") != NULL);
+	assert(config.border_width == 7 && config.source_text == source_text);
+
+	descriptor = open(path, O_WRONLY | O_TRUNC);
+	assert(descriptor >= 0);
+	FILE *oversized = fdopen(descriptor, "wb");
+	assert(oversized != NULL);
+	char block[64 * 1024];
+	memset(block, ' ', sizeof(block));
+	size_t remaining = (size_t)WTWM_CONFIG_MAX_FILE_BYTES + 1;
+	while (remaining > 0) {
+		size_t count = remaining < sizeof(block) ? remaining : sizeof(block);
+		assert(fwrite(block, 1, count, oversized) == count);
+		remaining -= count;
+	}
+	assert(fclose(oversized) == 0);
+	assert(!wtwm_config_load(&config, path, error, sizeof(error)));
+	assert(strstr(error, "file exceeds limit") != NULL);
+	assert(config.border_width == 7 && config.source_text == source_text);
+	assert(unlink(path) == 0);
+
+	assert(mkfifo(path, 0600) == 0);
+	pid_t writer = fork();
+	assert(writer >= 0);
+	if (writer == 0) {
+		FILE *stream = fopen(path, "wb");
+		if (stream == NULL) _exit(2);
+		if (fputs("BorderWidth 11\n", stream) == EOF) _exit(3);
+		for (size_t i = 0; i < 5000; ++i)
+			if (fputc(' ', stream) == EOF) _exit(4);
+		if (fclose(stream) != 0) _exit(5);
+		_exit(0);
+	}
+	assert(wtwm_config_load(&config, path, error, sizeof(error)));
+	assert(config.border_width == 11);
+	int status = 0;
+	assert(waitpid(writer, &status, 0) == writer);
+	assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+
+	assert(!wtwm_config_parse(NULL, "null", "BorderWidth 1\n",
+		error, sizeof(error)));
+	assert(strstr(error, "null configuration") != NULL);
+	assert(!wtwm_config_load(NULL, path, error, sizeof(error)));
+	assert(strstr(error, "null configuration") != NULL);
+
+	wtwm_config_finish(&config);
+	assert(unlink(path) == 0);
 }
 
 static void join_path(char *path, size_t path_size, const char *directory,
@@ -750,6 +821,7 @@ int main(void) {
 	rejects_malformed_and_truncated_constructs();
 	matches_reference_selection_rules();
 	loads_reference_search_order();
+	rejects_hostile_file_input_atomically();
 	preserves_long_source_without_silent_lexical_truncation();
 	dumps_comprehensive_ordered_model();
 	parses_frozen_upstream_examples();

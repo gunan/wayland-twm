@@ -145,6 +145,7 @@ CURRENT_MARKERS = {
         "runtime initialization failure",
         "startup command failure",
         "f.quit mixed clients",
+        "except (BrokenPipeError, ConnectionResetError):",
         "malformed state",
         "signal.SIGTERM",
     ],

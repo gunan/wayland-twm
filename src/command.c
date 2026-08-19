@@ -2,6 +2,7 @@
 #include <wtwm/command.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -23,7 +24,9 @@ struct argument_builder {
 };
 
 static char *copy_string(const char *source) {
-	size_t length = strlen(source) + 1;
+	size_t length = strlen(source);
+	if (length == SIZE_MAX) return NULL;
+	length++;
 	char *copy = malloc(length);
 	if (copy != NULL) memcpy(copy, source, length);
 	return copy;
@@ -55,6 +58,7 @@ static bool grow_buffer(char **buffer, size_t *capacity, size_t required) {
 }
 
 static bool append_byte(struct argument_builder *builder, char byte) {
+	if (builder->word_length == SIZE_MAX) return false;
 	if (!grow_buffer(&builder->word, &builder->word_capacity,
 			builder->word_length + 1)) return false;
 	builder->word[builder->word_length++] = byte;
@@ -64,6 +68,8 @@ static bool append_byte(struct argument_builder *builder, char byte) {
 
 static bool append_argument(struct argument_builder *builder) {
 	if (!builder->word_started) return true;
+	if (builder->word_length == SIZE_MAX || builder->argc > SIZE_MAX - 2)
+		return false;
 
 	char *argument = malloc(builder->word_length + 1);
 	if (argument == NULL) return false;
@@ -71,8 +77,20 @@ static bool append_argument(struct argument_builder *builder) {
 		memcpy(argument, builder->word, builder->word_length);
 	argument[builder->word_length] = '\0';
 
-	if (builder->argc + 2 > builder->argv_capacity) {
-		size_t next = builder->argv_capacity == 0 ? 8 : builder->argv_capacity * 2;
+	size_t required = builder->argc + 2;
+	if (required > builder->argv_capacity) {
+		size_t next = builder->argv_capacity == 0 ? 8 : builder->argv_capacity;
+		while (next < required) {
+			if (next > SIZE_MAX / 2) {
+				next = required;
+				break;
+			}
+			next *= 2;
+		}
+		if (next > SIZE_MAX / sizeof(*builder->argv)) {
+			free(argument);
+			return false;
+		}
 		char **grown = realloc(builder->argv, next * sizeof(*grown));
 		if (grown == NULL) {
 			free(argument);
@@ -213,8 +231,9 @@ static enum wtwm_command_result parse_arguments(
 
 enum wtwm_command_result wtwm_command_plan_create(
 		const char *command, struct wtwm_command_plan *plan) {
-	if (command == NULL || plan == NULL) return WTWM_COMMAND_INVALID_ARGUMENT;
+	if (plan == NULL) return WTWM_COMMAND_INVALID_ARGUMENT;
 	memset(plan, 0, sizeof(*plan));
+	if (command == NULL) return WTWM_COMMAND_INVALID_ARGUMENT;
 
 	struct argument_builder builder = {0};
 	enum wtwm_command_result result = parse_arguments(command, &builder);

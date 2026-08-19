@@ -18,6 +18,10 @@ portable targets and runs every test registered by the parser-only Meson build.
 
 ## Debian Trixie profiles
 
+Debian 13 (Trixie) is the initial packaged distribution. The package is built
+for each architecture exercised by the Debian CI jobs; a successful compiler
+job alone is not package-install evidence for that architecture.
+
 Install the controlled dependency set on Debian Trixie with:
 
 ```sh
@@ -60,3 +64,45 @@ starting a Linux compositor build:
 python3 -B tests/platform/validate_build_platforms.py \
   --source-root . --self-test-tamper
 ```
+
+## Debian package build and local contracts
+
+Build the binary package from a clean source tree on Debian Trixie:
+
+```sh
+sudo apt-get install -y --no-install-recommends \
+  build-essential devscripts debhelper meson ninja-build pkgconf \
+  libfontconfig-dev libpango1.0-dev libwayland-dev \
+  libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
+  wayland-protocols
+dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
+```
+
+Inspect the resulting artifact before installation:
+
+```sh
+dpkg-deb --info ../wtwm_*.deb
+dpkg-deb --contents ../wtwm_*.deb
+lintian ../wtwm_*.changes
+```
+
+The portable package contracts run without root and do not install a package:
+
+```sh
+tests/platform/package-isolation-test.sh
+tests/platform/package-lifecycle-driver-test.sh
+tests/platform/session-launcher-test.sh
+tests/platform/session-entrypoints-test.sh
+mandoc -T lint data/wtwm.1 data/wtwm-config.1 data/wtwmrc.5
+```
+
+They validate the namespaced filesystem/session contract and the lifecycle
+driver's phase ordering. They cannot prove dpkg/apt maintainer behavior. For a
+release candidate, run the guarded Debian VM procedure in
+`packaging/debian/README.md` with the candidate and every prior released `.deb`
+for the same architecture. Keep clean install/removal and per-architecture
+Roadmap items unchecked until the real artifact run succeeds.
+
+The package intentionally has no maintainer script that changes login-manager
+policy or user files. It installs one `wtwm.desktop` Wayland session and never
+uses the alternatives system for `twm` or a compositor default.

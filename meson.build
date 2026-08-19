@@ -336,6 +336,33 @@ command_test = executable(
 )
 test('twm command execution planning', command_test)
 
+hardening_lib = static_library(
+  'wtwm-hardening-lib',
+  'src/hardening.c',
+  include_directories: include_directories('src'),
+)
+hardening_dep = declare_dependency(
+  link_with: hardening_lib,
+  include_directories: include_directories('src'),
+)
+
+hardening_test = executable(
+  'hardening-test',
+  'tests/hardening_test.c',
+  dependencies: hardening_dep,
+)
+test('client input hardening model', hardening_test)
+test(
+  'client request hardening contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_hardening_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+
 session_state_lib = static_library(
   'wtwm-session-state-lib',
   'src/session_state.c',
@@ -546,6 +573,16 @@ test(
   'package isolation contract',
   find_program('sh'),
   args: [files('tests/platform/package-isolation-test.sh')],
+)
+test(
+  'package lifecycle driver contract',
+  find_program('sh'),
+  args: [files('tests/platform/package-lifecycle-driver-test.sh')],
+)
+test(
+  'clean candidate package driver contract',
+  find_program('sh'),
+  args: [files('tests/platform/clean-candidate-driver-test.sh')],
 )
 test(
   'headless stability runner contract',
@@ -1009,6 +1046,43 @@ test(
   ],
 )
 test(
+  'Milestone 9 mixed soak evidence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m9_mixed_soak.py'),
+    '--runner', files('tests/integration/run_m9_mixed_soak.py'),
+  ],
+)
+test(
+  'Milestone 9 popup lifecycle stress contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m9_popup_lifecycle_stress.py'),
+  ],
+)
+test(
+  'Milestone 9 diagnostic dump contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m9_diagnostic_dump.py'),
+    '--source-root', meson.project_source_root(),
+  ],
+)
+test(
+  'Milestone 9 protocol fuzz contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m9_protocol_fuzz.py'),
+    '--client', files('tests/integration/m9_protocol_fuzz_client.c'),
+    '--runner', files('tests/integration/run_m9_protocol_fuzz.py'),
+    '--self-test-tamper',
+  ],
+)
+test(
   'randomized lifecycle model contract',
   find_program('python3'),
   args: [
@@ -1039,7 +1113,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, hardening_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -1048,7 +1122,7 @@ if wlroots.found()
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
       output_order_dep, output_restore_dep, input_hotplug_dep,
-      command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
+      command_dep, hardening_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,
@@ -1131,6 +1205,16 @@ if wlroots.found()
     'wtwm-overlay-wayland-client',
     [
       'tests/integration/overlay_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
+  wtwm_m9_protocol_fuzz_client = executable(
+    'wtwm-m9-protocol-fuzz-client',
+    [
+      'tests/integration/m9_protocol_fuzz_client.c',
       xdg_shell_client_header,
       xdg_shell_client_code,
     ],
@@ -1372,6 +1456,55 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 9 mixed client soak smoke',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m9_mixed_soak.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--output', meson.current_build_dir() / 'm9-mixed-soak-smoke.json',
+      '--smoke',
+      '--overwrite',
+    ],
+    timeout: 300,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 9 rapid native popup lifecycle stress',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m9_popup_lifecycle_stress.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_overlay_wayland_client,
+      '--iterations', '128',
+    ],
+    timeout: 240,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 9 diagnostic dump integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m9_diagnostic_dump.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_overlay_wayland_client,
+    ],
+    timeout: 90,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 9 hostile Wayland protocol integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m9_protocol_fuzz.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_m9_protocol_fuzz_client,
+    ],
+    timeout: 90,
     is_parallel: false,
   )
   test(
@@ -1660,3 +1793,4 @@ install_data(
   install_mode: 'rwxr-xr-x',
 )
 install_man('data/wtwm-config.1')
+install_man('data/wtwmrc.5')

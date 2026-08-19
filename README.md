@@ -504,22 +504,22 @@ Exit criteria:
 Implementation work:
 
 - [ ] Validate all Wayland request serials and client-supplied sizes.
-- [ ] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
+- [x] Harden configuration parsing, bitmap decoding, command execution, and Xwayland
   metadata handling.
-- [ ] Eliminate compositor crashes caused by malformed or hostile clients.
-- [ ] Add structured logging and an optional diagnostic state dump.
-- [ ] Complete manual pages, sample configurations, migration notes, and
+- [x] Eliminate compositor crashes caused by malformed or hostile clients.
+- [x] Add structured logging and an optional diagnostic state dump.
+- [x] Complete manual pages, sample configurations, migration notes, and
   troubleshooting documentation.
-- [ ] Produce packages for the initially supported distributions.
-- [ ] Ship a session file under a distinct name; never replace the user's default
+- [x] Produce packages for the initially supported distributions.
+- [x] Ship a session file under a distinct name; never replace the user's default
   desktop automatically.
 
 Testing:
 
-- [ ] Run sanitizers, parser fuzzing, and protocol fuzzing.
-- [ ] Run rapid map/unmap, popup, resize, title-change, and client-crash stress
+- [x] Run sanitizers, parser fuzzing, and protocol fuzzing.
+- [x] Run rapid map/unmap, popup, resize, title-change, and client-crash stress
   tests.
-- [ ] Test hundreds of simultaneously managed windows.
+- [x] Test hundreds of simultaneously managed windows.
 - [ ] Run at least a 72-hour mixed native/Xwayland soak test.
 - [ ] Test GPU and software rendering.
 - [ ] Test clean installation, upgrade from each prior release, removal, and
@@ -530,7 +530,7 @@ Testing:
 Exit criteria:
 
 - [ ] No known crash, hang, protocol violation, or unbounded resource leak.
-- [ ] Packages pass clean-system installation and removal tests.
+- [x] Packages pass clean-system installation and removal tests.
 - [ ] A compositor failure returns the user to a recoverable login state.
 
 ### Milestone 10: Differential parity certification
