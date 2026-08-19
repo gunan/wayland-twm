@@ -382,13 +382,6 @@ static bool handle_command(struct client *client, char *command, bool *done) {
 		printf("OK ARMED %s\n", client->token);
 		return true;
 	}
-	if (sscanf(command, "REPORT %63s", token) == 1) {
-		if (strcmp(token, client->token) != 0 ||
-				wl_display_roundtrip(client->display) < 0) return false;
-		printf("OK REPORT %s keys=%u focus=%d close=%u\n", client->token,
-			client->key_count, client->focused, client->close_count);
-		return true;
-	}
 	if (sscanf(command, "REPORT_FAMILY %63s", token) == 1) {
 		if (!client->has_child || strcmp(token, client->token) != 0 ||
 				wl_display_roundtrip(client->display) < 0) return false;
@@ -398,6 +391,13 @@ static bool handle_command(struct client *client, char *command, bool *done) {
 			client->focused ? "parent" :
 				client->child_focused ? "child" : "none",
 			client->close_count, client->child_close_count);
+		return true;
+	}
+	if (sscanf(command, "REPORT %63s", token) == 1) {
+		if (strcmp(token, client->token) != 0 ||
+				wl_display_roundtrip(client->display) < 0) return false;
+		printf("OK REPORT %s keys=%u focus=%d close=%u\n", client->token,
+			client->key_count, client->focused, client->close_count);
 		return true;
 	}
 	if (sscanf(command, "UNMAP %u", &cycle) == 1) {

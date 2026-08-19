@@ -104,6 +104,8 @@ def validate_text(
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
         'sscanf(command, "TITLE %127s", title)',
+        'sscanf(command, "REPORT_FAMILY %63s", token)',
+        'sscanf(command, "REPORT %63s", token)',
         "xdg_toplevel_set_title(client->toplevel, client->title);",
         'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
@@ -122,6 +124,12 @@ def validate_text(
         "xdg_toplevel_set_title(client->toplevel, client->title);"
     ) != 2:
         errors.append("stress Wayland client must set its title on map and mutation")
+    family_report = wayland_client.find(
+        'sscanf(command, "REPORT_FAMILY %63s", token)'
+    )
+    single_report = wayland_client.find('sscanf(command, "REPORT %63s", token)')
+    if not 0 <= family_report < single_report:
+        errors.append("stress Wayland family report must precede its REPORT prefix")
 
     x11_markers = (
         '"WM_DELETE_WINDOW"',
@@ -258,6 +266,13 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
          wayland.replace(
              "xdg_toplevel_set_title(client->toplevel, client->title);", "", 1),
          x11, meson, compatibility, integration_readme),
+        ("wayland-family-report-order", runner,
+         wayland.replace(
+             'sscanf(command, "REPORT_FAMILY %63s", token)',
+             'sscanf(command, "REPORT %63s", token);\n\t'
+             'if (sscanf(command, "REPORT_FAMILY %63s", token)',
+             1,
+         ), x11, meson, compatibility, integration_readme),
         ("x11-delete-protocol", runner, wayland,
          x11.replace('"WM_DELETE_WINDOW"', '"WM_TAKE_FOCUS"', 1),
          meson, compatibility, integration_readme),
