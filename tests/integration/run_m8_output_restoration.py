@@ -301,6 +301,22 @@ def validate_model() -> None:
     if restore_box(churn_right.box, [right], before).box != churn_right.box:
         raise RuntimeError("repeated churn repatriated after enable")
 
+    target = {
+        "title": "target", "visible": True, "stack": 1,
+        "x": 10, "y": 10, "width": 20, "height": 10,
+        "outer_width": 24, "outer_height": 14,
+        "content_x": 2, "content_y": 2,
+    }
+    blocker = {
+        "title": "blocker", "visible": True, "stack": 0,
+        "x": 10, "y": 10, "width": 10, "height": 10,
+        "outer_width": 14, "outer_height": 14,
+        "content_x": 2, "content_y": 2,
+    }
+    point = select_visible_content_point({1: target, 2: blocker}, "target")
+    if point is None or point[0] < 24:
+        raise RuntimeError(f"visible-content target selection changed: {point!r}")
+
 
 def validate_generated_config(config_tool: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="wtwm-m8-restore-config-") as directory:
@@ -726,10 +742,79 @@ def window_point(record: dict[str, object]) -> tuple[int, int]:
     )
 
 
+def select_visible_content_point(
+    records: dict[int, dict[str, object]], title: str
+) -> tuple[int, int] | None:
+    target = next(
+        (item for item in records.values() if item["title"] == title), None
+    )
+    if target is None or not target["visible"]:
+        return None
+    left = int(target["x"]) + int(target["content_x"])
+    top = int(target["y"]) + int(target["content_y"])
+    right = left + int(target["width"])
+    bottom = top + int(target["height"])
+    blockers = [
+        outer(item)
+        for item in records.values()
+        if item["visible"] and int(item["stack"]) < int(target["stack"])
+    ]
+
+    def exposed(x: int, y: int) -> bool:
+        return not any(
+            box.x <= x < box.right and box.y <= y < box.bottom
+            for box in blockers
+        )
+
+    center = window_point(target)
+    if exposed(*center):
+        return center
+    for y in range(top, bottom):
+        for x in range(left, right):
+            if (x, y) != center and exposed(x, y):
+                return x, y
+    return None
+
+
+def visible_content_point(
+    state: dict[str, object], title: str
+) -> tuple[int, int] | None:
+    return select_visible_content_point(windows(state), title)
+
+
+def pointer_inside(control: Control, title: str, label: str) -> dict[str, object]:
+    deadline = time.monotonic() + 10.0
+    attempts = 0
+    last: dict[str, object] | None = None
+    last_point: tuple[int, int] | None = None
+    while time.monotonic() < deadline:
+        before = control.state()
+        point = visible_content_point(before, title)
+        if point is None:
+            raise RuntimeError(
+                f"{label}: no exposed content point for {title!r}: {before!r}"
+            )
+        last_point = point
+        attempts += 1
+        expect_command(
+            control,
+            f"POINTER {point[0]} {point[1]}",
+            f"OK CURSOR {point[0]:.3f} {point[1]:.3f}",
+        )
+        last = frame_barrier(control, label + " pointer")
+        if (
+            last["pointer_window"] == title
+            and last["pointer_context"] == "window"
+        ):
+            return last
+    raise RuntimeError(
+        f"{label}: pointer never entered exact content after {attempts} attempts; "
+        f"last_point={last_point!r}, last_state={last!r}"
+    )
+
+
 def click_action(control: Control, title: str, button: int, label: str) -> None:
-    item = by_title(control.state(), title)
-    x, y = window_point(item)
-    pointer(control, x, y, label + " pointer")
+    pointer_inside(control, title, label)
     code = BUTTON_CODES[button]
     expect_command(control, f"BUTTON {code} press", f"OK BUTTON {code} press")
     expect_command(control, f"BUTTON {code} release", f"OK BUTTON {code} release")
