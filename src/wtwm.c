@@ -7033,7 +7033,7 @@ static void request_selection(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, request_selection);
 	struct wlr_seat_request_set_selection_event *event = data;
 	if (event == NULL || event->serial == 0) {
-		wlr_log(WLR_DEBUG,
+		wlr_log(WLR_DEBUG, "%s",
 			"event=client_request protocol=wl_data_device action=set_selection "
 			"outcome=rejected reason=invalid_serial serial=0");
 		return;
@@ -7046,7 +7046,7 @@ static void request_primary_selection(struct wl_listener *listener, void *data) 
 		wl_container_of(listener, server, request_primary_selection);
 	struct wlr_seat_request_set_primary_selection_event *event = data;
 	if (event == NULL || event->serial == 0) {
-		wlr_log(WLR_DEBUG,
+		wlr_log(WLR_DEBUG, "%s",
 			"event=client_request protocol=primary_selection action=set_selection "
 			"outcome=rejected reason=invalid_serial serial=0");
 		return;
