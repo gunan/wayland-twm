@@ -69,6 +69,23 @@ def press_at(control: Control, point: tuple[int, int], button: int = 272,
     )
 
 
+def press_root(control: Control, point: tuple[int, int], button: int) -> None:
+    deadline = time.monotonic() + 10
+    latest: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        control.command(f"POINTER {point[0]} {point[1]}")
+        control.command("WAIT 2")
+        latest = control.state()
+        if (latest["pointer_window"] is None and
+                latest["pointer_context"] == "root"):
+            control.command(f"BUTTON {button} press")
+            return
+        time.sleep(0.01)
+    raise RuntimeError(
+        f"pointer did not reach root context before press: {latest!r}"
+    )
+
+
 def release(control: Control, button: int = 272) -> None:
     control.command(f"BUTTON {button} release")
 
@@ -125,6 +142,8 @@ def outline_scenario(control: Control) -> None:
     if not any(event["event"] == "abort" for event in control.trace()["events"]):
         raise RuntimeError("outline abort was not recorded in TRACE")
     control.command("BUTTON 274 release")
+    # The aborting button does not synthesize release of the original holder.
+    release(control)
 
     item = state_window(control)
     start = title_point(item)
@@ -214,6 +233,7 @@ def resize_scenario(control: Control) -> None:
             original["x"], original["y"], original["width"], original["height"]):
         raise RuntimeError(f"resize abort changed live geometry: {item!r}")
     control.command("BUTTON 274 release")
+    release(control, 273)
 
 
 def opaque_and_no_raise_scenario(control: Control) -> None:
@@ -303,11 +323,10 @@ def menu_position_scenario(control: Control) -> None:
 
     # A root menu defers f.move until the next press selects its target. That
     # selecting press starts an ordinary drag and its release commits it.
-    control.command("POINTER 5 5")
-    control.command("BUTTON 273 press")
+    press_root(control, (5, 5), 273)
     menu = control.state()["menu"]
     if not isinstance(menu, dict):
-        raise RuntimeError("root menu did not open")
+        raise RuntimeError(f"root menu did not open: {control.state()!r}")
     control.command(f"POINTER {int(menu['x']) + 5} {int(menu['y']) + 5}")
     release(control, 273)
     if not control.state()["deferred_root_action"]:

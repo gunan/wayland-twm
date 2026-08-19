@@ -16,8 +16,12 @@
 #include "wtwm/geometry.h"
 #include "wtwm/icon_layout.h"
 #include "wtwm/icon_manager.h"
+#include "wtwm/input_hotplug.h"
 #include "wtwm/interaction.h"
+#include "wtwm/output_order.h"
+#include "wtwm/output_restore.h"
 #include "wtwm/placement.h"
+#include "wtwm/session_state.h"
 #include "wtwm/visual.h"
 #include "text.h"
 #ifdef WTWM_TEST_CONTROL
@@ -50,6 +54,7 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/interfaces/wlr_keyboard.h>
 #ifdef WTWM_TEST_CONTROL
 #include <drm_fourcc.h>
 #include <fontconfig/fontconfig.h>
@@ -57,7 +62,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <wlr/backend/headless.h>
-#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/interfaces/wlr_pointer.h>
 #include <wlr/types/wlr_buffer.h>
 #endif
 #include <wlr/render/allocator.h>
@@ -83,6 +88,8 @@
 #include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon.h>
 
+#define WTWM_SESSION_SIGNAL_COUNT 4u
+
 enum cursor_mode { CURSOR_PASSTHROUGH, CURSOR_MOVE, CURSOR_RESIZE };
 
 enum interaction_intent {
@@ -94,6 +101,17 @@ enum interaction_intent {
 };
 
 struct server;
+struct output;
+#ifdef WTWM_TEST_CONTROL
+struct test_input_device;
+#endif
+
+struct cut_buffer_source {
+	struct wlr_data_source source;
+	struct server *server;
+	char *bytes;
+	size_t length;
+};
 
 #ifdef WTWM_TEST_CONTROL
 enum {
@@ -145,8 +163,10 @@ struct test_control {
 	struct wl_event_source *client_source;
 	char input[4096];
 	size_t input_length;
-	struct wlr_keyboard keyboard;
-	bool keyboard_initialized;
+	struct wl_list input_devices;
+	struct test_input_device *legacy_keyboard;
+	struct test_input_device *legacy_pointer;
+	bool clearing_inputs;
 	unsigned animation_ms;
 	uint32_t input_time_ms;
 	struct test_trace_event *trace_events;
@@ -200,8 +220,15 @@ struct toplevel {
 	bool mapped;
 	bool placed;
 	bool placement_pending;
+	bool placement_waiting_output;
+	bool placement_initial_rules;
 	bool placement_start_iconified;
+	bool restoration_pending;
+	bool restoration_frame_visible;
+	bool restoration_icon_visible;
 	uint64_t placement_order;
+	struct wtwm_placement_area placement_area;
+	struct output *placement_output;
 	bool iconified;
 	bool decorated;
 	bool associated;
@@ -212,6 +239,10 @@ struct toplevel {
 	bool iconify_by_unmapping;
 	bool icon_region_allocated;
 	bool icon_moved;
+	bool session_restored;
+	bool session_focus;
+	bool session_stack_applied;
+	uint32_t session_stack_rank;
 	uint64_t icon_identity;
 	uint64_t icon_manager_identity;
 	char *xwayland_direct_name;
@@ -241,6 +272,10 @@ struct toplevel {
 	unsigned int wm_hints_icon_height;
 	unsigned int wm_hints_icon_window_width;
 	unsigned int wm_hints_icon_window_height;
+	xcb_window_t *colormap_windows;
+	xcb_colormap_t *colormaps;
+	size_t colormap_count;
+	size_t colormap_rotation;
 	struct wl_event_source *xwayland_sync_idle;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
@@ -303,13 +338,43 @@ struct keyboard {
 	struct wl_listener modifiers;
 	struct wl_listener key;
 	struct wl_listener destroy;
+	uint64_t input_ordinal;
 };
+
+struct pointer {
+	struct wl_list link;
+	struct server *server;
+	struct wlr_pointer *wlr;
+	struct wl_listener destroy;
+	uint64_t input_ordinal;
+};
+
+#ifdef WTWM_TEST_CONTROL
+struct test_input_device {
+	struct wl_list link;
+	struct test_control *control;
+	char name[WTWM_INPUT_NAME_MAX];
+	enum wtwm_input_device_type type;
+	bool initialized;
+	union {
+		struct wlr_keyboard keyboard;
+		struct wlr_pointer pointer;
+	} wlr;
+};
+#endif
 
 struct output {
 	struct wl_list link;
 	struct server *server;
 	struct wlr_output *wlr;
+	struct wlr_scene_output *scene_output;
+	struct wtwm_output_identity identity;
 	struct wlr_scene_rect *background;
+	bool in_layout;
+	bool layout_position_known;
+	bool layout_auto;
+	int layout_x;
+	int layout_y;
 	struct wl_listener background_destroy;
 	struct wl_listener frame;
 	struct wl_listener request_state;
@@ -335,6 +400,8 @@ struct menu_view {
 	int height;
 	int row_height;
 	int selected;
+	struct wtwm_placement_area output_area;
+	struct output *output;
 };
 
 struct menu_row_view {
@@ -398,6 +465,8 @@ struct interaction_session {
 	double resize_offset_y;
 	enum interaction_intent intent;
 	uint32_t confirming_button;
+	uint32_t required_button;
+	bool required_button_valid;
 	bool force_move;
 	bool opaque_move;
 	bool constrained_move;
@@ -405,6 +474,9 @@ struct interaction_session {
 	bool moved;
 	bool raised;
 	bool icon_move;
+	bool output_area_valid;
+	struct wtwm_placement_area output_area;
+	struct output *output;
 };
 
 struct action_frame {
@@ -422,10 +494,26 @@ struct action_continuation {
 	bool active;
 };
 
+struct restoration_output_snapshot {
+	struct wtwm_output_identity *identities;
+	struct wtwm_output_restore_output *outputs;
+	size_t count;
+};
+
+struct restoration_transaction {
+	struct restoration_output_snapshot before;
+	struct wtwm_output_restore_client *clients;
+	struct toplevel **toplevels;
+	size_t client_count;
+	bool prepared;
+	bool pending_only;
+};
+
 struct server {
 	struct wtwm_config config;
 	enum wtwm_color_mode color_mode;
 	struct wl_display *display;
+	struct wl_event_source *session_signals[WTWM_SESSION_SIGNAL_COUNT];
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
@@ -438,6 +526,15 @@ struct server {
 	struct wlr_scene_output_layout *scene_layout;
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
+	struct wl_listener output_layout_change;
+	unsigned topology_mutation_depth;
+	bool topology_refresh_pending;
+	bool shutting_down;
+	uint64_t topology_epoch;
+	struct restoration_transaction restoration;
+	struct restoration_output_snapshot restoration_pending_source;
+	uint64_t next_output_announcement_ordinal;
+	bool output_announcement_ordinal_exhausted;
 	struct wl_listener new_output;
 	struct wlr_xdg_shell *xdg_shell;
 	struct wl_listener new_toplevel;
@@ -469,11 +566,16 @@ struct server {
 	struct wl_listener cursor_axis;
 	struct wl_listener cursor_frame;
 	struct wlr_seat *seat;
+	struct wlr_keyboard aggregate_keyboard;
+	bool aggregate_keyboard_initialized;
+	struct wtwm_input_hotplug_state input;
+	struct wtwm_input_hotplug_plan *input_plan;
 	struct wl_listener new_input;
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
 	struct wl_listener request_primary_selection;
 	struct wl_list keyboards;
+	struct wl_list pointers;
 	struct wlr_xwayland *xwayland;
 	struct wl_listener xwayland_ready;
 	struct wl_listener xwayland_new_surface;
@@ -486,6 +588,10 @@ struct server {
 	xcb_atom_t atom_wm_transient_for;
 	xcb_atom_t atom_wm_icon_name;
 	xcb_atom_t atom_net_wm_icon;
+	xcb_atom_t atom_wm_colormap_windows;
+	char *cut_buffer_bytes;
+	size_t cut_buffer_length;
+	struct cut_buffer_source *cut_buffer_source;
 	char *previous_display;
 	bool had_previous_display;
 	bool xwayland_display_exported;
@@ -499,6 +605,8 @@ struct server {
 	uint32_t last_move_time_ms;
 	bool last_interaction_moved;
 	bool action_from_key;
+	uint32_t dispatch_pointer_button;
+	bool dispatch_pointer_button_valid;
 	uint64_t frame_sequence;
 	struct toplevel *focus;
 	struct toplevel *xwayland_input_focus;
@@ -506,12 +614,17 @@ struct server {
 	uint32_t pointer_context;
 	uint64_t icon_manager_down_identity;
 	bool focus_root;
+	const char *program_name;
 	const char *config_path;
-	int argc;
-	char **argv;
-	int previous_output_index;
+	char *adopted_config_path;
+	struct wtwm_screen_warp_state screen_warp;
+	struct output *screen_warp_previous_output;
 	struct toplevel *ring_leader;
-	bool restart_requested;
+	struct wl_event_source *restart_idle;
+	char *restart_config_path;
+	bool restart_adopt_config_path;
+	char *session_state_path;
+	struct wtwm_session_state session_state;
 #ifdef WTWM_TEST_CONTROL
 	struct test_control test_control;
 #endif
@@ -521,6 +634,7 @@ static void new_xwayland_surface(struct wl_listener *listener, void *data);
 static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event);
 static void resume_action_continuation(struct server *server);
 static void process_cursor_motion(struct server *server, uint32_t time_msec);
+static void refresh_pointer_after_restart(struct server *server);
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
 static void clear_keyboard_focus(struct server *server);
 static void set_xwayland_input_focus(struct server *server,
@@ -531,12 +645,28 @@ static void start_next_initial_placement(struct server *server);
 static void update_title_text(struct toplevel *toplevel);
 static void update_decoration(struct toplevel *toplevel);
 static void refresh_icon_managers(struct server *server);
+static bool output_area_for_point(struct server *server, int x, int y,
+	struct wtwm_placement_area *area);
+static bool output_area_for_outer(struct server *server, int x, int y,
+	int width, int height, struct wtwm_placement_area *area);
+static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
+	struct wtwm_placement_area *area);
+static bool output_selection_for_point(struct server *server, int x, int y,
+	struct wtwm_placement_area *area, struct output **output);
+static bool output_selection_for_outer(struct server *server, int x, int y,
+	int width, int height, struct wtwm_placement_area *area,
+	struct output **output);
+static bool output_selection_for_toplevel(struct toplevel *toplevel, bool icon,
+	struct wtwm_placement_area *area, struct output **output);
+static void resume_output_waiting_toplevels(struct server *server);
 static void sync_icon_manager_toplevel(struct toplevel *toplevel);
 static void rebuild_icon_layout(struct server *server);
 static void finish_icon_animation(struct server *server);
 static void manage_bufferless_start_iconified(struct toplevel *toplevel);
 static bool icon_selector_matches(const struct wtwm_client_identity *identity,
 	const char *selector, unsigned int pass);
+static bool store_cut_buffer(struct server *server, const char *bytes,
+	size_t length);
 static struct server *xwayland_event_server;
 
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
@@ -565,6 +695,14 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		server->atom_wm_transient_for = xwayland_atom(connection, "WM_TRANSIENT_FOR");
 		server->atom_wm_icon_name = xwayland_atom(connection, "WM_ICON_NAME");
 		server->atom_net_wm_icon = xwayland_atom(connection, "_NET_WM_ICON");
+		server->atom_wm_colormap_windows = xwayland_atom(connection,
+			"WM_COLORMAP_WINDOWS");
+		if (server->cut_buffer_length > 0 &&
+				!store_cut_buffer(server, server->cut_buffer_bytes,
+					server->cut_buffer_length)) {
+			wlr_log(WLR_DEBUG, "%s",
+				"failed to mirror persistent cut buffer to Xwayland");
+		}
 		set_xwayland_input_focus(server, NULL);
 		struct toplevel *toplevel;
 		wl_list_for_each(toplevel, &server->toplevels, link) {
@@ -722,6 +860,52 @@ static struct wtwm_client_identity toplevel_identity(
 	};
 }
 
+static struct wtwm_session_identity session_identity(
+		const struct toplevel *toplevel) {
+	struct wtwm_client_identity identity = toplevel_identity(toplevel);
+	if (toplevel->xwayland != NULL) {
+		return (struct wtwm_session_identity){
+			.kind = WTWM_SESSION_XWAYLAND,
+			.name = (char *)identity.name,
+			.resource_name = (char *)identity.resource_name,
+			.resource_class = (char *)identity.resource_class,
+		};
+	}
+	return (struct wtwm_session_identity){
+		.kind = WTWM_SESSION_NATIVE,
+		.title = (char *)identity.title,
+		.app_id = (char *)identity.app_id,
+	};
+}
+
+static enum wtwm_session_zoom_mode session_zoom_mode(
+		enum wtwm_action_type mode) {
+	switch (mode) {
+	case WTWM_ACTION_ZOOM: return WTWM_SESSION_ZOOM_VERTICAL;
+	case WTWM_ACTION_HORIZOOM: return WTWM_SESSION_ZOOM_HORIZONTAL;
+	case WTWM_ACTION_FULLZOOM: return WTWM_SESSION_ZOOM_FULL;
+	case WTWM_ACTION_LEFTZOOM: return WTWM_SESSION_ZOOM_LEFT;
+	case WTWM_ACTION_RIGHTZOOM: return WTWM_SESSION_ZOOM_RIGHT;
+	case WTWM_ACTION_TOPZOOM: return WTWM_SESSION_ZOOM_TOP;
+	case WTWM_ACTION_BOTTOMZOOM: return WTWM_SESSION_ZOOM_BOTTOM;
+	default: return WTWM_SESSION_ZOOM_NONE;
+	}
+}
+
+static enum wtwm_action_type action_zoom_mode(
+		enum wtwm_session_zoom_mode mode) {
+	switch (mode) {
+	case WTWM_SESSION_ZOOM_VERTICAL: return WTWM_ACTION_ZOOM;
+	case WTWM_SESSION_ZOOM_HORIZONTAL: return WTWM_ACTION_HORIZOOM;
+	case WTWM_SESSION_ZOOM_FULL: return WTWM_ACTION_FULLZOOM;
+	case WTWM_SESSION_ZOOM_LEFT: return WTWM_ACTION_LEFTZOOM;
+	case WTWM_SESSION_ZOOM_RIGHT: return WTWM_ACTION_RIGHTZOOM;
+	case WTWM_SESSION_ZOOM_TOP: return WTWM_ACTION_TOPZOOM;
+	case WTWM_SESSION_ZOOM_BOTTOM: return WTWM_ACTION_BOTTOMZOOM;
+	default: return WTWM_ACTION_NOP;
+	}
+}
+
 static bool xwayland_color(struct server *server, const char *name,
 		struct wtwm_color *color) {
 	if (server->xwayland == NULL || name == NULL || strlen(name) > UINT16_MAX)
@@ -834,8 +1018,10 @@ static bool should_iconify_by_unmapping(const struct toplevel *toplevel) {
 static bool initialize_toplevel_rules(struct toplevel *toplevel) {
 	if (toplevel->rules_initialized || (toplevel->xwayland != NULL &&
 			toplevel->xwayland->override_redirect)) return false;
-	toplevel->auto_raise = toplevel->server->config.auto_raise ||
-		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	const struct wtwm_config *config = &toplevel->server->config;
+	bool listed_auto_raise = toplevel_matches(&config->auto_raise_windows,
+		toplevel);
+	toplevel->auto_raise = listed_auto_raise || config->auto_raise;
 	toplevel->iconify_by_unmapping = should_iconify_by_unmapping(toplevel);
 	toplevel->rules_initialized = true;
 	return true;
@@ -2051,10 +2237,18 @@ static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
 	if (layout.width > 0 && layout.height > 0) {
 		int64_t right = (int64_t)layout.x + layout.width;
 		int64_t bottom = (int64_t)layout.y + layout.height;
-		if ((int64_t)toplevel->icon_x > right)
-			toplevel->icon_x = (int)(right - toplevel->icon_width);
-		if ((int64_t)toplevel->icon_y > bottom)
-			toplevel->icon_y = (int)(bottom - toplevel->icon_height);
+		int64_t max_x = right - toplevel->icon_width;
+		int64_t max_y = bottom - toplevel->icon_height;
+		if (max_x < layout.x) max_x = layout.x;
+		if (max_y < layout.y) max_y = layout.y;
+		if ((int64_t)toplevel->icon_x < layout.x)
+			toplevel->icon_x = layout.x;
+		else if ((int64_t)toplevel->icon_x > max_x)
+			toplevel->icon_x = (int)max_x;
+		if ((int64_t)toplevel->icon_y < layout.y)
+			toplevel->icon_y = layout.y;
+		else if ((int64_t)toplevel->icon_y > max_y)
+			toplevel->icon_y = (int)max_y;
 	}
 	wlr_scene_node_set_position(&toplevel->icon_tree->node,
 		toplevel->icon_x, toplevel->icon_y);
@@ -2417,6 +2611,8 @@ static void set_toplevel_position(struct toplevel *toplevel, int x, int y) {
 	int old_y = toplevel->tree->node.y;
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		toplevel->frame_x = x;
+		toplevel->frame_y = y;
 		sync_toplevel_popups(toplevel);
 	} else {
 		configure_xwayland_frame(toplevel, x, y,
@@ -2434,6 +2630,8 @@ static void set_toplevel_box(struct toplevel *toplevel,
 	constrain_toplevel_size(toplevel, &width, &height);
 	if (toplevel->xwayland == NULL) {
 		wlr_scene_node_set_position(&toplevel->tree->node, x, y);
+		toplevel->frame_x = x;
+		toplevel->frame_y = y;
 		sync_toplevel_popups(toplevel);
 		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
 	} else {
@@ -2548,7 +2746,7 @@ static void focus_toplevel(struct toplevel *toplevel, bool set_input_focus,
 			set_xwayland_input_focus(server, NULL);
 		}
 		struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
-		if (keyboard != NULL) {
+		if (server->input.keyboard_count != 0 && keyboard != NULL) {
 			wlr_seat_keyboard_notify_enter(server->seat, surface, keyboard->keycodes,
 				keyboard->num_keycodes, &keyboard->modifiers);
 		}
@@ -2787,20 +2985,33 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 	if (server->grabbed != NULL) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
+	int original_x = toplevel->iconified ? toplevel->icon_x :
+		toplevel->tree->node.x;
+	int original_y = toplevel->iconified ? toplevel->icon_y :
+		toplevel->tree->node.y;
+	int owner_width = toplevel->iconified ? toplevel->icon_width :
+		geometry.outer_width;
+	int owner_height = toplevel->iconified ? toplevel->icon_height :
+		geometry.outer_height;
+	struct wtwm_placement_area output_area;
+	struct output *operation_output = NULL;
+	if (!output_selection_for_outer(server, original_x, original_y,
+			owner_width, owner_height, &output_area,
+			&operation_output)) return;
 	server->grabbed = toplevel;
 	server->cursor_mode = mode;
 	set_cursor_role(server, mode == CURSOR_MOVE ? "Move" : "Resize");
 	server->last_interaction_moved = false;
 	server->interaction = (struct interaction_session){
 		.original = {
-			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
-			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.x = original_x,
+			.y = original_y,
 			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
 			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
 		.preview = {
-			.x = toplevel->iconified ? toplevel->icon_x : toplevel->tree->node.x,
-			.y = toplevel->iconified ? toplevel->icon_y : toplevel->tree->node.y,
+			.x = original_x,
+			.y = original_y,
 			.width = toplevel->iconified ? toplevel->icon_width : toplevel->width,
 			.height = toplevel->iconified ? toplevel->icon_height : toplevel->height,
 		},
@@ -2811,6 +3022,11 @@ static void begin_interactive(struct toplevel *toplevel, enum cursor_mode mode,
 		.started = server->config.move_delta <= 0,
 		.intent = INTERACTION_DRAG,
 		.icon_move = toplevel->iconified,
+		.output_area_valid = true,
+		.output_area = output_area,
+		.output = operation_output,
+		.required_button = server->dispatch_pointer_button,
+		.required_button_valid = server->dispatch_pointer_button_valid,
 	};
 	if (mode == CURSOR_MOVE) {
 		uint32_t elapsed = time_msec - server->last_move_time_ms;
@@ -2874,6 +3090,8 @@ static void begin_menu_position(struct toplevel *toplevel, bool force_move,
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 	set_cursor_role(server, "Move");
 	server->interaction.intent = INTERACTION_MENU_POSITION;
+	server->interaction.required_button = 0;
+	server->interaction.required_button_valid = false;
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
 	server->interaction.grab_x = width / 2.0;
@@ -3136,6 +3354,18 @@ static void show_menu_at(struct server *server, const char *name,
 	}
 	if (submenu && (server->menu.tree == NULL || menu_depth(&server->menu) >= 10))
 		return;
+	struct wtwm_placement_area output_area;
+	struct output *menu_output = NULL;
+	bool have_output = submenu ? true : (target != NULL ?
+		output_selection_for_toplevel(target, target->iconified,
+			&output_area, &menu_output) :
+		output_selection_for_point(server, (int)server->cursor->x,
+			(int)server->cursor->y, &output_area, &menu_output));
+	if (submenu) {
+		output_area = server->menu.output_area;
+		menu_output = server->menu.output;
+	}
+	if (!have_output || output_area.width <= 0 || output_area.height <= 0) return;
 	int *widths = calloc(menu->item_count, sizeof(*widths));
 	int *heights = calloc(menu->item_count, sizeof(*heights));
 	struct menu_row_palette *palettes = calloc(menu->item_count,
@@ -3276,16 +3506,22 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 	}
 	free(widths); free(heights); free(palettes);
-	struct wlr_box output = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &output);
 	int menu_x = submenu ? requested_x : (int)server->cursor->x;
 	int menu_y = submenu ? requested_y : (int)server->cursor->y;
-	if (menu_x + layout.outer.width > output.x + output.width)
-		menu_x = output.x + output.width - layout.outer.width;
-	if (menu_y + layout.outer.height > output.y + output.height)
-		menu_y = output.y + output.height - layout.outer.height;
-	if (menu_x < output.x) menu_x = output.x;
-	if (menu_y < output.y) menu_y = output.y;
+	int64_t output_right = (int64_t)output_area.x + output_area.width;
+	int64_t output_bottom = (int64_t)output_area.y + output_area.height;
+	if ((int64_t)menu_x + layout.outer.width > output_right) {
+		int64_t clipped = output_right - layout.outer.width;
+		menu_x = clipped < INT_MIN ? INT_MIN :
+			(clipped > INT_MAX ? INT_MAX : (int)clipped);
+	}
+	if ((int64_t)menu_y + layout.outer.height > output_bottom) {
+		int64_t clipped = output_bottom - layout.outer.height;
+		menu_y = clipped < INT_MIN ? INT_MIN :
+			(clipped > INT_MAX ? INT_MAX : (int)clipped);
+	}
+	if (menu_x < output_area.x) menu_x = output_area.x;
+	if (menu_y < output_area.y) menu_y = output_area.y;
 	struct menu_view *parent = NULL;
 	if (submenu) {
 		parent = malloc(sizeof(*parent));
@@ -3311,6 +3547,8 @@ static void show_menu_at(struct server *server, const char *name,
 		.height = layout.outer.height,
 		.row_height = layout.row_height,
 		.selected = -1,
+		.output_area = output_area,
+		.output = menu_output,
 	};
 	wlr_scene_node_set_position(&tree->node, server->menu.x, server->menu.y);
 }
@@ -3537,6 +3775,7 @@ static bool action_needs_toplevel(enum wtwm_action_type type) {
 	case WTWM_ACTION_AUTORAISE:
 	case WTWM_ACTION_IDENTIFY:
 	case WTWM_ACTION_SAVEYOURSELF:
+	case WTWM_ACTION_COLORMAP:
 		return true;
 	default:
 		return false;
@@ -3546,21 +3785,22 @@ static bool action_needs_toplevel(enum wtwm_action_type type) {
 static void schedule_refresh(struct server *server) {
 	struct output *output;
 	wl_list_for_each(output, &server->outputs, link)
-		wlr_output_schedule_frame(output->wlr);
+		if (output->wlr->enabled && output->in_layout)
+			wlr_output_schedule_frame(output->wlr);
 }
 
 static void apply_zoom(struct toplevel *toplevel,
 		enum wtwm_action_type type) {
 	if (toplevel == NULL) return;
-	struct wlr_box layout = {0};
-	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
+	struct wtwm_placement_area area;
+	if (!output_area_for_toplevel(toplevel, false, &area)) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
 	struct wtwm_interaction_box output = {
-		.x = layout.x,
-		.y = layout.y,
-		.width = layout.width,
-		.height = layout.height,
+		.x = area.x,
+		.y = area.y,
+		.width = area.width,
+		.height = area.height,
 	};
 	struct wtwm_interaction_box current = {
 		.x = toplevel->frame_x,
@@ -3771,41 +4011,522 @@ static void warp_cycle(struct server *server, bool forward, bool ring_only) {
 	free(items);
 }
 
-static void warp_to_screen(struct server *server, const char *argument) {
-	int count = (int)wl_list_length(&server->outputs);
-	if (count <= 0) return;
-	int current = 0;
-	int index = 0;
+static bool output_order_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot) {
+	size_t count = 0;
 	struct output *output;
+	wl_list_for_each(output, &server->outputs, link)
+		if (output->wlr->enabled && output->in_layout) ++count;
+	if (!wtwm_output_order_create(count, snapshot)) return false;
+	size_t index = 0;
 	wl_list_for_each(output, &server->outputs, link) {
+		if (!output->wlr->enabled || !output->in_layout) continue;
+		if (!wtwm_output_order_set(*snapshot, index, &output->identity, output)) {
+			wtwm_output_order_destroy(*snapshot);
+			*snapshot = NULL;
+			return false;
+		}
+		++index;
+	}
+	if (wtwm_output_order_sort(*snapshot)) return true;
+	wtwm_output_order_destroy(*snapshot);
+	*snapshot = NULL;
+	return false;
+}
+
+#ifdef WTWM_TEST_CONTROL
+static bool all_output_order_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot) {
+	size_t count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) ++count;
+	if (!wtwm_output_order_create(count, snapshot)) return false;
+	size_t index = 0;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (!wtwm_output_order_set(*snapshot, index++, &output->identity,
+				output)) {
+			wtwm_output_order_destroy(*snapshot);
+			*snapshot = NULL;
+			return false;
+		}
+	}
+	if (wtwm_output_order_sort(*snapshot)) return true;
+	wtwm_output_order_destroy(*snapshot);
+	*snapshot = NULL;
+	return false;
+}
+#endif
+
+static bool output_area_snapshot(struct server *server,
+		struct wtwm_output_order **snapshot,
+		struct wtwm_placement_area **areas, size_t *count) {
+	*snapshot = NULL;
+	*areas = NULL;
+	*count = 0;
+	if (!output_order_snapshot(server, snapshot)) return false;
+	*count = wtwm_output_order_count(*snapshot);
+	if (*count == 0) return true;
+	*areas = calloc(*count, sizeof(**areas));
+	if (*areas == NULL) {
+		wtwm_output_order_destroy(*snapshot);
+		*snapshot = NULL;
+		return false;
+	}
+	for (size_t i = 0; i < *count; ++i) {
+		struct output *output = wtwm_output_order_at(*snapshot, i);
+		struct wlr_box box = {0};
+		if (output != NULL)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		(*areas)[i] = (struct wtwm_placement_area){
+			.x = box.x,
+			.y = box.y,
+			.width = box.width,
+			.height = box.height,
+		};
+	}
+	return true;
+}
+
+static void restoration_output_snapshot_finish(
+		struct restoration_output_snapshot *snapshot) {
+	if (snapshot == NULL) return;
+	for (size_t index = 0; index < snapshot->count; ++index)
+		wtwm_output_identity_finish(&snapshot->identities[index]);
+	free(snapshot->identities);
+	free(snapshot->outputs);
+	*snapshot = (struct restoration_output_snapshot){0};
+}
+
+static bool restoration_output_snapshot_copy(
+		struct restoration_output_snapshot *destination,
+		const struct restoration_output_snapshot *source) {
+	*destination = (struct restoration_output_snapshot){0};
+	if (source->count == 0) return true;
+	destination->identities = calloc(source->count,
+		sizeof(destination->identities[0]));
+	destination->outputs = calloc(source->count,
+		sizeof(destination->outputs[0]));
+	if (destination->identities == NULL || destination->outputs == NULL) {
+		restoration_output_snapshot_finish(destination);
+		return false;
+	}
+	for (size_t index = 0; index < source->count; ++index) {
+		const struct wtwm_output_identity *identity =
+			source->outputs[index].identity;
+		if (!wtwm_output_identity_init(&destination->identities[index],
+				identity->name, identity->make, identity->model,
+				identity->serial, identity->announcement_ordinal)) {
+			destination->count = index;
+			restoration_output_snapshot_finish(destination);
+			return false;
+		}
+		destination->count = index + 1;
+		destination->outputs[index] = source->outputs[index];
+		destination->outputs[index].identity =
+			&destination->identities[index];
+	}
+	return true;
+}
+
+static bool restoration_output_snapshot_capture(struct server *server,
+		struct restoration_output_snapshot *result) {
+	*result = (struct restoration_output_snapshot){0};
+	struct wtwm_output_order *order = NULL;
+	if (!output_order_snapshot(server, &order)) return false;
+	size_t count = wtwm_output_order_count(order);
+	if (count == 0) {
+		wtwm_output_order_destroy(order);
+		return true;
+	}
+	result->identities = calloc(count, sizeof(result->identities[0]));
+	result->outputs = calloc(count, sizeof(result->outputs[0]));
+	if (result->identities == NULL || result->outputs == NULL) {
+		wtwm_output_order_destroy(order);
+		restoration_output_snapshot_finish(result);
+		return false;
+	}
+	for (size_t index = 0; index < count; ++index) {
+		struct output *output = wtwm_output_order_at(order, index);
+		struct wlr_box box = {0};
+		if (output == NULL || !wtwm_output_identity_init(
+				&result->identities[index], output->identity.name,
+				output->identity.make, output->identity.model,
+				output->identity.serial,
+				output->identity.announcement_ordinal)) {
+			result->count = index;
+			wtwm_output_order_destroy(order);
+			restoration_output_snapshot_finish(result);
+			return false;
+		}
+		result->count = index + 1;
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (box.width <= 0 || box.height <= 0) {
+			wtwm_output_order_destroy(order);
+			restoration_output_snapshot_finish(result);
+			return false;
+		}
+		result->outputs[index] = (struct wtwm_output_restore_output){
+			.identity = &result->identities[index],
+			.box = {box.x, box.y, box.width, box.height},
+		};
+	}
+	wtwm_output_order_destroy(order);
+	return true;
+}
+
+static void restoration_transaction_finish(
+		struct restoration_transaction *transaction) {
+	if (transaction == NULL) return;
+	restoration_output_snapshot_finish(&transaction->before);
+	free(transaction->clients);
+	free(transaction->toplevels);
+	*transaction = (struct restoration_transaction){0};
+}
+
+static bool restoration_client_eligible(const struct toplevel *toplevel,
+		bool pending_only) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->tree == NULL ||
+			toplevel->placement_pending || toplevel->placement_waiting_output ||
+			(toplevel->xwayland != NULL &&
+			toplevel->xwayland->override_redirect)) return false;
+	return !pending_only || toplevel->restoration_pending;
+}
+
+static bool restoration_outer_box(const struct toplevel *toplevel,
+		struct wtwm_restore_box *box) {
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	if (geometry.outer_width <= 0 || geometry.outer_height <= 0) return false;
+	*box = (struct wtwm_restore_box){
+		.x = toplevel->tree->node.x,
+		.y = toplevel->tree->node.y,
+		.width = geometry.outer_width,
+		.height = geometry.outer_height,
+	};
+	return true;
+}
+
+static bool restoration_zoom_saved_outer(const struct toplevel *toplevel,
+		struct wtwm_restore_box *box) {
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int64_t width = (int64_t)toplevel->zoom.saved.width +
+		geometry.outer_width - toplevel->width;
+	int64_t height = (int64_t)toplevel->zoom.saved.height +
+		geometry.outer_height - toplevel->height;
+	if (width <= 0 || width > INT_MAX || height <= 0 || height > INT_MAX)
+		return false;
+	*box = (struct wtwm_restore_box){
+		.x = toplevel->zoom.saved.x,
+		.y = toplevel->zoom.saved.y,
+		.width = (int)width,
+		.height = (int)height,
+	};
+	return true;
+}
+
+static int restoration_parent_index(
+		const struct restoration_transaction *transaction, size_t child) {
+	for (size_t index = 0; index < transaction->client_count; ++index) {
+		if (index != child && toplevel_is_transient_for(
+				transaction->toplevels[child], transaction->toplevels[index]))
+			return (int)index;
+	}
+	return -1;
+}
+
+static bool restoration_clients_capture(struct server *server,
+		struct restoration_transaction *transaction, bool pending_only) {
+	size_t count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		if (restoration_client_eligible(toplevel, pending_only)) ++count;
+	if (count == 0) return true;
+	transaction->clients = calloc(count, sizeof(transaction->clients[0]));
+	transaction->toplevels = calloc(count, sizeof(transaction->toplevels[0]));
+	if (transaction->clients == NULL || transaction->toplevels == NULL)
+		return false;
+	size_t index = 0;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!restoration_client_eligible(toplevel, pending_only)) continue;
+		struct wtwm_output_restore_client *client =
+			&transaction->clients[index];
+		if (!restoration_outer_box(toplevel, &client->frame)) return false;
+		client->zoomed = wtwm_action_is_zoom(toplevel->zoom.mode);
+		client->zoom_restore_valid = client->zoomed;
+		if (client->zoom_restore_valid &&
+				!restoration_zoom_saved_outer(toplevel,
+				&client->zoom_restore)) return false;
+		bool icon_visible = pending_only ?
+			toplevel->restoration_icon_visible :
+			(toplevel->icon_tree != NULL &&
+			toplevel->icon_tree->node.enabled);
+		client->icon_visible = icon_visible && toplevel->icon_width > 0 &&
+			toplevel->icon_height > 0;
+		if (client->icon_visible) {
+			client->icon = (struct wtwm_restore_box){
+				.x = toplevel->icon_x,
+				.y = toplevel->icon_y,
+				.width = toplevel->icon_width,
+				.height = toplevel->icon_height,
+			};
+		}
+		transaction->toplevels[index++] = toplevel;
+	}
+	transaction->client_count = count;
+	for (index = 0; index < count; ++index)
+		transaction->clients[index].parent =
+			restoration_parent_index(transaction, index);
+	return true;
+}
+
+static bool prepare_restoration_transaction(struct server *server) {
+	struct restoration_transaction *transaction = &server->restoration;
+	if (transaction->prepared) return true;
+	restoration_transaction_finish(transaction);
+	transaction->pending_only =
+		server->restoration_pending_source.count > 0;
+	bool captured = transaction->pending_only ?
+		restoration_output_snapshot_copy(&transaction->before,
+			&server->restoration_pending_source) :
+		restoration_output_snapshot_capture(server, &transaction->before);
+	if (!captured || !restoration_clients_capture(server, transaction,
+			transaction->pending_only)) {
+		restoration_transaction_finish(transaction);
+		return false;
+	}
+	transaction->prepared = true;
+	return true;
+}
+
+static int runtime_saturate_int(int64_t value) {
+	if (value < INT_MIN) return INT_MIN;
+	if (value > INT_MAX) return INT_MAX;
+	return (int)value;
+}
+
+static bool output_selection_for_point(struct server *server, int x, int y,
+		struct wtwm_placement_area *area, struct output **output) {
+	struct wtwm_output_order *snapshot = NULL;
+	struct wtwm_placement_area *areas = NULL;
+	size_t count = 0, selected = 0;
+	if (output != NULL) *output = NULL;
+	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
+	bool found = loaded && wtwm_placement_output_for_point(areas, count,
+		x, y, &selected);
+	if (found && area != NULL) *area = areas[selected];
+	if (found && output != NULL)
+		*output = wtwm_output_order_at(snapshot, selected);
+	free(areas);
+	wtwm_output_order_destroy(snapshot);
+	return found;
+}
+
+static bool output_area_for_point(struct server *server, int x, int y,
+		struct wtwm_placement_area *area) {
+	return output_selection_for_point(server, x, y, area, NULL);
+}
+
+static bool output_selection_for_outer(struct server *server, int x, int y,
+		int width, int height, struct wtwm_placement_area *area,
+		struct output **output) {
+	struct wtwm_output_order *snapshot = NULL;
+	struct wtwm_placement_area *areas = NULL;
+	size_t count = 0, selected = 0;
+	if (output != NULL) *output = NULL;
+	bool loaded = output_area_snapshot(server, &snapshot, &areas, &count);
+	bool found = loaded && wtwm_placement_output_for_outer(areas, count,
+		x, y, width, height, &selected);
+	if (found && area != NULL) *area = areas[selected];
+	if (found && output != NULL)
+		*output = wtwm_output_order_at(snapshot, selected);
+	free(areas);
+	wtwm_output_order_destroy(snapshot);
+	return found;
+}
+
+static bool output_area_for_outer(struct server *server, int x, int y,
+		int width, int height, struct wtwm_placement_area *area) {
+	return output_selection_for_outer(server, x, y, width, height, area, NULL);
+}
+
+static bool output_selection_for_toplevel(struct toplevel *toplevel, bool icon,
+		struct wtwm_placement_area *area, struct output **output) {
+	if (toplevel == NULL) return false;
+	if (icon && toplevel->icon_width > 0 && toplevel->icon_height > 0)
+		return output_selection_for_outer(toplevel->server, toplevel->icon_x,
+			toplevel->icon_y, toplevel->icon_width, toplevel->icon_height,
+			area, output);
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int x = toplevel->tree != NULL ? toplevel->tree->node.x : toplevel->frame_x;
+	int y = toplevel->tree != NULL ? toplevel->tree->node.y : toplevel->frame_y;
+	return output_selection_for_outer(toplevel->server, x, y,
+		geometry.outer_width, geometry.outer_height, area, output);
+}
+
+static bool output_area_for_toplevel(struct toplevel *toplevel, bool icon,
+		struct wtwm_placement_area *area) {
+	return output_selection_for_toplevel(toplevel, icon, area, NULL);
+}
+
+static void output_local_pointer(struct server *server,
+		const struct wtwm_placement_area *target, int *x, int *y) {
+	struct wtwm_placement_area source;
+	if (!output_area_for_point(server, *x, *y, &source)) return;
+	int64_t translated_x = (int64_t)target->x + ((int64_t)*x - source.x);
+	int64_t translated_y = (int64_t)target->y + ((int64_t)*y - source.y);
+	int64_t max_x = (int64_t)target->x + target->width - 1;
+	int64_t max_y = (int64_t)target->y + target->height - 1;
+	if (translated_x < target->x) translated_x = target->x;
+	if (translated_y < target->y) translated_y = target->y;
+	if (translated_x > max_x) translated_x = max_x;
+	if (translated_y > max_y) translated_y = max_y;
+	*x = translated_x < INT_MIN ? INT_MIN :
+		(translated_x > INT_MAX ? INT_MAX : (int)translated_x);
+	*y = translated_y < INT_MIN ? INT_MIN :
+		(translated_y > INT_MAX ? INT_MAX : (int)translated_y);
+}
+
+static void warp_to_screen(struct server *server, const char *argument) {
+	struct wtwm_output_order *snapshot = NULL;
+	if (!output_order_snapshot(server, &snapshot)) return;
+	size_t output_count = wtwm_output_order_count(snapshot);
+	if (output_count == 0 || output_count > INT_MAX) {
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
+	server->screen_warp.previous = -1;
+	for (size_t index = 0; index < output_count; ++index) {
+		if (wtwm_output_order_at(snapshot, index) ==
+				server->screen_warp_previous_output) {
+			server->screen_warp.previous = (int)index;
+			break;
+		}
+	}
+	if (server->screen_warp.previous < 0)
+		server->screen_warp_previous_output = NULL;
+	struct wtwm_interaction_box *boxes = calloc(output_count, sizeof(*boxes));
+	if (boxes == NULL) {
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
+	int current = -1;
+	for (size_t index = 0; index < output_count; ++index) {
+		struct output *output = wtwm_output_order_at(snapshot, index);
+		if (output == NULL) {
+			free(boxes);
+			wtwm_output_order_destroy(snapshot);
+			return;
+		}
 		struct wlr_box box = {0};
 		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
-		if (server->cursor->x >= box.x && server->cursor->x < box.x + box.width &&
-				server->cursor->y >= box.y && server->cursor->y < box.y + box.height)
-			current = index;
-		++index;
+		boxes[index] = (struct wtwm_interaction_box){
+			.x = box.x,
+			.y = box.y,
+			.width = box.width,
+			.height = box.height,
+		};
+		if (current < 0 && server->cursor->x >= box.x &&
+				server->cursor->x < (double)box.x + box.width &&
+				server->cursor->y >= box.y &&
+				server->cursor->y < (double)box.y + box.height) {
+			current = (int)index;
+		}
 	}
-	int target = wtwm_action_screen_target(argument, current,
-		server->previous_output_index, count);
-	if (target < 0 || target == current) return;
-	struct output *from = NULL;
-	struct output *to = NULL;
-	index = 0;
-	wl_list_for_each(output, &server->outputs, link) {
-		if (index == current) from = output;
-		if (index == target) to = output;
-		++index;
+	if (current < 0) {
+		free(boxes);
+		wtwm_output_order_destroy(snapshot);
+		return;
 	}
-	if (from == NULL || to == NULL) return;
-	struct wlr_box from_box = {0};
-	struct wlr_box to_box = {0};
-	wlr_output_layout_get_box(server->output_layout, from->wlr, &from_box);
-	wlr_output_layout_get_box(server->output_layout, to->wlr, &to_box);
-	double x = to_box.x + (server->cursor->x - from_box.x);
-	double y = to_box.y + (server->cursor->y - from_box.y);
-	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
-	server->previous_output_index = current;
+	int pointer_x = server->cursor->x <= INT_MIN ? INT_MIN :
+		(server->cursor->x >= INT_MAX ? INT_MAX : (int)server->cursor->x);
+	int pointer_y = server->cursor->y <= INT_MIN ? INT_MIN :
+		(server->cursor->y >= INT_MAX ? INT_MAX : (int)server->cursor->y);
+	struct wtwm_screen_warp_plan plan;
+	if (!wtwm_action_plan_screen_warp(argument, current, (int)output_count,
+			boxes, pointer_x, pointer_y, &server->screen_warp, &plan)) {
+		free(boxes);
+		wtwm_output_order_destroy(snapshot);
+		return;
+	}
+	server->screen_warp_previous_output =
+		wtwm_output_order_at(snapshot, (size_t)server->screen_warp.previous);
+	wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);
 	process_cursor_motion(server, server->current_input_time_ms);
+	free(boxes);
+	wtwm_output_order_destroy(snapshot);
+}
+
+static bool persistable_session_toplevel(const struct toplevel *toplevel) {
+	if (toplevel == NULL || !toplevel->mapped || toplevel->tree == NULL)
+		return false;
+	if ((toplevel->xdg != NULL && toplevel->xdg->parent != NULL) ||
+			(toplevel->xwayland != NULL &&
+			toplevel->xwayland->parent != NULL)) return false;
+	struct wtwm_session_identity identity = session_identity(toplevel);
+	if (identity.kind == WTWM_SESSION_NATIVE)
+		return (identity.title != NULL && identity.title[0] != '\0') ||
+			(identity.app_id != NULL && identity.app_id[0] != '\0');
+	return (identity.name != NULL && identity.name[0] != '\0') ||
+		(identity.resource_name != NULL && identity.resource_name[0] != '\0') ||
+		(identity.resource_class != NULL && identity.resource_class[0] != '\0');
+}
+
+static bool save_compositor_session(struct server *server) {
+	if (server->session_state_path == NULL) {
+		wlr_log(WLR_ERROR, "%s",
+			"f.saveyourself cannot resolve the session-state path");
+		return false;
+	}
+	struct wtwm_session_state state = {.focus_root = server->focus_root};
+	uint32_t stack_rank = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!persistable_session_toplevel(toplevel)) continue;
+		struct wtwm_session_record record = {
+			.identity = session_identity(toplevel),
+			.geometry = {
+				.x = toplevel->tree->node.x,
+				.y = toplevel->tree->node.y,
+				.width = toplevel->width,
+				.height = toplevel->height,
+			},
+			.iconified = toplevel->iconified,
+			.has_manual_icon_position = toplevel->icon_moved,
+			.icon_x = toplevel->icon_x,
+			.icon_y = toplevel->icon_y,
+			.stack_rank = stack_rank++,
+			.focused = !server->focus_root && server->focus == toplevel,
+			.auto_raise = toplevel->auto_raise,
+			.zoom_mode = session_zoom_mode(toplevel->zoom.mode),
+			.zoom_saved_geometry = {
+				.x = toplevel->zoom.saved.x,
+				.y = toplevel->zoom.saved.y,
+				.width = toplevel->zoom.saved.width,
+				.height = toplevel->zoom.saved.height,
+			},
+		};
+		enum wtwm_session_result appended =
+			wtwm_session_state_append(&state, &record);
+		if (appended != WTWM_SESSION_OK) {
+			wlr_log(WLR_ERROR, "f.saveyourself state snapshot failed: %s",
+				wtwm_session_result_message(appended));
+			wtwm_session_state_finish(&state);
+			return false;
+		}
+	}
+	char error[512];
+	enum wtwm_session_result saved = wtwm_session_state_save(
+		server->session_state_path, &state, error, sizeof(error));
+	wtwm_session_state_finish(&state);
+	if (saved != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR, "f.saveyourself state write failed: %s", error);
+		return false;
+	}
+	wlr_log(WLR_INFO, "saved compositor-owned session state to %s",
+		server->session_state_path);
+	return true;
 }
 
 static bool send_save_yourself(struct toplevel *toplevel) {
@@ -3830,6 +4551,277 @@ static bool send_save_yourself(struct toplevel *toplevel) {
 	return true;
 }
 
+enum { WTWM_X11_COLORMAP_LIMIT = 4096 };
+
+static void reset_xwayland_colormap_cache(struct toplevel *toplevel) {
+	free(toplevel->colormap_windows);
+	free(toplevel->colormaps);
+	toplevel->colormap_windows = NULL;
+	toplevel->colormaps = NULL;
+	toplevel->colormap_count = 0;
+	toplevel->colormap_rotation = 0;
+}
+
+static xcb_screen_t *xwayland_screen(xcb_connection_t *connection) {
+	if (connection == NULL) return NULL;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(connection));
+	return screens.rem == 0 ? NULL : screens.data;
+}
+
+static void log_xcb_request_error(const char *operation,
+		xcb_window_t window, xcb_colormap_t colormap,
+		xcb_generic_error_t *error) {
+	wlr_log(WLR_ERROR,
+		"%s failed for X11 window 0x%08" PRIx32
+		" colormap 0x%08" PRIx32 ": X error %u request %u.%u",
+		operation, window, colormap, error->error_code,
+		error->major_code, error->minor_code);
+}
+
+static bool same_xwayland_colormap_cache(const struct toplevel *toplevel,
+		const xcb_window_t *windows, const xcb_colormap_t *colormaps,
+		size_t count) {
+	return count == toplevel->colormap_count &&
+		(count == 0 ||
+		(memcmp(windows, toplevel->colormap_windows,
+			count * sizeof(*windows)) == 0 &&
+		memcmp(colormaps, toplevel->colormaps,
+			count * sizeof(*colormaps)) == 0));
+}
+
+static bool read_xwayland_colormap_windows(struct toplevel *toplevel,
+		xcb_connection_t *connection, xcb_window_t **windows_out,
+		xcb_colormap_t **colormaps_out, size_t *count_out) {
+	xcb_window_t toplevel_window = toplevel->xwayland->window_id;
+	xcb_window_t property_windows[WTWM_X11_COLORMAP_LIMIT];
+	size_t property_count = 0;
+	bool exact_property = false;
+
+	if (toplevel->server->atom_wm_colormap_windows != XCB_ATOM_NONE) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
+			xcb_get_property(connection, false, toplevel_window,
+				toplevel->server->atom_wm_colormap_windows, XCB_ATOM_WINDOW,
+				0, WTWM_X11_COLORMAP_LIMIT), &error);
+		if (error != NULL) {
+			log_xcb_request_error("read WM_COLORMAP_WINDOWS", toplevel_window,
+				XCB_COLORMAP_NONE, error);
+			free(error);
+		} else if (reply != NULL && reply->type == XCB_ATOM_WINDOW &&
+				reply->format == 32 && reply->bytes_after == 0 &&
+				xcb_get_property_value_length(reply) >= 0 &&
+				xcb_get_property_value_length(reply) %
+					(int)sizeof(xcb_window_t) == 0) {
+			property_count = (size_t)xcb_get_property_value_length(reply) /
+				sizeof(xcb_window_t);
+			if (property_count <= WTWM_X11_COLORMAP_LIMIT) {
+				if (property_count != 0)
+					memcpy(property_windows, xcb_get_property_value(reply),
+						property_count * sizeof(*property_windows));
+				exact_property = true;
+			}
+		} else if (reply != NULL && reply->bytes_after != 0) {
+			wlr_log(WLR_ERROR,
+				"WM_COLORMAP_WINDOWS on 0x%08" PRIx32
+				" exceeds the bounded %u-window compatibility limit",
+				toplevel_window, WTWM_X11_COLORMAP_LIMIT);
+		}
+		free(reply);
+	}
+
+	bool contains_toplevel = false;
+	if (exact_property) {
+		for (size_t i = 0; i < property_count; ++i) {
+			if (property_windows[i] == toplevel_window) {
+				contains_toplevel = true;
+				break;
+			}
+		}
+	}
+	if (!exact_property || property_count == 0 ||
+			(!contains_toplevel && property_count == WTWM_X11_COLORMAP_LIMIT)) {
+		property_count = 0;
+		contains_toplevel = false;
+	}
+	size_t count = property_count + (contains_toplevel ? 0 : 1);
+	xcb_window_t *windows = calloc(count, sizeof(*windows));
+	xcb_colormap_t *colormaps = calloc(count, sizeof(*colormaps));
+	if (windows == NULL || colormaps == NULL) {
+		free(windows);
+		free(colormaps);
+		return false;
+	}
+	size_t offset = contains_toplevel ? 0 : 1;
+	if (!contains_toplevel) windows[0] = toplevel_window;
+	if (property_count != 0)
+		memcpy(windows + offset, property_windows,
+			property_count * sizeof(*windows));
+
+	size_t valid_count = 0;
+	for (size_t i = 0; i < count; ++i) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_window_attributes_reply_t *attributes =
+			xcb_get_window_attributes_reply(connection,
+				xcb_get_window_attributes(connection, windows[i]), &error);
+		if (error != NULL) {
+			log_xcb_request_error("query colormap window", windows[i],
+				XCB_COLORMAP_NONE, error);
+			free(error);
+		}
+		if (attributes != NULL && attributes->colormap != XCB_COLORMAP_NONE) {
+			windows[valid_count] = windows[i];
+			colormaps[valid_count] = attributes->colormap;
+			++valid_count;
+		}
+		free(attributes);
+	}
+	/* FetchWmColormapWindows retains valid entries in property order and falls
+	 * back to the managed top-level when the supplied list yields none. */
+	if (valid_count == 0 &&
+			(count != 1 || windows[0] != toplevel_window)) {
+		xcb_generic_error_t *error = NULL;
+		xcb_get_window_attributes_reply_t *attributes =
+			xcb_get_window_attributes_reply(connection,
+				xcb_get_window_attributes(connection, toplevel_window), &error);
+		if (error != NULL) {
+			log_xcb_request_error("query fallback colormap window",
+				toplevel_window, XCB_COLORMAP_NONE, error);
+			free(error);
+		}
+		if (attributes != NULL && attributes->colormap != XCB_COLORMAP_NONE) {
+			windows[0] = toplevel_window;
+			colormaps[0] = attributes->colormap;
+			valid_count = 1;
+		}
+		free(attributes);
+	}
+	if (valid_count == 0) {
+		free(windows);
+		free(colormaps);
+		return false;
+	}
+	*windows_out = windows;
+	*colormaps_out = colormaps;
+	*count_out = valid_count;
+	return true;
+}
+
+static bool refresh_xwayland_colormap_cache(struct toplevel *toplevel,
+		xcb_connection_t *connection, bool force_reset) {
+	xcb_window_t *windows = NULL;
+	xcb_colormap_t *colormaps = NULL;
+	size_t count = 0;
+	if (!read_xwayland_colormap_windows(toplevel, connection, &windows,
+			&colormaps, &count)) return false;
+	if (same_xwayland_colormap_cache(toplevel, windows, colormaps, count)) {
+		free(windows);
+		free(colormaps);
+		if (force_reset) toplevel->colormap_rotation = 0;
+		return true;
+	}
+	reset_xwayland_colormap_cache(toplevel);
+	toplevel->colormap_windows = windows;
+	toplevel->colormaps = colormaps;
+	toplevel->colormap_count = count;
+	return true;
+}
+
+static bool install_xwayland_colormaps(struct toplevel *toplevel,
+		xcb_connection_t *connection) {
+	xcb_screen_t *screen = xwayland_screen(connection);
+	if (screen == NULL || toplevel->colormap_count == 0 ||
+			screen->max_installed_maps == 0) return false;
+	xcb_colormap_t installed[WTWM_X11_COLORMAP_LIMIT];
+	xcb_window_t installed_windows[WTWM_X11_COLORMAP_LIMIT];
+	size_t selected_count = 0;
+	for (size_t offset = 0; offset < toplevel->colormap_count &&
+			selected_count < screen->max_installed_maps; ++offset) {
+		size_t index = (toplevel->colormap_rotation + offset) %
+			toplevel->colormap_count;
+		xcb_colormap_t colormap = toplevel->colormaps[index];
+		if (colormap == XCB_COLORMAP_NONE) continue;
+		bool duplicate = false;
+		for (size_t i = 0; i < selected_count; ++i)
+			if (installed[i] == colormap) duplicate = true;
+		if (duplicate) continue;
+		installed[selected_count] = colormap;
+		installed_windows[selected_count] = toplevel->colormap_windows[index];
+		++selected_count;
+	}
+	size_t installed_count = 0;
+	/* Reference InstallWindowColormaps walks the selected list in reverse
+	 * index order, leaving the first rotated entry as the last request. */
+	for (size_t i = selected_count; i > 0; --i) {
+		xcb_colormap_t colormap = installed[i - 1];
+		xcb_generic_error_t *error = xcb_request_check(connection,
+			xcb_install_colormap_checked(connection, colormap));
+		if (error != NULL) {
+			log_xcb_request_error("install colormap",
+				installed_windows[i - 1], colormap, error);
+			free(error);
+			continue;
+		}
+		++installed_count;
+	}
+	xcb_flush(connection);
+	if (xcb_connection_has_error(connection) != 0) {
+		wlr_log(WLR_ERROR, "%s",
+			"f.colormap lost the XWM connection while installing colormaps");
+		return false;
+	}
+	return installed_count != 0;
+}
+
+static void apply_colormap_action(struct server *server,
+		struct toplevel *toplevel, const char *argument) {
+	if (toplevel == NULL) {
+		wlr_log(WLR_DEBUG, "f.colormap %s has no selected target",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (toplevel->xwayland == NULL) {
+		test_trace_toplevel_event(toplevel, "colormap", "native-noop");
+		wlr_log(WLR_DEBUG,
+			"f.colormap %s is a no-op for native true-color Wayland; no X11 request issued",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (argument == NULL || (strcmp(argument, "next") != 0 &&
+			strcmp(argument, "prev") != 0 &&
+			strcmp(argument, "default") != 0)) {
+		wlr_log(WLR_ERROR, "invalid f.colormap argument escaped parser: %s",
+			argument != NULL ? argument : "");
+		return;
+	}
+	if (server->xwayland == NULL ||
+			server->atom_wm_colormap_windows == XCB_ATOM_NONE) return;
+	xcb_connection_t *connection =
+		wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return;
+	bool reset = strcmp(argument, "default") == 0;
+	if (!refresh_xwayland_colormap_cache(toplevel, connection, reset) ||
+			toplevel->colormap_count == 0) return;
+	if (strcmp(argument, "next") == 0) {
+		toplevel->colormap_rotation = (toplevel->colormap_rotation + 1) %
+			toplevel->colormap_count;
+	} else if (strcmp(argument, "prev") == 0) {
+		toplevel->colormap_rotation = (toplevel->colormap_rotation +
+			toplevel->colormap_count - 1) % toplevel->colormap_count;
+	}
+	const char *trace_context = strcmp(argument, "next") == 0 ? "x11-next" :
+		strcmp(argument, "prev") == 0 ? "x11-prev" : "x11-default";
+	test_trace_toplevel_event(toplevel, "colormap", trace_context);
+	if (install_xwayland_colormaps(toplevel, connection)) {
+		xcb_colormap_t selected =
+			toplevel->colormaps[toplevel->colormap_rotation];
+		wlr_log(WLR_DEBUG,
+			"f.colormap %s selected X11 colormap 0x%08" PRIx32
+			" for window 0x%08" PRIx32,
+			argument, selected, toplevel->xwayland->window_id);
+	}
+}
+
 static bool xwayland_root(struct server *server,
 		xcb_connection_t **connection, xcb_window_t *root) {
 	if (server->xwayland == NULL || server->atom_cut_buffer0 == XCB_ATOM_NONE)
@@ -3849,28 +4841,165 @@ static bool store_cut_buffer(struct server *server, const char *bytes,
 	xcb_window_t root = XCB_WINDOW_NONE;
 	if (!xwayland_root(server, &connection, &root) || length > UINT32_MAX)
 		return false;
-	xcb_change_property(connection, XCB_PROP_MODE_REPLACE, root,
-		server->atom_cut_buffer0, XCB_ATOM_STRING, 8, (uint32_t)length, bytes);
-	xcb_flush(connection);
-	return true;
+	xcb_void_cookie_t cookie = xcb_change_property_checked(connection,
+		XCB_PROP_MODE_REPLACE, root, server->atom_cut_buffer0, XCB_ATOM_STRING,
+		8, (uint32_t)length, bytes);
+	xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+	if (error != NULL) {
+		free(error);
+		return false;
+	}
+	return xcb_flush(connection) > 0;
 }
 
-static char *fetch_cut_buffer(struct server *server) {
+static char *fetch_cut_buffer(struct server *server, size_t *length_out,
+		bool *truncated_out) {
+	*length_out = 0;
+	*truncated_out = false;
 	xcb_connection_t *connection = NULL;
 	xcb_window_t root = XCB_WINDOW_NONE;
 	if (!xwayland_root(server, &connection, &root)) return NULL;
+	xcb_generic_error_t *error = NULL;
 	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
 		xcb_get_property(connection, false, root, server->atom_cut_buffer0,
-			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), NULL);
-	if (reply == NULL) return NULL;
+			XCB_GET_PROPERTY_TYPE_ANY, 0, 1024), &error);
+	if (error != NULL) {
+		free(error);
+		free(reply);
+		return NULL;
+	}
+	if (reply == NULL || reply->type != XCB_ATOM_STRING || reply->format != 8) {
+		free(reply);
+		return NULL;
+	}
 	int length = xcb_get_property_value_length(reply);
-	char *value = length > 0 ? malloc((size_t)length + 1) : NULL;
+	char *value = length > 0 ? malloc((size_t)length) : NULL;
 	if (value != NULL) {
 		memcpy(value, xcb_get_property_value(reply), (size_t)length);
-		value[length] = '\0';
+		*length_out = (size_t)length;
+		*truncated_out = reply->bytes_after > 0;
 	}
 	free(reply);
 	return value;
+}
+
+static void cut_buffer_source_send(struct wlr_data_source *wlr_source,
+		const char *mime_type, int32_t descriptor) {
+	(void)mime_type;
+	struct cut_buffer_source *source =
+		wl_container_of(wlr_source, source, source);
+	size_t offset = 0;
+	int write_error = 0;
+	while (offset < source->length) {
+		ssize_t count = write(descriptor, source->bytes + offset,
+			source->length - offset);
+		if (count > 0) {
+			offset += (size_t)count;
+			continue;
+		}
+		if (count < 0 && errno == EINTR) continue;
+		write_error = count < 0 ? errno : EIO;
+		break;
+	}
+	if (write_error != 0) {
+		wlr_log(WLR_DEBUG, "cut-buffer clipboard send stopped after %zu of "
+			"%zu bytes: %s", offset, source->length, strerror(write_error));
+	}
+	if (close(descriptor) < 0) {
+		wlr_log_errno(WLR_DEBUG, "%s",
+			"failed to close cut-buffer clipboard descriptor");
+	}
+}
+
+static void cut_buffer_source_destroy(struct wlr_data_source *wlr_source) {
+	struct cut_buffer_source *source =
+		wl_container_of(wlr_source, source, source);
+	if (source->server->cut_buffer_source == source)
+		source->server->cut_buffer_source = NULL;
+	free(source->bytes);
+	free(source);
+}
+
+static const struct wlr_data_source_impl cut_buffer_source_impl = {
+	.send = cut_buffer_source_send,
+	.destroy = cut_buffer_source_destroy,
+};
+
+static bool cut_buffer_source_add_mime(struct cut_buffer_source *source,
+		const char *mime_type) {
+	char *copy = strdup(mime_type);
+	if (copy == NULL) return false;
+	char **slot = wl_array_add(&source->source.mime_types, sizeof(*slot));
+	if (slot == NULL) {
+		free(copy);
+		return false;
+	}
+	*slot = copy;
+	return true;
+}
+
+static struct cut_buffer_source *cut_buffer_source_create(
+		struct server *server, const char *bytes, size_t length) {
+	struct cut_buffer_source *source = calloc(1, sizeof(*source));
+	if (source == NULL) return NULL;
+	wlr_data_source_init(&source->source, &cut_buffer_source_impl);
+	source->server = server;
+	source->bytes = malloc(length);
+	if (source->bytes == NULL ||
+			!cut_buffer_source_add_mime(source, "text/plain;charset=utf-8") ||
+			!cut_buffer_source_add_mime(source, "text/plain")) {
+		wlr_data_source_destroy(&source->source);
+		return NULL;
+	}
+	memcpy(source->bytes, bytes, length);
+	source->length = length;
+	return source;
+}
+
+static bool replace_cut_buffer(struct server *server, const char *bytes,
+		size_t length) {
+	if (length == 0 || server->display == NULL || server->seat == NULL)
+		return false;
+	char *persistent = malloc(length);
+	if (persistent == NULL) return false;
+	memcpy(persistent, bytes, length);
+	struct cut_buffer_source *source =
+		cut_buffer_source_create(server, bytes, length);
+	if (source == NULL) {
+		free(persistent);
+		return false;
+	}
+
+	char *previous = server->cut_buffer_bytes;
+	server->cut_buffer_bytes = persistent;
+	server->cut_buffer_length = length;
+	server->cut_buffer_source = source;
+	wlr_seat_set_selection(server->seat, &source->source,
+		wl_display_next_serial(server->display));
+	free(previous);
+	if (!store_cut_buffer(server, persistent, length)) {
+		wlr_log(WLR_DEBUG, "%s",
+			"cut-buffer action published CLIPBOARD without an Xwayland mirror");
+	}
+	return true;
+}
+
+static char *cut_buffer_filename(const char *bytes, size_t length,
+		bool truncated) {
+	size_t begin = 0;
+	while (begin < length && isspace((unsigned char)bytes[begin])) ++begin;
+	if (begin == length) return NULL;
+	size_t end = begin;
+	while (end < length && !isspace((unsigned char)bytes[end])) {
+		if (bytes[end] == '\0') return NULL;
+		++end;
+	}
+	if (end == length && truncated) return NULL;
+	char *filename = malloc(end - begin + 1);
+	if (filename == NULL) return NULL;
+	memcpy(filename, bytes + begin, end - begin);
+	filename[end - begin] = '\0';
+	return filename;
 }
 
 static char *expand_filename(const char *name) {
@@ -3878,7 +5007,11 @@ static char *expand_filename(const char *name) {
 	if (name[0] != '~') return strdup(name);
 	const char *home = getenv("HOME");
 	if (home == NULL) return NULL;
-	size_t length = strlen(home) + strlen(name) + 2;
+	size_t home_length = strlen(home);
+	size_t name_length = strlen(name);
+	if (name_length > SIZE_MAX - 2 ||
+			home_length > SIZE_MAX - name_length - 2) return NULL;
+	size_t length = home_length + name_length + 2;
 	char *expanded = malloc(length);
 	if (expanded != NULL)
 		(void)snprintf(expanded, length, "%s/%s", home, name + 1);
@@ -3896,23 +5029,603 @@ static bool file_to_cut_buffer(struct server *server, const char *name) {
 	}
 	char bytes[4095];
 	ssize_t count = read(descriptor, bytes, sizeof(bytes));
-	close(descriptor);
+	int read_error = count < 0 ? errno : 0;
+	if (close(descriptor) < 0)
+		wlr_log_errno(WLR_DEBUG, "%s", "failed to close cut-buffer file");
 	free(expanded);
-	return count > 0 && store_cut_buffer(server, bytes, (size_t)count);
+	if (count < 0) {
+		wlr_log(WLR_ERROR, "unable to read cut-buffer file: %s",
+			strerror(read_error));
+		return false;
+	}
+	return count > 0 && replace_cut_buffer(server, bytes, (size_t)count);
 }
 
 static void cut_text(struct server *server, const char *text) {
 	if (text == NULL) text = "";
 	size_t length = strlen(text);
-	char *line = malloc(length + 2);
+	if (length == SIZE_MAX) return;
+	char *line = malloc(length + 1);
 	if (line == NULL) return;
 	memcpy(line, text, length);
 	line[length] = '\n';
-	line[length + 1] = '\0';
-	if (!store_cut_buffer(server, line, length + 1))
-		wlr_log(WLR_DEBUG, "%s",
-			"f.cut has no native Wayland cut-buffer equivalent");
+	(void)replace_cut_buffer(server, line, length + 1);
 	free(line);
+}
+
+static void cut_file_from_buffer(struct server *server) {
+	const char *bytes = server->cut_buffer_bytes;
+	size_t length = server->cut_buffer_length;
+	bool truncated = false;
+	char *fetched = NULL;
+	xcb_connection_t *connection = NULL;
+	xcb_window_t root = XCB_WINDOW_NONE;
+	if (xwayland_root(server, &connection, &root)) {
+		fetched = fetch_cut_buffer(server, &length, &truncated);
+		if (fetched == NULL) return;
+		bytes = fetched;
+	}
+	char *filename = cut_buffer_filename(bytes, length, truncated);
+	if (filename != NULL) {
+		(void)file_to_cut_buffer(server, filename);
+		free(filename);
+	}
+	free(fetched);
+}
+
+static void finish_cut_buffer(struct server *server) {
+	if (server->cut_buffer_source != NULL)
+		wlr_data_source_destroy(&server->cut_buffer_source->source);
+	free(server->cut_buffer_bytes);
+	server->cut_buffer_bytes = NULL;
+	server->cut_buffer_length = 0;
+}
+
+static void refresh_output_configuration(struct server *server) {
+	float background[4];
+	configured_color(server, "DefaultBackground", "white", NULL, background);
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output->background == NULL) continue;
+		struct wlr_box box = {0};
+		if (output->in_layout)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		bool active = output->wlr->enabled && output->in_layout &&
+			box.width > 0 && box.height > 0;
+		wlr_scene_node_set_enabled(&output->background->node, active);
+		if (!active) continue;
+		wlr_scene_rect_set_color(output->background, background);
+		wlr_scene_rect_set_size(output->background, box.width, box.height);
+		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
+	}
+}
+
+static bool output_is_enabled_managed(struct server *server,
+		const struct output *target) {
+	if (target == NULL) return false;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output == target)
+			return output->wlr->enabled && output->in_layout;
+	}
+	return false;
+}
+
+static size_t enabled_output_count(struct server *server) {
+	size_t count = 0;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link)
+		if (output->wlr->enabled && output->in_layout) ++count;
+	return count;
+}
+
+static bool output_current_area(struct server *server,
+		const struct output *target, struct wtwm_placement_area *area) {
+	if (target == NULL) return false;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output != target) continue;
+		if (!output->wlr->enabled || !output->in_layout) return false;
+		struct wlr_box box = {0};
+		wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (box.width <= 0 || box.height <= 0) return false;
+		if (area != NULL) {
+			*area = (struct wtwm_placement_area){
+				.x = box.x,
+				.y = box.y,
+				.width = box.width,
+				.height = box.height,
+			};
+		}
+		return true;
+	}
+	return false;
+}
+
+static bool placement_area_equal(const struct wtwm_placement_area *left,
+		const struct wtwm_placement_area *right) {
+	return left->x == right->x && left->y == right->y &&
+		left->width == right->width && left->height == right->height;
+}
+
+static void mark_toplevel_restoration_pending(struct toplevel *toplevel) {
+	if (!toplevel->restoration_pending) {
+		toplevel->restoration_frame_visible = toplevel->tree != NULL &&
+			toplevel->tree->node.enabled;
+		toplevel->restoration_icon_visible = toplevel->icon_tree != NULL &&
+			toplevel->icon_tree->node.enabled;
+	}
+	toplevel->restoration_pending = true;
+	if (toplevel->tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node, false);
+}
+
+static void restore_toplevel_scene_visibility(struct toplevel *toplevel) {
+	if (!toplevel->restoration_pending) return;
+	if (toplevel->tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->tree->node,
+			toplevel->restoration_frame_visible);
+	if (toplevel->icon_tree != NULL)
+		wlr_scene_node_set_enabled(&toplevel->icon_tree->node,
+			toplevel->restoration_icon_visible);
+	toplevel->restoration_pending = false;
+	toplevel->restoration_frame_visible = false;
+	toplevel->restoration_icon_visible = false;
+}
+
+static bool restoration_icon_uses_planned_position(
+		const struct toplevel *toplevel) {
+	return !toplevel->icon_region_allocated;
+}
+
+static bool apply_restored_zoom(struct toplevel *toplevel,
+		const struct wtwm_output_restore_record *record,
+		const struct restoration_output_snapshot *after,
+		struct wtwm_interaction_box *applied) {
+	if (record->target_output < 0 ||
+			(size_t)record->target_output >= after->count) return false;
+	enum wtwm_action_type mode = toplevel->zoom.mode;
+	struct wtwm_interaction_box saved = toplevel->zoom.saved;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	struct wtwm_restore_box target =
+		after->outputs[record->target_output].box;
+	struct wtwm_interaction_box output = {
+		.x = target.x,
+		.y = target.y,
+		.width = target.width,
+		.height = target.height,
+	};
+	struct wtwm_interaction_box current = {
+		.x = record->frame.x,
+		.y = record->frame.y,
+		.width = toplevel->width,
+		.height = toplevel->height,
+	};
+	struct wtwm_zoom_state temporary = {0};
+	struct wtwm_interaction_box next = wtwm_action_zoom(mode, &output,
+		geometry.outer_width - toplevel->width,
+		geometry.outer_height - toplevel->height, &current, &temporary);
+	constrain_toplevel_size(toplevel, &next.width, &next.height);
+	set_toplevel_box(toplevel, next.x, next.y, next.width, next.height);
+	toplevel->zoom.mode = mode;
+	toplevel->zoom.saved = saved;
+	if (applied != NULL) *applied = next;
+	return true;
+}
+
+static void preserve_pending_source(struct server *server,
+		struct restoration_transaction *transaction) {
+	if (server->restoration_pending_source.count != 0) return;
+	restoration_output_snapshot_finish(&server->restoration_pending_source);
+	server->restoration_pending_source = transaction->before;
+	transaction->before = (struct restoration_output_snapshot){0};
+}
+
+static void restoration_emergency_hide(struct server *server) {
+	preserve_pending_source(server, &server->restoration);
+	if (server->restoration.client_count != 0) {
+		for (size_t index = 0;
+				index < server->restoration.client_count; ++index)
+			mark_toplevel_restoration_pending(
+				server->restoration.toplevels[index]);
+		return;
+	}
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		if (restoration_client_eligible(toplevel, false))
+			mark_toplevel_restoration_pending(toplevel);
+}
+
+static bool apply_output_restoration(struct server *server) {
+	struct restoration_transaction *transaction = &server->restoration;
+	if (!transaction->prepared && !prepare_restoration_transaction(server)) {
+		restoration_emergency_hide(server);
+		return false;
+	}
+	struct restoration_output_snapshot after = {0};
+	if (!restoration_output_snapshot_capture(server, &after)) {
+		restoration_emergency_hide(server);
+		return false;
+	}
+	struct wtwm_output_restore_snapshot before_snapshot = {
+		.outputs = transaction->before.outputs,
+		.count = transaction->before.count,
+	};
+	struct wtwm_output_restore_snapshot after_snapshot = {
+		.outputs = after.outputs,
+		.count = after.count,
+	};
+	struct wtwm_output_restore_plan plan;
+	wtwm_output_restore_plan_init(&plan);
+	if (!wtwm_output_restore_plan_build(&before_snapshot, &after_snapshot,
+			transaction->clients, transaction->client_count, &plan)) {
+		restoration_output_snapshot_finish(&after);
+		restoration_emergency_hide(server);
+		return false;
+	}
+	if (after.count == 0)
+		preserve_pending_source(server, transaction);
+
+	for (size_t index = 0; index < plan.count; ++index) {
+		struct toplevel *toplevel = transaction->toplevels[index];
+		const struct wtwm_output_restore_record *record =
+			&plan.records[index];
+		if (record->pending) {
+			mark_toplevel_restoration_pending(toplevel);
+			continue;
+		}
+		bool was_pending = toplevel->restoration_pending;
+		if (record->zoom_restore_changed) {
+			toplevel->zoom.saved.x = record->zoom_restore.x;
+			toplevel->zoom.saved.y = record->zoom_restore.y;
+		}
+		struct wtwm_interaction_box applied_zoom = {0};
+		bool zoom_applied = record->recompute_zoom &&
+			apply_restored_zoom(toplevel, record, &after, &applied_zoom);
+		if (!record->recompute_zoom && record->frame_changed)
+			set_toplevel_position(toplevel, record->frame.x, record->frame.y);
+		if (record->icon_changed &&
+				restoration_icon_uses_planned_position(toplevel)) {
+			toplevel->icon_x = record->icon.x;
+			toplevel->icon_y = record->icon.y;
+			if (toplevel->icon_tree != NULL)
+				wlr_scene_node_set_position(&toplevel->icon_tree->node,
+					toplevel->icon_x, toplevel->icon_y);
+		}
+		if (was_pending) restore_toplevel_scene_visibility(toplevel);
+		if (record->frame_changed || record->icon_changed ||
+				record->zoom_restore_changed || zoom_applied || was_pending) {
+			if (zoom_applied)
+				test_trace_toplevel_event_at(toplevel, "restore", "topology",
+					applied_zoom.x, applied_zoom.y,
+					applied_zoom.width, applied_zoom.height);
+			else
+				test_trace_toplevel_event(toplevel, "restore", "topology");
+		}
+	}
+
+	if (after.count > 0)
+		restoration_output_snapshot_finish(
+			&server->restoration_pending_source);
+	wtwm_output_restore_plan_finish(&plan);
+	restoration_output_snapshot_finish(&after);
+	return true;
+}
+
+static void repair_topology_operations(struct server *server) {
+	if (server->menu.tree != NULL) {
+		struct wtwm_placement_area current;
+		if (!output_current_area(server, server->menu.output, &current) ||
+				!placement_area_equal(&current, &server->menu.output_area)) {
+			hide_menu(server);
+			memset(&server->continuation, 0, sizeof(server->continuation));
+		}
+	}
+	server->deferred_root_action_active = false;
+
+	if (server->grabbed == NULL) return;
+	struct wtwm_placement_area current;
+	if (output_current_area(server, server->interaction.output, &current) &&
+			placement_area_equal(&current, &server->interaction.output_area))
+		return;
+	if (server->interaction.intent == INTERACTION_INITIAL_POSITION ||
+			server->interaction.intent == INTERACTION_INITIAL_CONFIRM ||
+			server->interaction.intent == INTERACTION_INITIAL_RESIZE) {
+		struct toplevel *pending = server->grabbed;
+		reset_cursor(server);
+		pending->placement_waiting_output = true;
+		pending->placement_output = NULL;
+		return;
+	}
+	finish_interactive(server, true);
+}
+
+static void refresh_output_topology(struct server *server) {
+	if (server->shutting_down) return;
+	if (server->topology_epoch != UINT64_MAX) ++server->topology_epoch;
+	if (!output_is_enabled_managed(server,
+			server->screen_warp_previous_output)) {
+		server->screen_warp_previous_output = NULL;
+		server->screen_warp.previous = -1;
+	}
+	repair_topology_operations(server);
+	refresh_output_configuration(server);
+	rebuild_icon_layout(server);
+	refresh_icon_managers(server);
+	bool restoration_ok = apply_output_restoration(server);
+
+	if (enabled_output_count(server) == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		if (server->seat != NULL) wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
+	if (server->cursor != NULL) {
+		struct wtwm_output_order *snapshot = NULL;
+		struct wtwm_placement_area *areas = NULL;
+		size_t count = 0;
+		double cursor_x = server->cursor->x;
+		double cursor_y = server->cursor->y;
+		bool inside = false;
+		if (output_area_snapshot(server, &snapshot, &areas, &count)) {
+			for (size_t index = 0; index < count; ++index) {
+				int64_t right = (int64_t)areas[index].x + areas[index].width;
+				int64_t bottom = (int64_t)areas[index].y + areas[index].height;
+				if (cursor_x >= areas[index].x && cursor_x < (double)right &&
+						cursor_y >= areas[index].y && cursor_y < (double)bottom) {
+					inside = true;
+					break;
+				}
+			}
+			if (!inside) {
+				int point_x = cursor_x <= INT_MIN ? INT_MIN :
+					(cursor_x >= INT_MAX ? INT_MAX : (int)cursor_x);
+				int point_y = cursor_y <= INT_MIN ? INT_MIN :
+					(cursor_y >= INT_MAX ? INT_MAX : (int)cursor_y);
+				int nearest_x = 0, nearest_y = 0;
+				if (wtwm_placement_nearest_point(areas, count, point_x, point_y,
+						&nearest_x, &nearest_y))
+					wlr_cursor_warp_closest(server->cursor, NULL,
+						nearest_x, nearest_y);
+			}
+		}
+		free(areas);
+		wtwm_output_order_destroy(snapshot);
+		if (server->seat != NULL) refresh_pointer_after_restart(server);
+	}
+	if (restoration_ok) resume_output_waiting_toplevels(server);
+	schedule_refresh(server);
+}
+
+static bool begin_output_topology_mutation(struct server *server) {
+	bool prepared = server->topology_mutation_depth != 0 ||
+		prepare_restoration_transaction(server);
+	++server->topology_mutation_depth;
+	return prepared;
+}
+
+static void finish_output_topology_mutation(struct server *server,
+		bool changed) {
+	if (server->topology_mutation_depth == 0) return;
+	server->topology_refresh_pending |= changed;
+	--server->topology_mutation_depth;
+	if (server->topology_mutation_depth == 0) {
+		if (server->topology_refresh_pending) {
+			server->topology_refresh_pending = false;
+			refresh_output_topology(server);
+		}
+		restoration_transaction_finish(&server->restoration);
+	}
+}
+
+static void output_layout_change(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct server *server = wl_container_of(listener, server,
+		output_layout_change);
+	if (server->topology_mutation_depth != 0) {
+		server->topology_refresh_pending = true;
+		return;
+	}
+	if (!prepare_restoration_transaction(server)) {
+		wlr_log(WLR_ERROR, "%s",
+			"unable to prepare output-layout restoration");
+		return;
+	}
+	refresh_output_topology(server);
+	restoration_transaction_finish(&server->restoration);
+}
+
+static bool rebuild_toplevel_title(struct toplevel *toplevel) {
+	if (toplevel->title_tree != NULL)
+		wlr_scene_node_destroy(&toplevel->title_tree->node);
+	free(toplevel->title_buttons);
+	toplevel->title_tree = NULL;
+	toplevel->title = NULL;
+	toplevel->focus_mark = NULL;
+	toplevel->title_buttons = NULL;
+	toplevel->title_button_count = 0;
+	toplevel->title_text = NULL;
+	toplevel->title_text_height = 0;
+	toplevel->title_text_width = 0;
+	toplevel->title_font_ascent = 0;
+	return create_title_scene(toplevel);
+}
+
+static void refresh_toplevel_configuration(struct toplevel *toplevel) {
+	int frame_x = toplevel->tree != NULL ? toplevel->tree->node.x :
+		toplevel->frame_x;
+	int frame_y = toplevel->tree != NULL ? toplevel->tree->node.y :
+		toplevel->frame_y;
+	toplevel->border_width = configured_border_width(toplevel->server);
+	toplevel->title_bar_height = configured_title_bar_height(toplevel->server);
+	toplevel->auto_raise = toplevel->server->config.auto_raise ||
+		toplevel_matches(&toplevel->server->config.auto_raise_windows, toplevel);
+	toplevel->iconify_by_unmapping = should_iconify_by_unmapping(toplevel);
+	if (!rebuild_toplevel_title(toplevel)) {
+		wlr_log(WLR_ERROR, "unable to rebuild decorations for '%s'",
+			toplevel_title(toplevel));
+		return;
+	}
+	update_title_text(toplevel);
+	bool decorated = should_decorate(toplevel);
+	set_decorated(toplevel, decorated);
+	if (toplevel->xwayland != NULL && toplevel->mapped &&
+			!toplevel->xwayland->override_redirect)
+		configure_xwayland_frame(toplevel, frame_x, frame_y,
+			toplevel->width, toplevel->height);
+	else
+		update_decoration(toplevel);
+	clear_icon_manager_render_cache(toplevel);
+	destroy_icon_scene(toplevel);
+}
+
+static bool restart_compositor_state(struct server *server,
+		const char *config_path) {
+	struct wtwm_config replacement;
+	wtwm_config_init(&replacement);
+	char error[1024];
+	if (!wtwm_config_load_for_screen(&replacement, config_path, 0, error,
+			sizeof(error))) {
+		wlr_log(WLR_ERROR, "restart configuration rejected: %s", error);
+		wtwm_config_finish(&replacement);
+		(void)ring_bell(server);
+		return false;
+	}
+
+	/* Config-owned menus and function continuations must not survive the
+	 * atomic swap.  The Wayland display, backend, Xwayland server, client
+	 * resources, mapping, stacking, focus, and selections remain live. */
+	hide_menu(server);
+	memset(&server->continuation, 0, sizeof(server->continuation));
+	server->deferred_root_action_active = false;
+	reset_cursor(server);
+	finish_icon_animation(server);
+
+	struct wtwm_config previous = server->config;
+	server->config = replacement;
+	memset(&replacement, 0, sizeof(replacement));
+	wtwm_config_finish(&previous);
+	if (server->config.warning_count)
+		wlr_log(WLR_INFO,
+			"%zu twm directives accepted but not effective; run wtwm-config for details",
+			server->config.warning_count);
+
+	wtwm_action_screen_warp_init(&server->screen_warp);
+	server->screen_warp_previous_output = NULL;
+	server->ring_leader = NULL;
+	server->icon_manager_down_identity = 0;
+	wtwm_random_placement_init(&server->random_placement);
+	refresh_output_configuration(server);
+
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		refresh_toplevel_configuration(toplevel);
+		toplevel->icon_manager_identity = 0;
+	}
+	rebuild_icon_layout(server);
+	initialize_icon_managers(server);
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		reserve_icon_manager_toplevel(toplevel);
+		refresh_toplevel_icon(toplevel);
+	}
+	refresh_icon_managers(server);
+	server->cursor_role[0] = '\0';
+	refresh_pointer_after_restart(server);
+	schedule_refresh(server);
+	wlr_log(WLR_INFO, "%s",
+		"restarted compositor configuration in place; clients preserved");
+	return true;
+}
+
+static void restart_compositor_idle(void *data) {
+	struct server *server = data;
+	server->restart_idle = NULL;
+	char *config_path = server->restart_config_path;
+	bool adopt_config_path = server->restart_adopt_config_path;
+	server->restart_config_path = NULL;
+	server->restart_adopt_config_path = false;
+	bool restarted = restart_compositor_state(server,
+		config_path != NULL ? config_path : server->config_path);
+	if (restarted && adopt_config_path) {
+		free(server->adopted_config_path);
+		server->adopted_config_path = config_path;
+		server->config_path = config_path;
+		config_path = NULL;
+		wlr_log(WLR_INFO, "completed safe f.startwm handoff to %s -f %s",
+			server->program_name, server->config_path);
+	}
+	free(config_path);
+}
+
+static bool request_compositor_reload(struct server *server,
+		const char *config_path, bool adopt_config_path) {
+	if (server->restart_idle != NULL) {
+		wlr_log(WLR_ERROR, "%s", "compositor reload is already pending");
+		return false;
+	}
+	if (config_path != NULL) {
+		server->restart_config_path = strdup(config_path);
+		if (server->restart_config_path == NULL) {
+			wlr_log(WLR_ERROR, "%s",
+				"unable to copy compositor handoff configuration path");
+			return false;
+		}
+	}
+	server->restart_adopt_config_path = adopt_config_path;
+	server->restart_idle = wl_event_loop_add_idle(
+		wl_display_get_event_loop(server->display), restart_compositor_idle,
+		server);
+	if (server->restart_idle == NULL) {
+		wlr_log(WLR_ERROR, "%s", "unable to schedule compositor restart");
+		free(server->restart_config_path);
+		server->restart_config_path = NULL;
+		server->restart_adopt_config_path = false;
+		return false;
+	}
+	return true;
+}
+
+static void request_compositor_restart(struct server *server) {
+	(void)request_compositor_reload(server, NULL, false);
+}
+
+static bool request_startwm_handoff(struct server *server,
+		const char *command) {
+	struct wtwm_command_plan plan;
+	enum wtwm_command_result result = wtwm_command_plan_create(command, &plan);
+	if (result != WTWM_COMMAND_OK) {
+		wlr_log(WLR_ERROR, "f.startwm handoff rejected: %s",
+			wtwm_command_result_message(result));
+		return false;
+	}
+	const char *config_path = NULL;
+	enum wtwm_handoff_result handoff = wtwm_command_handoff(&plan,
+		server->program_name, &config_path);
+	bool requested = false;
+	if (handoff == WTWM_HANDOFF_RELOAD) {
+		requested = request_compositor_reload(server, NULL, false);
+	} else if (handoff == WTWM_HANDOFF_RELOAD_CONFIG) {
+		requested = request_compositor_reload(server, config_path, true);
+	} else {
+		wlr_log(WLR_ERROR,
+			"f.startwm handoff unsupported without transferable Wayland client state: %s",
+			command != NULL ? command : "");
+	}
+	wtwm_command_plan_destroy(&plan);
+	return requested;
+}
+
+static void finish_compositor_reload(struct server *server) {
+	if (server->restart_idle != NULL)
+		wl_event_source_remove(server->restart_idle);
+	server->restart_idle = NULL;
+	free(server->restart_config_path);
+	server->restart_config_path = NULL;
+	free(server->adopted_config_path);
+	server->adopted_config_path = NULL;
 }
 
 static void execute_action(struct server *server, struct toplevel *toplevel,
@@ -4052,35 +5765,38 @@ static void execute_action(struct server *server, struct toplevel *toplevel,
 			"f.priority is inactive without the X Sync priority extension");
 		break;
 	case WTWM_ACTION_STARTWM:
-		if (spawn_command(action->argument)) wl_display_terminate(server->display);
+		if (!request_startwm_handoff(server, action->argument))
+			(void)ring_bell(server);
 		break;
 	case WTWM_ACTION_SAVEYOURSELF:
-		if (!send_save_yourself(toplevel)) {
-			wlr_log(WLR_DEBUG, "%s",
-				"f.saveyourself requires X11 WM_SAVE_YOURSELF support");
-			(void)ring_bell(server);
+		{
+			bool notified = send_save_yourself(toplevel);
+			bool saved = save_compositor_session(server);
+			if (toplevel != NULL && toplevel->xwayland != NULL && !notified) {
+				wlr_log(WLR_DEBUG, "%s",
+					"f.saveyourself persisted compositor state but the X11 client has no WM_SAVE_YOURSELF protocol");
+				(void)ring_bell(server);
+			} else if (!notified && !saved) {
+				wlr_log(WLR_ERROR, "%s",
+					"f.saveyourself could neither persist compositor state nor notify the client");
+				(void)ring_bell(server);
+			} else if (!notified) {
+				wlr_log(WLR_DEBUG, "%s",
+					"f.saveyourself persisted compositor state; client has no WM_SAVE_YOURSELF protocol");
+			}
 		}
 		break;
 	case WTWM_ACTION_CUT:
 		cut_text(server, action->argument); break;
-	case WTWM_ACTION_CUTFILE: {
-		char *filename = fetch_cut_buffer(server);
-		if (filename != NULL) {
-			filename[strcspn(filename, " \t\r\n")] = '\0';
-			if (filename[0] != '\0') (void)file_to_cut_buffer(server, filename);
-			free(filename);
-		}
-		break;
-	}
+	case WTWM_ACTION_CUTFILE:
+		cut_file_from_buffer(server); break;
 	case WTWM_ACTION_FILE:
 		(void)file_to_cut_buffer(server, action->argument); break;
 	case WTWM_ACTION_COLORMAP:
-		wlr_log(WLR_DEBUG, "%s",
-			"Xwayland owns installed colormaps; f.colormap is a verified no-op");
+		apply_colormap_action(server, toplevel, action->argument);
 		break;
 	case WTWM_ACTION_RESTART:
-		server->restart_requested = true;
-		wl_display_terminate(server->display);
+		request_compositor_restart(server);
 		break;
 	case WTWM_ACTION_QUIT: wl_display_terminate(server->display); break;
 	case WTWM_ACTION_UNSUPPORTED:
@@ -4229,13 +5945,21 @@ static bool scene_node_descends_from(struct wlr_scene_node *node,
 }
 
 static struct hit_result desktop_at(struct server *server, double lx, double ly) {
-	struct hit_result hit = {.context = WTWM_CONTEXT_ROOT};
+	struct hit_result hit = {0};
 	double sx = 0, sy = 0;
 	struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->tree.node,
 		lx, ly, &sx, &sy);
 	if (node == NULL) return hit;
 	struct wlr_scene_node *leaf = node;
 	struct wlr_scene_tree *tree = node->parent;
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (output->wlr->enabled && output->background != NULL &&
+				leaf == &output->background->node) {
+			hit.context = WTWM_CONTEXT_ROOT;
+			return hit;
+		}
+	}
 	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
 		struct icon_manager_view *view = &server->icon_manager_views[i];
 		if (view->tree == NULL ||
@@ -4354,8 +6078,42 @@ static void update_pointer_toplevel(struct server *server,
 	if (entered->auto_raise) raise_toplevel(entered);
 }
 
+static void refresh_pointer_after_restart(struct server *server) {
+	if (server->input.pointer_count == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
+	struct hit_result hit = desktop_at(server, server->cursor->x,
+		server->cursor->y);
+	/* Re-resolve scene hit testing after rebuilding decorations without
+	 * treating the refresh as a pointer crossing.  A synthetic crossing here
+	 * would run focus-follows-mouse and AutoRaise, violating restart's promise
+	 * to retain keyboard focus and managed stacking. */
+	server->pointer_toplevel = hit.toplevel;
+	server->pointer_context = hit.context;
+	if (hit.surface != NULL) {
+		wlr_seat_pointer_notify_enter(server->seat, hit.surface, hit.sx, hit.sy);
+		wlr_seat_pointer_notify_motion(server->seat,
+			server->current_input_time_ms, hit.sx, hit.sy);
+		return;
+	}
+	const char *role = hit.on_title_button ? "Button" :
+		(hit.context == WTWM_CONTEXT_TITLE ? "Title" :
+		(hit.context == WTWM_CONTEXT_ICON ? "Icon" : "Frame"));
+	set_cursor_role(server, role);
+	wlr_seat_pointer_clear_focus(server->seat);
+}
+
 static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	server->current_input_time_ms = time_msec;
+	if (server->input.pointer_count == 0) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+		return;
+	}
 	if (server->cursor_mode == CURSOR_MOVE &&
 			server->interaction.intent == INTERACTION_INITIAL_CONFIRM) return;
 	if (server->cursor_mode == CURSOR_MOVE &&
@@ -4363,16 +6121,10 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 		struct interaction_session *interaction = &server->interaction;
 		struct wtwm_frame_geometry geometry;
 		toplevel_geometry(server->grabbed, &geometry);
-		struct wlr_box output_box = {0};
-		wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-		struct wtwm_placement_area area = {
-			.x = output_box.x,
-			.y = output_box.y,
-			.width = output_box.width > 0 ? output_box.width : 1,
-			.height = output_box.height > 0 ? output_box.height : 1,
-		};
+		if (!interaction->output_area_valid) return;
 		int x = 0, y = 0;
-		wtwm_placement_prompt_position(&area, server->config.dont_move_off,
+		wtwm_placement_prompt_position(&interaction->output_area,
+			server->config.dont_move_off,
 			geometry.outer_width, geometry.outer_height,
 			(int)server->cursor->x, (int)server->cursor->y, &x, &y);
 		interaction->moved = interaction->moved ||
@@ -4419,16 +6171,16 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 			interaction->original.width : geometry.outer_width;
 		int height = interaction->icon_move ?
 			interaction->original.height : geometry.outer_height;
-		if (server->config.dont_move_off) {
-			struct wlr_box output_box = {0};
-			wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-			x -= output_box.x;
-			y -= output_box.y;
-			wtwm_clamp_move(output_box.width, output_box.height,
-				width, height,
-				interaction->force_move, &x, &y);
-			x += output_box.x;
-			y += output_box.y;
+		if (server->config.dont_move_off && interaction->output_area_valid) {
+			int local_x = runtime_saturate_int((int64_t)x -
+				interaction->output_area.x);
+			int local_y = runtime_saturate_int((int64_t)y -
+				interaction->output_area.y);
+			wtwm_clamp_move(interaction->output_area.width,
+				interaction->output_area.height, width, height,
+				interaction->force_move, &local_x, &local_y);
+			x = runtime_saturate_int((int64_t)interaction->output_area.x + local_x);
+			y = runtime_saturate_int((int64_t)interaction->output_area.y + local_y);
 		}
 		interaction->preview.x = x;
 		interaction->preview.y = y;
@@ -4525,10 +6277,211 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec) {
 	}
 }
 
+static struct pointer *pointer_for_wlr(struct server *server,
+		const struct wlr_pointer *wlr) {
+	struct pointer *pointer;
+	wl_list_for_each(pointer, &server->pointers, link)
+		if (pointer->wlr == wlr) return pointer;
+	return NULL;
+}
+
+#ifdef WTWM_TEST_CONTROL
+static const struct wtwm_input_hotplug_device *input_device_for_ordinal(
+		const struct wtwm_input_hotplug_state *state, uint64_t ordinal) {
+	for (size_t index = 0; index < state->device_count; ++index)
+		if (state->devices[index].ordinal == ordinal) return &state->devices[index];
+	return NULL;
+}
+#endif
+
+static uint64_t input_focus_cookie(struct toplevel *toplevel) {
+	return toplevel != NULL ? toplevel->icon_identity : 0;
+}
+
+static size_t input_held_count(const struct wtwm_input_hotplug_state *state,
+		enum wtwm_input_device_type type, uint32_t code,
+		bool *client_visible) {
+	size_t count = 0;
+	if (client_visible != NULL) *client_visible = false;
+	for (size_t device_index = 0; device_index < state->device_count;
+			++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&state->devices[device_index];
+		if (device->type != type) continue;
+		const struct wtwm_input_held *held =
+			type == WTWM_INPUT_DEVICE_KEYBOARD ? device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index) {
+			if (held[held_index].code != code) continue;
+			if (count == 0 && client_visible != NULL)
+				*client_visible = held[held_index].client_visible;
+			++count;
+		}
+	}
+	return count;
+}
+
+static bool input_device_holds(const struct wtwm_input_hotplug_state *state,
+		uint64_t ordinal, enum wtwm_input_device_type type, uint32_t code) {
+	for (size_t device_index = 0; device_index < state->device_count;
+			++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&state->devices[device_index];
+		if (device->ordinal != ordinal || device->type != type) continue;
+		const struct wtwm_input_held *held =
+			type == WTWM_INPUT_DEVICE_KEYBOARD ? device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index)
+			if (held[held_index].code == code) return true;
+		return false;
+	}
+	return false;
+}
+
+static void sync_input_context(struct server *server) {
+	struct wtwm_input_hotplug_state *state = &server->input;
+	struct toplevel *keyboard_focus = toplevel_for_surface(
+		server->seat->keyboard_state.focused_surface);
+	struct toplevel *pointer_focus = toplevel_for_surface(
+		server->seat->pointer_state.focused_surface);
+	if (state->keyboard_count > 0) {
+		state->keyboard_focus_valid = keyboard_focus != NULL;
+		state->keyboard_focus = input_focus_cookie(keyboard_focus);
+	}
+	state->pointer_focus_valid = state->pointer_count > 0 && pointer_focus != NULL;
+	state->pointer_focus = state->pointer_focus_valid ?
+		input_focus_cookie(pointer_focus) : 0;
+	state->cursor_x = server->cursor->x;
+	state->cursor_y = server->cursor->y;
+	state->pointer_operation = WTWM_INPUT_POINTER_IDLE;
+	state->pointer_operation_button_valid = false;
+	state->pointer_operation_button = 0;
+	if (server->menu.tree != NULL) {
+		state->pointer_operation = WTWM_INPUT_POINTER_MENU;
+	} else if (server->deferred_root_action_active) {
+		state->pointer_operation = WTWM_INPUT_POINTER_DEFERRED_ACTION;
+	} else if (server->grabbed != NULL) {
+		if (server->interaction.intent == INTERACTION_INITIAL_POSITION ||
+				server->interaction.intent == INTERACTION_INITIAL_CONFIRM ||
+				server->interaction.intent == INTERACTION_INITIAL_RESIZE)
+			state->pointer_operation = WTWM_INPUT_POINTER_INITIAL_PLACEMENT;
+		else state->pointer_operation = server->cursor_mode == CURSOR_RESIZE ?
+			WTWM_INPUT_POINTER_RESIZE : WTWM_INPUT_POINTER_MOVE;
+		state->pointer_operation_button_valid =
+			server->interaction.required_button_valid &&
+			input_held_count(state, WTWM_INPUT_DEVICE_POINTER,
+				server->interaction.required_button, NULL) != 0;
+		state->pointer_operation_button =
+			state->pointer_operation_button_valid ?
+			server->interaction.required_button : 0;
+		if (server->interaction.intent == INTERACTION_INITIAL_CONFIRM) {
+			state->pointer_operation_button_valid = input_held_count(state,
+				WTWM_INPUT_DEVICE_POINTER,
+				server->interaction.confirming_button, NULL) != 0;
+			state->pointer_operation_button =
+				state->pointer_operation_button_valid ?
+				server->interaction.confirming_button : 0;
+		}
+	}
+}
+
+static uint32_t input_capabilities(uint32_t capabilities) {
+	uint32_t result = 0;
+	if ((capabilities & WTWM_INPUT_CAPABILITY_KEYBOARD) != 0)
+		result |= WL_SEAT_CAPABILITY_KEYBOARD;
+	if ((capabilities & WTWM_INPUT_CAPABILITY_POINTER) != 0)
+		result |= WL_SEAT_CAPABILITY_POINTER;
+	return result;
+}
+
+static void requeue_input_initial_placement(struct server *server) {
+	if (server->grabbed == NULL) return;
+	clear_interaction_outline(server);
+	reset_cursor(server);
+}
+
+static bool apply_input_plan(struct server *server,
+		struct wtwm_input_hotplug_plan *plan) {
+	if (!wtwm_input_hotplug_plan_apply(&server->input, plan)) return false;
+	for (size_t index = 0; index < plan->key_transition_count; ++index) {
+		const struct wtwm_input_transition *transition =
+			&plan->key_transitions[index];
+		struct wlr_keyboard_key_event event = {
+			.time_msec = server->current_input_time_ms,
+			.keycode = transition->code,
+			.update_state = true,
+			.state = transition->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
+				WL_KEYBOARD_KEY_STATE_RELEASED,
+		};
+		wlr_keyboard_notify_key(&server->aggregate_keyboard, &event);
+		wlr_seat_keyboard_notify_key(server->seat, event.time_msec,
+			event.keycode, event.state);
+	}
+	if (plan->recompute_seat_modifiers)
+		wlr_seat_keyboard_notify_modifiers(server->seat,
+			&server->aggregate_keyboard.modifiers);
+	for (size_t index = 0; index < plan->button_transition_count; ++index) {
+		const struct wtwm_input_transition *transition =
+			&plan->button_transitions[index];
+		wlr_seat_pointer_notify_button(server->seat,
+			server->current_input_time_ms, transition->code,
+			transition->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
+				WL_POINTER_BUTTON_STATE_RELEASED);
+	}
+	if (plan->close_menu) {
+		hide_menu(server);
+		memset(&server->continuation, 0, sizeof(server->continuation));
+	}
+	if (plan->cancel_deferred_action)
+		server->deferred_root_action_active = false;
+	if (plan->abort_move_resize) finish_interactive(server, true);
+	if (plan->requeue_initial_placement)
+		requeue_input_initial_placement(server);
+	if (plan->clear_pointer_focus) {
+		server->pointer_toplevel = NULL;
+		server->pointer_context = 0;
+		wlr_seat_pointer_clear_focus(server->seat);
+	}
+	if ((plan->capabilities_before & WTWM_INPUT_CAPABILITY_KEYBOARD) != 0 &&
+			(plan->capabilities_after & WTWM_INPUT_CAPABILITY_KEYBOARD) == 0)
+		wlr_seat_keyboard_clear_focus(server->seat);
+	if (plan->capabilities_changed)
+		wlr_seat_set_capabilities(server->seat,
+			input_capabilities(plan->capabilities_after));
+	struct wlr_surface *keyboard_surface =
+		server->seat->keyboard_state.focused_surface;
+	if (keyboard_surface == NULL && server->focus != NULL)
+		keyboard_surface = toplevel_surface(server->focus);
+	if (plan->reassert_keyboard_focus && keyboard_surface != NULL)
+		wlr_seat_keyboard_notify_enter(server->seat, keyboard_surface,
+			server->aggregate_keyboard.keycodes,
+			server->aggregate_keyboard.num_keycodes,
+			&server->aggregate_keyboard.modifiers);
+	if (plan->refresh_pointer_focus)
+		refresh_pointer_after_restart(server);
+	if ((plan->requeue_initial_placement || plan->refresh_pointer_focus) &&
+			server->input.pointer_count != 0)
+		start_next_initial_placement(server);
+	return true;
+}
+
+static bool plan_pointer_motion(struct server *server, uint64_t ordinal) {
+	if (server->input_plan == NULL) return false;
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	return wtwm_input_hotplug_plan_pointer_motion(&server->input, ordinal,
+		server->cursor->x, server->cursor->y, server->input_plan) &&
+		apply_input_plan(server, server->input_plan);
+}
+
 static void cursor_motion(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_motion);
 	struct wlr_pointer_motion_event *event = data;
 	wlr_cursor_move(server->cursor, &event->pointer->base, event->delta_x, event->delta_y);
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer != NULL) (void)plan_pointer_motion(server, pointer->input_ordinal);
 	process_cursor_motion(server, event->time_msec);
 }
 
@@ -4536,6 +6489,8 @@ static void cursor_motion_absolute(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_motion_absolute);
 	struct wlr_pointer_motion_absolute_event *event = data;
 	wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x, event->y);
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer != NULL) (void)plan_pointer_motion(server, pointer->input_ordinal);
 	process_cursor_motion(server, event->time_msec);
 }
 
@@ -4563,25 +6518,22 @@ static void begin_initial_resize(struct server *server) {
 	set_cursor_role(server, "Resize");
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
+	server->interaction.required_button = server->dispatch_pointer_button;
+	server->interaction.required_button_valid =
+		server->dispatch_pointer_button_valid;
 	show_interaction_outline(server);
 }
 
 static void fill_initial_placement(struct server *server) {
 	struct toplevel *toplevel = server->grabbed;
 	if (toplevel == NULL) return;
-	struct wlr_box output_box = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &output_box);
-	struct wtwm_placement_area area = {
-		.x = output_box.x,
-		.y = output_box.y,
-		.width = output_box.width > 0 ? output_box.width : 1,
-		.height = output_box.height > 0 ? output_box.height : 1,
-	};
+	if (!server->interaction.output_area_valid) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(toplevel, &geometry);
 	int width = toplevel->width;
 	int height = toplevel->height;
-	wtwm_placement_fill_size(&area, server->interaction.preview.x,
+	wtwm_placement_fill_size(&server->interaction.output_area,
+		server->interaction.preview.x,
 		server->interaction.preview.y,
 		geometry.outer_width - toplevel->width,
 		geometry.outer_height - toplevel->height, &width, &height);
@@ -4607,6 +6559,8 @@ static bool handle_active_interaction_button(struct server *server,
 		case WTWM_PLACEMENT_BUTTON_CONFIRM:
 			interaction->intent = INTERACTION_INITIAL_CONFIRM;
 			interaction->confirming_button = event->button;
+			interaction->required_button = event->button;
+			interaction->required_button_valid = true;
 			test_trace_toplevel_event_at(server->grabbed, "confirm", "placement",
 				interaction->preview.x, interaction->preview.y,
 				interaction->preview.width, interaction->preview.height);
@@ -4638,20 +6592,18 @@ static bool handle_active_interaction_button(struct server *server,
 	return true;
 }
 
-static void cursor_button(struct wl_listener *listener, void *data) {
-	struct server *server = wl_container_of(listener, server, cursor_button);
-	struct wlr_pointer_button_event *event = data;
-	server->current_input_time_ms = event->time_msec;
+static bool dispatch_cursor_button(struct server *server,
+		const struct wlr_pointer_button_event *event) {
 	if (server->grabbed != NULL) {
 		handle_active_interaction_button(server, event);
-		return;
+		return false;
 	}
 	if (event->state == WL_POINTER_BUTTON_STATE_PRESSED)
 		server->last_interaction_moved = false;
 	if (server->menu.tree != NULL) {
 		if (event->state == WL_POINTER_BUTTON_STATE_PRESSED) {
 			hide_menu(server);
-			return;
+			return false;
 		}
 		if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
 			int selected = menu_item_at(server);
@@ -4685,7 +6637,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 					target != NULL ? WTWM_CONTEXT_FRAME : WTWM_CONTEXT_ROOT);
 			}
 		}
-		return;
+		return false;
 	}
 	struct hit_result hit = desktop_at(server, server->cursor->x, server->cursor->y);
 	if (event->state == WL_POINTER_BUTTON_STATE_RELEASED) {
@@ -4693,10 +6645,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			server->icon_manager_down_identity = 0;
 			refresh_icon_managers(server);
 		}
-		if (hit.surface != NULL)
-			wlr_seat_pointer_notify_button(server->seat, event->time_msec,
-				event->button, event->state);
-		return;
+		return hit.surface != NULL;
 	}
 	if (hit.context == WTWM_CONTEXT_ICONMGR && hit.toplevel != NULL) {
 		server->icon_manager_down_identity = hit.toplevel->icon_identity;
@@ -4707,7 +6656,7 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 		server->deferred_root_action_active = false;
 		if (hit.toplevel != NULL)
 			execute_action(server, hit.toplevel, &action, hit.context);
-		return;
+		return false;
 	}
 	bool handled = false;
 	if (hit.on_title_button && event->button == BTN_LEFT &&
@@ -4733,14 +6682,46 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 			hit.context);
 		handled = true;
 	}
-	if (!handled && hit.surface != NULL)
-		wlr_seat_pointer_notify_button(server->seat, event->time_msec,
-			event->button, event->state);
+	return !handled && hit.surface != NULL;
+}
+
+static void cursor_button(struct wl_listener *listener, void *data) {
+	struct server *server = wl_container_of(listener, server, cursor_button);
+	struct wlr_pointer_button_event *event = data;
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer == NULL || server->input_plan == NULL) return;
+	server->current_input_time_ms = event->time_msec;
+	server->dispatch_pointer_button = event->button;
+	server->dispatch_pointer_button_valid = true;
+	bool inherited_visible = false;
+	size_t holders = input_held_count(&server->input,
+		WTWM_INPUT_DEVICE_POINTER, event->button, &inherited_visible);
+	bool source_holds = input_device_holds(&server->input,
+		pointer->input_ordinal, WTWM_INPUT_DEVICE_POINTER, event->button);
+	bool dispatch = event->state == WL_POINTER_BUTTON_STATE_PRESSED ?
+		holders == 0 : source_holds && holders == 1;
+	bool client_visible = event->state == WL_POINTER_BUTTON_STATE_PRESSED &&
+		holders != 0 ? inherited_visible : false;
+	if (dispatch) client_visible = dispatch_cursor_button(server, event);
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	bool built = event->state == WL_POINTER_BUTTON_STATE_PRESSED ?
+		wtwm_input_hotplug_plan_button_press(&server->input,
+			pointer->input_ordinal, event->button, client_visible,
+			server->input_plan) :
+		wtwm_input_hotplug_plan_button_release(&server->input,
+			pointer->input_ordinal, event->button, server->input_plan);
+	if (built) (void)apply_input_plan(server, server->input_plan);
+	server->dispatch_pointer_button_valid = false;
 }
 
 static void cursor_axis(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, cursor_axis);
 	struct wlr_pointer_axis_event *event = data;
+	struct pointer *pointer = pointer_for_wlr(server, event->pointer);
+	if (pointer == NULL) return;
+	server->current_input_time_ms = event->time_msec;
+	(void)plan_pointer_motion(server, pointer->input_ordinal);
 	wlr_seat_pointer_notify_axis(server->seat, event->time_msec, event->orientation,
 		event->delta, event->delta_discrete, event->source, event->relative_direction);
 }
@@ -4754,8 +6735,19 @@ static void cursor_frame(struct wl_listener *listener, void *data) {
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
-	wlr_seat_set_keyboard(keyboard->server->seat, keyboard->wlr);
-	wlr_seat_keyboard_notify_modifiers(keyboard->server->seat, &keyboard->wlr->modifiers);
+	struct server *server = keyboard->server;
+	if (server->input_plan == NULL) return;
+	struct wtwm_input_modifiers modifiers = {
+		.depressed = keyboard->wlr->modifiers.depressed,
+		.latched = keyboard->wlr->modifiers.latched,
+		.locked = keyboard->wlr->modifiers.locked,
+		.group = keyboard->wlr->modifiers.group,
+	};
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (wtwm_input_hotplug_plan_modifiers(&server->input,
+			keyboard->input_ordinal, modifiers, server->input_plan))
+		(void)apply_input_plan(server, server->input_plan);
 }
 
 static void keyboard_key(struct wl_listener *listener, void *data) {
@@ -4766,8 +6758,11 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 	uint32_t keycode = event->keycode + 8;
 	const xkb_keysym_t *symbols = NULL;
 	int count = xkb_state_key_get_syms(keyboard->wlr->xkb_state, keycode, &symbols);
-	bool handled = false;
-	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+	bool inherited_visible = false;
+	size_t holders = input_held_count(&server->input,
+		WTWM_INPUT_DEVICE_KEYBOARD, event->keycode, &inherited_visible);
+	bool handled = holders != 0 && !inherited_visible;
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED && holders == 0) {
 		struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
 		struct toplevel *toplevel = toplevel_for_surface(focused);
 		uint32_t context = toplevel ? WTWM_CONTEXT_WINDOW : WTWM_CONTEXT_ROOT;
@@ -4788,16 +6783,48 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 			}
 		}
 	}
-	if (!handled) {
-		wlr_seat_set_keyboard(server->seat, keyboard->wlr);
-		wlr_seat_keyboard_notify_key(server->seat, event->time_msec,
-			event->keycode, event->state);
+	if (server->input_plan == NULL) return;
+	bool client_visible = holders != 0 ? inherited_visible : !handled;
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED && client_visible &&
+			holders == 0 &&
+			server->aggregate_keyboard.num_keycodes >= WLR_KEYBOARD_KEYS_CAP) {
+		bool aggregate_holds = false;
+		for (size_t index = 0;
+				index < server->aggregate_keyboard.num_keycodes; ++index)
+			if (server->aggregate_keyboard.keycodes[index] == event->keycode)
+				aggregate_holds = true;
+		if (!aggregate_holds) {
+			client_visible = false;
+			wlr_log(WLR_ERROR,
+				"aggregate keyboard capacity dropped key %u", event->keycode);
+		}
 	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	bool built = event->state == WL_KEYBOARD_KEY_STATE_PRESSED ?
+		wtwm_input_hotplug_plan_key_press(&server->input,
+			keyboard->input_ordinal, event->keycode, client_visible,
+			server->input_plan) :
+		wtwm_input_hotplug_plan_key_release(&server->input,
+			keyboard->input_ordinal, event->keycode, server->input_plan);
+	if (built) (void)apply_input_plan(server, server->input_plan);
 }
 
 static void keyboard_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
+	struct server *server = keyboard->server;
+	if (!server->shutting_down && server->input_plan != NULL
+#ifdef WTWM_TEST_CONTROL
+			&& !server->test_control.clearing_inputs
+#endif
+			) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (wtwm_input_hotplug_plan_remove(&server->input,
+				keyboard->input_ordinal, server->input_plan))
+			(void)apply_input_plan(server, server->input_plan);
+	}
 	wl_list_remove(&keyboard->modifiers.link);
 	wl_list_remove(&keyboard->key.link);
 	wl_list_remove(&keyboard->destroy.link);
@@ -4805,18 +6832,74 @@ static void keyboard_destroy(struct wl_listener *listener, void *data) {
 	free(keyboard);
 }
 
-static void new_keyboard(struct server *server, struct wlr_input_device *device) {
-	struct keyboard *keyboard = calloc(1, sizeof(*keyboard));
-	if (keyboard == NULL) return;
-	keyboard->server = server;
-	keyboard->wlr = wlr_keyboard_from_input_device(device);
+static bool configure_keyboard(struct wlr_keyboard *keyboard) {
 	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (context == NULL) return false;
 	struct xkb_keymap *keymap = xkb_keymap_new_from_names(context, NULL,
 		XKB_KEYMAP_COMPILE_NO_FLAGS);
-	wlr_keyboard_set_keymap(keyboard->wlr, keymap);
-	xkb_keymap_unref(keymap);
+	bool configured = keymap != NULL && wlr_keyboard_set_keymap(keyboard, keymap);
+	if (keymap != NULL) xkb_keymap_unref(keymap);
 	xkb_context_unref(context);
-	wlr_keyboard_set_repeat_info(keyboard->wlr, 25, 600);
+	if (!configured) return false;
+	wlr_keyboard_set_repeat_info(keyboard, 25, 600);
+	return true;
+}
+
+static bool input_name_unique(const struct wtwm_input_hotplug_state *state,
+		const char *name) {
+	for (size_t index = 0; index < state->device_count; ++index)
+		if (strcmp(state->devices[index].name, name) == 0) return false;
+	return true;
+}
+
+static bool allocate_input_name(struct server *server, const char *requested,
+		char name[WTWM_INPUT_NAME_MAX]) {
+	const char *base = requested != NULL && requested[0] != '\0' ? requested :
+		"unnamed-input";
+	if (strlen(base) >= WTWM_INPUT_NAME_MAX) base = "unnamed-input";
+	if (input_name_unique(&server->input, base)) {
+		(void)snprintf(name, WTWM_INPUT_NAME_MAX, "%s", base);
+		return true;
+	}
+	for (uint64_t suffix = 2; suffix < UINT64_C(1000000); ++suffix) {
+		int written = snprintf(name, WTWM_INPUT_NAME_MAX, "%s#%" PRIu64,
+			base, suffix);
+		if (written > 0 && written < WTWM_INPUT_NAME_MAX &&
+				input_name_unique(&server->input, name)) return true;
+	}
+	return false;
+}
+
+static bool new_keyboard(struct server *server, struct wlr_input_device *device,
+		const char *requested_name) {
+	struct keyboard *keyboard = calloc(1, sizeof(*keyboard));
+	if (keyboard == NULL || server->input_plan == NULL) {
+		free(keyboard);
+		return false;
+	}
+	keyboard->server = server;
+	keyboard->wlr = wlr_keyboard_from_input_device(device);
+	if (!configure_keyboard(keyboard->wlr)) {
+		free(keyboard);
+		return false;
+	}
+	char name[WTWM_INPUT_NAME_MAX];
+	if (!allocate_input_name(server, requested_name, name)) {
+		free(keyboard);
+		return false;
+	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (!wtwm_input_hotplug_plan_add(&server->input, name,
+			WTWM_INPUT_DEVICE_KEYBOARD, server->input_plan)) {
+		free(keyboard);
+		return false;
+	}
+	keyboard->input_ordinal = server->input_plan->device_ordinal;
+	if (!apply_input_plan(server, server->input_plan)) {
+		free(keyboard);
+		return false;
+	}
 	keyboard->modifiers.notify = keyboard_modifiers;
 	wl_signal_add(&keyboard->wlr->events.modifiers, &keyboard->modifiers);
 	keyboard->key.notify = keyboard_key;
@@ -4824,17 +6907,83 @@ static void new_keyboard(struct server *server, struct wlr_input_device *device)
 	keyboard->destroy.notify = keyboard_destroy;
 	wl_signal_add(&device->events.destroy, &keyboard->destroy);
 	wl_list_insert(&server->keyboards, &keyboard->link);
-	wlr_seat_set_keyboard(server->seat, keyboard->wlr);
+	return true;
+}
+
+static void pointer_destroy(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct pointer *pointer = wl_container_of(listener, pointer, destroy);
+	struct server *server = pointer->server;
+	if (!server->shutting_down && server->input_plan != NULL
+#ifdef WTWM_TEST_CONTROL
+			&& !server->test_control.clearing_inputs
+#endif
+			) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (wtwm_input_hotplug_plan_remove(&server->input,
+				pointer->input_ordinal, server->input_plan))
+			(void)apply_input_plan(server, server->input_plan);
+	}
+	wl_list_remove(&pointer->destroy.link);
+	wl_list_remove(&pointer->link);
+	free(pointer);
+}
+
+static bool new_pointer(struct server *server, struct wlr_input_device *device,
+		const char *requested_name) {
+	struct pointer *pointer = calloc(1, sizeof(*pointer));
+	if (pointer == NULL || server->input_plan == NULL) {
+		free(pointer);
+		return false;
+	}
+	pointer->server = server;
+	pointer->wlr = wlr_pointer_from_input_device(device);
+	char name[WTWM_INPUT_NAME_MAX];
+	if (!allocate_input_name(server, requested_name, name)) {
+		free(pointer);
+		return false;
+	}
+	sync_input_context(server);
+	wtwm_input_hotplug_plan_init(server->input_plan);
+	if (!wtwm_input_hotplug_plan_add(&server->input, name,
+			WTWM_INPUT_DEVICE_POINTER, server->input_plan)) {
+		free(pointer);
+		return false;
+	}
+	pointer->input_ordinal = server->input_plan->device_ordinal;
+	if (!apply_input_plan(server, server->input_plan)) {
+		free(pointer);
+		return false;
+	}
+	wlr_cursor_attach_input_device(server->cursor, device);
+	pointer->destroy.notify = pointer_destroy;
+	wl_signal_add(&device->events.destroy, &pointer->destroy);
+	wl_list_insert(&server->pointers, &pointer->link);
+	return true;
 }
 
 static void new_input(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, new_input);
 	struct wlr_input_device *device = data;
-	if (device->type == WLR_INPUT_DEVICE_KEYBOARD) new_keyboard(server, device);
-	else if (device->type == WLR_INPUT_DEVICE_POINTER) wlr_cursor_attach_input_device(server->cursor, device);
-	uint32_t capabilities = WL_SEAT_CAPABILITY_POINTER;
-	if (!wl_list_empty(&server->keyboards)) capabilities |= WL_SEAT_CAPABILITY_KEYBOARD;
-	wlr_seat_set_capabilities(server->seat, capabilities);
+	bool accepted = false;
+	if (device->type == WLR_INPUT_DEVICE_KEYBOARD)
+		accepted = new_keyboard(server, device, device->name);
+	else if (device->type == WLR_INPUT_DEVICE_POINTER)
+		accepted = new_pointer(server, device, device->name);
+	if (!accepted && (device->type == WLR_INPUT_DEVICE_KEYBOARD ||
+			device->type == WLR_INPUT_DEVICE_POINTER))
+		wlr_log(WLR_ERROR, "failed to register input device %s",
+			device->name != NULL ? device->name : "unnamed-input");
+}
+
+static void finish_input_adapter(struct server *server) {
+	if (server->aggregate_keyboard_initialized) {
+		wlr_keyboard_finish(&server->aggregate_keyboard);
+		server->aggregate_keyboard_initialized = false;
+	}
+	free(server->input_plan);
+	server->input_plan = NULL;
 }
 
 static void request_cursor(struct wl_listener *listener, void *data) {
@@ -4877,10 +7026,92 @@ static void output_frame(struct wl_listener *listener, void *data) {
 	render_output(output);
 }
 
+static bool attach_output_layout(struct output *output) {
+	if (output->in_layout) return true;
+	struct wlr_output_layout_output *layout_output;
+	if (output->layout_position_known && !output->layout_auto) {
+		layout_output = wlr_output_layout_add(output->server->output_layout,
+			output->wlr, output->layout_x, output->layout_y);
+	} else {
+		layout_output =
+			wlr_output_layout_add_auto(output->server->output_layout, output->wlr);
+	}
+	if (layout_output == NULL) return false;
+	if (output->scene_output == NULL) {
+		wlr_output_layout_remove(output->server->output_layout, output->wlr);
+		return false;
+	}
+	wlr_scene_output_layout_add_output(output->server->scene_layout,
+		layout_output, output->scene_output);
+	output->in_layout = true;
+	return true;
+}
+
+static void detach_output_layout(struct output *output) {
+	if (!output->in_layout) return;
+	struct wlr_output_layout_output *layout_output =
+		wlr_output_layout_get(output->server->output_layout, output->wlr);
+	if (layout_output != NULL) {
+		output->layout_position_known = true;
+		output->layout_auto = layout_output->auto_configured;
+		output->layout_x = layout_output->x;
+		output->layout_y = layout_output->y;
+	}
+	output->in_layout = false;
+	wlr_output_layout_remove(output->server->output_layout, output->wlr);
+}
+
+static bool commit_output_state(struct output *output,
+		const struct wlr_output_state *state) {
+	struct server *server = output->server;
+	bool old_enabled = output->wlr->enabled;
+	int old_width = output->wlr->width;
+	int old_height = output->wlr->height;
+	int old_refresh = output->wlr->refresh;
+	float old_scale = output->wlr->scale;
+	enum wl_output_transform old_transform = output->wlr->transform;
+
+	if (!begin_output_topology_mutation(server)) {
+		finish_output_topology_mutation(server, false);
+		return false;
+	}
+	if (!wlr_output_commit_state(output->wlr, state)) {
+		finish_output_topology_mutation(server, false);
+		return false;
+	}
+	bool attached = true;
+	if (output->wlr->enabled) {
+		attached = attach_output_layout(output);
+	} else {
+		detach_output_layout(output);
+	}
+	if (!attached) {
+		wlr_log(WLR_ERROR, "unable to attach enabled output %s to layout",
+			output->wlr->name);
+		if (!old_enabled) {
+			struct wlr_output_state rollback;
+			wlr_output_state_init(&rollback);
+			wlr_output_state_set_enabled(&rollback, false);
+			if (!wlr_output_commit_state(output->wlr, &rollback))
+				wlr_log(WLR_ERROR, "unable to roll back output %s enable",
+					output->wlr->name);
+			wlr_output_state_finish(&rollback);
+		}
+	}
+	bool changed = output->wlr->enabled != old_enabled ||
+		output->wlr->width != old_width || output->wlr->height != old_height ||
+		output->wlr->refresh != old_refresh || output->wlr->scale != old_scale ||
+		output->wlr->transform != old_transform;
+	finish_output_topology_mutation(server, changed);
+	return attached;
+}
+
 static void output_request_state(struct wl_listener *listener, void *data) {
 	struct output *output = wl_container_of(listener, output, request_state);
 	const struct wlr_output_event_request_state *event = data;
-	wlr_output_commit_state(output->wlr, event->state);
+	if (!commit_output_state(output, event->state))
+		wlr_log(WLR_ERROR, "unable to commit requested state for output %s",
+			output->wlr->name);
 }
 
 static void output_background_destroy(struct wl_listener *listener, void *data) {
@@ -4895,30 +7126,88 @@ static void output_background_destroy(struct wl_listener *listener, void *data) 
 static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct output *output = wl_container_of(listener, output, destroy);
+	struct server *server = output->server;
+	(void)begin_output_topology_mutation(server);
+	detach_output_layout(output);
 	wl_list_remove(&output->frame.link);
 	wl_list_remove(&output->request_state.link);
 	wl_list_remove(&output->destroy.link);
 	wl_list_remove(&output->link);
+	if (server->screen_warp_previous_output == output) {
+		server->screen_warp_previous_output = NULL;
+		server->screen_warp.previous = -1;
+	}
 	if (output->background != NULL)
 		wlr_scene_node_destroy(&output->background->node);
+	finish_output_topology_mutation(server, true);
+	wtwm_output_identity_finish(&output->identity);
 	free(output);
+}
+
+static bool next_output_announcement_ordinal(struct server *server,
+		uint64_t *ordinal) {
+	if (server->output_announcement_ordinal_exhausted || ordinal == NULL)
+		return false;
+	*ordinal = server->next_output_announcement_ordinal;
+	if (*ordinal == UINT64_MAX)
+		server->output_announcement_ordinal_exhausted = true;
+	else
+		++server->next_output_announcement_ordinal;
+	return true;
 }
 
 static void new_output(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, new_output);
 	struct wlr_output *wlr_output = data;
-	wlr_output_init_render(wlr_output, server->allocator, server->renderer);
+	struct output *output = calloc(1, sizeof(*output));
+	if (output == NULL) return;
+	uint64_t announcement_ordinal;
+	if (!next_output_announcement_ordinal(server, &announcement_ordinal)) {
+		wlr_log(WLR_ERROR, "%s", "output announcement ordinal exhausted");
+		free(output);
+		return;
+	}
+	if (!wtwm_output_identity_init(&output->identity, wlr_output->name,
+			wlr_output->make, wlr_output->model, wlr_output->serial,
+			announcement_ordinal)) {
+		wlr_log(WLR_ERROR, "%s", "unable to copy output identity");
+		free(output);
+		return;
+	}
+	if (!wlr_output_init_render(wlr_output, server->allocator,
+			server->renderer)) {
+		wlr_log(WLR_ERROR, "%s", "unable to initialize output rendering");
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	struct wlr_output_state state;
 	wlr_output_state_init(&state);
 	wlr_output_state_set_enabled(&state, true);
 	struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
 	if (mode != NULL) wlr_output_state_set_mode(&state, mode);
-	wlr_output_commit_state(wlr_output, &state);
+	bool committed = wlr_output_commit_state(wlr_output, &state);
 	wlr_output_state_finish(&state);
-	struct output *output = calloc(1, sizeof(*output));
-	if (output == NULL) return;
+	if (!committed) {
+		wlr_log(WLR_ERROR, "%s", "unable to enable announced output");
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	output->server = server;
 	output->wlr = wlr_output;
+	output->scene_output = wlr_scene_output_create(server->scene, wlr_output);
+	if (output->scene_output == NULL) {
+		wlr_log(WLR_ERROR, "%s", "unable to create output scene");
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		return;
+	}
 	output->frame.notify = output_frame;
 	wl_signal_add(&wlr_output->events.frame, &output->frame);
 	output->request_state.notify = output_request_state;
@@ -4926,39 +7215,60 @@ static void new_output(struct wl_listener *listener, void *data) {
 	output->destroy.notify = output_destroy;
 	wl_signal_add(&wlr_output->events.destroy, &output->destroy);
 	wl_list_insert(&server->outputs, &output->link);
-	struct wlr_output_layout_output *layout_output =
-		wlr_output_layout_add_auto(server->output_layout, wlr_output);
-	struct wlr_scene_output *scene_output = wlr_scene_output_create(server->scene, wlr_output);
-	wlr_scene_output_layout_add_output(server->scene_layout, layout_output, scene_output);
+	bool restoration_prepared = begin_output_topology_mutation(server);
+	if (!restoration_prepared || !attach_output_layout(output)) {
+		wlr_log(WLR_ERROR, "%s", "unable to add announced output to layout");
+		wl_list_remove(&output->frame.link);
+		wl_list_remove(&output->request_state.link);
+		wl_list_remove(&output->destroy.link);
+		wl_list_remove(&output->link);
+		wlr_scene_output_destroy(output->scene_output);
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		server->topology_refresh_pending = false;
+		finish_output_topology_mutation(server, false);
+		return;
+	}
 	struct wlr_box box = {0};
 	wlr_output_layout_get_box(server->output_layout, wlr_output, &box);
 	float background[4];
 	configured_color(server, "DefaultBackground", "white", NULL, background);
 	output->background = wlr_scene_rect_create(&server->scene->tree,
 		box.width, box.height, background);
-	if (output->background != NULL) {
-		wlr_scene_node_set_position(&output->background->node, box.x, box.y);
-		wlr_scene_node_lower_to_bottom(&output->background->node);
-		output->background_destroy.notify = output_background_destroy;
-		wl_signal_add(&output->background->node.events.destroy,
-			&output->background_destroy);
+	if (output->background == NULL) {
+		wlr_log(WLR_ERROR, "%s", "unable to create output root background");
+		detach_output_layout(output);
+		wl_list_remove(&output->frame.link);
+		wl_list_remove(&output->request_state.link);
+		wl_list_remove(&output->destroy.link);
+		wl_list_remove(&output->link);
+		wlr_scene_output_destroy(output->scene_output);
+		struct wlr_output_state disable;
+		wlr_output_state_init(&disable);
+		wlr_output_state_set_enabled(&disable, false);
+		(void)wlr_output_commit_state(wlr_output, &disable);
+		wlr_output_state_finish(&disable);
+		wtwm_output_identity_finish(&output->identity);
+		free(output);
+		server->topology_refresh_pending = false;
+		finish_output_topology_mutation(server, false);
+		return;
 	}
-	rebuild_icon_layout(server);
-	refresh_icon_managers(server);
+	wlr_scene_node_set_position(&output->background->node, box.x, box.y);
+	wlr_scene_node_lower_to_bottom(&output->background->node);
+	output->background_destroy.notify = output_background_destroy;
+	wl_signal_add(&output->background->node.events.destroy,
+		&output->background_destroy);
+	finish_output_topology_mutation(server, true);
 }
 
 static void update_toplevel_metadata(struct toplevel *toplevel,
 	bool title_changed);
-
-static void server_placement_area(struct server *server,
-		struct wtwm_placement_area *area) {
-	struct wlr_box box = {0};
-	wlr_output_layout_get_box(server->output_layout, NULL, &box);
-	area->x = box.x;
-	area->y = box.y;
-	area->width = box.width > 0 ? box.width : 1;
-	area->height = box.height > 0 ? box.height : 1;
-}
 
 static void server_max_window_size(struct server *server,
 		const struct wtwm_placement_area *area, int *width, int *height) {
@@ -4977,9 +7287,146 @@ static void clip_initial_toplevel_size(struct toplevel *toplevel,
 	wtwm_clip_initial_size(max_width, max_height, width, height);
 }
 
-static void place_native_toplevel(struct toplevel *toplevel) {
+static bool take_session_record(struct toplevel *toplevel,
+		struct wtwm_session_record *record) {
+	memset(record, 0, sizeof(*record));
+	if (!toplevel->server->config.restart_previous_state) return false;
+	struct wtwm_session_identity identity = session_identity(toplevel);
+	enum wtwm_session_match_result match = wtwm_session_state_take_unique(
+		&toplevel->server->session_state, &identity, record);
+	if (match == WTWM_SESSION_MATCH_AMBIGUOUS) {
+		wlr_log(WLR_ERROR,
+			"RestartPreviousState skipped ambiguous identity for '%s'",
+			toplevel_title(toplevel));
+	}
+	return match == WTWM_SESSION_MATCH_UNIQUE;
+}
+
+static void apply_session_geometry(struct toplevel *toplevel,
+		const struct wtwm_session_record *record) {
 	struct wtwm_placement_area area;
-	server_placement_area(toplevel->server, &area);
+	if (!output_area_for_outer(toplevel->server, record->geometry.x,
+			record->geometry.y, record->geometry.width, record->geometry.height,
+			&area)) return;
+	int width = record->geometry.width;
+	int height = record->geometry.height;
+	if (width < 1 || height < 1) return;
+	constrain_toplevel_size(toplevel, &width, &height);
+	clip_initial_toplevel_size(toplevel, &area, &width, &height);
+	toplevel->width = width;
+	toplevel->height = height;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	int frame_x = record->geometry.x;
+	int frame_y = record->geometry.y;
+	wtwm_clamp_outer_position(&area, geometry.outer_width,
+		geometry.outer_height, &frame_x, &frame_y);
+	if (toplevel->xwayland != NULL) {
+		configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
+	} else {
+		wlr_xdg_toplevel_set_size(toplevel->xdg, width, height);
+		wlr_scene_node_set_position(&toplevel->tree->node, frame_x, frame_y);
+		sync_toplevel_popups(toplevel);
+		toplevel->frame_x = frame_x;
+		toplevel->frame_y = frame_y;
+		toplevel->frame_positioned = true;
+	}
+	toplevel->placed = true;
+	toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
+}
+
+static void apply_session_policy(struct toplevel *toplevel,
+		const struct wtwm_session_record *record) {
+	toplevel->auto_raise = record->auto_raise;
+	if (record->has_manual_icon_position) {
+		toplevel->icon_x = record->icon_x;
+		toplevel->icon_y = record->icon_y;
+		toplevel->icon_moved = true;
+	}
+	toplevel->zoom.mode = action_zoom_mode(record->zoom_mode);
+	if (toplevel->zoom.mode != WTWM_ACTION_NOP) {
+		struct wtwm_placement_area area;
+		if (!output_area_for_outer(toplevel->server,
+				record->zoom_saved_geometry.x, record->zoom_saved_geometry.y,
+				record->zoom_saved_geometry.width,
+				record->zoom_saved_geometry.height, &area)) {
+			toplevel->zoom.mode = WTWM_ACTION_NOP;
+			goto session_policy_complete;
+		}
+		int width = record->zoom_saved_geometry.width;
+		int height = record->zoom_saved_geometry.height;
+		constrain_toplevel_size(toplevel, &width, &height);
+		clip_initial_toplevel_size(toplevel, &area, &width, &height);
+		struct wtwm_frame_geometry geometry;
+		wtwm_frame_geometry(width, height, toplevel->border_width,
+			toplevel->title_bar_height, toplevel->decorated, &geometry);
+		int x = record->zoom_saved_geometry.x;
+		int y = record->zoom_saved_geometry.y;
+		wtwm_clamp_outer_position(&area, geometry.outer_width,
+			geometry.outer_height, &x, &y);
+		toplevel->zoom.saved = (struct wtwm_interaction_box){
+			.x = x,
+			.y = y,
+			.width = width,
+			.height = height,
+		};
+	}
+session_policy_complete:
+	toplevel->session_restored = true;
+	toplevel->session_focus = record->focused;
+	toplevel->session_stack_rank = record->stack_rank;
+}
+
+static void restore_session_stack_and_focus(struct server *server) {
+	size_t restored_count = 0;
+	struct toplevel *toplevel;
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		toplevel->session_stack_applied = false;
+		if (toplevel->session_restored) ++restored_count;
+	}
+	for (size_t i = 0; i < restored_count; ++i) {
+		struct toplevel *selected = NULL;
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			if (!toplevel->session_restored ||
+					toplevel->session_stack_applied) continue;
+			if (selected == NULL || toplevel->session_stack_rank >
+					selected->session_stack_rank) selected = toplevel;
+		}
+		if (selected == NULL) break;
+		wl_list_remove(&selected->link);
+		wl_list_insert(&server->toplevels, &selected->link);
+		selected->session_stack_applied = true;
+	}
+	wl_list_for_each(toplevel, &server->toplevels, link)
+		sync_toplevel_scene_stack(toplevel);
+
+	if (server->session_state.focus_root) {
+		server->focus_root = true;
+		clear_keyboard_focus(server);
+		return;
+	}
+	wl_list_for_each(toplevel, &server->toplevels, link) {
+		if (!toplevel->session_restored || !toplevel->session_focus ||
+				toplevel->iconified) continue;
+		server->focus_root = false;
+		focus_toplevel(toplevel, true, false, "session-restore");
+		return;
+	}
+}
+
+static bool place_native_toplevel(struct toplevel *toplevel) {
+	struct wtwm_placement_area area;
+	struct toplevel *parent = toplevel->xdg->parent != NULL ?
+		toplevel_from_xdg(toplevel->xdg->parent) : NULL;
+	bool selected = toplevel->placed ?
+		output_area_for_toplevel(toplevel, false, &area) :
+		(parent != NULL && parent != toplevel && parent->mapped ?
+			output_area_for_toplevel(parent, false, &area) :
+			output_area_for_point(toplevel->server,
+				(int)toplevel->server->cursor->x,
+				(int)toplevel->server->cursor->y, &area));
+	if (!selected) return false;
+	toplevel->placement_area = area;
 	int width = toplevel->width, height = toplevel->height;
 	clip_initial_toplevel_size(toplevel, &area, &width, &height);
 	if (width != toplevel->width || height != toplevel->height) {
@@ -4989,10 +7436,12 @@ static void place_native_toplevel(struct toplevel *toplevel) {
 	}
 	if (toplevel->placed) {
 		toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
-		return;
+		return true;
 	}
 	int pointer_x = (int)toplevel->server->cursor->x;
 	int pointer_y = (int)toplevel->server->cursor->y;
+	if (parent != NULL && parent != toplevel && parent->mapped)
+		output_local_pointer(toplevel->server, &area, &pointer_x, &pointer_y);
 	int x = pointer_x, y = pointer_y;
 	if (toplevel->server->config.random_placement) {
 		wtwm_random_placement_next(&toplevel->server->random_placement,
@@ -5016,6 +7465,41 @@ static void place_native_toplevel(struct toplevel *toplevel) {
 	toplevel->frame_y = y;
 	toplevel->placed = true;
 	++toplevel->server->placement_index;
+	return true;
+}
+
+static void complete_native_map(struct toplevel *toplevel) {
+	if (!place_native_toplevel(toplevel)) {
+		toplevel->placement_pending = true;
+		toplevel->placement_waiting_output = true;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+		return;
+	}
+	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
+	struct wtwm_session_record session_record;
+	bool restored = take_session_record(toplevel, &session_record);
+	if (restored) {
+		apply_session_geometry(toplevel, &session_record);
+		apply_session_policy(toplevel, &session_record);
+	}
+	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
+	test_trace_toplevel_event(toplevel, "map", "client");
+	if (restored ? session_record.iconified :
+			should_start_iconified(toplevel, toplevel->placement_initial_rules)) {
+		set_toplevel_iconified(toplevel, true);
+	} else {
+		suspend_toplevel(toplevel, false);
+		process_cursor_motion(toplevel->server,
+			toplevel->server->current_input_time_ms);
+	}
+	if (restored) {
+		restore_session_stack_and_focus(toplevel->server);
+		wtwm_session_record_finish(&session_record);
+	}
 }
 
 static void toplevel_map(struct wl_listener *listener, void *data) {
@@ -5031,22 +7515,13 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	update_decoration(toplevel);
 	if (toplevel->width != previous_width || toplevel->height != previous_height)
 		test_trace_toplevel_event(toplevel, "configure", "client");
-	bool initial_rules = initialize_toplevel_rules(toplevel);
+	toplevel->placement_initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	wl_list_insert(&toplevel->server->toplevels, &toplevel->link);
 	sync_toplevel_scene_stack(toplevel);
 	sync_icon_manager_toplevel(toplevel);
-	place_native_toplevel(toplevel);
-	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
-	test_trace_toplevel_event(toplevel, "map", "client");
-	if (should_start_iconified(toplevel, initial_rules)) {
-		set_toplevel_iconified(toplevel, true);
-	} else {
-		suspend_toplevel(toplevel, false);
-		process_cursor_motion(toplevel->server,
-			toplevel->server->current_input_time_ms);
-	}
+	complete_native_map(toplevel);
 }
 
 static void dismiss_toplevel_popups(struct toplevel *toplevel) {
@@ -5074,6 +7549,7 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 		if (toplevel == server->grabbed) cancel_initial_placement(toplevel);
 		else {
 			toplevel->placement_pending = false;
+			toplevel->placement_waiting_output = false;
 			test_trace_toplevel_event_at(toplevel, "abort", "placement",
 				toplevel->frame_x, toplevel->frame_y,
 				toplevel->width, toplevel->height);
@@ -5088,7 +7564,7 @@ static void unmanage_toplevel(struct toplevel *toplevel) {
 	if (server->ring_leader == toplevel) server->ring_leader = NULL;
 	if (server->pointer_toplevel == toplevel) {
 		server->pointer_toplevel = NULL;
-		server->pointer_context = WTWM_CONTEXT_ROOT;
+		server->pointer_context = 0;
 	}
 	if (had_pointer_focus) wlr_seat_pointer_clear_focus(server->seat);
 	dismiss_toplevel_popups(toplevel);
@@ -5375,6 +7851,42 @@ static bool xwayland_position_flag(const struct toplevel *toplevel,
 		(toplevel->xwayland->size_hints->flags & flag) != 0;
 }
 
+static bool xwayland_initial_area(struct toplevel *toplevel, int width,
+		int height, struct wtwm_placement_area *area, struct output **output) {
+	bool transient = toplevel->xwayland->parent != NULL;
+	bool ask_user = wtwm_placement_asks_user(transient,
+		xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_US_POSITION),
+		xwayland_position_flag(toplevel, XCB_ICCCM_SIZE_HINT_P_POSITION),
+		toplevel->server->config.use_p_position_mode,
+		toplevel->xwayland->x, toplevel->xwayland->y);
+	if (ask_user)
+		return output_selection_for_point(toplevel->server,
+			(int)toplevel->server->cursor->x,
+			(int)toplevel->server->cursor->y, area, output);
+	struct wlr_xwayland_surface *parent_surface = toplevel->xwayland->parent;
+	struct toplevel *parent = parent_surface != NULL ? parent_surface->data : NULL;
+	if (parent != NULL && parent != toplevel && parent->mapped &&
+			!parent_surface->override_redirect)
+		return output_selection_for_toplevel(parent, false, area, output);
+	int saved_width = toplevel->width;
+	int saved_height = toplevel->height;
+	toplevel->width = width;
+	toplevel->height = height;
+	struct wtwm_frame_geometry geometry;
+	toplevel_geometry(toplevel, &geometry);
+	toplevel->width = saved_width;
+	toplevel->height = saved_height;
+	int gravity_x = -1, gravity_y = -1;
+	xwayland_gravity_offsets(toplevel, &gravity_x, &gravity_y);
+	struct wtwm_window_position position;
+	wtwm_initial_window_position(toplevel->xwayland->x, toplevel->xwayland->y,
+		toplevel->original_client_border, &geometry,
+		toplevel->server->config.client_border_width,
+		gravity_x, gravity_y, &position);
+	return output_selection_for_point(toplevel->server, position.frame_x,
+		position.frame_y, area, output);
+}
+
 static bool initial_xwayland_frame(struct toplevel *toplevel,
 		const struct wtwm_placement_area *area, int width, int height,
 		bool start_iconified, int *frame_x, int *frame_y) {
@@ -5402,7 +7914,6 @@ static bool initial_xwayland_frame(struct toplevel *toplevel,
 			(int)toplevel->server->cursor->x,
 			(int)toplevel->server->cursor->y, frame_x, frame_y);
 		toplevel->placement_kind = WTWM_PLACEMENT_INTERACTIVE;
-		++toplevel->server->placement_index;
 		return true;
 	} else {
 		toplevel->placement_kind = WTWM_PLACEMENT_REQUESTED;
@@ -5441,20 +7952,19 @@ static void expose_managed_xwayland(struct toplevel *toplevel,
 }
 
 static void start_next_initial_placement(struct server *server) {
-	if (server->grabbed != NULL) return;
+	if (server->grabbed != NULL || server->input.pointer_count == 0) return;
 	struct toplevel *candidate = NULL, *item;
 	wl_list_for_each(item, &server->toplevels, link) {
-		if (!item->placement_pending) continue;
+		if (!item->placement_pending || item->placement_waiting_output) continue;
 		if (candidate == NULL || item->placement_order < candidate->placement_order)
 			candidate = item;
 	}
 	if (candidate == NULL) return;
 	struct wtwm_frame_geometry geometry;
 	toplevel_geometry(candidate, &geometry);
-	struct wtwm_placement_area area;
-	server_placement_area(server, &area);
 	int x = 0, y = 0;
-	wtwm_placement_prompt_position(&area, server->config.dont_move_off,
+	wtwm_placement_prompt_position(&candidate->placement_area,
+		server->config.dont_move_off,
 		geometry.outer_width, geometry.outer_height,
 		(int)server->cursor->x, (int)server->cursor->y, &x, &y);
 	server->grabbed = candidate;
@@ -5469,6 +7979,9 @@ static void start_next_initial_placement(struct server *server) {
 		.pointer_start_y = server->cursor->y,
 		.started = true,
 		.intent = INTERACTION_INITIAL_POSITION,
+		.output_area_valid = true,
+		.output_area = candidate->placement_area,
+		.output = candidate->placement_output,
 	};
 	set_cursor_role(server, "Move");
 	candidate->frame_x = x;
@@ -5488,9 +8001,13 @@ static void finish_initial_placement(struct server *server) {
 	configure_xwayland_frame(toplevel, preview.x, preview.y,
 		preview.width, preview.height);
 	toplevel->placed = true;
+	if (toplevel->placement_kind == WTWM_PLACEMENT_INTERACTIVE)
+		++toplevel->server->placement_index;
 	test_trace_toplevel_event_at(toplevel, "commit", "placement",
 		preview.x, preview.y, preview.width, preview.height);
 	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
+	toplevel->placement_output = NULL;
 	bool start_iconified = toplevel->placement_start_iconified;
 	toplevel->placement_start_iconified = false;
 	reset_cursor(server);
@@ -5502,6 +8019,8 @@ static void cancel_initial_placement(struct toplevel *toplevel) {
 	if (toplevel == NULL || !toplevel->placement_pending) return;
 	struct server *server = toplevel->server;
 	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
+	toplevel->placement_output = NULL;
 	test_trace_toplevel_event_at(toplevel, "abort", "placement",
 		server->interaction.preview.x, server->interaction.preview.y,
 		server->interaction.preview.width, server->interaction.preview.height);
@@ -5525,9 +8044,72 @@ static void insert_xwayland_stack(struct toplevel *toplevel) {
 	sync_toplevel_scene_stack(toplevel);
 }
 
+static void complete_managed_xwayland_map(struct toplevel *toplevel) {
+	struct wtwm_placement_area area;
+	struct output *placement_output = NULL;
+	if (!xwayland_initial_area(toplevel, toplevel->width, toplevel->height,
+			&area, &placement_output)) {
+		toplevel->placement_pending = true;
+		toplevel->placement_waiting_output = true;
+		toplevel->placement_output = NULL;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		wlr_scene_node_set_enabled(&toplevel->tree->node, false);
+		return;
+	}
+	toplevel->placement_area = area;
+	toplevel->placement_output = placement_output;
+	toplevel->placement_pending = false;
+	toplevel->placement_waiting_output = false;
+	struct wtwm_session_record session_record = {0};
+	bool restored = take_session_record(toplevel, &session_record);
+	int width = toplevel->width, height = toplevel->height;
+	clip_initial_toplevel_size(toplevel, &area, &width, &height);
+	int frame_x = toplevel->frame_x;
+	int frame_y = toplevel->frame_y;
+	bool interactive_placement = false;
+	bool start_iconified = should_start_iconified(toplevel,
+		toplevel->placement_initial_rules);
+	if (restored) {
+		toplevel->placement_output = NULL;
+		apply_session_geometry(toplevel, &session_record);
+		apply_session_policy(toplevel, &session_record);
+		expose_managed_xwayland(toplevel, session_record.iconified);
+		restore_session_stack_and_focus(toplevel->server);
+		wtwm_session_record_finish(&session_record);
+		return;
+	}
+	if (!toplevel->frame_positioned) {
+		/* Geometry uses the clipped client size, as AddWindow does. */
+		toplevel->width = width;
+		toplevel->height = height;
+		interactive_placement = initial_xwayland_frame(toplevel, &area,
+			width, height, start_iconified, &frame_x, &frame_y);
+	} else {
+		toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
+	}
+	if (interactive_placement) {
+		toplevel->placement_pending = true;
+		toplevel->placement_start_iconified = start_iconified;
+		if (toplevel->placement_order == 0)
+			toplevel->placement_order =
+				++toplevel->server->placement_order_next;
+		start_next_initial_placement(toplevel->server);
+		return;
+	}
+	toplevel->placement_output = NULL;
+	configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
+	toplevel->placed = true;
+	expose_managed_xwayland(toplevel, start_iconified);
+}
+
 static void map_xwayland_toplevel(struct toplevel *toplevel) {
-	if (toplevel->mapped || toplevel->tree == NULL) return;
-	bool initial_rules = initialize_toplevel_rules(toplevel);
+	if (toplevel->tree == NULL ||
+			(toplevel->mapped && !toplevel->placement_waiting_output)) return;
+	bool first_map = !toplevel->mapped;
+	if (first_map)
+		toplevel->placement_initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
 	toplevel->iconified = false;
 	toplevel->width = toplevel->xwayland->width;
@@ -5538,35 +8120,8 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 		wlr_scene_node_raise_to_top(&toplevel->tree->node);
 		test_trace_toplevel_event(toplevel, "raise", "frame");
 	} else {
-		insert_xwayland_stack(toplevel);
-		struct wtwm_placement_area area;
-		server_placement_area(toplevel->server, &area);
-		int width = toplevel->width, height = toplevel->height;
-		clip_initial_toplevel_size(toplevel, &area, &width, &height);
-		int frame_x = toplevel->frame_x;
-		int frame_y = toplevel->frame_y;
-		bool interactive_placement = false;
-		bool start_iconified = should_start_iconified(toplevel, initial_rules);
-		if (!toplevel->frame_positioned) {
-			/* Geometry uses the clipped client size, as AddWindow does. */
-			toplevel->width = width;
-			toplevel->height = height;
-			interactive_placement = initial_xwayland_frame(toplevel, &area,
-				width, height, start_iconified,
-				&frame_x, &frame_y);
-		} else {
-			toplevel->placement_kind = WTWM_PLACEMENT_REMAPPED;
-		}
-		if (interactive_placement) {
-			toplevel->placement_pending = true;
-			toplevel->placement_start_iconified = start_iconified;
-			toplevel->placement_order = ++toplevel->server->placement_order_next;
-			start_next_initial_placement(toplevel->server);
-			return;
-		}
-		configure_xwayland_frame(toplevel, frame_x, frame_y, width, height);
-		toplevel->placed = true;
-		expose_managed_xwayland(toplevel, start_iconified);
+		if (first_map) insert_xwayland_stack(toplevel);
+		complete_managed_xwayland_map(toplevel);
 		return;
 	}
 	update_decoration(toplevel);
@@ -5575,13 +8130,33 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->xwayland->override_redirect) {
 		if (wlr_xwayland_or_surface_wants_focus(toplevel->xwayland)) {
 			struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(toplevel->server->seat);
-			if (keyboard != NULL) {
+			if (toplevel->server->input.keyboard_count != 0 && keyboard != NULL) {
 				wlr_seat_keyboard_notify_enter(toplevel->server->seat,
 					toplevel->xwayland->surface, keyboard->keycodes,
 					keyboard->num_keycodes, &keyboard->modifiers);
 			}
 		}
 	}
+}
+
+static void resume_output_waiting_toplevels(struct server *server) {
+	for (;;) {
+		struct toplevel *toplevel, *oldest = NULL;
+		wl_list_for_each(toplevel, &server->toplevels, link) {
+			if (!toplevel->placement_waiting_output) continue;
+			if (oldest == NULL ||
+					toplevel->placement_order < oldest->placement_order)
+				oldest = toplevel;
+		}
+		if (oldest == NULL) break;
+		if (oldest->xdg != NULL)
+			complete_native_map(oldest);
+		else if (oldest->xwayland != NULL &&
+				!oldest->xwayland->override_redirect)
+			map_xwayland_toplevel(oldest);
+		if (oldest->placement_waiting_output) break;
+	}
+	start_next_initial_placement(server);
 }
 
 static void xwayland_surface_map(struct wl_listener *listener, void *data) {
@@ -6139,6 +8714,7 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&toplevel->set_override_redirect.link);
 	wl_list_remove(&toplevel->set_geometry.link);
 	wl_list_remove(&toplevel->xwayland_link);
+	reset_xwayland_colormap_cache(toplevel);
 	free(toplevel->icon_name);
 	free(toplevel->xwayland_direct_name);
 	free(toplevel->xwayland_direct_instance);
@@ -6278,6 +8854,8 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 			read_xwayland_icon_name(toplevel);
 		else if (property->atom == server->atom_net_wm_icon)
 			read_xwayland_net_wm_icon(toplevel);
+		else if (property->atom == server->atom_wm_colormap_windows)
+			reset_xwayland_colormap_cache(toplevel);
 		else if (property->atom == server->atom_wm_normal_hints ||
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
@@ -6652,6 +9230,100 @@ static void test_trace_clear(struct test_control *control) {
 	control->trace_dropped = 0;
 }
 
+static const char *test_output_transform_name(enum wl_output_transform transform) {
+	switch (transform) {
+	case WL_OUTPUT_TRANSFORM_NORMAL: return "normal";
+	case WL_OUTPUT_TRANSFORM_90: return "90";
+	case WL_OUTPUT_TRANSFORM_180: return "180";
+	case WL_OUTPUT_TRANSFORM_270: return "270";
+	case WL_OUTPUT_TRANSFORM_FLIPPED: return "flipped";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_90: return "flipped-90";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_180: return "flipped-180";
+	case WL_OUTPUT_TRANSFORM_FLIPPED_270: return "flipped-270";
+	}
+	return "invalid";
+}
+
+static const char *test_zoom_name(enum wtwm_action_type mode) {
+	switch (mode) {
+	case WTWM_ACTION_ZOOM: return "vertical";
+	case WTWM_ACTION_HORIZOOM: return "horizontal";
+	case WTWM_ACTION_FULLZOOM: return "full";
+	case WTWM_ACTION_LEFTZOOM: return "left";
+	case WTWM_ACTION_RIGHTZOOM: return "right";
+	case WTWM_ACTION_TOPZOOM: return "top";
+	case WTWM_ACTION_BOTTOMZOOM: return "bottom";
+	default: return "none";
+	}
+}
+
+static struct toplevel *test_managed_parent(struct server *server,
+		const struct toplevel *child) {
+	struct toplevel *candidate;
+	wl_list_for_each(candidate, &server->toplevels, link)
+		if (toplevel_is_transient_for(child, candidate)) return candidate;
+	return NULL;
+}
+
+static bool test_toplevel_visible(const struct toplevel *toplevel) {
+	return (toplevel->tree != NULL && toplevel->tree->node.enabled) ||
+		(toplevel->icon_tree != NULL && toplevel->icon_tree->node.enabled);
+}
+
+static size_t test_visible_input_codes(const struct server *server,
+		enum wtwm_input_device_type type, uint32_t *codes, size_t capacity) {
+	size_t count = 0;
+	for (size_t device_index = 0;
+			device_index < server->input.device_count; ++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&server->input.devices[device_index];
+		if (device->type != type) continue;
+		const struct wtwm_input_held *held = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index) {
+			if (!held[held_index].client_visible) continue;
+			size_t at = 0;
+			while (at < count && codes[at] < held[held_index].code) ++at;
+			if (at < count && codes[at] == held[held_index].code) continue;
+			if (count == capacity) return count;
+			memmove(&codes[at + 1], &codes[at],
+				(count - at) * sizeof(codes[0]));
+			codes[at] = held[held_index].code;
+			++count;
+		}
+	}
+	return count;
+}
+
+static void test_write_codes(struct test_control *control,
+		const struct wtwm_input_held *held, size_t count) {
+	test_write(control, "[");
+	for (size_t index = 0; index < count; ++index)
+		test_write(control, "%s%u", index != 0 ? "," : "", held[index].code);
+	test_write(control, "]");
+}
+
+static void test_write_code_values(struct test_control *control,
+		const uint32_t *codes, size_t count) {
+	test_write(control, "[");
+	for (size_t index = 0; index < count; ++index)
+		test_write(control, "%s%u", index != 0 ? "," : "", codes[index]);
+	test_write(control, "]");
+}
+
+static const char *test_input_active_name(const struct server *server,
+		enum wtwm_input_device_type type) {
+	bool valid = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+		server->input.active_keyboard_valid : server->input.active_pointer_valid;
+	uint64_t ordinal = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+		server->input.active_keyboard : server->input.active_pointer;
+	const struct wtwm_input_hotplug_device *device = valid ?
+		input_device_for_ordinal(&server->input, ordinal) : NULL;
+	return device != NULL ? device->name : NULL;
+}
+
 static void test_write_state(struct test_control *control) {
 	struct server *server = control->server;
 	struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
@@ -6659,7 +9331,7 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, "OK STATE {\"frame\":%" PRIu64
 		",\"animation_ms\":%u,\"placement_seed\":%u,"
 		"\"random_placement\":{\"next_x\":%d,\"next_y\":%d},"
-		"\"cursor\":{\"x\":%.3f,\"y\":%.3f},\"focus_root\":%s,"
+		"\"cursor\":{\"x\":%.17g,\"y\":%.17g},\"focus_root\":%s,"
 		"\"active\":",
 		server->frame_sequence, control->animation_ms, server->placement_index,
 		server->random_placement.next_x, server->random_placement.next_y,
@@ -6675,7 +9347,132 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, ",\"pointer_window\":");
 	if (server->pointer_toplevel == NULL) test_write(control, "null");
 	else test_write_json_string(control, toplevel_title(server->pointer_toplevel));
-	test_write(control, ",\"windows\":[");
+	test_write(control, ",\"inputs\":[");
+	for (size_t index = 0; index < server->input.device_count; ++index) {
+		const struct wtwm_input_hotplug_device *device =
+			&server->input.devices[index];
+		if (index != 0) test_write(control, ",");
+		test_write(control, "{\"name\":");
+		test_write_json_string(control, device->name);
+		test_write(control,
+			",\"type\":\"%s\",\"ordinal\":%" PRIu64
+			",\"last_activity\":%" PRIu64 ",\"active\":%s,\"pressed\":",
+			device->type == WTWM_INPUT_DEVICE_KEYBOARD ? "keyboard" : "pointer",
+			device->ordinal, device->last_activity,
+			(device->type == WTWM_INPUT_DEVICE_KEYBOARD ?
+				server->input.active_keyboard_valid &&
+				server->input.active_keyboard == device->ordinal :
+				server->input.active_pointer_valid &&
+				server->input.active_pointer == device->ordinal) ? "true" : "false");
+		if (device->type == WTWM_INPUT_DEVICE_KEYBOARD)
+			test_write_codes(control, device->keys, device->key_count);
+		else test_write_codes(control, device->buttons, device->button_count);
+		test_write(control, ",\"modifiers\":");
+		if (device->type == WTWM_INPUT_DEVICE_POINTER) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"depressed\":%u,\"latched\":%u,\"locked\":%u,\"group\":%u}",
+				device->modifiers.depressed, device->modifiers.latched,
+				device->modifiers.locked, device->modifiers.group);
+		}
+		test_write(control, "}");
+	}
+	test_write(control, "],\"seat_capabilities\":[");
+	bool wrote_capability = false;
+	if (server->input.keyboard_count != 0) {
+		test_write(control, "\"keyboard\"");
+		wrote_capability = true;
+	}
+	if (server->input.pointer_count != 0)
+		test_write(control, "%s\"pointer\"", wrote_capability ? "," : "");
+	test_write(control,
+		"],\"seat_modifiers\":{\"depressed\":%u,\"latched\":%u,"
+		"\"locked\":%u,\"group\":%u},\"seat_pressed_keys\":",
+		server->aggregate_keyboard.modifiers.depressed,
+		server->aggregate_keyboard.modifiers.latched,
+		server->aggregate_keyboard.modifiers.locked,
+		server->aggregate_keyboard.modifiers.group);
+	uint32_t keycodes[WTWM_INPUT_MAX_DEVICES * WTWM_INPUT_MAX_HELD_KEYS];
+	size_t keycode_count = test_visible_input_codes(server,
+		WTWM_INPUT_DEVICE_KEYBOARD, keycodes,
+		sizeof(keycodes) / sizeof(keycodes[0]));
+	test_write_code_values(control, keycodes, keycode_count);
+	test_write(control, ",\"seat_pressed_buttons\":");
+	uint32_t buttons[WTWM_INPUT_MAX_DEVICES * WTWM_INPUT_MAX_HELD_BUTTONS];
+	size_t button_count = test_visible_input_codes(server,
+		WTWM_INPUT_DEVICE_POINTER, buttons,
+		sizeof(buttons) / sizeof(buttons[0]));
+	test_write_code_values(control, buttons, button_count);
+	test_write(control, ",\"active_keyboard\":");
+	const char *active_keyboard = test_input_active_name(server,
+		WTWM_INPUT_DEVICE_KEYBOARD);
+	if (active_keyboard == NULL) test_write(control, "null");
+	else test_write_json_string(control, active_keyboard);
+	test_write(control, ",\"active_pointer\":");
+	const char *active_pointer = test_input_active_name(server,
+		WTWM_INPUT_DEVICE_POINTER);
+	if (active_pointer == NULL) test_write(control, "null");
+	else test_write_json_string(control, active_pointer);
+	test_write(control, ",\"seat_keyboard_focus\":");
+	if (focused_toplevel == NULL || server->input.keyboard_count == 0)
+		test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(focused_toplevel));
+	test_write(control, ",\"seat_pointer_focus\":");
+	struct toplevel *pointer_focused = toplevel_for_surface(
+		server->seat->pointer_state.focused_surface);
+	if (pointer_focused == NULL || server->input.pointer_count == 0)
+		test_write(control, "null");
+	else test_write_json_string(control, toplevel_title(pointer_focused));
+	test_write(control, ",\"topology_epoch\":%" PRIu64 ",\"outputs\":[",
+		server->topology_epoch);
+	struct wtwm_output_order *output_order = NULL;
+	bool have_output_order = all_output_order_snapshot(server, &output_order);
+	size_t active_index = 0;
+	for (size_t position = 0; have_output_order &&
+			position < wtwm_output_order_count(output_order); ++position) {
+		struct output *output = wtwm_output_order_at(output_order, position);
+		if (position != 0) test_write(control, ",");
+		test_write(control, "{\"name\":");
+		test_write_json_string(control, output->identity.name);
+		test_write(control, ",\"ordinal\":%" PRIu64 ",\"index\":",
+			output->identity.announcement_ordinal);
+		bool active_output = output->wlr->enabled && output->in_layout;
+		if (active_output) test_write(control, "%zu", active_index++);
+		else test_write(control, "null");
+		test_write(control,
+			",\"enabled\":%s,\"mode\":{\"width\":%d,\"height\":%d,"
+			"\"refresh_mhz\":%d},\"scale\":%.3f,\"transform\":",
+			output->wlr->enabled ? "true" : "false",
+			output->wlr->width, output->wlr->height, output->wlr->refresh,
+			(double)output->wlr->scale);
+		test_write_json_string(control,
+			test_output_transform_name(output->wlr->transform));
+		test_write(control, ",\"box\":");
+		struct wlr_box box = {0};
+		if (active_output)
+			wlr_output_layout_get_box(server->output_layout, output->wlr, &box);
+		if (!active_output || box.width <= 0 || box.height <= 0) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				box.x, box.y, box.width, box.height);
+		}
+		test_write(control, ",\"background\":");
+		if (!active_output || output->background == NULL ||
+				!output->background->node.enabled) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				output->background->node.x, output->background->node.y,
+				output->background->width, output->background->height);
+		}
+		test_write(control, "}");
+	}
+	wtwm_output_order_destroy(output_order);
+	test_write(control, "],\"windows\":[");
 	bool first = true;
 	unsigned stack = 0;
 	struct toplevel *toplevel;
@@ -6684,6 +9481,7 @@ static void test_write_state(struct test_control *control) {
 		first = false;
 		struct wtwm_frame_geometry geometry;
 		struct wtwm_client_identity identity = toplevel_identity(toplevel);
+		struct toplevel *parent = test_managed_parent(server, toplevel);
 		toplevel_geometry(toplevel, &geometry);
 		test_write(control, "{\"id\":%" PRIu64 ",\"title\":",
 			toplevel->test_id);
@@ -6719,6 +9517,23 @@ static void test_write_state(struct test_control *control) {
 			server->focus == toplevel ? "true" : "false");
 		test_write_json_string(control,
 			wtwm_placement_kind_name(toplevel->placement_kind));
+		test_write(control,
+			",\"restoration_pending\":%s,\"visible\":%s,\"parent_id\":",
+			toplevel->restoration_pending ? "true" : "false",
+			test_toplevel_visible(toplevel) ? "true" : "false");
+		if (parent == NULL) test_write(control, "null");
+		else test_write(control, "%" PRIu64, parent->test_id);
+		test_write(control, ",\"zoom\":");
+		test_write_json_string(control, test_zoom_name(toplevel->zoom.mode));
+		test_write(control, ",\"zoom_saved\":");
+		if (!wtwm_action_is_zoom(toplevel->zoom.mode)) {
+			test_write(control, "null");
+		} else {
+			test_write(control,
+				"{\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d}",
+				toplevel->zoom.saved.x, toplevel->zoom.saved.y,
+				toplevel->zoom.saved.width, toplevel->zoom.saved.height);
+		}
 		if (toplevel->xwayland != NULL) {
 			struct wlr_xwayland_surface *xsurface = toplevel->xwayland;
 			xcb_icccm_wm_hints_t *hints = xsurface->hints;
@@ -6956,10 +9771,11 @@ static void test_write_state(struct test_control *control) {
 }
 
 static bool test_render_stable(struct server *server, unsigned count) {
-	if (wl_list_empty(&server->outputs)) return false;
+	if (enabled_output_count(server) == 0) return false;
 	for (unsigned i = 0; i < count; ++i) {
 		struct output *output;
 		wl_list_for_each(output, &server->outputs, link) {
+			if (!output->wlr->enabled || !output->in_layout) continue;
 			if (!render_output(output)) return false;
 		}
 	}
@@ -6968,11 +9784,21 @@ static bool test_render_stable(struct server *server, unsigned count) {
 
 static bool test_capture_ppm(struct server *server, const char *path,
 	char *error, size_t error_size) {
-	if (wl_list_empty(&server->outputs)) {
+	if (enabled_output_count(server) == 0) {
 		snprintf(error, error_size, "no output");
 		return false;
 	}
-	struct output *output = wl_container_of(server->outputs.next, output, link);
+	struct output *output = NULL, *candidate;
+	wl_list_for_each(candidate, &server->outputs, link) {
+		if (candidate->wlr->enabled && candidate->in_layout) {
+			output = candidate;
+			break;
+		}
+	}
+	if (output == NULL) {
+		snprintf(error, error_size, "no output");
+		return false;
+	}
 	struct wlr_scene_output *scene_output =
 		wlr_scene_get_scene_output(server->scene, output->wlr);
 	struct wlr_output_state state;
@@ -7040,9 +9866,112 @@ static bool test_capture_ppm(struct server *server, const char *path,
 	return ok;
 }
 
-static void test_pointer(struct server *server, double x, double y) {
+static struct test_input_device *test_input_find(struct test_control *control,
+		const char *name) {
+	struct test_input_device *device;
+	wl_list_for_each(device, &control->input_devices, link)
+		if (strcmp(device->name, name) == 0) return device;
+	return NULL;
+}
+
+static bool test_input_add(struct test_control *control,
+		enum wtwm_input_device_type type, const char *name) {
+	if (test_input_find(control, name) != NULL) return false;
+	struct test_input_device *device = calloc(1, sizeof(*device));
+	if (device == NULL) return false;
+	device->control = control;
+	device->type = type;
+	(void)snprintf(device->name, sizeof(device->name), "%s", name);
+	static const struct wlr_keyboard_impl keyboard_impl = {
+		.name = "wtwm-test-keyboard",
+	};
+	static const struct wlr_pointer_impl pointer_impl = {
+		.name = "wtwm-test-pointer",
+	};
+	if (type == WTWM_INPUT_DEVICE_KEYBOARD) {
+		wlr_keyboard_init(&device->wlr.keyboard, &keyboard_impl, name);
+		device->initialized = true;
+		if (!new_keyboard(control->server, &device->wlr.keyboard.base, name)) {
+			wlr_keyboard_finish(&device->wlr.keyboard);
+			free(device);
+			return false;
+		}
+	} else {
+		wlr_pointer_init(&device->wlr.pointer, &pointer_impl, name);
+		device->initialized = true;
+		if (!new_pointer(control->server, &device->wlr.pointer.base, name)) {
+			wlr_pointer_finish(&device->wlr.pointer);
+			free(device);
+			return false;
+		}
+	}
+	wl_list_insert(control->input_devices.prev, &device->link);
+	return true;
+}
+
+static void test_input_destroy(struct test_input_device *device) {
+	struct test_control *control = device->control;
+	if (control->legacy_keyboard == device) control->legacy_keyboard = NULL;
+	if (control->legacy_pointer == device) control->legacy_pointer = NULL;
+	wl_list_remove(&device->link);
+	if (device->initialized) {
+		if (device->type == WTWM_INPUT_DEVICE_KEYBOARD)
+			wlr_keyboard_finish(&device->wlr.keyboard);
+		else wlr_pointer_finish(&device->wlr.pointer);
+	}
+	free(device);
+}
+
+static bool test_input_clear(struct test_control *control) {
+	struct server *server = control->server;
+	if (!server->shutting_down && server->input_plan != NULL) {
+		sync_input_context(server);
+		wtwm_input_hotplug_plan_init(server->input_plan);
+		if (!wtwm_input_hotplug_plan_clear(&server->input,
+				server->input_plan) ||
+				!apply_input_plan(server, server->input_plan)) return false;
+	}
+	control->clearing_inputs = true;
+	struct test_input_device *device, *temporary;
+	wl_list_for_each_safe(device, temporary, &control->input_devices, link)
+		test_input_destroy(device);
+	control->clearing_inputs = false;
+	return true;
+}
+
+static bool test_pointer(struct test_input_device *device, double x, double y) {
+	if (device == NULL || device->type != WTWM_INPUT_DEVICE_POINTER) return false;
+	struct server *server = device->control->server;
 	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
-	process_cursor_motion(server, ++server->test_control.input_time_ms);
+	struct pointer *pointer = pointer_for_wlr(server, &device->wlr.pointer);
+	if (pointer == NULL || !plan_pointer_motion(server, pointer->input_ordinal))
+		return false;
+	process_cursor_motion(server, ++device->control->input_time_ms);
+	return true;
+}
+
+static struct output *test_output_by_name(struct server *server,
+		const char *name) {
+	struct output *output;
+	wl_list_for_each(output, &server->outputs, link) {
+		if (strcmp(output->identity.name, name) == 0) return output;
+	}
+	return NULL;
+}
+
+static enum wl_output_transform test_output_transform(
+		enum wtwm_test_output_transform transform) {
+	switch (transform) {
+	case WTWM_TEST_TRANSFORM_NORMAL: return WL_OUTPUT_TRANSFORM_NORMAL;
+	case WTWM_TEST_TRANSFORM_90: return WL_OUTPUT_TRANSFORM_90;
+	case WTWM_TEST_TRANSFORM_180: return WL_OUTPUT_TRANSFORM_180;
+	case WTWM_TEST_TRANSFORM_270: return WL_OUTPUT_TRANSFORM_270;
+	case WTWM_TEST_TRANSFORM_FLIPPED: return WL_OUTPUT_TRANSFORM_FLIPPED;
+	case WTWM_TEST_TRANSFORM_FLIPPED_90: return WL_OUTPUT_TRANSFORM_FLIPPED_90;
+	case WTWM_TEST_TRANSFORM_FLIPPED_180: return WL_OUTPUT_TRANSFORM_FLIPPED_180;
+	case WTWM_TEST_TRANSFORM_FLIPPED_270: return WL_OUTPUT_TRANSFORM_FLIPPED_270;
+	}
+	return WL_OUTPUT_TRANSFORM_NORMAL;
 }
 
 static void test_execute(struct test_control *control,
@@ -7057,21 +9986,267 @@ static void test_execute(struct test_control *control,
 			test_write(control, "ERROR OUTPUT requires the headless backend\n");
 			break;
 		}
-		struct wlr_output *output = wlr_headless_add_output(server->backend,
-			(unsigned)command->first, (unsigned)command->second);
-		if (output == NULL) test_write(control, "ERROR unable to create output\n");
-		else test_write(control, "OK OUTPUT %s %d %d\n", output->name,
-			command->first, command->second);
+		if (command->output_operation == WTWM_TEST_OUTPUT_ADD) {
+			struct wlr_output *wlr_output = wlr_headless_add_output(server->backend,
+				(unsigned)command->first, (unsigned)command->second);
+			struct output *output = wlr_output != NULL ?
+				test_output_by_name(server, wlr_output->name) : NULL;
+			if (output == NULL)
+				test_write(control, "ERROR unable to create output\n");
+			else
+				test_write(control, "OK OUTPUT %s %d %d\n", wlr_output->name,
+					command->first, command->second);
+			break;
+		}
+		struct output *output = test_output_by_name(server, command->output_name);
+		if (output == NULL) {
+			test_write(control, "ERROR OUTPUT unknown output: %s\n",
+				command->output_name);
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_DESTROY) {
+			wlr_output_destroy(output->wlr);
+			test_write(control, "OK OUTPUT DESTROY %s\n", command->output_name);
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_ENABLE ||
+				command->output_operation == WTWM_TEST_OUTPUT_DISABLE) {
+			bool enable = command->output_operation == WTWM_TEST_OUTPUT_ENABLE;
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_enabled(&state, enable);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT %s failed: %s\n",
+					enable ? "ENABLE" : "DISABLE", command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT %s %s\n",
+					enable ? "ENABLE" : "DISABLE", command->output_name);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_MODE) {
+			if (!output->wlr->enabled) {
+				test_write(control,
+					"ERROR OUTPUT MODE requires enabled output: %s\n",
+					command->output_name);
+				break;
+			}
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_custom_mode(&state, command->first,
+				command->second, command->third);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT MODE failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT MODE %s %d %d %d\n",
+					command->output_name, command->first, command->second,
+					command->third);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_SCALE) {
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_scale(&state, (float)command->x);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT SCALE failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT SCALE %s %.3f\n",
+					command->output_name, command->x);
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_TRANSFORM) {
+			enum wl_output_transform transform =
+				test_output_transform(command->output_transform);
+			struct wlr_output_state state;
+			wlr_output_state_init(&state);
+			wlr_output_state_set_transform(&state, transform);
+			bool committed = commit_output_state(output, &state);
+			wlr_output_state_finish(&state);
+			if (!committed) {
+				test_write(control, "ERROR OUTPUT TRANSFORM failed: %s\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT TRANSFORM %s %s\n",
+					command->output_name,
+					test_output_transform_name(transform));
+			}
+			break;
+		}
+		if (command->output_operation == WTWM_TEST_OUTPUT_POSITION) {
+			if (!output->wlr->enabled || !output->in_layout) {
+				test_write(control,
+					"ERROR OUTPUT POSITION requires enabled output: %s\n",
+					command->output_name);
+				break;
+			}
+			struct wlr_output_layout_output *before =
+				wlr_output_layout_get(server->output_layout, output->wlr);
+			int old_x = before->x, old_y = before->y;
+			bool old_auto = before->auto_configured;
+			if (!begin_output_topology_mutation(server)) {
+				finish_output_topology_mutation(server, false);
+				test_write(control,
+					"ERROR OUTPUT POSITION failed: %s\n",
+					command->output_name);
+				break;
+			}
+			struct wlr_output_layout_output *positioned = command->output_auto ?
+				wlr_output_layout_add_auto(server->output_layout, output->wlr) :
+				wlr_output_layout_add(server->output_layout, output->wlr,
+					command->first, command->second);
+			bool changed = positioned != NULL &&
+				(positioned->x != old_x || positioned->y != old_y ||
+				positioned->auto_configured != old_auto);
+			if (positioned != NULL) {
+				output->layout_position_known = true;
+				output->layout_auto = positioned->auto_configured;
+				output->layout_x = positioned->x;
+				output->layout_y = positioned->y;
+			}
+			finish_output_topology_mutation(server, changed);
+			if (positioned == NULL) {
+				test_write(control, "ERROR OUTPUT POSITION failed: %s\n",
+					command->output_name);
+			} else if (command->output_auto) {
+				test_write(control, "OK OUTPUT POSITION %s AUTO\n",
+					command->output_name);
+			} else {
+				test_write(control, "OK OUTPUT POSITION %s %d %d\n",
+					command->output_name, command->first, command->second);
+			}
+			break;
+		}
+		test_write(control, "ERROR unsupported OUTPUT operation\n");
+		break;
+	}
+	case WTWM_TEST_COMMAND_INPUT: {
+		if (command->input_operation == WTWM_TEST_INPUT_CLEAR) {
+			if (!test_input_clear(control))
+				test_write(control, "ERROR INPUT CLEAR failed\n");
+			else test_write(control, "OK INPUT CLEAR\n");
+			break;
+		}
+		struct test_input_device *device =
+			test_input_find(control, command->input_name);
+		if (command->input_operation == WTWM_TEST_INPUT_ADD) {
+			if (device != NULL) {
+				test_write(control, "ERROR INPUT duplicate device: %s\n",
+					command->input_name);
+				break;
+			}
+			enum wtwm_input_device_type type =
+				command->input_device_type == WTWM_TEST_INPUT_DEVICE_KEYBOARD ?
+					WTWM_INPUT_DEVICE_KEYBOARD : WTWM_INPUT_DEVICE_POINTER;
+			if (!test_input_add(control, type, command->input_name)) {
+				test_write(control, "ERROR INPUT unable to add device: %s\n",
+					command->input_name);
+			} else {
+				test_write(control, "OK INPUT ADD %s %s\n",
+					type == WTWM_INPUT_DEVICE_KEYBOARD ? "KEYBOARD" : "POINTER",
+					command->input_name);
+			}
+			break;
+		}
+		if (device == NULL) {
+			test_write(control, "ERROR INPUT unknown device: %s\n",
+				command->input_name);
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_REMOVE) {
+			test_input_destroy(device);
+			test_write(control, "OK INPUT REMOVE %s\n", command->input_name);
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_KEY) {
+			if (device->type != WTWM_INPUT_DEVICE_KEYBOARD) {
+				test_write(control, "ERROR INPUT KEY requires keyboard: %s\n",
+					command->input_name);
+				break;
+			}
+			struct wlr_keyboard_key_event event = {
+				.time_msec = ++control->input_time_ms,
+				.keycode = command->code,
+				.update_state = true,
+				.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
+					WL_KEYBOARD_KEY_STATE_RELEASED,
+			};
+			wlr_keyboard_notify_key(&device->wlr.keyboard, &event);
+			test_trace_input_snapshot(server, "input-key");
+			test_write(control, "OK INPUT KEY %s %u %s\n",
+				command->input_name, command->code,
+				command->pressed ? "press" : "release");
+			break;
+		}
+		if (command->input_operation == WTWM_TEST_INPUT_POINTER) {
+			if (device->type != WTWM_INPUT_DEVICE_POINTER) {
+				test_write(control,
+					"ERROR INPUT POINTER requires pointer: %s\n",
+					command->input_name);
+				break;
+			}
+			if (!test_pointer(device, command->x, command->y)) {
+				test_write(control, "ERROR INPUT POINTER failed: %s\n",
+					command->input_name);
+				break;
+			}
+			test_trace_input_snapshot(server, "input-pointer");
+			test_write(control, "OK INPUT POINTER %s %.3f %.3f\n",
+				command->input_name, server->cursor->x, server->cursor->y);
+			break;
+		}
+		if (device->type != WTWM_INPUT_DEVICE_POINTER) {
+			test_write(control, "ERROR INPUT BUTTON requires pointer: %s\n",
+				command->input_name);
+			break;
+		}
+		struct wlr_pointer_button_event event = {
+			.pointer = &device->wlr.pointer,
+			.time_msec = ++control->input_time_ms,
+			.button = command->code,
+			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
+				WL_POINTER_BUTTON_STATE_RELEASED,
+		};
+		cursor_button(&server->cursor_button, &event);
+		wlr_seat_pointer_notify_frame(server->seat);
+		test_trace_input_snapshot(server, "input-button");
+		test_write(control, "OK INPUT BUTTON %s %u %s\n",
+			command->input_name, command->code,
+			command->pressed ? "press" : "release");
 		break;
 	}
 	case WTWM_TEST_COMMAND_POINTER:
-	case WTWM_TEST_COMMAND_SET_CURSOR:
-		test_pointer(server, command->x, command->y);
+	case WTWM_TEST_COMMAND_SET_CURSOR: {
+		struct test_input_device *legacy_pointer = control->legacy_pointer;
+		if (legacy_pointer == NULL)
+			legacy_pointer = test_input_find(control, "TEST-POINTER-0");
+		if (!test_pointer(legacy_pointer, command->x, command->y)) {
+			test_write(control, "ERROR legacy pointer is unavailable\n");
+			break;
+		}
 		test_trace_input_snapshot(server, "pointer");
 		test_write(control, "OK CURSOR %.3f %.3f\n", server->cursor->x, server->cursor->y);
 		break;
+	}
 	case WTWM_TEST_COMMAND_BUTTON: {
+		struct test_input_device *legacy_pointer = control->legacy_pointer;
+		if (legacy_pointer == NULL)
+			legacy_pointer = test_input_find(control, "TEST-POINTER-0");
+		if (legacy_pointer == NULL) {
+			test_write(control, "ERROR legacy pointer is unavailable\n");
+			break;
+		}
 		struct wlr_pointer_button_event event = {
+			.pointer = &legacy_pointer->wlr.pointer,
 			.time_msec = ++control->input_time_ms,
 			.button = command->code,
 			.state = command->pressed ? WL_POINTER_BUTTON_STATE_PRESSED :
@@ -7085,6 +10260,13 @@ static void test_execute(struct test_control *control,
 		break;
 	}
 	case WTWM_TEST_COMMAND_KEY: {
+		struct test_input_device *legacy_keyboard = control->legacy_keyboard;
+		if (legacy_keyboard == NULL)
+			legacy_keyboard = test_input_find(control, "TEST-KEYBOARD-0");
+		if (legacy_keyboard == NULL) {
+			test_write(control, "ERROR legacy keyboard is unavailable\n");
+			break;
+		}
 		struct wlr_keyboard_key_event event = {
 			.time_msec = ++control->input_time_ms,
 			.keycode = command->code,
@@ -7092,7 +10274,7 @@ static void test_execute(struct test_control *control,
 			.state = command->pressed ? WL_KEYBOARD_KEY_STATE_PRESSED :
 				WL_KEYBOARD_KEY_STATE_RELEASED,
 		};
-		wlr_keyboard_notify_key(&control->keyboard, &event);
+		wlr_keyboard_notify_key(&legacy_keyboard->wlr.keyboard, &event);
 		test_trace_input_snapshot(server, "key");
 		test_write(control, "OK KEY %u %s\n", command->code,
 			command->pressed ? "press" : "release");
@@ -7260,11 +10442,70 @@ static void test_control_finish(struct server *server) {
 	if (control->listen_source != NULL) wl_event_source_remove(control->listen_source);
 	if (control->listen_fd >= 0) close(control->listen_fd);
 	if (control->path[0] != '\0') unlink(control->path);
-	if (control->keyboard_initialized) wlr_keyboard_finish(&control->keyboard);
+	(void)test_input_clear(control);
 	free(control->trace_events);
 	control->trace_events = NULL;
 }
 #endif
+
+static void initialize_session_state(struct server *server) {
+	server->session_state.focus_root = true;
+	char error[512];
+	enum wtwm_session_result result = wtwm_session_state_default_path(
+		&server->session_state_path, error, sizeof(error));
+	if (result != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR, "session state is unavailable: %s", error);
+		return;
+	}
+	if (!server->config.restart_previous_state) return;
+	result = wtwm_session_state_load(server->session_state_path,
+		&server->session_state, error, sizeof(error));
+	if (result != WTWM_SESSION_OK) {
+		wlr_log(WLR_ERROR,
+			"RestartPreviousState rejected saved state and will start clean: %s",
+			error);
+	} else if (server->session_state.record_count != 0) {
+		wlr_log(WLR_INFO, "loaded %zu compositor session records from %s",
+			server->session_state.record_count, server->session_state_path);
+	}
+}
+
+static void finish_session_state(struct server *server) {
+	wtwm_session_state_finish(&server->session_state);
+	free(server->session_state_path);
+	server->session_state_path = NULL;
+}
+
+static int session_signal(int signal_number, void *data) {
+	struct server *server = data;
+	wlr_log(WLR_INFO, "received signal %d; ending the session", signal_number);
+	wl_display_terminate(server->display);
+	return 0;
+}
+
+static bool initialize_session_signals(struct server *server) {
+	static const int signals[WTWM_SESSION_SIGNAL_COUNT] = {
+		SIGINT, SIGHUP, SIGQUIT, SIGTERM,
+	};
+	struct wl_event_loop *loop = wl_display_get_event_loop(server->display);
+	for (size_t index = 0; index < WTWM_SESSION_SIGNAL_COUNT; ++index) {
+		server->session_signals[index] = wl_event_loop_add_signal(
+			loop, signals[index], session_signal, server);
+		if (server->session_signals[index] == NULL) {
+			wlr_log_errno(WLR_ERROR, "failed to register signal %d", signals[index]);
+			return false;
+		}
+	}
+	return true;
+}
+
+static void finish_session_signals(struct server *server) {
+	for (size_t index = 0; index < WTWM_SESSION_SIGNAL_COUNT; ++index) {
+		if (server->session_signals[index] == NULL) continue;
+		wl_event_source_remove(server->session_signals[index]);
+		server->session_signals[index] = NULL;
+	}
+}
 
 static void usage(FILE *stream, const char *program) {
 	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]"
@@ -7346,29 +10587,32 @@ int main(int argc, char **argv) {
 		wlr_log_errno(WLR_ERROR, "%s", "failed to restore SIGCHLD handling");
 		return 1;
 	}
-#ifdef WTWM_TEST_CONTROL
-	signal(SIGPIPE, SIG_IGN);
-#endif
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+		wlr_log_errno(WLR_ERROR, "%s", "failed to ignore SIGPIPE");
+		return 1;
+	}
 	struct server server = {0};
-	server.argc = argc;
-	server.argv = argv;
+	server.program_name = argv[0];
 	server.config_path = config_path;
-	server.previous_output_index = -1;
+	wtwm_action_screen_warp_init(&server.screen_warp);
 	server.color_mode = strcmp(visual_mode, "monochrome") == 0 ?
 		WTWM_COLOR_MODE_MONOCHROME :
 		(strcmp(visual_mode, "grayscale") == 0 ? WTWM_COLOR_MODE_GRAYSCALE :
 			WTWM_COLOR_MODE_COLOR);
 	server.focus_root = true;
-	server.pointer_context = WTWM_CONTEXT_ROOT;
+	server.pointer_context = 0;
 	wtwm_random_placement_init(&server.random_placement);
+	wtwm_input_hotplug_state_init(&server.input);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.listen_fd = -1;
 	server.test_control.client_fd = -1;
 	server.test_control.input_time_ms = 1000;
+	wl_list_init(&server.test_control.input_devices);
 #endif
 	wtwm_config_init(&server.config);
 	char config_error[1024];
-	if (!wtwm_config_load(&server.config, config_path, config_error, sizeof(config_error))) {
+	if (!wtwm_config_load_for_screen(&server.config, config_path, 0,
+			config_error, sizeof(config_error))) {
 		fprintf(stderr, "wtwm: %s\n", config_error);
 		wtwm_config_finish(&server.config);
 		return 1;
@@ -7376,7 +10620,10 @@ int main(int argc, char **argv) {
 	if (server.config.warning_count)
 		wlr_log(WLR_INFO, "%zu twm directives accepted but not effective; run wtwm-config for details",
 			server.config.warning_count);
+	initialize_session_state(&server);
 	server.display = wl_display_create();
+	if (server.display == NULL) goto fail_state;
+	if (!initialize_session_signals(&server)) goto fail_display;
 #ifdef WTWM_TEST_CONTROL
 	if (strcmp(test_backend, "headless") == 0) {
 		server.backend = wlr_headless_backend_create(
@@ -7406,6 +10653,9 @@ int main(int argc, char **argv) {
 	wlr_primary_selection_v1_device_manager_create(server.display);
 	server.output_layout = wlr_output_layout_create(server.display);
 	wl_list_init(&server.outputs);
+	server.output_layout_change.notify = output_layout_change;
+	wl_signal_add(&server.output_layout->events.change,
+		&server.output_layout_change);
 	server.new_output.notify = new_output;
 	wl_signal_add(&server.backend->events.new_output, &server.new_output);
 	server.scene = wlr_scene_create();
@@ -7442,7 +10692,20 @@ int main(int argc, char **argv) {
 	server.cursor_frame.notify = cursor_frame;
 	wl_signal_add(&server.cursor->events.frame, &server.cursor_frame);
 	wl_list_init(&server.keyboards);
+	wl_list_init(&server.pointers);
+	server.input_plan = calloc(1, sizeof(*server.input_plan));
+	if (server.input_plan == NULL) goto fail_runtime;
 	server.seat = wlr_seat_create(server.display, "seat0");
+	if (server.seat == NULL) goto fail_runtime;
+	static const struct wlr_keyboard_impl aggregate_keyboard_impl = {
+		.name = "wtwm-aggregate-keyboard",
+	};
+	wlr_keyboard_init(&server.aggregate_keyboard, &aggregate_keyboard_impl,
+		"wtwm-aggregate-keyboard");
+	server.aggregate_keyboard_initialized = true;
+	if (!configure_keyboard(&server.aggregate_keyboard)) goto fail_runtime;
+	wlr_seat_set_keyboard(server.seat, &server.aggregate_keyboard);
+	wlr_seat_set_capabilities(server.seat, 0);
 	server.new_input.notify = new_input;
 	wl_signal_add(&server.backend->events.new_input, &server.new_input);
 	server.request_cursor.notify = request_cursor;
@@ -7453,17 +10716,15 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
 #ifdef WTWM_TEST_CONTROL
-	static const struct wlr_keyboard_impl test_keyboard_impl = {
-		.name = "wtwm-test-keyboard",
-	};
-	wlr_keyboard_init(&server.test_control.keyboard, &test_keyboard_impl,
-		"wtwm-test-keyboard");
-	server.test_control.keyboard_initialized = true;
-	new_keyboard(&server, &server.test_control.keyboard.base);
-	/* Test control injects both key and pointer events without backend input
-	 * devices, so advertise the matching seat resources to test clients. */
-	wlr_seat_set_capabilities(server.seat,
-		WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_POINTER);
+	server.test_control.server = &server;
+	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,
+			"TEST-KEYBOARD-0") ||
+			!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_POINTER,
+			"TEST-POINTER-0")) goto fail_runtime;
+	server.test_control.legacy_keyboard = test_input_find(&server.test_control,
+		"TEST-KEYBOARD-0");
+	server.test_control.legacy_pointer = test_input_find(&server.test_control,
+		"TEST-POINTER-0");
 	const char *socket = test_socket;
 	if (socket != NULL && wl_display_add_socket(server.display, socket) < 0) socket = NULL;
 	else if (socket == NULL) socket = wl_display_add_socket_auto(server.display);
@@ -7483,6 +10744,9 @@ int main(int argc, char **argv) {
 	if (startup != NULL) spawn_command(startup);
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
+	server.shutting_down = true;
+	finish_compositor_reload(&server);
+	finish_cut_buffer(&server);
 	xwayland_finish(&server);
 	wl_display_destroy_clients(server.display);
 #ifdef WTWM_TEST_CONTROL
@@ -7501,20 +10765,23 @@ int main(int argc, char **argv) {
 	wlr_allocator_destroy(server.allocator);
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
+	finish_input_adapter(&server);
+	finish_session_signals(&server);
 	wl_display_destroy(server.display);
+	restoration_transaction_finish(&server.restoration);
+	restoration_output_snapshot_finish(&server.restoration_pending_source);
+	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 #ifdef WTWM_TEST_CONTROL
 	pango_cairo_font_map_set_default(NULL);
 	FcFini();
 #endif
-	if (server.restart_requested) {
-		execvp(server.argv[0], server.argv);
-		wlr_log_errno(WLR_ERROR, "%s", "failed to restart wtwm");
-		return 1;
-	}
 	return 0;
 
 fail_runtime:
+	server.shutting_down = true;
+	finish_compositor_reload(&server);
+	finish_cut_buffer(&server);
 	xwayland_finish(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
@@ -7535,7 +10802,13 @@ fail_renderer:
 fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
+	finish_input_adapter(&server);
+	finish_session_signals(&server);
 	wl_display_destroy(server.display);
+fail_state:
+	restoration_transaction_finish(&server.restoration);
+	restoration_output_snapshot_finish(&server.restoration_pending_source);
+	finish_session_state(&server);
 	wtwm_config_finish(&server.config);
 	return 1;
 }

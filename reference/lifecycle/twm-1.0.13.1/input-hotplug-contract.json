@@ -1,0 +1,759 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 core-input event stream and the wtwm single-seat multi-device hotplug translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/screen.h": "f238b482ee38fd1d75f410574d36b47e2dafec50808518b7ca374924785e48b0",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "startup.open-display": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 319,
+      "text": "    if (!(dpy = XtOpenDisplay(appContext, display_name, APP_NAME, APP_CLASS,"
+    },
+    "startup.one-connection": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 324,
+      "text": "    if (fcntl(ConnectionNumber(dpy), F_SETFD, 1) == -1) {"
+    },
+    "startup.screen-count": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 348,
+      "text": "    NumScreens = ScreenCount(dpy);"
+    },
+    "startup.root-select": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 376,
+      "text": "        XSelectInput(dpy, RootWindow(dpy, scrnum),"
+    },
+    "startup.root-key-mask": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 378,
+      "text": "                     SubstructureRedirectMask | KeyPressMask |"
+    },
+    "startup.root-button-masks": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 379,
+      "text": "                     ButtonPressMask | ButtonReleaseMask);"
+    },
+    "startup.root-window": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 441,
+      "text": "        Scr->Root = RootWindow(dpy, scrnum);"
+    },
+    "shutdown.display": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 927,
+      "text": "        XCloseDisplay(dpy);"
+    },
+    "events.jump-table": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 78,
+      "text": "event_proc EventHandler[MAX_X_EVENT];   /* event handler jump table */"
+    },
+    "events.current-event": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 83,
+      "text": "XEvent Event;                   /* the current event */"
+    },
+    "events.drag-window": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 91,
+      "text": "Window DragWindow;              /* variables used in moving windows */"
+    },
+    "events.button-pressed": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 115,
+      "text": "int ButtonPressed = -1;"
+    },
+    "events.motion-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 159,
+      "text": "    EventHandler[MotionNotify] = HandleMotionNotify;"
+    },
+    "events.button-release-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 160,
+      "text": "    EventHandler[ButtonRelease] = HandleButtonRelease;"
+    },
+    "events.button-press-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 161,
+      "text": "    EventHandler[ButtonPress] = HandleButtonPress;"
+    },
+    "events.key-press-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 167,
+      "text": "    EventHandler[KeyPress] = HandleKeyPress;"
+    },
+    "events.key-time": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 194,
+      "text": "        lastTimestamp = ev->xkey.time;"
+    },
+    "events.button-time": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 198,
+      "text": "        lastTimestamp = ev->xbutton.time;"
+    },
+    "events.motion-time": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 201,
+      "text": "        lastTimestamp = ev->xmotion.time;"
+    },
+    "events.dispatch-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 335,
+      "text": "        (*EventHandler[Event.type]) ();"
+    },
+    "events.next-event": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 360,
+      "text": "        XtAppNextEvent(appContext, &Event);"
+    },
+    "key.handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 565,
+      "text": "HandleKeyPress(void)"
+    },
+    "key.modifier-state": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 593,
+      "text": "    modifier = (Event.xkey.state & mods_used);"
+    },
+    "key.lookup": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 594,
+      "text": "    ks = XLookupKeysym((XKeyEvent *) &Event, /* KeySyms index */ 0);"
+    },
+    "key.execute-binding": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 610,
+      "text": "                ExecuteFunction(key->func, key->action, Event.xany.window,"
+    },
+    "key.forward-unbound": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 675,
+      "text": "            XSendEvent(dpy, Tmp_win->w, False, KeyPressMask, &Event);"
+    },
+    "motion.handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1477,
+      "text": "HandleMotionNotify(void)"
+    },
+    "motion.query-pointer": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1484,
+      "text": "        XQueryPointer(dpy, Event.xany.window,"
+    },
+    "button.release-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1505,
+      "text": "HandleButtonRelease(void)"
+    },
+    "button.global-release": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1662,
+      "text": "        ButtonPressed = -1;"
+    },
+    "button.press-handler": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1709,
+      "text": "HandleButtonPress(void)"
+    },
+    "button.second-cancels": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1726,
+      "text": "    if (ButtonPressed != -1 && !InfoLines) {    /* want menus if we have info box */"
+    },
+    "button.cancel-state": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1730,
+      "text": "        Cancel = TRUE;"
+    },
+    "button.root-grab": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1752,
+      "text": "        XGrabPointer(dpy, Scr->Root, True,"
+    },
+    "button.set-global": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1759,
+      "text": "        ButtonPressed = (int) Event.xbutton.button;"
+    },
+    "screen.mouse-bindings": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 94,
+      "text": "    MouseButton Mouse[MAX_BUTTONS + 1][NUM_CONTEXTS][MOD_SIZE];"
+    },
+    "screen.focus": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 206,
+      "text": "    TwmWindow *Focus;           /* the twm window that has focus */"
+    },
+    "screen.focus-root": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 215,
+      "text": "    short FocusRoot;            /* is the input focus on the root ? */"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "runtime.keyboard-record": {
+        "path": "src/wtwm.c",
+        "text": "struct keyboard {"
+      },
+      "runtime.keyboard-device": {
+        "path": "src/wtwm.c",
+        "text": "struct wlr_keyboard *wlr;"
+      },
+      "runtime.cursor": {
+        "path": "src/wtwm.c",
+        "text": "struct wlr_cursor *cursor;"
+      },
+      "runtime.seat": {
+        "path": "src/wtwm.c",
+        "text": "struct wlr_seat *seat;"
+      },
+      "runtime.keyboard-list": {
+        "path": "src/wtwm.c",
+        "text": "struct wl_list keyboards;"
+      },
+      "runtime.xwayland-seat": {
+        "path": "src/wtwm.c",
+        "text": "wlr_xwayland_set_seat(server->xwayland, server->seat);"
+      },
+      "runtime.clear-keyboard-focus": {
+        "path": "src/wtwm.c",
+        "text": "(plan->capabilities_after & WTWM_INPUT_CAPABILITY_KEYBOARD) == 0)\n\t\twlr_seat_keyboard_clear_focus(server->seat);"
+      },
+      "runtime.reset-cursor": {
+        "path": "src/wtwm.c",
+        "text": "static void reset_cursor(struct server *server) {"
+      },
+      "runtime.finish-interactive": {
+        "path": "src/wtwm.c",
+        "text": "static void finish_interactive(struct server *server, bool aborted) {"
+      },
+      "runtime.restoration-pending": {
+        "path": "src/wtwm.c",
+        "text": "static void mark_toplevel_restoration_pending(struct toplevel *toplevel) {"
+      },
+      "runtime.output-refresh": {
+        "path": "src/wtwm.c",
+        "text": "static void refresh_output_topology(struct server *server) {"
+      },
+      "runtime.zero-output-pointer-clear": {
+        "path": "src/wtwm.c",
+        "text": "server->pointer_toplevel = NULL;\n\t\tserver->pointer_context = 0;\n\t\tif (server->seat != NULL) wlr_seat_pointer_clear_focus(server->seat);"
+      },
+      "runtime.restart": {
+        "path": "src/wtwm.c",
+        "text": "static bool restart_compositor_state(struct server *server,"
+      },
+      "runtime.pointer-refresh": {
+        "path": "src/wtwm.c",
+        "text": "static void refresh_pointer_after_restart(struct server *server) {"
+      },
+      "runtime.pointer-motion": {
+        "path": "src/wtwm.c",
+        "text": "static void process_cursor_motion(struct server *server, uint32_t time_msec) {"
+      },
+      "runtime.keyboard-modifiers": {
+        "path": "src/wtwm.c",
+        "text": "static void keyboard_modifiers(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.keyboard-key": {
+        "path": "src/wtwm.c",
+        "text": "static void keyboard_key(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.keyboard-destroy": {
+        "path": "src/wtwm.c",
+        "text": "static void keyboard_destroy(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.new-keyboard": {
+        "path": "src/wtwm.c",
+        "text": "static bool new_keyboard(struct server *server, struct wlr_input_device *device,\n\t\tconst char *requested_name) {"
+      },
+      "runtime.new-input": {
+        "path": "src/wtwm.c",
+        "text": "static void new_input(struct wl_listener *listener, void *data) {"
+      },
+      "runtime.cursor-layout": {
+        "path": "src/wtwm.c",
+        "text": "wlr_cursor_attach_output_layout(server.cursor, server.output_layout);"
+      },
+      "runtime.keyboard-list-init": {
+        "path": "src/wtwm.c",
+        "text": "wl_list_init(&server.keyboards);"
+      },
+      "runtime.seat-create": {
+        "path": "src/wtwm.c",
+        "text": "server.seat = wlr_seat_create(server.display, \"seat0\");"
+      },
+      "runtime.backend-input-listener": {
+        "path": "src/wtwm.c",
+        "text": "wl_signal_add(&server.backend->events.new_input, &server.new_input);"
+      }
+    },
+    "observed": [
+      "wtwm already creates one seat0, assigns it to Xwayland, owns one global cursor attached to the output layout, and listens for backend new_input events.",
+      "The current keyboard wrapper has key/modifier/destroy listeners, but removal only detaches and frees it; current active selection, aggregate held state, fallback, and exact capability repair are not yet represented.",
+      "Current pointer devices attach directly to the global wlr_cursor without an owned per-pointer wrapper, destroy accounting, pressed-button ownership, deterministic active pointer, or zero-pointer capability state.",
+      "Focus, restart, output restoration, zero-output pointer clearing, and pointer-hit refresh already provide the output-independent state surfaces that hotplug must preserve rather than reinterpret."
+    ]
+  },
+  "reference_behavior": {
+    "core_connection": {
+      "rule": "twm opens one X display connection, enumerates fixed X screens, and selects KeyPress plus ButtonPress/ButtonRelease on each managed root. It does not enumerate physical keyboards or pointers and has no runtime input-device add, removal, identity, seat capability, or per-device state transaction.",
+      "evidence": [
+        "startup.open-display",
+        "startup.one-connection",
+        "startup.screen-count",
+        "startup.root-select",
+        "startup.root-key-mask",
+        "startup.root-button-masks",
+        "startup.root-window",
+        "shutdown.display"
+      ]
+    },
+    "core_event_stream": {
+      "rule": "One global XEvent is read from the display queue and dispatched by core event type. Key, button, and motion timestamps and state arrive without a physical-device identity; handlers consume the already-aggregated X core modifier/button state.",
+      "evidence": [
+        "events.jump-table",
+        "events.current-event",
+        "events.motion-handler",
+        "events.button-release-handler",
+        "events.button-press-handler",
+        "events.key-press-handler",
+        "events.key-time",
+        "events.button-time",
+        "events.motion-time",
+        "events.dispatch-handler",
+        "events.next-event",
+        "key.handler",
+        "key.modifier-state",
+        "key.lookup",
+        "motion.handler",
+        "motion.query-pointer"
+      ]
+    },
+    "bindings_and_global_interaction": {
+      "rule": "twm matches a core key press against one screen's bindings and forwards an unbound press to a managed client. Pointer move/resize/menu state uses one DragWindow and one global ButtonPressed; a second press can cancel the current operation and the root pointer is grabbed as one logical pointer.",
+      "evidence": [
+        "events.drag-window",
+        "events.button-pressed",
+        "key.execute-binding",
+        "key.forward-unbound",
+        "button.release-handler",
+        "button.global-release",
+        "button.press-handler",
+        "button.second-cancels",
+        "button.cancel-state",
+        "button.root-grab",
+        "button.set-global",
+        "screen.mouse-bindings"
+      ]
+    },
+    "focus_boundary": {
+      "rule": "Reference focus is stored as a focused TwmWindow plus FocusRoot on each managed screen, not as ownership by a physical keyboard or pointer. Source therefore supplies no physical-device removal rule; wtwm must preserve this logical focus result while translating device capabilities safely.",
+      "evidence": [
+        "screen.focus",
+        "screen.focus-root"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "This is a behaviorally-equivalent single-logical-seat translation of twm's X core input stream. Dynamic device identity, exact Wayland seat capabilities, independent held-state accounting, rollback, and bounded teardown are stronger hotplug/resource-safety guarantees absent from reference twm.",
+    "logical_seat_inventory": {
+      "seat": "Expose exactly one compositor-global logical seat named seat0 to native Wayland and connect that same seat to Xwayland. Every admitted keyboard and pointer contributes to this seat; never create focus, clipboard, or cursor state per physical device.",
+      "supported": "Maintain dynamic zero-to-N inventories for WLR_INPUT_DEVICE_KEYBOARD and WLR_INPUT_DEVICE_POINTER. Ignore other input-device types without changing inventory or capabilities; touch, tablet, switch, gesture, and independent-seat semantics are outside this slice.",
+      "identity": "Each admission attempt receives a process-local monotonically increasing uint64 announcement ordinal shared across keyboard and pointer types. Ordinals are never reused; a failed staged admission may leave a gap, removal plus re-add receives a new ordinal, and exhaustion rejects later additions without disturbing live devices.",
+      "activity": "Each admitted device retains a unique nonzero last-activity serial, while never-active devices retain zero. Accepted key/modifier events activate a keyboard; accepted motion/absolute-motion/button/axis events activate a pointer. When next activity would equal UINT64_MAX, atomically renormalize live nonzero ranks without allocation to dense 1..K from oldest to newest with lowest ordinal as the stable tie, set next to K+1, then record the current event; real input is never rejected forever because this counter filled.",
+      "active": "The first admitted device of a type becomes active. Later addition alone does not steal active status. Removing the active device selects the surviving greatest last-activity serial, breaking ties by lowest announcement ordinal; no survivor yields no active device."
+    },
+    "admission_and_capabilities": {
+      "prepare": "Before publication, allocate the wrapper and bounded pressed-state storage, validate identity/ordinal, initialize the shared keymap/repeat settings for a keyboard, install listeners, and attach a pointer to the global cursor. Publish inventory only after all fallible preparation succeeds.",
+      "failure": "Allocation, keymap, listener, ordinal-exhaustion, or attachment preparation failure leaves inventory, active devices, aggregate state, seat focus, cursor, and capabilities byte-for-byte unchanged; release all staged resources exactly once. An ordinal already reserved remains consumed.",
+      "exact_capabilities": "Publish WL_SEAT_CAPABILITY_KEYBOARD if and only if at least one admitted keyboard exists and WL_SEAT_CAPABILITY_POINTER if and only if at least one admitted pointer exists. Publish neither at zero devices and never advertise touch in this slice.",
+      "ordering": "On first-device add, publish the fully initialized active device and aggregate zero state before adding its capability, then restore protocol focus. On last-device removal, drain held state and clear that protocol focus before removing the capability. N-to-N changes do not flap an unchanged capability.",
+      "test_devices": "The test-control keyboard and pointer are ordinary admitted synthetic devices for inventory/count/capability/state purposes, not an exception that hard-codes capabilities."
+    },
+    "keyboard_state_and_delivery": {
+      "per_device": "Track every physical key code independently per keyboard with one valid up/down transition and a press disposition of compositor-owned or client-owned. Ignore duplicate press and unmatched release safely without underflow, action, forwarding, or activity corruption.",
+      "binding": "For each valid physical press, make its keyboard active, record physical ownership, derive keysym through the shared keymap and current logical aggregate xkb state before this press, and evaluate a compositor binding once against the logical seat modifiers. A handled press becomes compositor-owned, never changes the client aggregate keyboard, and its matching release is consumed even across reload.",
+      "client_refcount": "An unhandled press becomes client-owned and increments a logical client-visible reference count for that key code. Apply a key press to the aggregate xkb keyboard and protocol only on zero-to-one and apply release only on one-to-zero, so the same code held on multiple keyboards cannot double-toggle locks, release early, or remain stuck.",
+      "removal_release": "When a keyboard disappears, remove each of its client-owned holders and emit a synthetic protocol release only for a code whose final client-owned aggregate holder vanished. Consume compositor-owned states. Draining never evaluates a binding, action, repeat, focus policy, or emergency exit.",
+      "common_map": "All keyboards on seat0 use the same compositor keymap and repeat settings. Per-device keymaps, layouts, repeat, accessibility transforms, and remapping are not inferred from twm and remain explicitly deferred."
+    },
+    "active_keyboard_and_modifiers": {
+      "activation": "A valid key or modifier event makes its source the active keyboard before binding interpretation or client delivery. Changing active keyboard alone never changes logical focus, activation, stacking, or cursor position.",
+      "aggregate_adapter": "Maintain one logical aggregate keyboard/xkb state for seat0, distinct from physical wrappers. A permanently selected compositor-owned wlr_keyboard adapter is conforming but not the only representation; selecting an arbitrary physical keyboard as the seat aggregate is not conforming.",
+      "aggregate": "Logical seat keycodes plus depressed, latched, locked, and group modifier state are produced only by client-owned same-code zero-to-one and one-to-zero transitions through the aggregate xkb state. Raw per-device modifier snapshots remain diagnostic ownership data and are never bitwise-ORed or used to replace the seat group.",
+      "updates": "Recompute and publish one seat modifier update whenever an aggregate xkb transition changes depressed, latched, locked, or group state. Removing a keyboard drains only its exclusive aggregate key holders; a surviving shared holder keeps the logical state, and active-keyboard changes alone do not change seat modifiers.",
+      "fallback": "If the active keyboard disappears, select the deterministic activity/ordinal fallback without replacing the aggregate adapter or its xkb state. If a keyboard remains, preserve protocol keyboard focus without leave/enter, focus trace, modifier rewrite, or synthetic key press.",
+      "last_keyboard": "On last-keyboard removal, emit final eligible aggregate key releases, reset the aggregate xkb state to initial zero keycodes/modifiers/group, clear native Wayland protocol keyboard focus, then remove keyboard capability. Preserve compositor logical focus/root-focus, native activation, Xwayland input-focus bookkeeping, stacking, and selections."
+    },
+    "pointer_state_and_cursor": {
+      "global_cursor": "All pointers drive one compositor global cursor and one logical pointer focus/grab. Relative motion adds the source delta; absolute motion uses its backend output-layout mapping; the test-control absolute command sets exact global coordinates. Device activation never creates another cursor.",
+      "per_device_buttons": "Track each physical button code independently per pointer with compositor-owned or client-owned disposition. Client-owned same-code presses use a logical reference count and protocol zero-to-one/one-to-zero transitions exactly like keys; invalid duplicate transitions are ignored safely.",
+      "motion_focus": "Any valid pointer event activates its source. Motion processes the resulting global position once. Removing a non-last pointer preserves exact cursor coordinates, logical hit, protocol pointer focus/grab, cursor role, and keyboard focus after draining only that device's held buttons.",
+      "active_fallback": "Removing the active pointer chooses the same greatest-activity/lowest-ordinal fallback. Fallback selection never moves or warps the cursor and never synthesizes motion, enter/leave, focus-follows-mouse, AutoRaise, or a binding.",
+      "first_pointer": "Adding the first pointer publishes pointer capability then recomputes a visible scene hit at the preserved global cursor coordinates. Send the minimum protocol enter/motion needed to establish pointer focus, but do not treat this refresh as a crossing, focus change, raise, warp, button, or action."
+    },
+    "removal_and_interactions": {
+      "button_drain": "Pointer removal drops each of its client-owned button holders and sends a synthetic release only when the final aggregate holder for that code vanished through the existing seat grab/focus. Compositor-owned releases are consumed and no drain dispatches a binding, menu row, title button, or client-independent action.",
+      "required_button": "If removal loses the final aggregate holder of the button required by an active compositor interaction, abort that operation directly rather than routing the synthetic release through normal input dispatch. If another holder and pointer survive, the operation may continue on the shared cursor.",
+      "last_pointer": "Before removing the last pointer capability, abort ordinary move/resize/forcemove and restore pre-operation geometry; close every compositor menu without selection/continuation; clear deferred root action and pressed icon-manager UI; clear pointer focus/grab; reset cursor mode/role without changing its coordinates.",
+      "initial_placement": "Last-pointer loss during interactive native or Xwayland initial placement cancels only the interaction UI, keeps the client hidden and input-waiting, and consumes no placement/random state. New pointer-dependent placements also wait while pointer count is zero; noninteractive requested/random/session placement may continue.",
+      "resume": "After a first pointer returns, restore capability and pointer hit first, then resume input-waiting placements oldest-first only when an active output also exists and restoration is complete. Client popups and mapped client resources are not dismissed solely because a physical pointer vanished."
+    },
+    "focus_output_restoration": {
+      "logical_keyboard_focus": "Compositor focus, root-focus choice, activation, stacking, selections, and Xwayland focus are logical seat state independent of physical keyboard count, pointer count, and output count. Hotplug never chooses another focused client.",
+      "keyboard_return": "When keyboard count changes zero-to-one, reassert native Wayland protocol keyboard focus and current aggregate zero/nonzero state from the stored logical focus, unless focus-root is selected. Do not emit a compositor focus/unfocus, activation, raise, or stacking change.",
+      "zero_outputs": "With zero active outputs or restoration-pending hidden clients, preserve cursor coordinates and logical keyboard focus; keep protocol pointer focus clear even if pointers exist. Keyboard events continue according to stored logical focus, and pointer hotplug cannot create a synthetic output, root hit, warp, or relocation.",
+      "restore_order": "When outputs return, complete window restoration and scene visibility before pointer-coordinate repair/hit refresh, then resume output- and input-waiting placements in global placement order. Input changes never alter restoration destinations, saved geometry, or pending-source identity.",
+      "output_change": "Output topology may repair global cursor coordinates and pointer hit as already contracted, independent of which pointer is active. It does not activate a device, change keyboard aggregate state, or count as input activity."
+    },
+    "protocol_invariance": {
+      "common_policy": "Compositor bindings, active-device selection, aggregate keys/buttons/modifiers, cursor, logical focus, interaction cancellation, zero-output behavior, and teardown are identical for native Wayland and managed Xwayland clients.",
+      "native": "Native clients observe exact wl_seat capability changes, wl_keyboard/wl_pointer focus, aggregate modifier/key/button transitions, and resource loss/recreation. Device names, ordinals, and physical identity are compositor diagnostics and are not exposed as separate Wayland seats.",
+      "xwayland": "Xwayland remains attached to seat0 and observes the aggregate stream through its single X core keyboard/pointer compatibility path. Physical removal never disconnects Xwayland or changes X input focus; eligible final releases prevent stuck X keys/buttons/modifiers.",
+      "boundary": "The equivalence claim is input-result and focus continuity, not identical device-enumeration protocols. Unmanaged override-redirect focus rules, client pointer constraints/relative-pointer locks, input methods, and independent XInput device configuration are outside this slice."
+    },
+    "configuration_restart": {
+      "reload": "Successful or rejected .twmrc reload preserves live device inventory, ordinals, activity/active selection, held key/button/modifier state, capabilities, cursor, and logical/protocol focus. Accepted binding changes apply to later presses; each already-held press retains its original compositor/client disposition through release.",
+      "restart": "Successful in-place f.restart/f.twmrc does not detach, reannounce, renumber, or drain input devices and preserves active selection, aggregate state, capabilities, cursor coordinates, focus, and clients. Its separately contracted menu/interaction cancellation and cursor-role refresh still occur exactly once.",
+      "rejected": "A rejected replacement configuration changes no input or focus state and sends no capability, modifier, key, button, motion, enter/leave, or focus event.",
+      "session_boundary": "Device inventories, ordinals, activity ranks, and physical pressed state are process-local live state and are not written by f.saveyourself or RestartPreviousState. Cross-process input discovery and failure recovery belong to the following session-lifecycle task."
+    },
+    "atomicity_and_resources": {
+      "removal": "Backend device destroy is irreversible and must require no allocation: stop accepting events, drain owned state, select fallback, clear references/focus as needed, update exact capabilities, detach pointer/listeners/list links, and free the wrapper exactly once in that order.",
+      "batch_clear": "Test INPUT CLEAR performs one deterministic batch removal of all live synthetic devices, drains aggregate keys/buttons/modifiers without actions, cancels pointer UI once, publishes final zero capabilities, preserves logical focus/cursor coordinates, and does not reset either the ordinal or activity generator.",
+      "bounded": "Pressed sets, logical reference counts, admission, drain, fallback, renormalization, and teardown use overflow-checked bounded work proportional to live devices plus held codes, with fixed protocol-code limits and no recursive retry or unbounded allocation.",
+      "churn": "Repeated add/fail/event/remove/clear/re-add cycles leak no wrapper, keymap, listener, cursor attachment, pressed owner, reference count, capability resource, focus reference, or activity record and cause no stale callback, double release, double free, or use after free.",
+      "unknown_duplicate": "Production backend objects are unique by object lifetime. The test-control interface rejects a duplicate live name atomically, treats unknown removal/injection as an error with no state change, and permits a removed name to be re-added only with a new ordinal."
+    },
+    "verification_interface": {
+      "initial": "Test mode starts with ordinary inventory entries TEST-KEYBOARD-0 and TEST-POINTER-0. Legacy KEY/POINTER/BUTTON commands route through those initial devices and fail without state change if the routed device is absent.",
+      "commands": [
+        "INPUT CLEAR",
+        "INPUT ADD KEYBOARD <name>",
+        "INPUT ADD POINTER <name>",
+        "INPUT REMOVE <name>",
+        "INPUT KEY <keyboard> <code> press|release",
+        "INPUT POINTER <pointer> <global-x> <global-y>",
+        "INPUT BUTTON <pointer> <code> press|release"
+      ],
+      "device_record": "STATE exposes each live device in ordinal order as exactly {name,type,ordinal,active,pressed,modifiers}; pressed is a sorted physical code array, and modifiers is the raw diagnostic {depressed,latched,locked,group} snapshot with zero masks for pointers.",
+      "seat_record": "STATE exposes seat_capabilities as the sorted subset array of \"keyboard\" then \"pointer\", logical aggregate seat_modifiers as exactly {depressed,latched,locked,group} from the aggregate xkb adapter, active_keyboard and active_pointer as a live name or null, cursor coordinates, logical focus, protocol keyboard focus, protocol pointer focus, current interaction/menu, and restoration/output visibility needed to prove ordering.",
+      "errors": "Duplicate live ADD, unknown REMOVE, unknown-device injection, malformed type/code/state/coordinate, invalid transition, and exhausted ordinal report deterministic failure and preserve the complete prior STATE byte-for-byte except diagnostic counters."
+    }
+  },
+  "scope_boundaries": {
+    "this_slice_requires": [
+      "one seat0 with dynamic zero-to-N keyboard and pointer inventories, stable ordinals/activity, deterministic active fallback, and exact count-derived capabilities",
+      "independent per-device key/button/raw-modifier ownership plus aggregate same-code reference counts and one logical aggregate xkb keyboard/modifier state with no stuck client state",
+      "one shared cursor with non-last continuity, first-pointer focus refresh, and direct last-pointer interaction/menu/placement cancellation",
+      "output-independent logical focus, native/Xwayland result equivalence, zero-output restoration ordering, and reload/restart continuity",
+      "atomic staged admission rollback, allocation-free destroy drain, bounded overflow-safe churn, and a deterministic observable test-control protocol"
+    ],
+    "already_owned": [
+      "output topology, pointer repair, and operation pin/cancel rules are defined by output-topology-contract.json",
+      "disappeared-output window hiding/restoration and focus/stack preservation are defined by output-restoration-contract.json",
+      "initial output-aware placement and screen history remain defined by output-placement-contract.json and warp-screen-contract.json"
+    ],
+    "explicitly_deferred": [
+      "multiple logical seats, per-seat focus/clipboard/selection, device-to-seat assignment, and independent cursors",
+      "touch, tablet, pad, switch, gesture, pointer constraint, relative-pointer lock, and input-method protocol policy",
+      "per-device keymap/layout/repeat/accessibility, pointer acceleration/calibration, remapping, and persistent physical-device identity",
+      "session startup, logout, backend failure recovery, state-file lifetime, and cross-process input restoration",
+      "security authorization for virtual input devices or remote-control injection beyond the test-only interface"
+    ],
+    "next_handoff": "The immediately following Roadmap session-lifecycle task may define startup/backend failure recovery around this live inventory, but must rediscover physical devices rather than serialize ordinals/pressed state and must preserve the single-seat focus/capability rules.",
+    "non_claim": "Passing this contract completes only live keyboard/pointer hotplug and multi-device aggregation for one logical seat. It does not complete multi-seat, extended input protocols, session lifecycle, remaining Milestone 8 testing, or exit criteria."
+  },
+  "requirements": [
+    {
+      "id": "input.reference-core-boundary",
+      "rule": "Preserve exact evidence that twm consumes one X core key/button/motion stream with global interaction and screen focus state, and does not claim physical-device enumeration or hotplug.",
+      "evidence": [
+        "startup.open-display",
+        "startup.root-key-mask",
+        "events.current-event",
+        "events.next-event",
+        "events.button-pressed",
+        "screen.focus"
+      ]
+    },
+    {
+      "id": "input.single-seat-inventory",
+      "rule": "Maintain one seat0 with zero-to-N keyboard/pointer wrappers, never-reused ordinals, activity ranks, deterministic active/fallback selection, and no implicit second seat or cursor.",
+      "evidence": [
+        "startup.one-connection",
+        "events.current-event",
+        "screen.focus-root"
+      ]
+    },
+    {
+      "id": "input.capability-admission",
+      "rule": "Stage each admission atomically and publish keyboard/pointer capabilities if and only if the corresponding admitted count is positive, with exact first-add/last-remove ordering and safe failure rollback.",
+      "evidence": [
+        "startup.root-select",
+        "startup.root-key-mask",
+        "startup.root-button-masks"
+      ]
+    },
+    {
+      "id": "input.keyboard-aggregate",
+      "rule": "Track per-keyboard press ownership/disposition and aggregate same-code client reference counts, consume handled pairs, derive seat keycodes/modifiers/group only through one aggregate xkb state, and drain without stuck state or actions.",
+      "evidence": [
+        "key.modifier-state",
+        "key.lookup",
+        "key.execute-binding",
+        "key.forward-unbound"
+      ]
+    },
+    {
+      "id": "input.pointer-continuity",
+      "rule": "Aggregate per-pointer button ownership over one global cursor, preserve exact coordinates/hit/focus on non-last removal, choose deterministic active fallback, and refresh first-pointer protocol focus without crossing side effects.",
+      "evidence": [
+        "motion.handler",
+        "motion.query-pointer",
+        "events.drag-window",
+        "events.button-pressed"
+      ]
+    },
+    {
+      "id": "input.interaction-cancellation",
+      "rule": "On final required-button or last-pointer loss, directly abort move/resize, close menus/deferred UI, requeue interactive placement hidden without consuming state, and never interpret a drain as input action.",
+      "evidence": [
+        "button.second-cancels",
+        "button.cancel-state",
+        "button.root-grab",
+        "button.global-release"
+      ]
+    },
+    {
+      "id": "input.focus-restoration-safety",
+      "rule": "Preserve logical focus/activation/stack independently of device and output counts, clear only unavailable protocol focus, and order output restoration before pointer hit refresh and placement resume.",
+      "evidence": [
+        "screen.focus",
+        "screen.focus-root",
+        "button.root-grab"
+      ]
+    },
+    {
+      "id": "input.protocol-invariance",
+      "rule": "Apply one binding/aggregate/cursor/focus/removal result to native Wayland and Xwayland while documenting wl_seat capability versus X core enumeration differences and keeping clients connected.",
+      "evidence": [
+        "startup.one-connection",
+        "events.dispatch-handler",
+        "shutdown.display"
+      ]
+    },
+    {
+      "id": "input.reload-restart",
+      "rule": "Preserve inventory, active devices, ordinals, held disposition, aggregates, capabilities, cursor, and focus across accepted/rejected reload and in-place restart without drain or reannouncement.",
+      "evidence": [
+        "events.key-time",
+        "events.button-time",
+        "events.motion-time"
+      ]
+    },
+    {
+      "id": "input.atomic-resource-safety",
+      "rule": "Make admission rollback exact and destroy drain allocation-free, detach every listener/cursor/list/reference before one free, bound ordinal/activity/held-state work, and prove duplicate/unknown/churn safety.",
+      "evidence": [
+        "startup.one-connection",
+        "events.jump-table",
+        "shutdown.display"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-one-core-stream",
+      "kind": "reference-input",
+      "oracle": "One X display queue supplies core key/button/motion events without physical device identity; twm has no device add/remove or seat capability path."
+    },
+    {
+      "id": "reference-global-pointer-state",
+      "kind": "reference-input",
+      "oracle": "One global ButtonPressed/DragWindow and root pointer grab govern interaction; reference state is not duplicated per physical pointer."
+    },
+    {
+      "id": "zero-device-capabilities",
+      "kind": "runtime-capability",
+      "oracle": "After INPUT CLEAR, inventory is empty, active devices are null, seat capabilities and aggregate states are zero, cursor/logical focus persist, and no action ran."
+    },
+    {
+      "id": "first-keyboard-add",
+      "kind": "runtime-keyboard",
+      "oracle": "A successful first keyboard becomes active, publishes keyboard capability after initialization, and reasserts stored protocol keyboard focus without a logical focus event."
+    },
+    {
+      "id": "additional-keyboard-no-steal",
+      "kind": "runtime-keyboard",
+      "oracle": "Adding a second keyboard preserves the prior active keyboard, focus, aggregate state, and capability until a valid event from the new device activates it."
+    },
+    {
+      "id": "keyboard-event-activates",
+      "kind": "runtime-keyboard",
+      "oracle": "A valid named key/modifier event updates activity and active keyboard before keysym/binding/aggregate-group interpretation exactly once."
+    },
+    {
+      "id": "keyboard-removal-fallback",
+      "kind": "runtime-keyboard",
+      "oracle": "Removing active keyboard chooses greatest surviving activity then lowest ordinal, preserves protocol focus when a survivor exists, and publishes fallback group."
+    },
+    {
+      "id": "same-key-two-keyboards",
+      "kind": "runtime-key-state",
+      "oracle": "Two unhandled presses of one code create two device holders but one client press; either first release/removal sends nothing and final holder loss sends one release."
+    },
+    {
+      "id": "binding-owned-key-drain",
+      "kind": "runtime-key-state",
+      "oracle": "A handled press triggers one binding, records compositor ownership, and its physical or removal release is consumed even after reload without client release or repeated action."
+    },
+    {
+      "id": "logical-aggregate-modifiers",
+      "kind": "runtime-modifier",
+      "oracle": "Seat depressed/latched/locked/group come only from aggregate xkb zero-to-one/one-to-zero key transitions; raw device snapshots and active selection cannot overwrite them."
+    },
+    {
+      "id": "last-keyboard-removal",
+      "kind": "runtime-keyboard",
+      "oracle": "Final client key releases and zero modifiers precede protocol focus/capability removal while logical focus, activation, X focus, stack, cursor, and selections remain."
+    },
+    {
+      "id": "keyboard-return-focus",
+      "kind": "runtime-focus",
+      "oracle": "First returning keyboard restores protocol keyboard focus from logical focus without compositor focus/unfocus, activation, raise, stack, or pointer changes."
+    },
+    {
+      "id": "first-pointer-add",
+      "kind": "runtime-pointer",
+      "oracle": "A successful first pointer becomes active, adds capability, preserves cursor coordinates, and establishes only minimum hit enter/motion with no crossing focus/raise/warp/action."
+    },
+    {
+      "id": "additional-pointer-no-steal",
+      "kind": "runtime-pointer",
+      "oracle": "Adding a second pointer preserves active pointer, exact global cursor/hit/focus, held buttons, and capability until that pointer sends a valid event."
+    },
+    {
+      "id": "pointer-event-activates",
+      "kind": "runtime-pointer",
+      "oracle": "Named motion/button/axis input makes its source active and processes the one global cursor or button transition exactly once."
+    },
+    {
+      "id": "pointer-removal-fallback",
+      "kind": "runtime-pointer",
+      "oracle": "Removing an active non-last pointer selects activity/ordinal fallback without moving cursor, changing protocol hit/grab/focus, or synthesizing crossing/motion."
+    },
+    {
+      "id": "same-button-two-pointers",
+      "kind": "runtime-button-state",
+      "oracle": "Two client-owned same-button presses have two device holders and one protocol press; first holder loss emits nothing and final loss emits one action-free release."
+    },
+    {
+      "id": "non-last-pointer-continuity",
+      "kind": "runtime-pointer",
+      "oracle": "Removing another pointer preserves exact cursor coordinates, logical hit, protocol pointer focus/grab, cursor role, keyboard focus, menu, and valid interaction."
+    },
+    {
+      "id": "required-button-loss-aborts",
+      "kind": "runtime-interaction",
+      "oracle": "Loss of the final holder for an interaction-required button aborts directly even with another pointer, restores pre-operation state, and never routes drain as action."
+    },
+    {
+      "id": "last-pointer-aborts-move-resize",
+      "kind": "runtime-interaction",
+      "oracle": "Last-pointer removal cancels move/resize/forcemove, removes grab/outline, restores opaque pre-operation geometry, clears pointer focus, and retains cursor coordinates."
+    },
+    {
+      "id": "last-pointer-closes-menu",
+      "kind": "runtime-interaction",
+      "oracle": "Last-pointer removal closes complete compositor menu UI and clears continuation/deferred/icon-manager-down state without selecting a row or executing an action."
+    },
+    {
+      "id": "last-pointer-requeues-placement",
+      "kind": "runtime-placement",
+      "oracle": "Interactive native/Xwayland placement loses only UI, remains hidden/input-waiting, consumes no placement/random state, and resumes oldest-first after pointer/output prerequisites."
+    },
+    {
+      "id": "no-pointer-noninteractive-placement",
+      "kind": "runtime-placement",
+      "oracle": "Requested, random, and valid session placement that needs no pointer may complete at zero pointers, while pointer-prompt placement remains hidden/input-waiting."
+    },
+    {
+      "id": "zero-output-input-hotplug",
+      "kind": "runtime-output",
+      "oracle": "Keyboard add/remove preserves output-independent logical focus; pointer add/remove preserves coordinates with protocol pointer focus clear and creates no output/root/warp/restoration change."
+    },
+    {
+      "id": "restoration-before-pointer-resume",
+      "kind": "runtime-output",
+      "oracle": "On output/pointer return, restoration and scene visibility finish before cursor repair/hit refresh, followed by globally ordered output/input placement waiters."
+    },
+    {
+      "id": "native-xwayland-aggregate",
+      "kind": "runtime-protocol",
+      "oracle": "Native and managed Xwayland receive the same aggregate event/focus result and final releases; only native observes wl_seat capability/resource changes."
+    },
+    {
+      "id": "unsupported-device-ignored",
+      "kind": "runtime-boundary",
+      "oracle": "Touch/tablet/switch/unknown backend announcements create no keyboard/pointer record, capability, active selection, focus, cursor, or aggregate-state change."
+    },
+    {
+      "id": "admission-failure-rollback",
+      "kind": "runtime-atomicity",
+      "oracle": "Injected wrapper/keymap/listener/ordinal failure publishes no device/capability/focus change and frees staging exactly once; a reserved ordinal may leave only an internal gap."
+    },
+    {
+      "id": "duplicate-unknown-readd",
+      "kind": "runtime-control",
+      "oracle": "Duplicate live name and unknown remove/injection fail with state unchanged; removing then re-adding the same name succeeds with a strictly newer ordinal."
+    },
+    {
+      "id": "clear-preserves-ordinal-focus-cursor",
+      "kind": "runtime-control",
+      "oracle": "INPUT CLEAR drains all device state/action-free, cancels pointer UI once, publishes zero capabilities, preserves logical focus/cursor, and never resets ordinal counter."
+    },
+    {
+      "id": "reload-held-disposition",
+      "kind": "runtime-lifecycle",
+      "oracle": "Accepted/rejected reload preserves inventory/active/aggregates/capabilities/focus, and a held key/button release follows its press-time client/compositor disposition."
+    },
+    {
+      "id": "restart-input-continuity",
+      "kind": "runtime-lifecycle",
+      "oracle": "In-place restart preserves devices, ordinals, activity, held state, capabilities, cursor, and focus without drain/reannounce; normal restart UI cancellation occurs once."
+    },
+    {
+      "id": "ordinal-activity-overflow",
+      "kind": "runtime-resource",
+      "oracle": "Ordinal exhaustion rejects admission without state change; activity overflow densely renormalizes nonzero ranks oldest-to-newest, retains never-active zero, then records the event without allocation or order loss."
+    },
+    {
+      "id": "bounded-hotplug-churn",
+      "kind": "runtime-resource",
+      "oracle": "Long add/fail/event/remove/clear cycles retain bounded wrappers/listeners/keymaps/attachments/holders/refcounts and have no stale callback, duplicate release/free, leak, or use after free."
+    },
+    {
+      "id": "single-seat-and-session-boundary",
+      "kind": "contract-scope",
+      "oracle": "Hotplug completes one live logical seat only and serializes no physical inventory/ordinal/pressed state; multi-seat, extended input, and session recovery remain deferred."
+    }
+  ]
+}

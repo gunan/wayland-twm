@@ -249,6 +249,76 @@ actions_test = executable(
 )
 test('twm built-in action model', actions_test)
 
+output_order_lib = static_library(
+  'wtwm-output-order-lib',
+  'src/output_order.c',
+  include_directories: inc,
+)
+output_order_dep = declare_dependency(
+  link_with: output_order_lib,
+  include_directories: inc,
+)
+
+output_order_test = executable(
+  'output-order-test',
+  'tests/output_order_test.c',
+  dependencies: output_order_dep,
+)
+test('Wayland output screen ordering', output_order_test)
+
+output_topology_lib = static_library(
+  'wtwm-output-topology-lib',
+  'src/output_topology.c',
+  include_directories: inc,
+)
+output_topology_dep = declare_dependency(
+  link_with: output_topology_lib,
+  include_directories: inc,
+)
+
+output_topology_test = executable(
+  'output-topology-test',
+  'tests/output_topology_test.c',
+  dependencies: output_topology_dep,
+)
+test('Wayland output topology transaction model', output_topology_test)
+
+output_restore_lib = static_library(
+  'wtwm-output-restore-lib',
+  'src/output_restore.c',
+  include_directories: inc,
+  dependencies: placement_dep,
+)
+output_restore_dep = declare_dependency(
+  link_with: output_restore_lib,
+  include_directories: inc,
+  dependencies: placement_dep,
+)
+
+output_restore_test = executable(
+  'output-restore-test',
+  'tests/output_restore_test.c',
+  dependencies: output_restore_dep,
+)
+test('Wayland disappeared-output restoration model', output_restore_test)
+
+input_hotplug_lib = static_library(
+  'wtwm-input-hotplug-lib',
+  'src/input_hotplug.c',
+  include_directories: inc,
+)
+input_hotplug_dep = declare_dependency(
+  link_with: input_hotplug_lib,
+  include_directories: inc,
+)
+
+input_hotplug_test = executable(
+  'input-hotplug-test',
+  'tests/input_hotplug_test.c',
+  dependencies: input_hotplug_dep,
+)
+test('Wayland input hotplug state model', input_hotplug_test)
+
 command_lib = static_library(
   'wtwm-command-lib',
   'src/command.c',
@@ -265,6 +335,23 @@ command_test = executable(
   dependencies: command_dep,
 )
 test('twm command execution planning', command_test)
+
+session_state_lib = static_library(
+  'wtwm-session-state-lib',
+  'src/session_state.c',
+  include_directories: inc,
+)
+session_state_dep = declare_dependency(
+  link_with: session_state_lib,
+  include_directories: inc,
+)
+
+session_state_test = executable(
+  'session-state-test',
+  'tests/session_state_test.c',
+  dependencies: session_state_dep,
+)
+test('portable compositor session state', session_state_test)
 
 bindings_lib = static_library(
   'wtwm-bindings-lib',
@@ -640,6 +727,207 @@ test(
   ],
 )
 test(
+  'Milestone 8 restart translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_restart_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 startwm handoff contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_startwm_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 saved-state persistence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_state_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 session lifecycle contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_session_lifecycle_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 X11 server resource no-op contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_x11_resource_noop_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 legacy cut-buffer translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_cut_buffer_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 X screen output mapping contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_screen_output_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 warp-to-screen history contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_warp_screen_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 output topology transaction contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_output_topology_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 output restoration contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_output_restoration_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 input hotplug contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_input_hotplug_contract.py'),
+    '--root', meson.project_source_root(),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 output placement and root contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_output_placement_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 8 f.colormap translation contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_colormap_contract.py'),
+    '--self-test',
+  ],
+)
+test(
+  'Milestone 8 colormap selection model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_colormap.py'),
+    '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 cut-buffer state model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_cut_buffer.py'),
+    '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 screen output mapping model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_screen_output.py'),
+    '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 warp-to-screen history model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_warp_screen.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
+  'Milestone 8 output placement/root model',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/run_m8_output_placement.py'),
+    '--self-test-model',
+  ],
+)
+test(
+  'Milestone 8 output topology model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_output_topology.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
+  'Milestone 8 output restoration model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_output_restoration.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
+  'Milestone 8 input hotplug model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m8_input_hotplug.py'),
+    '--self-test-model',
+    '--config-tool', config_tool,
+  ],
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [
@@ -751,7 +1039,7 @@ if wlroots.found()
   wtwm_compositor = executable(
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
-    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, command_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -759,7 +1047,8 @@ if wlroots.found()
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
     dependencies: [
       config_dep, geometry_dep, interaction_dep, placement_dep, actions_dep,
-      command_dep, bindings_dep, wlroots, font_dep,
+      output_order_dep, output_restore_dep, input_hotplug_dep,
+      command_dep, session_state_dep, bindings_dep, wlroots, font_dep,
       color_dep, visual_dep, xbm_dep,
       focus_stack_dep, icon_layout_dep, icon_manager_dep,
       pangocairo,
@@ -930,6 +1219,16 @@ if wlroots.found()
     dependencies: xcb,
     install: false,
   )
+  wtwm_input_hotplug_wayland_client = executable(
+    'wtwm-input-hotplug-wayland-client',
+    [
+      'tests/integration/input_hotplug_wayland_client.c',
+      xdg_shell_client_header,
+      xdg_shell_client_code,
+    ],
+    dependencies: wayland_client,
+    install: false,
+  )
   wtwm_stress_wayland_client = executable(
     'wtwm-stress-wayland-client',
     [
@@ -943,6 +1242,12 @@ if wlroots.found()
   wtwm_stress_x11_client = executable(
     'wtwm-stress-x11-client',
     'tests/integration/stress_x11_client.c',
+    dependencies: xcb,
+    install: false,
+  )
+  wtwm_m8_colormap_client = executable(
+    'wtwm-m8-colormap-client',
+    'tests/integration/m8_colormap_client.c',
     dependencies: xcb,
     install: false,
   )
@@ -1055,6 +1360,163 @@ if wlroots.found()
       '--visual-client', wtwm_m5_visual_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 in-place restart integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_restart.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 safe startwm handoff integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_startwm.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 saved session state integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_session_state.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 session lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_session_lifecycle.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 X11 server resource no-op integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_noop_options.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 360,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 Xwayland and native colormap integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_colormap.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_m8_colormap_client,
+    ],
+    timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 Wayland and Xwayland cut-buffer integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_cut_buffer.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_selection_wayland_client,
+      '--x11-client', wtwm_selection_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 X screen and Wayland output mapping integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_screen_output.py'),
+      '--compositor', wtwm_test_compositor,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 warp-to-screen history integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_warp_screen.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output-aware placement/root integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_placement.py'),
+      '--compositor', wtwm_test_compositor,
+      '--client', wtwm_xwayland_placement_client,
+      '--native-client', wtwm_stress_wayland_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output topology transactions',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_topology.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 output disappearance restoration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_output_restoration.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--x11-family-client', wtwm_focus_stack_x11_client,
+    ],
+    timeout: 240,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 input hotplug integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_input_hotplug.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-observer', wtwm_input_hotplug_wayland_client,
+      '--x11-client', wtwm_mixed_x11_client,
+    ],
+    timeout: 300,
     is_parallel: false,
   )
   test(

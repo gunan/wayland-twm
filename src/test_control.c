@@ -78,6 +78,229 @@ static bool parse_state(const char *text, bool *pressed) {
 	return false;
 }
 
+static bool set_output_name(struct wtwm_test_command *command,
+		const char *name) {
+	if (name == NULL || *name == '\0' ||
+			strlen(name) >= sizeof(command->output_name)) return false;
+	strcpy(command->output_name, name);
+	return true;
+}
+
+static bool set_input_name(struct wtwm_test_command *command,
+		const char *name) {
+	if (name == NULL || *name == '\0' ||
+			strlen(name) >= sizeof(command->input_name)) return false;
+	strcpy(command->input_name, name);
+	return true;
+}
+
+static bool parse_output_transform(const char *text,
+		enum wtwm_test_output_transform *transform) {
+	static const struct {
+		const char *name;
+		enum wtwm_test_output_transform transform;
+	} transforms[] = {
+		{"normal", WTWM_TEST_TRANSFORM_NORMAL},
+		{"90", WTWM_TEST_TRANSFORM_90},
+		{"180", WTWM_TEST_TRANSFORM_180},
+		{"270", WTWM_TEST_TRANSFORM_270},
+		{"flipped", WTWM_TEST_TRANSFORM_FLIPPED},
+		{"flipped-90", WTWM_TEST_TRANSFORM_FLIPPED_90},
+		{"flipped-180", WTWM_TEST_TRANSFORM_FLIPPED_180},
+		{"flipped-270", WTWM_TEST_TRANSFORM_FLIPPED_270},
+	};
+	if (text == NULL) return false;
+	for (size_t i = 0; i < sizeof(transforms) / sizeof(transforms[0]); ++i) {
+		if (strcmp(text, transforms[i].name) == 0) {
+			*transform = transforms[i].transform;
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool parse_output_command(char *cursor,
+		struct wtwm_test_command *command, char *error, size_t error_size) {
+	char *operation = next_word(&cursor);
+	int width = 0;
+	if (parse_int(operation, 1, 16384, &width)) {
+		char *height = next_word(&cursor);
+		if (!parse_int(height, 1, 16384, &command->second) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: OUTPUT width height");
+			return false;
+		}
+		command->output_operation = WTWM_TEST_OUTPUT_ADD;
+		command->first = width;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	if (operation == NULL) {
+		set_error(error, error_size, "usage: OUTPUT width height|operation ...");
+		return false;
+	}
+
+	char *name = next_word(&cursor);
+	if (!set_output_name(command, name)) {
+		set_error(error, error_size, "OUTPUT %s requires an output name", operation);
+		return false;
+	}
+	if (strcmp(operation, "DESTROY") == 0 ||
+			strcmp(operation, "ENABLE") == 0 ||
+			strcmp(operation, "DISABLE") == 0) {
+		if (!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: OUTPUT %s name", operation);
+			return false;
+		}
+		command->output_operation = strcmp(operation, "DESTROY") == 0 ?
+			WTWM_TEST_OUTPUT_DESTROY :
+			strcmp(operation, "ENABLE") == 0 ? WTWM_TEST_OUTPUT_ENABLE :
+			WTWM_TEST_OUTPUT_DISABLE;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	if (strcmp(operation, "MODE") == 0) {
+		char *width_text = next_word(&cursor);
+		char *height_text = next_word(&cursor);
+		char *refresh_text = next_word(&cursor);
+		if (!parse_int(width_text, 1, 16384, &command->first) ||
+				!parse_int(height_text, 1, 16384, &command->second) ||
+				!parse_int(refresh_text, 0, 1000000, &command->third) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: OUTPUT MODE name width height refresh_mhz");
+			return false;
+		}
+		command->output_operation = WTWM_TEST_OUTPUT_MODE;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	if (strcmp(operation, "SCALE") == 0) {
+		char *scale = next_word(&cursor);
+		if (!parse_double(scale, &command->x) || command->x < 0.25 ||
+				command->x > 16.0 || !no_more_words(cursor)) {
+			set_error(error, error_size, "usage: OUTPUT SCALE name scale");
+			return false;
+		}
+		command->output_operation = WTWM_TEST_OUTPUT_SCALE;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	if (strcmp(operation, "TRANSFORM") == 0) {
+		char *transform = next_word(&cursor);
+		if (!parse_output_transform(transform, &command->output_transform) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: OUTPUT TRANSFORM name normal|90|180|270|"
+				"flipped|flipped-90|flipped-180|flipped-270");
+			return false;
+		}
+		command->output_operation = WTWM_TEST_OUTPUT_TRANSFORM;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	if (strcmp(operation, "POSITION") == 0) {
+		char *x = next_word(&cursor);
+		if (x != NULL && strcmp(x, "AUTO") == 0 && no_more_words(cursor)) {
+			command->output_auto = true;
+		} else {
+			char *y = next_word(&cursor);
+			if (!parse_int(x, -1000000, 1000000, &command->first) ||
+					!parse_int(y, -1000000, 1000000, &command->second) ||
+					!no_more_words(cursor)) {
+				set_error(error, error_size,
+					"usage: OUTPUT POSITION name AUTO|x y");
+				return false;
+			}
+		}
+		command->output_operation = WTWM_TEST_OUTPUT_POSITION;
+		command->type = WTWM_TEST_COMMAND_OUTPUT;
+		return true;
+	}
+	set_error(error, error_size, "unknown OUTPUT operation: %s", operation);
+	return false;
+}
+
+static bool parse_input_command(char *cursor,
+		struct wtwm_test_command *command, char *error, size_t error_size) {
+	char *operation = next_word(&cursor);
+	if (operation == NULL) {
+		set_error(error, error_size, "usage: INPUT operation ...");
+		return false;
+	}
+	if (strcmp(operation, "CLEAR") == 0) {
+		if (!no_more_words(cursor)) {
+			set_error(error, error_size, "INPUT CLEAR takes no arguments");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_CLEAR;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+
+	if (strcmp(operation, "ADD") == 0) {
+		char *type = next_word(&cursor);
+		char *name = next_word(&cursor);
+		if (type == NULL || (strcmp(type, "KEYBOARD") != 0 &&
+				strcmp(type, "POINTER") != 0) ||
+				!set_input_name(command, name) || !no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: INPUT ADD KEYBOARD|POINTER name");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_ADD;
+		command->input_device_type = strcmp(type, "KEYBOARD") == 0 ?
+			WTWM_TEST_INPUT_DEVICE_KEYBOARD : WTWM_TEST_INPUT_DEVICE_POINTER;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+
+	char *name = next_word(&cursor);
+	if (!set_input_name(command, name)) {
+		set_error(error, error_size, "INPUT %s requires a device name", operation);
+		return false;
+	}
+	if (strcmp(operation, "REMOVE") == 0) {
+		if (!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: INPUT REMOVE name");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_REMOVE;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	if (strcmp(operation, "KEY") == 0 || strcmp(operation, "BUTTON") == 0) {
+		int code = 0;
+		char *code_text = next_word(&cursor);
+		char *state = next_word(&cursor);
+		if (!parse_int(code_text, 0, INT_MAX, &code) ||
+				!parse_state(state, &command->pressed) || !no_more_words(cursor)) {
+			set_error(error, error_size,
+				"usage: INPUT %s name code press|release", operation);
+			return false;
+		}
+		command->code = (uint32_t)code;
+		command->input_operation = strcmp(operation, "KEY") == 0 ?
+			WTWM_TEST_INPUT_KEY : WTWM_TEST_INPUT_BUTTON;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	if (strcmp(operation, "POINTER") == 0) {
+		char *x = next_word(&cursor);
+		char *y = next_word(&cursor);
+		if (!parse_double(x, &command->x) || !parse_double(y, &command->y) ||
+				!no_more_words(cursor)) {
+			set_error(error, error_size, "usage: INPUT POINTER name x y");
+			return false;
+		}
+		command->input_operation = WTWM_TEST_INPUT_POINTER;
+		command->type = WTWM_TEST_COMMAND_INPUT;
+		return true;
+	}
+	set_error(error, error_size, "unknown INPUT operation: %s", operation);
+	return false;
+}
+
 bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command,
 	char *error, size_t error_size) {
 	if (line == NULL || command == NULL) {
@@ -122,15 +345,10 @@ bool wtwm_test_command_parse(const char *line, struct wtwm_test_command *command
 		return true;
 	}
 	if (strcmp(verb, "OUTPUT") == 0) {
-		char *width = next_word(&cursor);
-		char *height = next_word(&cursor);
-		if (!parse_int(width, 1, 16384, &command->first) ||
-			!parse_int(height, 1, 16384, &command->second) || !no_more_words(cursor)) {
-			set_error(error, error_size, "usage: OUTPUT width height");
-			return false;
-		}
-		command->type = WTWM_TEST_COMMAND_OUTPUT;
-		return true;
+		return parse_output_command(cursor, command, error, error_size);
+	}
+	if (strcmp(verb, "INPUT") == 0) {
+		return parse_input_command(cursor, command, error, error_size);
 	}
 	if (strcmp(verb, "POINTER") == 0) {
 		char *x = next_word(&cursor);

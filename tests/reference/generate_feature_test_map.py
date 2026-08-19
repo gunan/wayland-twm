@@ -31,6 +31,98 @@ INTERACTION_RUNTIME_FEATURES = {
     "directive.noraiseonresize",
     "directive.opaquemove",
 }
+RESTART_RUNTIME_PATH = "tests/integration/run_m8_restart.py"
+RESTART_RUNTIME_TEST = "Milestone 8 in-place restart integration"
+RESTART_RUNTIME_ID = "test.current-feature.m8-restart-runtime"
+RESTART_RUNTIME_FEATURES = {
+    "action.f-restart",
+    "action.f-twmrc",
+}
+SCREEN_OUTPUT_RUNTIME_PATH = "tests/integration/run_m8_screen_output.py"
+SCREEN_OUTPUT_RUNTIME_TEST = "Milestone 8 X screen and Wayland output mapping integration"
+SCREEN_OUTPUT_RUNTIME_ID = "test.current-feature.m8-screen-output-runtime"
+SCREEN_OUTPUT_RUNTIME_FEATURES = {
+    "runtime_dispatch.configuration-load-at-startup",
+}
+WARP_SCREEN_RUNTIME_PATH = "tests/integration/run_m8_warp_screen.py"
+WARP_SCREEN_RUNTIME_TEST = "Milestone 8 warp-to-screen history integration"
+WARP_SCREEN_RUNTIME_ID = "test.current-feature.m8-warp-screen-runtime"
+WARP_SCREEN_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+WARP_SCREEN_LEDGER_FEATURES = ("keyword.f.warptoscreen",)
+OUTPUT_TOPOLOGY_RUNTIME_PATH = "tests/integration/run_m8_output_topology.py"
+OUTPUT_TOPOLOGY_RUNTIME_TEST = "Milestone 8 output topology transactions"
+OUTPUT_TOPOLOGY_RUNTIME_ID = "test.current-feature.m8-output-topology-runtime"
+OUTPUT_TOPOLOGY_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+OUTPUT_PLACEMENT_RUNTIME_PATH = "tests/integration/run_m8_output_placement.py"
+OUTPUT_PLACEMENT_RUNTIME_TEST = "Milestone 8 output-aware placement/root integration"
+OUTPUT_PLACEMENT_RUNTIME_ID = "test.current-feature.m8-output-placement-runtime"
+OUTPUT_PLACEMENT_RUNTIME_FEATURES = {
+    "action.f-forcemove",
+    "action.f-fullzoom",
+    "action.f-menu",
+    "action.f-move",
+    "directive.dontmoveoff",
+    "directive.randomplacement",
+    "runtime_dispatch.execute-configured-action",
+}
+OUTPUT_RESTORATION_RUNTIME_PATH = "tests/integration/run_m8_output_restoration.py"
+OUTPUT_RESTORATION_RUNTIME_TEST = "Milestone 8 output disappearance restoration"
+OUTPUT_RESTORATION_RUNTIME_ID = "test.current-feature.m8-output-restoration-runtime"
+OUTPUT_RESTORATION_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+STARTWM_RUNTIME_PATH = "tests/integration/run_m8_startwm.py"
+STARTWM_RUNTIME_TEST = "Milestone 8 safe startwm handoff integration"
+STARTWM_RUNTIME_ID = "test.current-feature.m8-startwm-runtime"
+STARTWM_RUNTIME_FEATURES = {"action.f-startwm"}
+SESSION_STATE_RUNTIME_PATH = "tests/integration/run_m8_session_state.py"
+SESSION_STATE_RUNTIME_TEST = "Milestone 8 saved session state integration"
+SESSION_STATE_RUNTIME_ID = "test.current-feature.m8-session-state-runtime"
+SESSION_STATE_RUNTIME_FEATURES = {
+    "action.f-saveyourself",
+    "directive.restartpreviousstate",
+}
+SESSION_LIFECYCLE_RUNTIME_PATH = "tests/integration/run_m8_session_lifecycle.py"
+SESSION_LIFECYCLE_RUNTIME_TEST = "Milestone 8 session lifecycle integration"
+SESSION_LIFECYCLE_RUNTIME_ID = "test.current-feature.m8-session-lifecycle-runtime"
+SESSION_LIFECYCLE_RUNTIME_FEATURES = {"action.f-quit"}
+COLORMAP_RUNTIME_PATH = "tests/integration/run_m8_colormap.py"
+COLORMAP_RUNTIME_TEST = "Milestone 8 Xwayland and native colormap integration"
+COLORMAP_RUNTIME_ID = "test.current-feature.m8-colormap-runtime"
+COLORMAP_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+COLORMAP_LEDGER_FEATURES = ("keyword.f.colormap",)
+CUT_BUFFER_RUNTIME_PATH = "tests/integration/run_m8_cut_buffer.py"
+CUT_BUFFER_RUNTIME_TEST = "Milestone 8 Wayland and Xwayland cut-buffer integration"
+CUT_BUFFER_RUNTIME_ID = "test.current-feature.m8-cut-buffer-runtime"
+CUT_BUFFER_RUNTIME_FEATURES = {
+    "runtime_dispatch.execute-configured-action",
+}
+CUT_BUFFER_LEDGER_FEATURES = (
+    "keyword.f.cut",
+    "keyword.f.cutfile",
+    "keyword.f.file",
+    "lexical.cut-shorthand",
+)
+INPUT_HOTPLUG_RUNTIME_PATH = "tests/integration/run_m8_input_hotplug.py"
+INPUT_HOTPLUG_RUNTIME_TEST = "Milestone 8 input hotplug integration"
+INPUT_HOTPLUG_RUNTIME_ID = "test.current-feature.m8-input-hotplug-runtime"
+NOOP_OPTIONS_RUNTIME_PATH = "tests/integration/run_m8_noop_options.py"
+NOOP_OPTIONS_RUNTIME_TEST = "Milestone 8 X11 server resource no-op integration"
+NOOP_OPTIONS_RUNTIME_ID = "test.current-feature.m8-noop-options-runtime"
+NOOP_OPTIONS_RUNTIME_FEATURES = {
+    "construct.case-insensitive-keywords-and-actions",
+}
+NOOP_OPTIONS_LEDGER_FEATURES = (
+    "keyword.nobackingstore",
+    "keyword.nograbserver",
+    "keyword.nosaveunders",
+)
 ARGUMENT_ACTIONS = {
     "f.colormap", "f.cut", "f.exec", "f.file", "f.function", "f.menu",
     "f.priority", "f.source", "f.startwm", "f.warpring", "f.warpto",
@@ -238,7 +330,9 @@ RUNTIME_CONTRACT_FRAGMENTS = {
         "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
     ],
     "runtime_dispatch.button-binding-dispatch": ["dispatch_binding(server, WTWM_BINDING_BUTTON,"],
-    "runtime_dispatch.configuration-load-at-startup": ["wtwm_config_load(&server.config,"],
+    "runtime_dispatch.configuration-load-at-startup": [
+        "wtwm_config_load_for_screen(&server.config, config_path, 0,"
+    ],
     "runtime_dispatch.configured-frame-and-title-rendering": [
         "static int configured_title_bar_height("
     ],
@@ -413,6 +507,253 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in RESTART_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": RESTART_RUNTIME_ID,
+                "path": RESTART_RUNTIME_PATH,
+                "meson_test": RESTART_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "Stable compositor IDs, the original XID, client protocol "
+                    "roundtrips, decoration-policy refresh, and invalid-config "
+                    "retention prove in-process continuity.",
+                    f"The Linux headless restart runner invokes {feature_id} "
+                    "while native and Xwayland clients remain mapped.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in SCREEN_OUTPUT_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SCREEN_OUTPUT_RUNTIME_ID,
+                "path": SCREEN_OUTPUT_RUNTIME_PATH,
+                "meson_test": SCREEN_OUTPUT_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner exercises {feature_id} with "
+                    "zero, one, and two outputs in implicit and explicit "
+                    "configuration sessions.",
+                    "Exact cursor coordinates prove canonical HEADLESS-1/2 "
+                    "identity order rather than reverse compositor-list "
+                    "insertion, while both roots dispatch one global config.",
+                    "Conflicting HOME screen files, numeric rejection, and "
+                    "in-place restart prove screen-zero or explicit source "
+                    "selection without merging or losing control continuity.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in WARP_SCREEN_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": WARP_SCREEN_RUNTIME_ID,
+                "path": WARP_SCREEN_RUNTIME_PATH,
+                "meson_test": WARP_SCREEN_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner exercises {feature_id} through "
+                    "numeric, next, prev, back, and mixed-case bindings.",
+                    "Repeated back toggles, rejected and same targets, one-output "
+                    "no-ops, and restart reset prove exact previous-output history.",
+                    "Unequal adjacent outputs prove unscaled source-relative "
+                    "coordinates clamp to the selected target rather than leaking "
+                    "onto another output.",
+                    "The catalog ledger_features maps the exact frozen "
+                    "keyword.f.warptoscreen inventory row.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in OUTPUT_TOPOLOGY_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_TOPOLOGY_RUNTIME_ID,
+                "path": OUTPUT_TOPOLOGY_RUNTIME_PATH,
+                "meson_test": OUTPUT_TOPOLOGY_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner keeps {feature_id} available "
+                    "through atomic add, enable, disable, mode, scale, "
+                    "transform, position, and destroy transactions.",
+                    "Exact managed-output STATE records prove immutable identity, "
+                    "never-reused ordinals, dense canonical indices, refreshed "
+                    "layout/background boxes, and failure rollback.",
+                    "Native and Xwayland liveness plus cursor and previous-output "
+                    "repair cover active, disabled, renumbered, and zero-output "
+                    "states without claiming window relocation.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
+                "path": OUTPUT_PLACEMENT_RUNTIME_PATH,
+                "meson_test": OUTPUT_PLACEMENT_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux two-output runner exercises {feature_id} "
+                    "through exact STATE/TRACE geometry and liveness barriers.",
+                    "Native and managed Xwayland initial placement, accepted "
+                    "X11 coordinates, global random state, output-pinned menus, "
+                    "zoom, fill, window/icon moves, and zero-output deferral "
+                    "distinguish actual output boxes from the layout union.",
+                    "A portable model independently fixes gap/outside/overlap "
+                    "selection, canonical ties, per-output backgrounds/root hits, "
+                    "owner recomputation, and deferred topology boundaries.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in OUTPUT_RESTORATION_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": OUTPUT_RESTORATION_RUNTIME_ID,
+                "path": OUTPUT_RESTORATION_RUNTIME_PATH,
+                "meson_test": OUTPUT_RESTORATION_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner keeps {feature_id} available "
+                    "while output disable and destroy repair managed scenes.",
+                    "Exact native and Xwayland frame, icon, zoom, transient, "
+                    "focus, stack, pending, visibility, and trace assertions "
+                    "cover survivor repair, zero outputs, and ordered resume.",
+                    "A portable model fixes positive-intersection preservation, "
+                    "canonical destination selection, relative translation, "
+                    "overflow-safe clamp, family delta, and repeated churn.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in STARTWM_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": STARTWM_RUNTIME_ID,
+                "path": STARTWM_RUNTIME_PATH,
+                "meson_test": STARTWM_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "Stable native/Xwayland identities, protocol roundtrips, "
+                    "adopted-config reload, and a missing command marker prove "
+                    "safe handoff and non-destructive rejection.",
+                    f"The Linux headless handoff runner invokes {feature_id} "
+                    "with supported, invalid, and unsupported targets.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in SESSION_STATE_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SESSION_STATE_RUNTIME_ID,
+                "path": SESSION_STATE_RUNTIME_PATH,
+                "meson_test": SESSION_STATE_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": [
+                    "A private atomic state file restores uniquely matched "
+                    "native/Xwayland geometry, iconic, stack, focus, icon, "
+                    "auto-raise, and zoom state across compositor lifetimes.",
+                    f"The Linux headless session runner exercises {feature_id} "
+                    "and rejects an unsupported state-file version safely.",
+                ],
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in SESSION_LIFECYCLE_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SESSION_LIFECYCLE_RUNTIME_ID,
+                "path": SESSION_LIFECYCLE_RUNTIME_PATH,
+                "meson_test": SESSION_LIFECYCLE_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless session runner invokes {feature_id} "
+                    "with mapped native Wayland and Xwayland clients.",
+                    "Client disconnects, process status, removed sockets, and "
+                    "an absent state file prove orderly explicit logout without "
+                    "an implicit save or restart.",
+                    "Invalid configuration, runtime initialization failure, a "
+                    "failed startup child, malformed state, and all four "
+                    "reference termination signals prove bounded recovery.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in COLORMAP_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": COLORMAP_RUNTIME_ID,
+                "path": COLORMAP_RUNTIME_PATH,
+                "meson_test": COLORMAP_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner invokes {feature_id} bindings "
+                    "on managed Xwayland and native Wayland targets.",
+                    "The catalog ledger_features separately maps the exact "
+                    "keyword.f.colormap frozen upstream ledger entry.",
+                    "Checked XCB installed-colormap observations prove exact "
+                    "next/prev/default rotation and property reset while native "
+                    "dispatch preserves the installed set and both clients remain live.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in CUT_BUFFER_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": CUT_BUFFER_RUNTIME_ID,
+                "path": CUT_BUFFER_RUNTIME_PATH,
+                "meson_test": CUT_BUFFER_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless runner invokes {feature_id} bindings "
+                    "on managed Xwayland and native Wayland targets.",
+                    "The catalog ledger_features separately map the exact "
+                    "keyword.f.cut, keyword.f.cutfile, keyword.f.file, and "
+                    "lexical.cut-shorthand frozen upstream ledger entries.",
+                    "Byte-exact native and X11 CLIPBOARD plus CUT_BUFFER0 "
+                    "STRING observations cover the newline rule, embedded NUL "
+                    "data, 4095-byte limit, first filename token, atomic failure, "
+                    "PRIMARY independence, replacement, restart, and liveness.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
+        if feature_id in NOOP_OPTIONS_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": NOOP_OPTIONS_RUNTIME_ID,
+                "path": NOOP_OPTIONS_RUNTIME_PATH,
+                "meson_test": NOOP_OPTIONS_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The {feature_id} runtime mapping proves mixed-case "
+                    "configuration reaches identical A/B compositor dispatch.",
+                    "The catalog ledger_features separately map "
+                    "keyword.nobackingstore, keyword.nograbserver, and "
+                    "keyword.nosaveunders from the frozen upstream ledger.",
+                    "All eight option subsets retain identical outlined/opaque "
+                    "move and menu full-output pixels plus normalized "
+                    "STATE/TRACE while native and Xwayland clients remain live.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         mappings.append({
             "feature_id": feature_id,
             "category": feature["category"],
@@ -421,7 +762,7 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         })
     dimensions = ["syntax", "source_contract", "runtime"]
     result = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "current_audit_path": AUDIT_PATH,
         "feature_count": len(mappings),
         "dimension_policy": {
@@ -431,6 +772,88 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
             "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0.",
         },
         "test_catalog": [
+            {
+                "test_id": COLORMAP_RUNTIME_ID,
+                "path": COLORMAP_RUNTIME_PATH,
+                "meson_test": COLORMAP_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(COLORMAP_LEDGER_FEATURES),
+            },
+            {
+                "test_id": CUT_BUFFER_RUNTIME_ID,
+                "path": CUT_BUFFER_RUNTIME_PATH,
+                "meson_test": CUT_BUFFER_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(CUT_BUFFER_LEDGER_FEATURES),
+            },
+            {
+                "test_id": INPUT_HOTPLUG_RUNTIME_ID,
+                "path": INPUT_HOTPLUG_RUNTIME_PATH,
+                "meson_test": INPUT_HOTPLUG_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": NOOP_OPTIONS_RUNTIME_ID,
+                "path": NOOP_OPTIONS_RUNTIME_PATH,
+                "meson_test": NOOP_OPTIONS_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(NOOP_OPTIONS_LEDGER_FEATURES),
+            },
+            {
+                "test_id": OUTPUT_PLACEMENT_RUNTIME_ID,
+                "path": OUTPUT_PLACEMENT_RUNTIME_PATH,
+                "meson_test": OUTPUT_PLACEMENT_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": OUTPUT_RESTORATION_RUNTIME_ID,
+                "path": OUTPUT_RESTORATION_RUNTIME_PATH,
+                "meson_test": OUTPUT_RESTORATION_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": OUTPUT_TOPOLOGY_RUNTIME_ID,
+                "path": OUTPUT_TOPOLOGY_RUNTIME_PATH,
+                "meson_test": OUTPUT_TOPOLOGY_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": RESTART_RUNTIME_ID,
+                "path": RESTART_RUNTIME_PATH,
+                "meson_test": RESTART_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SCREEN_OUTPUT_RUNTIME_ID,
+                "path": SCREEN_OUTPUT_RUNTIME_PATH,
+                "meson_test": SCREEN_OUTPUT_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SESSION_LIFECYCLE_RUNTIME_ID,
+                "path": SESSION_LIFECYCLE_RUNTIME_PATH,
+                "meson_test": SESSION_LIFECYCLE_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SESSION_STATE_RUNTIME_ID,
+                "path": SESSION_STATE_RUNTIME_PATH,
+                "meson_test": SESSION_STATE_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": STARTWM_RUNTIME_ID,
+                "path": STARTWM_RUNTIME_PATH,
+                "meson_test": STARTWM_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": WARP_SCREEN_RUNTIME_ID,
+                "path": WARP_SCREEN_RUNTIME_PATH,
+                "meson_test": WARP_SCREEN_RUNTIME_TEST,
+                "dimension": "runtime",
+                "ledger_features": list(WARP_SCREEN_LEDGER_FEATURES),
+            },
             {
                 "test_id": INTERACTION_RUNTIME_ID,
                 "path": INTERACTION_RUNTIME_PATH,
@@ -511,6 +934,15 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
         "  prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.",
         "- The immutable current audit retains the tests visible at its audited commit; this",
         "  map is the authoritative current test-coverage layer for the Milestone 0 gate.",
+        "- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately",
+        "  from honest current-audit runtime mappings: the no-op option runner maps three",
+        "  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and",
+        "  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`",
+        "  through configured-action dispatch.",
+        "- The output-placement, topology, restoration, and input-hotplug runtime",
+        "  mappings separate steady-state spatial selection, atomic output mutation,",
+        "  managed-scene repair, and physical-device churn. Session lifecycle remains",
+        "  separate Milestone 8 work.",
         "",
     ]
     return result, "\n".join(lines)

@@ -180,6 +180,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if control.state()["menu"] is not None:
                 raise RuntimeError("a second button press did not cancel the menu")
             control.command("BUTTON 273 release")
+            control.command("BUTTON 272 release")
 
             # Open the same path again to exercise release dispatch in the child.
             control.command("POINTER 10 10")
@@ -252,6 +253,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             control.command("BUTTON 279 press")
             if control.state()["deferred_root_action"] is not True:
                 raise RuntimeError("DefaultFunction did not defer its root action")
+            control.command("BUTTON 279 release")
             target = window(control.state(), "focus-a")
             target_point = content_point(target)
             control.command(f"POINTER {target_point[0]} {target_point[1]}")

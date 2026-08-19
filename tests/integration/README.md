@@ -13,7 +13,9 @@ containing focus, client geometry, exact frame/title/border extents,
 advertised size constraints,
 top-to-bottom stacking order, iconified clients, menu state, cursor position,
 the per-window placement decision, next random-placement coordinate, and
-deterministic-control values. `CAPTURE` writes the first output as a binary
+deterministic-control values. Cursor coordinates use round-trip-safe double
+precision so a valid point just inside a half-open output edge is never rounded
+outside it. `CAPTURE` writes the first output as a binary
 PPM. The host-native `geometry runtime wiring contract` additionally guards
 that only compositor-driven resize paths call the portable constraint model;
 ordinary X11 configure requests and hint-property changes remain unsnapped as
@@ -81,8 +83,50 @@ three `UsePPosition` modes, `USPosition`, missing hints, transients, random
 sequences and edge resets (including an oversized client), explicit and
 screen-derived maximum sizes, `DontMoveOff`, and unmap/remap. It checks both
 `STATE` and `TRACE` placement classifications. The ordinary native headless
-test separately fixes the pointer before map and verifies the first origin in
-the documented pointer-anchored cascade used where xdg-shell has no hints.
+test separately fixes the pointer before map and verifies the immediate pointer
+origin used where xdg-shell has no global position hints.
+
+`run_m8_output_placement.py` adds the two-output spatial-root matrix. Its
+portable `--self-test-model` cases cover gapped, negative, overlapping, and
+outside layouts; half-open containment, nearest-box fallback, canonical ties,
+greatest-intersection ownership, global random state, operation pinning, root
+hits/backgrounds, and zero-output non-consumption. Live Linux sessions then
+use two 320x240 headless outputs and exact predicate-driven `STATE`/`TRACE`
+barriers for native and managed Xwayland random placement, accepted X11
+coordinates, output-derived default maximum size, inner-edge root menus and
+submenus, full zoom on each side, Button3 initial fill, `DontMoveOff` window
+and icon movement, cross-output `f.forcemove`, owner recomputation, restart
+continuity, and a deferred zero-output map. Every session has bounded client,
+control, and compositor liveness checks and cleanup. The runner intentionally
+does not simulate topology mutation: warp history, output removal/repair,
+scale/mode changes, and session lifecycle are covered by separate bounded
+Milestone 8 runners.
+
+`run_m8_input_hotplug.py` exercises the single logical `seat0` translation over
+zero, one, and several physical keyboard/pointer wrappers. Its portable
+`--self-test-model` fixes announcement ordinals, activity fallback, overlapping
+key/button ownership, handled-key disposition, final-required-button
+cancellation, clear semantics, restart snapshots, and activity overflow without
+wlroots. The live Linux run uses only bounded control `STATE`/frame predicates
+and protocol roundtrips: a dedicated native Wayland observer records exact
+`wl_seat` capability generations, focus entry/leave, modifiers, and key/button
+events while the mixed X11 fixture proves X core focus and delivery remain live.
+
+The live matrix covers atomic clear/add/remove and failure rollback, additional
+device no-steal, most-recent-activity fallback, same-code refcounts, cross-device
+Alt plus a handled F1 binding, pointer focus/cursor continuity, required-button
+continuation and rollback with a survivor, last-device capability removal,
+first-device focus return, held-state valid and rejected restart, zero-output
+restoration invariance, and repeated name/ordinal churn. It intentionally tests
+one logical seat; multiple independent Wayland seats remain out of scope.
+The private control grammar used by this runner is deliberately named and
+bounded: `INPUT CLEAR`, `INPUT ADD KEYBOARD|POINTER name`, `INPUT REMOVE name`,
+`INPUT KEY name code press|release`, `INPUT POINTER name global-x global-y`, and
+`INPUT BUTTON name code press|release`. `STATE.inputs` is ordinal-sorted and
+uses exact records `{name,type,ordinal,last_activity,active,pressed,modifiers}`;
+the top level adds `seat_capabilities`, `seat_modifiers`,
+`seat_pressed_keys`, `seat_pressed_buttons`, `active_keyboard`,
+`active_pointer`, `seat_keyboard_focus`, and `seat_pointer_focus`.
 
 Run the headless stability check explicitly with:
 
@@ -160,3 +204,52 @@ allocator and manager tests add full/partial regions, release/reuse, malformed
 inputs, capacity churn, selection repair, and wrapped grid navigation. The
 frozen `reference/icons/twm-1.0.13.1/icon-contract.json` validator ties those
 assertions to exact reference source and manual anchors.
+
+`run_m8_restart.py` keeps one native xdg-shell client and one managed X11
+client mapped while it replaces the active configuration. A root `f.restart`
+applies a valid `NoTitle` change; the exact `f.twmrc` alias then rejects a
+malformed replacement without changing active state and applies a subsequent
+valid replacement. Stable compositor IDs and the original XID must remain
+unchanged throughout, both client processes perform protocol roundtrips after
+every attempt, and the original test-control connection remains usable. This
+would fail immediately if restart tore down the Wayland display or Xwayland.
+
+`run_m8_startwm.py` exercises the narrow safe-handoff translation with the
+same native/Xwayland pair. A direct self-target adopts an alternate `-f`
+configuration in-process, an invalid candidate rolls back, and a different
+executable is proven not to run. A subsequent no-argument self-target reloads
+the adopted path while compositor/client connections and managed state remain
+unchanged.
+
+`run_m8_session_state.py` spans three compositor lifetimes in one isolated
+state home. It saves a mixed native/Xwayland session with moved geometry,
+manual icon position, iconic state, stacking, click focus, auto-raise, and an
+active zoom restore box; reconnects the clients in reverse order and requires
+the same compositor-owned state; then corrupts the version header and proves
+the next session starts clean with a diagnostic. The runner also checks that
+the published state file is private mode `0600`.
+
+`run_m8_noop_options.py` runs an exact headless A/B comparison for the X11
+server-resource directives `NoBackingStore`, `NoSaveUnders`, and
+`NoGrabServer`. It runs all eight subsets of mixed-case spellings and compares
+each non-empty subset with the same option-free baseline, so compensating
+effects cannot conceal a difference. Every subset runs in both outlined- and
+opaque-move configurations, covering each path for one native and one managed
+Xwayland client alongside compositor-menu selection and second-button
+cancellation. At stable frame barriers the runner compares every full-output
+PPM byte and normalized `STATE`/`TRACE`, then
+requires both clients and the compositor control socket to answer roundtrips.
+This proves the options do not leak an unexplained visible or interaction
+consequence into wtwm-owned Wayland scene behavior; independent resource
+requests made by X11 clients are outside that contract.
+
+`run_m8_colormap.py` drives configured `f.colormap` bindings against one
+managed Xwayland client and one native xdg-shell client. Its dedicated XCB
+fixture owns a top-level plus child windows with distinct private colormaps,
+publishes `WM_COLORMAP_WINDOWS` without the top-level, and observes the root's
+installed-colormap set after exact `next`, `prev`, and `default` sequences. A
+replacement property contains an invalid XID and reordered valid survivors,
+covering cache reset, stable compaction, and fallback. A portable model check
+also fixes the multi-map reverse request order. Native dispatch must retain an
+identical installed-colormap snapshot and emit three `native-noop` traces;
+both clients and test control then prove connection liveness.

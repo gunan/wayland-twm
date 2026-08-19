@@ -18,7 +18,33 @@ from generate_feature_test_map import (
     MESON_TEST,
     SUMMARY_PATH,
     TEST_PATH,
+    COLORMAP_LEDGER_FEATURES,
+    COLORMAP_RUNTIME_FEATURES,
+    COLORMAP_RUNTIME_ID,
+    CUT_BUFFER_LEDGER_FEATURES,
+    CUT_BUFFER_RUNTIME_FEATURES,
+    CUT_BUFFER_RUNTIME_ID,
+    INPUT_HOTPLUG_RUNTIME_ID,
     INTERACTION_RUNTIME_FEATURES,
+    NOOP_OPTIONS_LEDGER_FEATURES,
+    NOOP_OPTIONS_RUNTIME_FEATURES,
+    NOOP_OPTIONS_RUNTIME_ID,
+    OUTPUT_PLACEMENT_RUNTIME_FEATURES,
+    OUTPUT_PLACEMENT_RUNTIME_ID,
+    OUTPUT_RESTORATION_RUNTIME_FEATURES,
+    OUTPUT_RESTORATION_RUNTIME_ID,
+    OUTPUT_TOPOLOGY_RUNTIME_FEATURES,
+    OUTPUT_TOPOLOGY_RUNTIME_ID,
+    RESTART_RUNTIME_FEATURES,
+    SCREEN_OUTPUT_RUNTIME_FEATURES,
+    SCREEN_OUTPUT_RUNTIME_ID,
+    SESSION_LIFECYCLE_RUNTIME_FEATURES,
+    SESSION_LIFECYCLE_RUNTIME_ID,
+    SESSION_STATE_RUNTIME_FEATURES,
+    STARTWM_RUNTIME_FEATURES,
+    WARP_SCREEN_LEDGER_FEATURES,
+    WARP_SCREEN_RUNTIME_FEATURES,
+    WARP_SCREEN_RUNTIME_ID,
     build,
     canonical,
 )
@@ -162,8 +188,8 @@ def validate_feature_map(
     if not fields(feature_map, ROOT_FIELDS, "feature_map", errors):
         return errors
     assert isinstance(feature_map, dict)
-    if feature_map["schema_version"] != "1.1":
-        errors.append("feature_map.schema_version must be 1.1")
+    if feature_map["schema_version"] != "1.2":
+        errors.append("feature_map.schema_version must be 1.2")
     if feature_map["current_audit_path"] != AUDIT_PATH:
         errors.append("feature_map.current_audit_path differs from the immutable audit")
     policy = feature_map["dimension_policy"]
@@ -180,17 +206,73 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 3:
-        errors.append("feature_map.test_catalog must contain the three registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 16:
+        errors.append("feature_map.test_catalog must contain the sixteen registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
     for index, item in enumerate(catalog_values):
-        if not fields(item, catalog_fields, f"feature_map.test_catalog[{index}]", errors):
+        expected_fields = catalog_fields + (["ledger_features"] if
+            isinstance(item, dict) and item.get("test_id") in {
+                COLORMAP_RUNTIME_ID, CUT_BUFFER_RUNTIME_ID,
+                NOOP_OPTIONS_RUNTIME_ID, WARP_SCREEN_RUNTIME_ID,
+            } else [])
+        if not fields(item, expected_fields,
+                f"feature_map.test_catalog[{index}]", errors):
             continue
         assert isinstance(item, dict)
         catalog[str(item["test_id"])] = item
         repository_path(item["path"], source_root, f"feature_map.test_catalog[{index}].path", errors)
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(NOOP_OPTIONS_LEDGER_FEATURES):
+                errors.append(
+                    "no-op option runtime ledger_features must exactly map "
+                    "keyword.nobackingstore, keyword.nograbserver, and "
+                    "keyword.nosaveunders"
+                )
+        elif item["test_id"] == COLORMAP_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(COLORMAP_LEDGER_FEATURES):
+                errors.append(
+                    "colormap runtime ledger_features must exactly map "
+                    "keyword.f.colormap"
+                )
+        elif item["test_id"] == CUT_BUFFER_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(CUT_BUFFER_LEDGER_FEATURES):
+                errors.append(
+                    "cut-buffer runtime ledger_features must exactly map "
+                    "keyword.f.cut, keyword.f.cutfile, keyword.f.file, and "
+                    "lexical.cut-shorthand"
+                )
+        elif item["test_id"] == WARP_SCREEN_RUNTIME_ID:
+            ledger_features = item["ledger_features"]
+            sorted_strings(
+                ledger_features,
+                f"feature_map.test_catalog[{index}].ledger_features",
+                errors,
+            )
+            if ledger_features != list(WARP_SCREEN_LEDGER_FEATURES):
+                errors.append(
+                    "warp-screen runtime ledger_features must exactly map "
+                    "keyword.f.warptoscreen"
+                )
     if [item.get("test_id") for item in catalog_values if isinstance(item, dict)] != sorted(catalog):
         errors.append("feature_map.test_catalog is not ordered by test ID")
     meson_text = (source_root / "meson.build").read_text(encoding="utf-8")
@@ -237,6 +319,30 @@ def validate_feature_map(
         if feature.get("native_wayland_status") == "effective":
             expected_dimensions.append("source_contract")
         if feature.get("id") in INTERACTION_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in RESTART_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in SCREEN_OUTPUT_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in WARP_SCREEN_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in OUTPUT_PLACEMENT_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in OUTPUT_RESTORATION_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in OUTPUT_TOPOLOGY_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in STARTWM_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in SESSION_LIFECYCLE_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in NOOP_OPTIONS_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in COLORMAP_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in CUT_BUFFER_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         expected_dimensions.sort()
         if dimensions != expected_dimensions:
@@ -322,10 +428,171 @@ def tamper_self_test(
     changed["entries"][1]["tests"][0]["fixture"] = first_fixture  # type: ignore[index]
     mutations.append(("shared-fixture", changed))
     changed = copy.deepcopy(feature_map)
-    effective = next(entry for entry in changed["entries"] if len(entry["tests"]) == 2)  # type: ignore[union-attr]
+    effective = next(
+        entry for entry in changed["entries"]  # type: ignore[union-attr]
+        if any(test["dimension"] == "source_contract" for test in entry["tests"])
+    )
     source_mapping = next(test for test in effective["tests"] if test["dimension"] == "source_contract")
     source_mapping["checks"][0]["contains"] = "not present in source"
     mutations.append(("invalid-source-contract", changed))
+    changed = copy.deepcopy(feature_map)
+    screen_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in SCREEN_OUTPUT_RUNTIME_FEATURES
+    )
+    screen_entry["tests"] = [
+        item for item in screen_entry["tests"]
+        if item["test_id"] != SCREEN_OUTPUT_RUNTIME_ID
+    ]
+    mutations.append(("missing-screen-output-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    warp_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in WARP_SCREEN_RUNTIME_FEATURES
+    )
+    warp_entry["tests"] = [
+        item for item in warp_entry["tests"]
+        if item["test_id"] != WARP_SCREEN_RUNTIME_ID
+    ]
+    mutations.append(("missing-warp-screen-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    warp_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == WARP_SCREEN_RUNTIME_ID
+    )
+    warp_catalog["path"] = "tests/integration/run_m8_screen_output.py"
+    mutations.append(("wrong-warp-screen-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    warp_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == WARP_SCREEN_RUNTIME_ID
+    )
+    warp_catalog["ledger_features"].clear()
+    mutations.append(("missing-warp-screen-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    warp_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == WARP_SCREEN_RUNTIME_ID
+    )
+    warp_catalog["ledger_features"][0] = "keyword.f.not-warptoscreen"
+    mutations.append(("wrong-warp-screen-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    placement_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in OUTPUT_PLACEMENT_RUNTIME_FEATURES
+    )
+    placement_entry["tests"] = [
+        item for item in placement_entry["tests"]
+        if item["test_id"] != OUTPUT_PLACEMENT_RUNTIME_ID
+    ]
+    mutations.append(("missing-output-placement-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    placement_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == OUTPUT_PLACEMENT_RUNTIME_ID
+    )
+    placement_catalog["path"] = "tests/integration/run_m8_screen_output.py"
+    mutations.append(("wrong-output-placement-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    restoration_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in OUTPUT_RESTORATION_RUNTIME_FEATURES
+    )
+    restoration_entry["tests"] = [
+        item for item in restoration_entry["tests"]
+        if item["test_id"] != OUTPUT_RESTORATION_RUNTIME_ID
+    ]
+    mutations.append(("missing-output-restoration-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    restoration_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == OUTPUT_RESTORATION_RUNTIME_ID
+    )
+    restoration_catalog["path"] = "tests/integration/run_m8_screen_output.py"
+    mutations.append(("wrong-output-restoration-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    topology_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in OUTPUT_TOPOLOGY_RUNTIME_FEATURES
+    )
+    topology_entry["tests"] = [
+        item for item in topology_entry["tests"]
+        if item["test_id"] != OUTPUT_TOPOLOGY_RUNTIME_ID
+    ]
+    mutations.append(("missing-output-topology-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    topology_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == OUTPUT_TOPOLOGY_RUNTIME_ID
+    )
+    topology_catalog["path"] = "tests/integration/run_m8_screen_output.py"
+    mutations.append(("wrong-output-topology-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    input_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == INPUT_HOTPLUG_RUNTIME_ID
+    )
+    input_catalog["path"] = "tests/integration/run_m8_output_topology.py"
+    mutations.append(("wrong-input-hotplug-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    lifecycle_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in SESSION_LIFECYCLE_RUNTIME_FEATURES
+    )
+    lifecycle_entry["tests"] = [
+        item for item in lifecycle_entry["tests"]
+        if item["test_id"] != SESSION_LIFECYCLE_RUNTIME_ID
+    ]
+    mutations.append(("missing-session-lifecycle-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    lifecycle_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == SESSION_LIFECYCLE_RUNTIME_ID
+    )
+    lifecycle_catalog["path"] = "tests/integration/run_m8_session_state.py"
+    mutations.append(("wrong-session-lifecycle-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    noop_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID
+    )
+    noop_catalog["ledger_features"].pop()
+    mutations.append(("missing-noop-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    noop_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == NOOP_OPTIONS_RUNTIME_ID
+    )
+    noop_catalog["ledger_features"][0] = "keyword.not-the-frozen-option"
+    mutations.append(("wrong-noop-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    colormap_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == COLORMAP_RUNTIME_ID
+    )
+    colormap_catalog["ledger_features"].clear()
+    mutations.append(("missing-colormap-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    colormap_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == COLORMAP_RUNTIME_ID
+    )
+    colormap_catalog["ledger_features"][0] = "keyword.f.not-colormap"
+    mutations.append(("wrong-colormap-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    cut_buffer_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == CUT_BUFFER_RUNTIME_ID
+    )
+    cut_buffer_catalog["ledger_features"].pop()
+    mutations.append(("missing-cut-buffer-ledger-feature", changed))
+    changed = copy.deepcopy(feature_map)
+    cut_buffer_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == CUT_BUFFER_RUNTIME_ID
+    )
+    cut_buffer_catalog["ledger_features"][0] = "keyword.f.not-cut"
+    mutations.append(("wrong-cut-buffer-ledger-feature", changed))
     failures = [
         name for name, changed in mutations
         if not validate_feature_map(changed, audit, expected, source_root)

@@ -13,6 +13,18 @@ Wayland clients ──> wtwm.c (wlroots scene, input, xdg-shell, decorations)
        bindings.c / actions.c / command.c / interaction.c
        (portable trigger, action, launch, and gesture decisions)
                               │
+                output_order.c / output_topology.c
+        (portable identity ordering and topology transaction plans)
+                              │
+                       output_restore.c
+          (portable family and presentation repair plans)
+                              │
+                       input_hotplug.c
+       (portable device ownership, activity, drain, and repair plans)
+                              │
+                       session_state.c
+          (portable atomic persistence and identity matching)
+                              │
               icon_layout.c / icon_manager.c
        (portable allocation, ordering, and navigation state)
                               │
@@ -42,14 +54,70 @@ output, cursor, scene, and process effects around those portable decisions.
 Initial Xwayland placement reads `USPosition`/`PPosition` from
 `WM_NORMAL_HINTS`, applies `UsePPosition` exactly, and always preserves a
 transient's requested position. Windows that still require placement use the
-reference random sequence when `RandomPlacement` is enabled. Without it, wtwm
-uses an explicit Wayland translation of twm's blocking rubber-band prompt: an
-instant 24-pixel cascade anchored at the current pointer supplies requested
-client origins, with `DontMoveOff` applied to each resulting outer frame. This
-map-time adapter does not take an input grab or wait for a confirm click. Native xdg-shell has no
-position-hint fields, so every first map follows the same random-or-pointer
-policy; remaps retain the managed frame position. Both protocols receive the
-initial `MaxWindowSize` clip, including twm's screen-derived default.
+reference process-global random sequence when `RandomPlacement` is enabled.
+Without it, managed Xwayland windows retain the blocking outline/confirm path
+on the pointer-selected output. Native xdg-shell has no global position-hint
+fields or X11 placement-grab contract, so an unparented first map uses the
+current pointer immediately and a parented first map inherits its managed
+parent's output; remaps retain the managed frame position. Both protocols
+receive the initial `MaxWindowSize` clip derived from the selected output.
+Accepted Xwayland positions remain exact even when they fall in a layout gap or
+outside all outputs. When no output exists, initial management remains deferred
+and hidden and does not consume the global random or diagnostic placement
+sequence.
+
+Each enabled output's logical layout box is an X-root-equivalent spatial box.
+Point selection uses half-open containment and nearest-box fallback; existing
+window/icon ownership uses greatest positive outer-box intersection and then a
+nearest-center fallback. Canonical output order resolves ties. The compositor
+captures one selected output for each initial placement, menu stack, move,
+fill, or zoom operation and never substitutes the whole-layout bounding box.
+Consequently gaps have no root hit or background and cannot become usable
+geometry. An unconstrained move may commit across outputs, after which the next
+operation recomputes ownership from the committed outer box. This selection is
+spatial adapter state, not a second configuration namespace or independent
+per-output keyboard focus.
+
+`src/output_order.c` defines immutable session identities and canonical dense
+indices independently of list insertion, layout position, mode, or scale.
+`src/output_topology.c` validates complete before/after snapshots and publishes
+an owned portable change plan only after every identity, mode, scale,
+transform, and normalized logical box is valid. The compositor adapter performs
+the wlroots state commit, then publishes roots/backgrounds and repairs cursor,
+warp history, active operations, and deferred placement in one serialized
+post-layout boundary. Disabled outputs stay in the managed identity set but are
+absent from the spatial layout.
+
+`src/output_restore.c` consumes complete pre/post canonical output snapshots
+after a topology transaction publishes. It identifies stranded outer frames,
+manual icons, and saved zoom geometry by positive intersection, retains a
+surviving source-output identity when possible, and otherwise chooses the
+canonical-nearest survivor. The portable plan preserves source-relative
+origins, clamps safely without resizing, and applies a transient root's actual
+post-clamp delta to its descendants. The compositor adapter owns scene
+visibility, zoom-mode recomputation, focus/stack preservation, and ordered
+restore trace publication. With no outputs it hides presentations and retains
+the exact plan as pending; the first returning output restores those existing
+families before releasing newly mapped placement waiters.
+
+`src/input_hotplug.c` owns no wlroots objects. It validates a bounded,
+ordinal-sorted physical-device snapshot and builds generation-checked add,
+remove, clear, key, modifier, pointer, and button plans. Each plan owns the next
+complete state plus aggregate zero-to-one/one-to-zero transitions, active-source
+repair, capability changes, and explicit keyboard-focus/pointer-interaction
+repair flags. Stable ordinals are never reused; last-activity overflow is
+renormalized atomically across live devices. The compositor adapter owns the
+per-device wlroots wrappers and one permanent aggregate xkb keyboard selected
+for `seat0`; this avoids treating physical keyboard modifier snapshots as a
+mergeable protocol state.
+
+The adapter publishes one seat capability transaction after a successful plan,
+forwards only aggregate client-visible key/button transitions, and applies
+focus or interaction repair before releasing removed wlroots objects. Logical
+window activation remains separate from Wayland keyboard/pointer protocol
+focus, which permits exact last-device removal and first-device return without
+raising a client or synthesizing a configured action. Output restoration is
+published before a zero-output pointer hit can be refreshed.
 
 Each xdg-toplevel owns one scene subtree. A solid frame and title/button
 rectangles are server-side nodes; Pango-rendered immutable buffers provide
@@ -63,12 +131,59 @@ receives selection and release.
 
 The compositor holds at most one interactive session. It saves original and
 preview client geometry, the initiating pointer coordinates, selected resize
-edges or constrained-move axis, and whether `MoveDelta` was crossed. A scene
+edges or constrained-move axis, the pinned output box for spatial operations,
+and whether `MoveDelta` was crossed. A scene
 overlay renders the outline path; only opaque moves mutate the managed scene
 during motion. Release or second-button abort is the single terminal boundary,
 which also resumes a bounded function-continuation stack so `f.deltastop`
 observes the completed asynchronous interaction. Unmap and destruction clear
 both the session and any continuation before releasing the toplevel.
+
+Restart-style configuration is an atomic compositor-layer transaction rather
+than a process re-exec. The portable parser builds a complete temporary
+`wtwm_config`; only a successful parse replaces the active configuration.
+Before the old object is released, the compositor closes config-owned menus and
+continuations, then rebuilds derived scene decorations, icon state, manager
+state, cursors, colors, and output backgrounds. The display, backend, Xwayland
+server, protocol resources, and managed-client identities are deliberately
+outside that transaction, so native and Xwayland connections remain live.
+
+`f.startwm` crosses that boundary only for a direct self-target whose runtime
+can be preserved in-process. A no-argument self-target reloads the active
+configuration path; a self-target with exactly one `-f` path adopts that path
+only after the candidate commits. Arbitrary shell or external targets cannot
+receive libwayland resource ownership or the embedded Xwayland XWM, so they are
+rejected before execution and the current session remains authoritative.
+
+`src/session_state.c` owns the versioned compositor-state file without linking
+Wayland, X11, or wlroots. `f.saveyourself` writes a private same-directory
+temporary file, flushes it, and atomically renames it over the previous
+snapshot only after every record validates. With `RestartPreviousState`, the
+compositor loads the complete candidate before publishing anything, then
+consumes a record only when exactly one newly mapped client has the same native
+title/`app_id` or Xwayland name/instance/class identity. Each map transaction
+clamps saved geometry to current outputs and restores only compositor-owned
+iconic, stacking, focus, manual-icon, auto-raise, and zoom state. Transients,
+ambiguous identities, client processes, client documents, and active menus or
+gestures are deliberately outside the persistence boundary.
+
+The login-session boundary remains outside the compositor. The installed
+`wtwm-session` wrapper supervises exactly one foreground child, forwards
+controlling signals as `SIGTERM`, reaps that child, and returns its exact status
+to the display manager without a restart loop. Inside wtwm, `f.quit` and
+`SIGINT`, `SIGHUP`, `SIGQUIT`, and `SIGTERM` only terminate the Wayland event
+loop; the shared normal-exit path then releases Xwayland, native resources,
+input, scenes, the backend, and the display before returning success. Command
+line, configuration, socket, backend, or protocol initialization failures use
+the bounded failure path and return nonzero before the optional startup command.
+That command is a best-effort child launched only after `WAYLAND_DISPLAY` and
+`DISPLAY` are published, and its exit status does not own the compositor.
+
+This lifecycle deliberately does not add XSM. State persistence remains an
+explicit `f.saveyourself` transaction; neither orderly logout nor failure
+implicitly writes or discards the state file. `RestartPreviousState` is the only
+read gate, and a malformed candidate is diagnosed and ignored while its bytes
+remain available for inspection or later replacement.
 
 Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
 the reference first-fit region allocator, including gravity splits, grid-cell

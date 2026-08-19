@@ -1,0 +1,559 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 f.warptoscreen selection/history and the wtwm Wayland output translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/add_window.c": "c3133cc763d2db086e3417b3c2f3c103dc23685690a59e4116cbd338feb7b888",
+    "twm-1.0.13.1/src/gram.c": "072fe072063f5ff236dfae444bd2b08030262c126664f7493bc6849429c1a331",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/menus.h": "2ac660c04c2df65c7c2ee6fac5fc2e812cf06b518eedba37705aa68c2a13b572",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.action": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1447,
+      "text": ".IP \"\\fBf.warptoscreen\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.target": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1448,
+      "text": "This function warps the pointer to the screen specified by the"
+    },
+    "manual.numeric": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1450,
+      "text": "\\fIString\\fP may be a number (e.g., \\fB\"0\"\\fP or"
+    },
+    "manual.next": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1451,
+      "text": "\\fB\"1\"\\fP), the word \\fB\"next\"\\fP (indicating the current screen plus 1,"
+    },
+    "manual.back": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1453,
+      "text": "the word \\fB\"back\"\\fP (indicating the current screen minus 1, skipping over"
+    },
+    "manual.prev": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1455,
+      "text": "\\fB\"prev\"\\fP (indicating the last screen visited."
+    },
+    "parse.keyword": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 482,
+      "text": "    { \"f.warptoscreen\",         FSKEYWORD, F_WARPTOSCREEN },"
+    },
+    "grammar.lowercase": {
+      "member": "twm-1.0.13.1/src/gram.c",
+      "line": 3016,
+      "text": "    XmuCopyISOLatin1Lowered(s, s);"
+    },
+    "grammar.named": {
+      "member": "twm-1.0.13.1/src/gram.c",
+      "line": 3018,
+      "text": "    if (strcmp(s, WARPSCREEN_NEXT) == 0 ||"
+    },
+    "grammar.back": {
+      "member": "twm-1.0.13.1/src/gram.c",
+      "line": 3020,
+      "text": "        strcmp(s, WARPSCREEN_BACK) == 0)"
+    },
+    "grammar.decimal": {
+      "member": "twm-1.0.13.1/src/gram.c",
+      "line": 3023,
+      "text": "    for (; *s && isascii(*s) && isdigit(*s); s++);      /* SUPPRESS 530 */"
+    },
+    "names.next": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 155,
+      "text": "#define WARPSCREEN_NEXT \"next\""
+    },
+    "names.prev": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 156,
+      "text": "#define WARPSCREEN_PREV \"prev\""
+    },
+    "names.back": {
+      "member": "twm-1.0.13.1/src/menus.h",
+      "line": 157,
+      "text": "#define WARPSCREEN_BACK \"back\""
+    },
+    "dispatch.next": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1953,
+      "text": "            WarpToScreen(Scr->screen + 1, 1);"
+    },
+    "dispatch.prev": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1956,
+      "text": "            WarpToScreen(Scr->screen - 1, -1);"
+    },
+    "dispatch.back": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1959,
+      "text": "            WarpToScreen(PreviousScreen, 0);"
+    },
+    "dispatch.numeric": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1962,
+      "text": "            WarpToScreen(atoi(action), 0);"
+    },
+    "warp.loop": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2645,
+      "text": "    while (!newscr) {"
+    },
+    "warp.negative-wrap": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2648,
+      "text": "            n = NumScreens - 1;"
+    },
+    "warp.high-wrap": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2650,
+      "text": "            n = 0;"
+    },
+    "warp.managed": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2652,
+      "text": "        newscr = ScreenList[n];"
+    },
+    "warp.skip": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2654,
+      "text": "            if (inc) {          /* walk around the list */"
+    },
+    "warp.warning": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2658,
+      "text": "            twmWarning(\"unable to warp to unmanaged screen %d\", n);"
+    },
+    "warp.same": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2664,
+      "text": "    if (Scr->screen == n)"
+    },
+    "warp.same-return": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2665,
+      "text": "        return;                 /* already on that screen */"
+    },
+    "warp.history": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2667,
+      "text": "    PreviousScreen = Scr->screen;"
+    },
+    "warp.query": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2668,
+      "text": "    XQueryPointer(dpy, Scr->Root, &dumwin, &dumwin, &x, &y,"
+    },
+    "warp.pointer": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2671,
+      "text": "    XWarpPointer(dpy, None, newscr->Root, 0, 0, 0, 0, x, y);"
+    },
+    "history.declaration": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 110,
+      "text": "int PreviousScreen;             /* last screen that we were on */"
+    },
+    "history.initial": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 367,
+      "text": "    PreviousScreen = DefaultScreen(dpy);"
+    },
+    "history.placement-root": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 461,
+      "text": "                                if (root == RootWindow(dpy, scrnum))"
+    },
+    "history.placement-update": {
+      "member": "twm-1.0.13.1/src/add_window.c",
+      "line": 466,
+      "text": "                                PreviousScreen = scrnum;"
+    },
+    "restart.exec": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1278,
+      "text": "        execvp(*Argv, Argv);"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "config.argument-validation": {
+        "path": "src/config.c",
+        "text": "case WTWM_ACTION_WARPTOSCREEN:"
+      },
+      "config.named-back": {
+        "path": "src/config.c",
+        "text": "strcmp(action->argument, \"back\") == 0 ||"
+      },
+      "action.target-helper": {
+        "path": "src/actions.c",
+        "text": "int wtwm_action_screen_target(const char *argument, int current,"
+      },
+    "action.next": {
+      "path": "src/actions.c",
+      "text": "return current == count - 1 ? 0 : current + 1;"
+    },
+    "action.prev": {
+      "path": "src/actions.c",
+      "text": "return current == 0 ? count - 1 : current - 1;"
+    },
+    "action.warp-plan": {
+      "path": "src/actions.c",
+      "text": "bool wtwm_action_plan_screen_warp(const char *argument, int current, int count,"
+    },
+    "action.target-clamp": {
+      "path": "src/actions.c",
+      "text": "plan->x = translated_axis(pointer_x, outputs[current].x,"
+      },
+      "runtime.output-snapshot": {
+        "path": "src/wtwm.c",
+        "text": "static bool output_order_snapshot(struct server *server,"
+      },
+      "runtime.warp-entry": {
+        "path": "src/wtwm.c",
+        "text": "static void warp_to_screen(struct server *server, const char *argument) {"
+      },
+    "runtime.point-half-open": {
+      "path": "src/wtwm.c",
+      "text": "server->cursor->y < (double)box.y + box.height) {"
+    },
+    "runtime.plan-call": {
+      "path": "src/wtwm.c",
+      "text": "if (!wtwm_action_plan_screen_warp(argument, current, (int)output_count,"
+    },
+    "runtime.plan-warp": {
+      "path": "src/wtwm.c",
+      "text": "wlr_cursor_warp_closest(server->cursor, NULL, plan.x, plan.y);"
+    },
+    "runtime.history-reset": {
+      "path": "src/wtwm.c",
+      "text": "wtwm_action_screen_warp_init(&server->screen_warp);"
+    },
+    "runtime.pointer-motion": {
+      "path": "src/wtwm.c",
+      "text": "process_cursor_motion(server, server->current_input_time_ms);\n\tfree(boxes);\n\twtwm_output_order_destroy(snapshot);"
+      },
+      "output-order.lookup": {
+        "path": "src/output_order.c",
+        "text": "void *wtwm_output_order_at(const struct wtwm_output_order *order, size_t index) {"
+      }
+    },
+    "observed": [
+      "The parser already normalizes and admits next, prev, back, and decimal f.warptoscreen arguments.",
+      "The portable target helper already models named cycling and strict numeric rejection.",
+      "The compositor already creates a canonical enabled-output snapshot, locates the pointer by half-open output containment, warps it, and reprocesses pointer focus.",
+      "This contract fixes the complete history and target-clamping semantics that the implementation slice and live tests must prove."
+    ]
+  },
+  "reference_behavior": {
+    "argument_language": {
+      "rule": "The grammar lowercases the argument and accepts next, prev, back, or an ASCII-digit string; named actions are therefore case-insensitive. The empty string also passes the frozen digit loop and reaches atoi as zero.",
+      "evidence": [
+        "parse.keyword",
+        "grammar.lowercase",
+        "grammar.named",
+        "grammar.back",
+        "grammar.decimal",
+        "names.next",
+        "names.prev",
+        "names.back",
+        "dispatch.numeric"
+      ]
+    },
+    "target_selection": {
+      "numeric": "A numeric argument is converted with atoi and requested directly; WarpToScreen wraps a negative value once to NumScreens-1 and a value at least NumScreens once to zero.",
+      "next": "next starts at Scr->screen + 1, walks in increasing X-screen-number order, wraps, and skips unmanaged ScreenList entries until a managed screen is found.",
+      "prev": "prev starts at Scr->screen - 1, walks in decreasing X-screen-number order, wraps, and skips unmanaged ScreenList entries until a managed screen is found.",
+      "back": "back directly requests PreviousScreen without walking; an unmanaged target warns, rings the bell, and returns.",
+      "manual_code_discrepancy": "The manual says back means current-minus-one and prev means last-visited. The dispatch source does the opposite: prev decrements and back uses PreviousScreen. Source is authoritative for this contract.",
+      "evidence": [
+        "manual.action",
+        "manual.target",
+        "manual.numeric",
+        "manual.next",
+        "manual.back",
+        "manual.prev",
+        "dispatch.next",
+        "dispatch.prev",
+        "dispatch.back",
+        "dispatch.numeric",
+        "warp.loop",
+        "warp.negative-wrap",
+        "warp.high-wrap",
+        "warp.managed",
+        "warp.skip",
+        "warp.warning"
+      ]
+    },
+    "history": {
+      "initial": "PreviousScreen is initialized to DefaultScreen at process startup.",
+      "successful_different_target": "Immediately before a warp to a different managed screen, PreviousScreen becomes the source Scr->screen. Repeated back operations therefore toggle between the last two successfully visited screens.",
+      "same_target": "A target equal to Scr->screen returns before the history assignment, pointer query, or warp; history is unchanged.",
+      "no_target": "An unmanaged direct numeric/back target returns after warning and bell; history is unchanged.",
+      "interactive_placement": "During the first interactive AddWindow placement query, if the pointer root differs from Scr->Root and maps to an X screen, PreviousScreen is set to that pointer-root screen before the later root warp.",
+      "restart": "f.restart replaces the process with execvp; successful restart reconstructs PreviousScreen from DefaultScreen, while failed exec leaves the running process and its history intact.",
+      "evidence": [
+        "history.declaration",
+        "history.initial",
+        "warp.same",
+        "warp.same-return",
+        "warp.history",
+        "history.placement-root",
+        "history.placement-update",
+        "restart.exec"
+      ]
+    },
+    "pointer_mapping": {
+      "rule": "After selecting a different managed screen, twm queries pointer coordinates relative to the source root and supplies the same x and y as destination-root coordinates; it does not scale them by source or target dimensions.",
+      "edge_behavior": "X server pointer constraints determine the observable edge result when unchanged coordinates lie outside the target root.",
+      "evidence": [
+        "warp.query",
+        "warp.pointer"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "behaviorally-equivalent output translation with the previously documented strict numeric safety difference",
+    "active_domain": {
+      "outputs": "Operate only on enabled compositor-managed Wayland outputs in one canonical output-order snapshot. Dense indices are zero-based within that snapshot.",
+      "current": "The current output is the unique canonical-first output whose logical layout box contains the pointer under half-open bounds. A pointer in a layout gap or outside every enabled output has no current output.",
+      "identity_index": "next, prev, and numeric targets resolve canonical indices ordered by immutable output identities in the operation snapshot. Previous history denotes the prior visited output within a fixed canonical topology; back resolves that abstract reference in the same snapshot. Whether the stored representation is an index or identity is deliberately not observable in this slice.",
+      "single_snapshot": "Current selection, named/numeric target resolution, history lookup, source geometry, and target geometry use the same snapshot so one action cannot mix canonical index generations."
+    },
+    "target_selection": {
+      "numeric": "Preserve the screen-output contract: accept only a complete unsigned ASCII decimal value that fits int and is less than the snapshot count; invalid, signed, malformed, overflow, and out-of-range forms resolve to no target.",
+      "next": "Select (current + 1) modulo the enabled-output count in canonical identity order.",
+      "prev": "Select (current + count - 1) modulo the enabled-output count in canonical identity order. This follows source, not the swapped manual prose.",
+      "back": "If the previous-output reference resolves in the snapshot, select it; if history is unset or missing, resolve to no target. A successful back replaces history with the source output reference, so repeated back toggles.",
+      "no_skip_holes": "The enabled-output snapshot is dense, so named traversal has no unmanaged holes to skip; disabled outputs are absent rather than skipped entries."
+    },
+    "history": {
+      "startup": "Start with no previous-output reference, including startup with zero outputs. Do not synthesize output zero as history merely because an output later appears.",
+      "successful_different_target": "After resolving a present target different from current and completing the pointer warp, record the source output as previous.",
+      "same_target": "A numeric, next, prev, or back action resolving to current is a no-op and does not change history.",
+      "no_target": "Zero outputs, no current output, a gap/outside pointer, invalid numeric input, unset/missing back history, snapshot/allocation failure, or an absent source/target causes no pointer or history mutation.",
+      "one_output": "With one enabled output, next and prev wrap to current, numeric zero names current, and back is unset or current; all are no-ops and leave history unchanged.",
+      "reload": "Configuration reload is not a screen visit. A valid atomic reload preserves previous-output history; an invalid replacement preserves the active configuration and history.",
+      "restart": "The in-place f.restart/f.twmrc alias models reference process restart for ephemeral navigation state: after a successful replacement it clears previous-output history; a rejected replacement leaves history unchanged.",
+      "client_events": "Native map, Xwayland map, focus, activation, placement, and ordinary pointer motion do not write screen history. The reference AddWindow cross-root write has no Wayland analogue because outputs are not independent X roots and output-aware placement does not warp the seat between roots."
+    },
+    "pointer_mapping": {
+      "relative_rule": "Compute source-relative offsets dx = pointer_x - source.x and dy = pointer_y - source.y, then target coordinates target.x + clamp(dx, 0, target.width - 1) and target.y + clamp(dy, 0, target.height - 1). Do not scale proportional positions.",
+      "target_clamp": "Clamp to the selected target's half-open logical box before the cursor warp. Never let a global nearest-layout fallback redirect an oversized relative coordinate into a different output.",
+      "post_warp": "After a successful coordinate change, process cursor motion once so root/client context, focus policy, cursor role, and subsequent bindings observe the destination immediately."
+    },
+    "context_invariance": {
+      "rule": "The one seat's pointer location and canonical output snapshot determine current and target. Root, menu, key, title, frame, window, icon, icon-manager, or named-function invocation context does not substitute a focused window's owner output.",
+      "protocols": "The same action state machine and history apply when the invoking binding was reached through a native Wayland client or a managed Xwayland client; client protocol, app_id, title, WM_NAME, WM_CLASS, stacking, focus, and iconification do not alter output traversal.",
+      "gaps": "Root bindings do not fire in gaps under the output-placement contract; if another context invokes f.warptoscreen while the pointer has no current output, it is still a no-op."
+    },
+    "topology_boundary": {
+      "fixed_snapshot": "This slice defines complete warp behavior against one stable action snapshot and an abstract previous-output reference whose index-or-identity storage representation is not prescribed.",
+      "next_task": "The following output-topology task owns transaction timing for add/remove/enable/disable, scale, transform, mode, and layout changes; the history representation plus renumbering, invalidation, or repair when canonical membership/order changes; pointer repair during concurrent topology change; and policy for a removed current/previous output.",
+      "non_claim": "Passing fixed-topology numeric/next/prev/back tests does not claim output hotplug, rearrangement, mode/scale safety, disappeared-output restoration, multiple seats, or session-state persistence."
+    }
+  },
+  "scope_boundaries": {
+    "this_slice_requires": [
+      "source-authoritative numeric, next, prev, and back target semantics",
+      "exact successful, same-target, no-target, one-output, reload, and restart history rules",
+      "canonical identity-ordered index resolution and previous-output history in one fixed action snapshot",
+      "output-relative unscaled pointer mapping clamped to the selected target",
+      "native/Xwayland and invocation-context invariant behavior with gap and zero-output safety"
+    ],
+    "explicitly_deferred": [
+      "output add/remove/enable/disable transaction timing and history repair when an identity disappears",
+      "output scale, transform, mode, and layout-change transaction mechanics",
+      "safe restoration or relocation of windows after an output disappears",
+      "input hotplug and multiple keyboards, pointers, seats, or independent seat focus",
+      "session startup, logout, failure recovery, and persistent state-file lifecycle"
+    ],
+    "non_claim": "This contract completes only steady-state f.warptoscreen selection, pointer mapping, and ephemeral previous-output history. It does not complete the following topology, restoration, input, session, Milestone 8 testing, or exit-criteria checkboxes."
+  },
+  "requirements": [
+    {
+      "id": "warp.reference-dispatch",
+      "rule": "Treat source as authoritative: next increments, prev decrements, back uses PreviousScreen, and numeric dispatch uses atoi in frozen twm despite contradictory manual prose.",
+      "evidence": [
+        "manual.back",
+        "manual.prev",
+        "dispatch.next",
+        "dispatch.prev",
+        "dispatch.back",
+        "dispatch.numeric"
+      ]
+    },
+    {
+      "id": "warp.reference-history",
+      "rule": "Preserve evidence that only a successful different-screen warp and the special cross-root AddWindow path update PreviousScreen, while same or unmanaged targets do not.",
+      "evidence": [
+        "warp.same",
+        "warp.history",
+        "history.placement-update"
+      ]
+    },
+    {
+      "id": "warp.canonical-targets",
+      "rule": "Resolve current, numeric, next, prev, and previous-output back targets from one dense identity-ordered canonical enabled-output snapshot.",
+      "evidence": [
+        "dispatch.next",
+        "dispatch.prev",
+        "dispatch.back",
+        "warp.managed"
+      ]
+    },
+    {
+      "id": "warp.history-state",
+      "rule": "Record the source output only after a successful different-output warp; preserve history for same-target/no-target paths and reload, clear it on successful in-place restart, and make repeated back toggle.",
+      "evidence": [
+        "history.initial",
+        "warp.same-return",
+        "warp.history",
+        "restart.exec"
+      ]
+    },
+    {
+      "id": "warp.pointer-map",
+      "rule": "Preserve unscaled source-relative pointer coordinates, clamp them to the selected target output, and refresh pointer context once after success.",
+      "evidence": [
+        "warp.query",
+        "warp.pointer"
+      ]
+    },
+    {
+      "id": "warp.gap-zero-one",
+      "rule": "Zero outputs, gaps/outside, missing history, invalid targets, and one-output same targets cause no pointer or history mutation.",
+      "evidence": [
+        "warp.same",
+        "warp.warning"
+      ]
+    },
+    {
+      "id": "warp.context-invariance",
+      "rule": "Use one seat pointer state independent of native/Xwayland protocol, focused-client ownership, and action invocation context.",
+      "evidence": [
+        "manual.target",
+        "warp.query"
+      ]
+    },
+    {
+      "id": "warp.topology-boundary",
+      "rule": "Do not claim add/remove/scale/mode transaction safety, missing-identity history repair, removed-window restoration, multiple seats, or session lifecycle from fixed-topology warp coverage.",
+      "evidence": [
+        "warp.managed",
+        "warp.pointer"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-manual-discrepancy",
+      "kind": "reference-source",
+      "oracle": "Frozen dispatch proves prev decrements and back selects PreviousScreen despite the manual swapping those descriptions."
+    },
+    {
+      "id": "reference-managed-hole-skip",
+      "kind": "reference-traversal",
+      "oracle": "next/prev walk past unmanaged ScreenList holes, while numeric/back to an unmanaged entry warn and leave history unchanged."
+    },
+    {
+      "id": "reference-history-update",
+      "kind": "reference-history",
+      "oracle": "A successful different-screen warp stores the source, same-screen warp does not, and repeated back toggles."
+    },
+    {
+      "id": "reference-placement-history-write",
+      "kind": "reference-history-boundary",
+      "oracle": "The frozen interactive AddWindow cross-root path is the only evidenced non-warp PreviousScreen write."
+    },
+    {
+      "id": "next-wrap",
+      "kind": "runtime-traversal",
+      "oracle": "next advances through canonical indices and wraps from the last enabled output to index zero."
+    },
+    {
+      "id": "prev-wrap",
+      "kind": "runtime-traversal",
+      "oracle": "prev decrements through canonical indices and wraps index zero to the last enabled output."
+    },
+    {
+      "id": "back-toggle",
+      "kind": "runtime-history",
+      "oracle": "After two different-output visits, successive back actions alternate exact pointer positions between the last two outputs."
+    },
+    {
+      "id": "numeric-history",
+      "kind": "runtime-history",
+      "oracle": "A valid numeric warp to a different output records the source for back; an invalid numeric target changes neither pointer nor history."
+    },
+    {
+      "id": "same-target-history",
+      "kind": "runtime-noop",
+      "oracle": "Numeric current, one-output next/prev, and back-to-current leave exact pointer coordinates and previous history unchanged."
+    },
+    {
+      "id": "unset-back",
+      "kind": "runtime-noop",
+      "oracle": "back before any successful different-output warp is a no-op rather than selecting canonical index zero."
+    },
+    {
+      "id": "relative-equal-size",
+      "kind": "runtime-pointer",
+      "oracle": "An equal-sized target receives the same output-relative x/y without proportional scaling."
+    },
+    {
+      "id": "relative-smaller-target",
+      "kind": "runtime-pointer",
+      "oracle": "An oversized source-relative coordinate clamps to target width-1/height-1 and cannot land on a neighboring output."
+    },
+    {
+      "id": "gap-no-current",
+      "kind": "runtime-gap",
+      "oracle": "Invocation while the pointer is in a layout gap changes neither coordinates nor history."
+    },
+    {
+      "id": "zero-output",
+      "kind": "runtime-zero-output",
+      "oracle": "Every screen argument is a no-op with zero outputs and does not synthesize history."
+    },
+    {
+      "id": "reload-preserves-history",
+      "kind": "runtime-lifecycle",
+      "oracle": "Both successful config reload and rejected replacement preserve the established previous-output reference."
+    },
+    {
+      "id": "restart-clears-history",
+      "kind": "runtime-lifecycle",
+      "oracle": "Successful in-place f.restart/f.twmrc clears navigation history; rejected replacement preserves it."
+    },
+    {
+      "id": "native-context-invariant",
+      "kind": "runtime-native",
+      "oracle": "Native client/window/menu/root invocation reaches the same pointer-selected canonical traversal and history state."
+    },
+    {
+      "id": "xwayland-context-invariant",
+      "kind": "runtime-xwayland",
+      "oracle": "Managed Xwayland focus, identity, owner output, and invocation context do not alter pointer-selected traversal or history."
+    },
+    {
+      "id": "fixed-topology-boundary",
+      "kind": "contract-scope",
+      "oracle": "Passing warp tests does not claim safe concurrent topology transactions, missing-output repair, restoration, multiple seats, or session persistence."
+    }
+  ]
+}

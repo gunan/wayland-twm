@@ -111,12 +111,70 @@ static void models_interactive_prompt(void) {
 	assert(width == 1 && height == 1);
 }
 
+static void selects_canonical_output_geometry(void) {
+	struct wtwm_placement_area areas[] = {
+		{.x = -200, .y = -100, .width = 200, .height = 100},
+		{.x = 101, .y = 0, .width = 100, .height = 100},
+		{.x = -25, .y = -25, .width = 50, .height = 50},
+	};
+	size_t selected = 99;
+	assert(wtwm_placement_output_for_point(areas, 3, -10, -10, &selected));
+	assert(selected == 0); /* overlap uses canonical order */
+	assert(wtwm_placement_output_for_point(areas, 3, 63, 0, &selected));
+	assert(selected == 1); /* equal-distance gap tie */
+	assert(wtwm_placement_output_for_point(areas, 3, -500, -500, &selected));
+	assert(selected == 0);
+	int nearest_x = 0;
+	int nearest_y = 0;
+	assert(wtwm_placement_nearest_point(areas, 3, 201, 100,
+		&nearest_x, &nearest_y));
+	assert(nearest_x == 200 && nearest_y == 99);
+	assert(wtwm_placement_nearest_point(areas, 3, 110, 20,
+		&nearest_x, &nearest_y));
+	assert(nearest_x == 110 && nearest_y == 20);
+	assert(wtwm_placement_output_for_outer(areas, 3, 80, 0, 80, 100,
+		&selected));
+	assert(selected == 1);
+	assert(wtwm_placement_output_for_outer(areas, 3, -60, -30, 80, 60,
+		&selected));
+	assert(selected == 2); /* greatest positive intersection */
+	assert(wtwm_placement_output_for_outer(areas, 3, 70, 40, 20, 20,
+		&selected));
+	assert(selected == 1); /* no intersection, nearest center */
+	struct wtwm_placement_area adjacent[] = {
+		{.x = 0, .y = 0, .width = 100, .height = 100},
+		{.x = 100, .y = 0, .width = 100, .height = 100},
+	};
+	assert(wtwm_placement_output_for_outer(adjacent, 2, 50, 0, 100, 100,
+		&selected));
+	assert(selected == 0); /* equal intersection keeps canonical order */
+	assert(!wtwm_placement_output_for_point(NULL, 0, 0, 0, &selected));
+	assert(!wtwm_placement_output_for_point(areas, 0, 0, 0, &selected));
+	assert(!wtwm_placement_nearest_point(areas, 0, 0, 0,
+		&nearest_x, &nearest_y));
+	struct wtwm_placement_area invalid[] = {{.width = 0, .height = 20}};
+	assert(!wtwm_placement_output_for_outer(invalid, 1, 0, 0, 10, 10,
+		&selected));
+
+	struct wtwm_placement_area extremes[] = {
+		{.x = INT_MIN, .y = INT_MIN, .width = INT_MAX, .height = INT_MAX},
+		{.x = 0, .y = 0, .width = INT_MAX, .height = INT_MAX},
+	};
+	assert(wtwm_placement_output_for_point(extremes, 2, INT_MAX, INT_MIN,
+		&selected));
+	assert(selected == 0); /* exact overflow-safe squared-distance tie */
+	assert(wtwm_placement_output_for_outer(extremes, 2, INT_MAX - 2,
+		INT_MAX - 2, INT_MAX, INT_MAX, &selected));
+	assert(selected == 1);
+}
+
 int main(void) {
 	parses_policy_and_maximum();
 	matches_position_hint_policy();
 	matches_random_sequence_and_edge_reset();
 	clips_sizes_and_outer_positions();
 	models_interactive_prompt();
+	selects_canonical_output_geometry();
 	puts("placement tests passed");
 	return 0;
 }

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "current_audit_path": "reference/audits/current-implementation.json",
   "feature_count": 134,
   "dimension_policy": {
@@ -13,6 +13,101 @@
     "runtime": "Executes observable compositor behavior; no portable runtime cases are available in Milestone 0."
   },
   "test_catalog": [
+    {
+      "test_id": "test.current-feature.m8-colormap-runtime",
+      "path": "tests/integration/run_m8_colormap.py",
+      "meson_test": "Milestone 8 Xwayland and native colormap integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.f.colormap"
+      ]
+    },
+    {
+      "test_id": "test.current-feature.m8-cut-buffer-runtime",
+      "path": "tests/integration/run_m8_cut_buffer.py",
+      "meson_test": "Milestone 8 Wayland and Xwayland cut-buffer integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.f.cut",
+        "keyword.f.cutfile",
+        "keyword.f.file",
+        "lexical.cut-shorthand"
+      ]
+    },
+    {
+      "test_id": "test.current-feature.m8-input-hotplug-runtime",
+      "path": "tests/integration/run_m8_input_hotplug.py",
+      "meson_test": "Milestone 8 input hotplug integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-noop-options-runtime",
+      "path": "tests/integration/run_m8_noop_options.py",
+      "meson_test": "Milestone 8 X11 server resource no-op integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.nobackingstore",
+        "keyword.nograbserver",
+        "keyword.nosaveunders"
+      ]
+    },
+    {
+      "test_id": "test.current-feature.m8-output-placement-runtime",
+      "path": "tests/integration/run_m8_output_placement.py",
+      "meson_test": "Milestone 8 output-aware placement/root integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-output-restoration-runtime",
+      "path": "tests/integration/run_m8_output_restoration.py",
+      "meson_test": "Milestone 8 output disappearance restoration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-output-topology-runtime",
+      "path": "tests/integration/run_m8_output_topology.py",
+      "meson_test": "Milestone 8 output topology transactions",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-restart-runtime",
+      "path": "tests/integration/run_m8_restart.py",
+      "meson_test": "Milestone 8 in-place restart integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-screen-output-runtime",
+      "path": "tests/integration/run_m8_screen_output.py",
+      "meson_test": "Milestone 8 X screen and Wayland output mapping integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-session-lifecycle-runtime",
+      "path": "tests/integration/run_m8_session_lifecycle.py",
+      "meson_test": "Milestone 8 session lifecycle integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-session-state-runtime",
+      "path": "tests/integration/run_m8_session_state.py",
+      "meson_test": "Milestone 8 saved session state integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-startwm-runtime",
+      "path": "tests/integration/run_m8_startwm.py",
+      "meson_test": "Milestone 8 safe startwm handoff integration",
+      "dimension": "runtime"
+    },
+    {
+      "test_id": "test.current-feature.m8-warp-screen-runtime",
+      "path": "tests/integration/run_m8_warp_screen.py",
+      "meson_test": "Milestone 8 warp-to-screen history integration",
+      "dimension": "runtime",
+      "ledger_features": [
+        "keyword.f.warptoscreen"
+      ]
+    },
     {
       "test_id": "test.current-feature.move-resize-runtime",
       "path": "tests/integration/run_move_resize.py",
@@ -98,7 +193,7 @@
               "contains": "ACT(\"f.deiconify\","
             },
             {
-              "location": "src/wtwm.c:3525",
+              "location": "src/wtwm.c:3763",
               "contains": "WTWM_ACTION_DEICONIFY"
             }
           ]
@@ -142,7 +237,7 @@
               "contains": "{\"f.delete\","
             },
             {
-              "location": "src/wtwm.c:3528",
+              "location": "src/wtwm.c:3766",
               "contains": "WTWM_ACTION_DELETE"
             }
           ]
@@ -221,7 +316,7 @@
               "contains": "{\"f.destroy\","
             },
             {
-              "location": "src/wtwm.c:3527",
+              "location": "src/wtwm.c:3765",
               "contains": "WTWM_ACTION_DESTROY"
             }
           ]
@@ -265,7 +360,7 @@
               "contains": "ACT_ARG(\"f.exec\","
             },
             {
-              "location": "src/wtwm.c:3989",
+              "location": "src/wtwm.c:5702",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -309,7 +404,7 @@
               "contains": "strcmp(spelling, \"!\")"
             },
             {
-              "location": "src/wtwm.c:3989",
+              "location": "src/wtwm.c:5702",
               "contains": "WTWM_ACTION_EXEC"
             }
           ]
@@ -353,7 +448,7 @@
               "contains": "ACT(\"f.focus\","
             },
             {
-              "location": "src/wtwm.c:3526",
+              "location": "src/wtwm.c:3764",
               "contains": "WTWM_ACTION_FOCUS"
             }
           ]
@@ -379,6 +474,21 @@
       "category": "action",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-forcemove",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-forcemove through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
@@ -411,7 +521,7 @@
               "contains": "ACT(\"f.forcemove\","
             },
             {
-              "location": "src/wtwm.c:3519",
+              "location": "src/wtwm.c:3757",
               "contains": "WTWM_ACTION_FORCEMOVE"
             }
           ]
@@ -437,6 +547,21 @@
       "category": "action",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-fullzoom",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-fullzoom through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -476,7 +601,7 @@
               "contains": "ACT_ARG(\"f.function\","
             },
             {
-              "location": "src/wtwm.c:3994",
+              "location": "src/wtwm.c:5707",
               "contains": "WTWM_ACTION_FUNCTION"
             }
           ]
@@ -604,7 +729,7 @@
               "contains": "ACT(\"f.iconify\","
             },
             {
-              "location": "src/wtwm.c:3524",
+              "location": "src/wtwm.c:3762",
               "contains": "WTWM_ACTION_ICONIFY"
             }
           ]
@@ -669,7 +794,7 @@
               "contains": "ACT(\"f.lower\","
             },
             {
-              "location": "src/wtwm.c:3522",
+              "location": "src/wtwm.c:3760",
               "contains": "WTWM_ACTION_LOWER"
             }
           ]
@@ -696,6 +821,21 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-menu",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-menu through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -713,7 +853,7 @@
               "contains": "ACT_ARG(\"f.menu\","
             },
             {
-              "location": "src/wtwm.c:3991",
+              "location": "src/wtwm.c:5704",
               "contains": "WTWM_ACTION_MENU"
             }
           ]
@@ -739,6 +879,21 @@
       "category": "action",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "action.f-move",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises action.f-move through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
@@ -771,7 +926,7 @@
               "contains": "ACT(\"f.move\","
             },
             {
-              "location": "src/wtwm.c:3518",
+              "location": "src/wtwm.c:3756",
               "contains": "WTWM_ACTION_MOVE"
             }
           ]
@@ -819,6 +974,21 @@
       "implementation_status": "effective",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-session-lifecycle-runtime",
+          "path": "tests/integration/run_m8_session_lifecycle.py",
+          "meson_test": "Milestone 8 session lifecycle integration",
+          "case": "action.f-quit",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Client disconnects, process status, removed sockets, and an absent state file prove orderly explicit logout without an implicit save or restart.",
+            "Invalid configuration, runtime initialization failure, a failed startup child, malformed state, and all four reference termination signals prove bounded recovery.",
+            "The Linux headless session runner invokes action.f-quit with mapped native Wayland and Xwayland clients."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -836,7 +1006,7 @@
               "contains": "ACT(\"f.quit\","
             },
             {
-              "location": "src/wtwm.c:4085",
+              "location": "src/wtwm.c:5801",
               "contains": "WTWM_ACTION_QUIT"
             }
           ]
@@ -880,7 +1050,7 @@
               "contains": "ACT(\"f.raise\","
             },
             {
-              "location": "src/wtwm.c:3521",
+              "location": "src/wtwm.c:3759",
               "contains": "WTWM_ACTION_RAISE"
             }
           ]
@@ -924,7 +1094,7 @@
               "contains": "ACT(\"f.raiselower\","
             },
             {
-              "location": "src/wtwm.c:3523",
+              "location": "src/wtwm.c:3761",
               "contains": "WTWM_ACTION_RAISELOWER"
             }
           ]
@@ -1003,7 +1173,7 @@
               "contains": "ACT(\"f.resize\","
             },
             {
-              "location": "src/wtwm.c:3520",
+              "location": "src/wtwm.c:3758",
               "contains": "WTWM_ACTION_RESIZE"
             }
           ]
@@ -1029,6 +1199,20 @@
       "category": "action",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-restart-runtime",
+          "path": "tests/integration/run_m8_restart.py",
+          "meson_test": "Milestone 8 in-place restart integration",
+          "case": "action.f-restart",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Stable compositor IDs, the original XID, client protocol roundtrips, decoration-policy refresh, and invalid-config retention prove in-process continuity.",
+            "The Linux headless restart runner invokes action.f-restart while native and Xwayland clients remain mapped."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -1114,6 +1298,20 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-restart-runtime",
+          "path": "tests/integration/run_m8_restart.py",
+          "meson_test": "Milestone 8 in-place restart integration",
+          "case": "action.f-twmrc",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Stable compositor IDs, the original XID, client protocol roundtrips, decoration-policy refresh, and invalid-config retention prove in-process continuity.",
+            "The Linux headless restart runner invokes action.f-twmrc while native and Xwayland clients remain mapped."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
           "meson_test": "current feature coverage",
@@ -1152,7 +1350,7 @@
               "contains": "ACT(\"f.unfocus\","
             },
             {
-              "location": "src/wtwm.c:3980",
+              "location": "src/wtwm.c:5693",
               "contains": "WTWM_ACTION_UNFOCUS"
             }
           ]
@@ -1196,7 +1394,7 @@
               "contains": "ACT(\"f.warpnext\","
             },
             {
-              "location": "src/wtwm.c:4007",
+              "location": "src/wtwm.c:5720",
               "contains": "WTWM_ACTION_WARPNEXT"
             }
           ]
@@ -1411,6 +1609,21 @@
       "category": "construct",
       "implementation_status": "not_applicable",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-noop-options-runtime",
+          "path": "tests/integration/run_m8_noop_options.py",
+          "meson_test": "Milestone 8 X11 server resource no-op integration",
+          "case": "construct.case-insensitive-keywords-and-actions",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "All eight option subsets retain identical outlined/opaque move and menu full-output pixels plus normalized STATE/TRACE while native and Xwayland clients remain live.",
+            "The catalog ledger_features separately map keyword.nobackingstore, keyword.nograbserver, and keyword.nosaveunders from the frozen upstream ledger.",
+            "The construct.case-insensitive-keywords-and-actions runtime mapping proves mixed-case configuration reaches identical A/B compositor dispatch."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -1719,11 +1932,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:837",
+              "location": "src/wtwm.c:5464",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             },
             {
-              "location": "src/wtwm.c:838",
+              "location": "src/wtwm.c:5465",
               "contains": "&toplevel->server->config.auto_raise_windows,"
             }
           ]
@@ -1798,7 +2011,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5248",
+              "location": "src/wtwm.c:7724",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -1838,7 +2051,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:854",
+              "location": "src/wtwm.c:1040",
               "contains": "return server->config.border_width;"
             }
           ]
@@ -1899,7 +2112,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4724",
+              "location": "src/wtwm.c:6673",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -1960,7 +2173,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5248",
+              "location": "src/wtwm.c:7724",
               "contains": "configured_color(server, \"BorderColor\", \"black\", toplevel, border);"
             }
           ]
@@ -2085,6 +2298,21 @@
       "implementation_status": "parsed_only",
       "tests": [
         {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "directive.dontmoveoff",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises directive.dontmoveoff through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
           "test_id": "test.current-feature.move-resize-runtime",
           "path": "tests/integration/run_move_resize.py",
           "meson_test": "move and resize interaction integration",
@@ -2175,11 +2403,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3444",
+              "location": "src/wtwm.c:3682",
               "contains": "static bool push_action_frame("
             },
             {
-              "location": "src/wtwm.c:3457",
+              "location": "src/wtwm.c:3695",
               "contains": "struct action_frame *frame ="
             }
           ]
@@ -2408,7 +2636,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1199",
+              "location": "src/wtwm.c:1385",
               "contains": "if (configured->right_side != (side != 0)) continue;"
             }
           ]
@@ -2448,7 +2676,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:793",
+              "location": "src/wtwm.c:977",
               "contains": "&toplevel->server->config.make_title_windows,"
             }
           ]
@@ -2488,7 +2716,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3127",
+              "location": "src/wtwm.c:3345",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -2528,7 +2756,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3028",
+              "location": "src/wtwm.c:3246",
               "contains": "\"MenuBackground\", \"white\", NULL);"
             }
           ]
@@ -2568,7 +2796,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3170",
+              "location": "src/wtwm.c:3400",
               "contains": "configured_color(server, \"MenuBorderColor\", \"black\", NULL, border);"
             }
           ]
@@ -2608,7 +2836,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3164",
+              "location": "src/wtwm.c:3394",
               "contains": "visual.menu_border_width = server->config.menu_border_width;"
             }
           ]
@@ -2648,7 +2876,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3212",
+              "location": "src/wtwm.c:3442",
               "contains": "server->config.menu_font, normal_foreground, &widths[i], &heights[i]);"
             }
           ]
@@ -2688,7 +2916,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3026",
+              "location": "src/wtwm.c:3244",
               "contains": "\"MenuForeground\", \"black\", NULL);"
             }
           ]
@@ -2728,7 +2956,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3032",
+              "location": "src/wtwm.c:3250",
               "contains": "\"MenuTitleBackground\", \"white\", NULL);"
             }
           ]
@@ -2768,7 +2996,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3030",
+              "location": "src/wtwm.c:3248",
               "contains": "\"MenuTitleForeground\", \"black\", NULL);"
             }
           ]
@@ -3039,11 +3267,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:792",
+              "location": "src/wtwm.c:976",
               "contains": "return wtwm_window_has_title(toplevel->server->config.no_title,"
             },
             {
-              "location": "src/wtwm.c:794",
+              "location": "src/wtwm.c:978",
               "contains": "&toplevel->server->config.no_title_windows,"
             }
           ]
@@ -3181,7 +3409,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4782",
+              "location": "src/wtwm.c:6777",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3207,6 +3435,21 @@
       "category": "directive",
       "implementation_status": "parsed_only",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "directive.randomplacement",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises directive.randomplacement through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.syntax",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -3263,7 +3506,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1199",
+              "location": "src/wtwm.c:1385",
               "contains": "if (configured->right_side != (side != 0)) continue;"
             }
           ]
@@ -3366,7 +3609,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:847",
+              "location": "src/wtwm.c:1033",
               "contains": "&toplevel->server->config.start_iconified_windows,"
             }
           ]
@@ -3406,7 +3649,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1285",
+              "location": "src/wtwm.c:1471",
               "contains": "wlr_scene_rect_set_color(toplevel->title, title_color);"
             }
           ]
@@ -3467,7 +3710,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1258",
+              "location": "src/wtwm.c:1444",
               "contains": "toplevel->server->config.title_font, foreground, &width, &height);"
             }
           ]
@@ -3507,7 +3750,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1383",
+              "location": "src/wtwm.c:1569",
               "contains": "wlr_scene_rect_set_color(button->border, foreground);"
             }
           ]
@@ -3547,7 +3790,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:1069",
+              "location": "src/wtwm.c:1255",
               "contains": "visual.title_padding = config->title_padding;"
             }
           ]
@@ -3650,7 +3893,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:837",
+              "location": "src/wtwm.c:5464",
               "contains": "toplevel->auto_raise = toplevel->server->config.auto_raise ||"
             }
           ]
@@ -3676,7 +3919,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4724",
+              "location": "src/wtwm.c:6673",
               "contains": "dispatch_binding(server, WTWM_BINDING_BUTTON,"
             }
           ]
@@ -3688,6 +3931,21 @@
       "category": "runtime_dispatch",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-screen-output-runtime",
+          "path": "tests/integration/run_m8_screen_output.py",
+          "meson_test": "Milestone 8 X screen and Wayland output mapping integration",
+          "case": "runtime_dispatch.configuration-load-at-startup",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Conflicting HOME screen files, numeric rejection, and in-place restart prove screen-zero or explicit source selection without merging or losing control continuity.",
+            "Exact cursor coordinates prove canonical HEADLESS-1/2 identity order rather than reverse compositor-list insertion, while both roots dispatch one global config.",
+            "The Linux headless runner exercises runtime_dispatch.configuration-load-at-startup with zero, one, and two outputs in implicit and explicit configuration sessions."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -3702,8 +3960,8 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:7371",
-              "contains": "wtwm_config_load(&server.config,"
+              "location": "src/wtwm.c:10614",
+              "contains": "wtwm_config_load_for_screen(&server.config, config_path, 0,"
             }
           ]
         }
@@ -3728,7 +3986,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:857",
+              "location": "src/wtwm.c:1043",
               "contains": "static int configured_title_bar_height("
             }
           ]
@@ -3740,6 +3998,97 @@
       "category": "runtime_dispatch",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-colormap-runtime",
+          "path": "tests/integration/run_m8_colormap.py",
+          "meson_test": "Milestone 8 Xwayland and native colormap integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Checked XCB installed-colormap observations prove exact next/prev/default rotation and property reset while native dispatch preserves the installed set and both clients remain live.",
+            "The Linux headless runner invokes runtime_dispatch.execute-configured-action bindings on managed Xwayland and native Wayland targets.",
+            "The catalog ledger_features separately maps the exact keyword.f.colormap frozen upstream ledger entry."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-cut-buffer-runtime",
+          "path": "tests/integration/run_m8_cut_buffer.py",
+          "meson_test": "Milestone 8 Wayland and Xwayland cut-buffer integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Byte-exact native and X11 CLIPBOARD plus CUT_BUFFER0 STRING observations cover the newline rule, embedded NUL data, 4095-byte limit, first filename token, atomic failure, PRIMARY independence, replacement, restart, and liveness.",
+            "The Linux headless runner invokes runtime_dispatch.execute-configured-action bindings on managed Xwayland and native Wayland targets.",
+            "The catalog ledger_features separately map the exact keyword.f.cut, keyword.f.cutfile, keyword.f.file, and lexical.cut-shorthand frozen upstream ledger entries."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-output-placement-runtime",
+          "path": "tests/integration/run_m8_output_placement.py",
+          "meson_test": "Milestone 8 output-aware placement/root integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model independently fixes gap/outside/overlap selection, canonical ties, per-output backgrounds/root hits, owner recomputation, and deferred topology boundaries.",
+            "Native and managed Xwayland initial placement, accepted X11 coordinates, global random state, output-pinned menus, zoom, fill, window/icon moves, and zero-output deferral distinguish actual output boxes from the layout union.",
+            "The Linux two-output runner exercises runtime_dispatch.execute-configured-action through exact STATE/TRACE geometry and liveness barriers."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-output-restoration-runtime",
+          "path": "tests/integration/run_m8_output_restoration.py",
+          "meson_test": "Milestone 8 output disappearance restoration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "A portable model fixes positive-intersection preservation, canonical destination selection, relative translation, overflow-safe clamp, family delta, and repeated churn.",
+            "Exact native and Xwayland frame, icon, zoom, transient, focus, stack, pending, visibility, and trace assertions cover survivor repair, zero outputs, and ordered resume.",
+            "The Linux headless runner keeps runtime_dispatch.execute-configured-action available while output disable and destroy repair managed scenes."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-output-topology-runtime",
+          "path": "tests/integration/run_m8_output_topology.py",
+          "meson_test": "Milestone 8 output topology transactions",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Exact managed-output STATE records prove immutable identity, never-reused ordinals, dense canonical indices, refreshed layout/background boxes, and failure rollback.",
+            "Native and Xwayland liveness plus cursor and previous-output repair cover active, disabled, renumbered, and zero-output states without claiming window relocation.",
+            "The Linux headless runner keeps runtime_dispatch.execute-configured-action available through atomic add, enable, disable, mode, scale, transform, position, and destroy transactions."
+          ],
+          "fixture": "",
+          "checks": []
+        },
+        {
+          "test_id": "test.current-feature.m8-warp-screen-runtime",
+          "path": "tests/integration/run_m8_warp_screen.py",
+          "meson_test": "Milestone 8 warp-to-screen history integration",
+          "case": "runtime_dispatch.execute-configured-action",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Repeated back toggles, rejected and same targets, one-output no-ops, and restart reset prove exact previous-output history.",
+            "The Linux headless runner exercises runtime_dispatch.execute-configured-action through numeric, next, prev, back, and mixed-case bindings.",
+            "The catalog ledger_features maps the exact frozen keyword.f.warptoscreen inventory row.",
+            "Unequal adjacent outputs prove unscaled source-relative coordinates clamp to the selected target rather than leaking onto another output."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",
@@ -3754,7 +4103,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3930",
+              "location": "src/wtwm.c:5643",
               "contains": "switch (action->type)"
             }
           ]
@@ -3780,11 +4129,11 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3444",
+              "location": "src/wtwm.c:3682",
               "contains": "static bool push_action_frame("
             },
             {
-              "location": "src/wtwm.c:3457",
+              "location": "src/wtwm.c:3695",
               "contains": "struct action_frame *frame ="
             }
           ]
@@ -3810,7 +4159,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4782",
+              "location": "src/wtwm.c:6777",
               "contains": "dispatch_binding(server, WTWM_BINDING_KEY,"
             }
           ]
@@ -3836,7 +4185,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:3127",
+              "location": "src/wtwm.c:3345",
               "contains": "strcmp(server->config.menus[i].name, name)"
             }
           ]
@@ -3862,7 +4211,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4684",
+              "location": "src/wtwm.c:6636",
               "contains": "execute_action(server, target, &action,"
             }
           ]
@@ -3888,7 +4237,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:847",
+              "location": "src/wtwm.c:1033",
               "contains": "server->config.start_iconified_windows"
             }
           ]
@@ -3914,7 +4263,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:4716",
+              "location": "src/wtwm.c:6665",
               "contains": "&hit.toplevel->title_buttons[hit.title_button_index].action;"
             }
           ]
@@ -3940,7 +4289,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/wtwm.c:5202",
+              "location": "src/wtwm.c:7678",
               "contains": "set_decorated(toplevel, should_decorate(toplevel));"
             }
           ]

@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 
+#define FIXED_REPAINT_COLOR UINT32_C(0x007030a0)
+
 struct client {
 	xcb_connection_t *connection;
 	xcb_screen_t *screen;
@@ -23,6 +25,7 @@ struct client {
 	const char *class_name;
 	unsigned close_count;
 	unsigned cycle;
+	bool animate;
 	bool alternate;
 	bool desired_mapped;
 	bool running;
@@ -71,9 +74,12 @@ static bool roundtrip(struct client *client) {
 
 static bool repaint(struct client *client) {
 	if (!client->desired_mapped) return false;
-	uint32_t color = client->alternate ?
-		UINT32_C(0x00b05070) : UINT32_C(0x007030a0);
-	client->alternate = !client->alternate;
+	uint32_t color = FIXED_REPAINT_COLOR;
+	if (client->animate) {
+		color = client->alternate ?
+			UINT32_C(0x00b05070) : FIXED_REPAINT_COLOR;
+		client->alternate = !client->alternate;
+	}
 	xcb_change_window_attributes(client->connection, client->window,
 		XCB_CW_BACK_PIXEL, &color);
 	xcb_clear_area(client->connection, false, client->window, 0, 0, 0, 0);
@@ -194,6 +200,15 @@ static bool handle_command(struct client *client, char *command) {
 			client->close_count, client->desired_mapped, client->cycle);
 		return true;
 	}
+	if (strcmp(command, "FREEZE") == 0) {
+		if (!client->desired_mapped) return false;
+		client->animate = false;
+		if (!repaint(client)) return false;
+		xcb_flush(client->connection);
+		if (!roundtrip(client)) return false;
+		puts("OK FROZEN 0x007030a0");
+		return true;
+	}
 	if (strcmp(command, "CRASH") == 0) {
 		puts("OK CRASH");
 		abort();
@@ -221,6 +236,7 @@ int main(int argc, char **argv) {
 	struct client client = {
 		.instance = argv[2],
 		.class_name = argv[3],
+		.animate = true,
 		.running = true,
 	};
 	(void)snprintf(client.title, sizeof(client.title), "%s", argv[1]);
@@ -249,7 +265,7 @@ int main(int argc, char **argv) {
 			command[strcspn(command, "\r\n")] = '\0';
 			if (!handle_command(&client, command)) break;
 		}
-		if (repaint(&client)) xcb_flush(client.connection);
+		if (client.animate && repaint(&client)) xcb_flush(client.connection);
 		if (xcb_connection_has_error(client.connection) != 0) break;
 	}
 

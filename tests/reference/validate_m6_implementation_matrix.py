@@ -209,6 +209,10 @@ def validate(
         "moved f.deltastop did not interrupt",
         "key f.menu unexpectedly opened a menu",
         "nested-function f.menu unexpectedly opened a menu",
+        'control.command("BUTTON 273 release")\n'
+        '            control.command("BUTTON 272 release")',
+        'control.command("BUTTON 279 release")\n'
+        '            target = window(control.state(), "focus-a")',
         "named binding did not visit both clients",
         "f.resize started on an icon",
         "f.move did not move the icon view",

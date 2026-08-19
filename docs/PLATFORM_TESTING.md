@@ -31,7 +31,12 @@ the display manager, choose the separately named **Wayland twm** entry.  The
 launcher writes a mode-0700 log directory at
 `${XDG_STATE_HOME:-~/.local/state}/wtwm/session.log` and returns wtwm's exact
 status to the display manager.  It never starts, replaces, or loops around the
-display manager.
+display manager.  HUP, INT, QUIT, and TERM are forwarded to the compositor as
+TERM; the wrapper remains responsible for the child until it is reaped.  wtwm
+handles INT, HUP, QUIT, and TERM through its event loop, performs the same
+orderly cleanup as `f.quit`, and returns success.  Startup/configuration errors
+return nonzero before an optional `-s` command runs, and the launcher never
+turns either result into an automatic compositor restart.
 
 For a diagnostic launch on a local virtual terminal, not over SSH:
 
@@ -47,6 +52,14 @@ session again, and verify that the greeter returns within 30 seconds.  Log in
 to the VM's pre-existing Weston session after both exits.  This last action is
 required evidence that failure recovery is usable rather than just a process
 exit.
+
+The persistent compositor snapshot is separate from `session.log`.  Only
+`f.saveyourself` replaces `${XDG_STATE_HOME:-~/.local/state}/wtwm/state`;
+logout, signals, failed startup, and crashes neither save nor discard it.
+`RestartPreviousState` treats a missing file as empty and reports then ignores a
+malformed file without changing it.  The headless lifecycle integration covers
+these process and file boundaries, but the greeter observation above remains a
+physical login requirement.
 
 The portable tests exercise backend environment selection and launcher status
 propagation:

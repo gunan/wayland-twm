@@ -94,6 +94,12 @@ def validate(root: Path) -> None:
     require(states, (
         'for mode in ("color", "grayscale", "monochrome")',
         '"masks": []',
+        "MAX_STABILITY_CAPTURES = 12",
+        "for _ in range(MAX_STABILITY_CAPTURES - 1):",
+        "if data == repeat_data:",
+        "repeat.replace(first)",
+        "did not converge after {MAX_STABILITY_CAPTURES} captures",
+        "sha256={stability_hashes!r}",
         'images["button-pressed"]',
         '("title-long", "L" * 180)',
         '("title-empty", "")',
@@ -145,6 +151,22 @@ def main() -> None:
             pass
         else:
             raise ValueError("visual contract accepted an unconditional pass")
+        states_path = arguments.source_root / (
+            "tests/integration/run_m5_visual_states.py"
+        )
+        original_states = states_path.read_text(encoding="utf-8")
+        tampered_states = original_states.replace(
+            "        repeat.replace(first)\n", "        break\n", 1
+        )
+        if tampered_states == original_states:
+            raise ValueError("visual stability tamper did not alter runner")
+        try:
+            require(tampered_states, ("repeat.replace(first)",),
+                    "tampered visual stability convergence")
+        except ValueError:
+            pass
+        else:
+            raise ValueError("visual contract accepted a one-shot stability check")
         print("Milestone 5 visual tamper rejected")
     print("Milestone 5 visual contract valid")
 

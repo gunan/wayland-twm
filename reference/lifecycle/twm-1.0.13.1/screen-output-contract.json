@@ -1,0 +1,610 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 X-screen configuration and the wtwm Wayland output-index translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/screen.h": "f238b482ee38fd1d75f410574d36b47e2dafec50808518b7ca374924785e48b0",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.file-option": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 138,
+      "text": ".B \\-file \\fIfilename\\fP"
+    },
+    "manual.file-default": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 142,
+      "text": "named \\fI.twmrc.num\\fP (where \\fInum\\fP is a screen number) or \\fI.twmrc\\fP."
+    },
+    "manual.single": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 157,
+      "text": ".B \\-single"
+    },
+    "manual.default-all-screens": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 162,
+      "text": "all screens on the display."
+    },
+    "manual.search-per-screen": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 178,
+      "text": "each screen being managed when \\fItwm\\fP begins):"
+    },
+    "manual.screen-file": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 180,
+      "text": ".B $HOME/.twmrc.\\fIscreennumber\\fP"
+    },
+    "manual.screen-number": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 184,
+      "text": "variable \\fIhost:displaynum.screennum\\fP) that would be used to contact that"
+    },
+    "manual.general-file": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 189,
+      "text": ".B $HOME/.twmrc"
+    },
+    "manual.system-file": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 192,
+      "text": ".B __datadir__/X11/twm/system.twmrc"
+    },
+    "manual.builtin-defaults": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 199,
+      "text": "If no startup files are found, \\fItwm\\fP will use the built-in defaults"
+    },
+    "startup.multiscreen-default": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 211,
+      "text": "    int MultiScreen = TRUE;         /* try for more than one screen? */"
+    },
+    "startup.explicit-file": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 242,
+      "text": "                InitFile = argv[i];"
+    },
+    "startup.screen-count": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 348,
+      "text": "    NumScreens = ScreenCount(dpy);"
+    },
+    "startup.all-screen-range": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 352,
+      "text": "        lastscrn = NumScreens - 1;"
+    },
+    "startup.single-default-screen": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 355,
+      "text": "        firstscrn = lastscrn = DefaultScreen(dpy);"
+    },
+    "startup.per-screen-loop": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 368,
+      "text": "    for (scrnum = firstscrn; scrnum <= lastscrn; scrnum++) {"
+    },
+    "startup.screen-info": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 397,
+      "text": "        Scr = ScreenList[scrnum] = (ScreenInfo *) calloc(1, sizeof(ScreenInfo));"
+    },
+    "startup.screen-number": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 438,
+      "text": "        Scr->screen = scrnum;"
+    },
+    "startup.screen-root": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 441,
+      "text": "        Scr->Root = RootWindow(dpy, scrnum);"
+    },
+    "startup.root-context": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 442,
+      "text": "        XSaveContext(dpy, Scr->Root, ScreenContext, (XPointer) Scr);"
+    },
+    "startup.screen-width": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 469,
+      "text": "        Scr->MyDisplayWidth = DisplayWidth(dpy, scrnum);"
+    },
+    "startup.parse-per-screen": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 537,
+      "text": "        /* Parse it once for each screen. */"
+    },
+    "startup.parse-file": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 538,
+      "text": "        ParseTwmrc(InitFile);"
+    },
+    "parse.search-order": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 171,
+      "text": "     * If filename given, try it, else try ~/.twmrc.# then ~/.twmrc.  Then"
+    },
+    "parse.explicit": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 176,
+      "text": "        case 0:                /* -f filename */"
+    },
+    "parse.screen-file": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 187,
+      "text": "                                    \"%s/.twmrc.%d\", home, Scr->screen);"
+    },
+    "parse.general-file": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 193,
+      "text": "        case 2:                /* ~/.twmrc */"
+    },
+    "parse.system-file": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 200,
+      "text": "            cp = DATADIR \"/X11/twm/system.twmrc\";"
+    },
+    "parse.builtin": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 224,
+      "text": "        return ParseStringList(defTwmrc);"
+    },
+    "screen.info-type": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 62,
+      "text": "typedef struct ScreenInfo {"
+    },
+    "screen.root-window": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 74,
+      "text": "    Window Root;                /* the root window */"
+    },
+    "screen.menu-list": {
+      "member": "twm-1.0.13.1/src/screen.h",
+      "line": 87,
+      "text": "    MenuRoot *MenuList;         /* head of the menu list */"
+    },
+    "manual.warp-screen": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1447,
+      "text": ".IP \"\\fBf.warptoscreen\\fP \\fIstring\\fP\" 8"
+    },
+    "manual.warp-number": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1450,
+      "text": "\\fIString\\fP may be a number (e.g., \\fB\"0\"\\fP or"
+    },
+    "parse.warp-screen": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 482,
+      "text": "    { \"f.warptoscreen\",         FSKEYWORD, F_WARPTOSCREEN },"
+    },
+    "dispatch.warp-number": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1962,
+      "text": "            WarpToScreen(atoi(action), 0);"
+    },
+    "dispatch.warp-next": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1953,
+      "text": "            WarpToScreen(Scr->screen + 1, 1);"
+    },
+    "dispatch.warp-prev": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1956,
+      "text": "            WarpToScreen(Scr->screen - 1, -1);"
+    },
+    "dispatch.warp-back": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1959,
+      "text": "            WarpToScreen(PreviousScreen, 0);"
+    },
+    "warp.negative-wrap": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2648,
+      "text": "            n = NumScreens - 1;"
+    },
+    "warp.high-wrap": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2650,
+      "text": "            n = 0;"
+    },
+    "warp.managed-screen": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2652,
+      "text": "        newscr = ScreenList[n];"
+    },
+    "warp.unmanaged-warning": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2658,
+      "text": "            twmWarning(\"unable to warp to unmanaged screen %d\", n);"
+    }
+  },
+  "current_surface": {
+    "source_anchors": {
+      "config.screen-path": {
+        "path": "src/config.c",
+        "text": "snprintf(screen_path, sizeof(screen_path), \"%s/.twmrc.%u\", home, screen);"
+      },
+      "config.screen-wrapper": {
+        "path": "src/config.c",
+        "text": "return wtwm_config_load_for_screen(config, path, 0, error, error_size);"
+      },
+      "config.decimal-screen-form": {
+        "path": "src/config.c",
+        "text": "static bool decimal_string(const char *text) {"
+      },
+      "config.screen-argument-check": {
+        "path": "src/config.c",
+        "text": "decimal_string(action->argument);"
+      },
+      "runtime.single-config": {
+        "path": "src/wtwm.c",
+        "text": "struct wtwm_config config;"
+      },
+      "runtime.startup-load": {
+        "path": "src/wtwm.c",
+        "text": "if (!wtwm_config_load_for_screen(&server.config, config_path, 0,"
+      },
+      "runtime.restart-load": {
+        "path": "src/wtwm.c",
+        "text": "if (!wtwm_config_load_for_screen(&replacement, config_path, 0, error,"
+      },
+      "runtime.output-list": {
+        "path": "src/wtwm.c",
+        "text": "struct wl_list outputs;"
+      },
+      "runtime.current-list-insert": {
+        "path": "src/wtwm.c",
+        "text": "wl_list_insert(&server->outputs, &output->link);"
+      },
+      "output-order.identity-record": {
+        "path": "include/wtwm/output_order.h",
+        "text": "struct wtwm_output_identity {"
+      },
+      "output-order.unsigned-compare": {
+        "path": "src/output_order.c",
+        "text": "const unsigned char *a = (const unsigned char *)left;"
+      },
+      "output-order.ordinal-tie-break": {
+        "path": "src/output_order.c",
+        "text": "return a->announcement_ordinal < b->announcement_ordinal ? -1 :"
+      },
+      "runtime.output-order-snapshot": {
+        "path": "src/wtwm.c",
+        "text": "static bool output_order_snapshot(struct server *server,"
+      },
+      "runtime.output-identity-copy": {
+        "path": "src/wtwm.c",
+        "text": "if (!wtwm_output_identity_init(&output->identity, wlr_output->name,"
+      },
+      "runtime.screen-target": {
+        "path": "src/actions.c",
+        "text": "int wtwm_action_screen_target(const char *argument, int current,"
+      },
+      "test.screen-search": {
+        "path": "tests/config_test.c",
+        "text": "assert(wtwm_config_load_for_screen(&config, NULL, 3, error, sizeof(error)));"
+      },
+      "test.screen-target-range": {
+        "path": "tests/actions_test.c",
+        "text": "assert(wtwm_action_screen_target(\"4\", 0, 2, 3) == -1);"
+      },
+      "test.output-order-reverse": {
+        "path": "tests/output_order_test.c",
+        "text": "static void reverse_announcement(void) {"
+      }
+    },
+    "observed": [
+      "The portable loader can reproduce an arbitrary X screen's search order when called directly.",
+      "The compositor startup and in-place restart call the screen-zero wrapper and own one server-level wtwm_config.",
+      "Every current output consumes values from that one server-level configuration.",
+      "The config parser admits only named screen actions or ASCII decimal digits; the runtime target helper rejects negative, malformed, overflow, and out-of-range values.",
+      "Numeric screen operations use one identity-sorted canonical output snapshot independent of compositor list insertion and layout order."
+    ]
+  },
+  "reference_behavior": {
+    "managed_screens": {
+      "default": "Attempt every X screen numbered 0 through ScreenCount(dpy)-1.",
+      "single_option": "With -single, attempt only DefaultScreen(dpy).",
+      "root_namespace": "Each successfully managed X screen has its own RootWindow, ScreenInfo, menus, focus-root state, screen dimensions, and other screen-scoped configuration state.",
+      "evidence": [
+        "manual.single",
+        "manual.default-all-screens",
+        "startup.multiscreen-default",
+        "startup.screen-count",
+        "startup.all-screen-range",
+        "startup.single-default-screen",
+        "startup.per-screen-loop",
+        "startup.screen-info",
+        "startup.screen-number",
+        "startup.screen-root",
+        "startup.root-context",
+        "startup.screen-width",
+        "screen.info-type",
+        "screen.root-window",
+        "screen.menu-list"
+      ]
+    },
+    "configuration": {
+      "parse_count": "Parse exactly once for each successfully managed X screen.",
+      "implicit_search_per_screen": [
+        "$HOME/.twmrc.<that X screen number>",
+        "$HOME/.twmrc",
+        "DATADIR/X11/twm/system.twmrc",
+        "built-in defaults"
+      ],
+      "explicit_file": "When -f supplies a filename, the same filename is attempted separately for every managed X screen; no screen suffix is appended and screen-specific files are not merged.",
+      "fallback": "An unavailable explicit file falls through to the system file and then built-in defaults; an implicit missing screen-specific file falls through to the general, system, and built-in candidates.",
+      "evidence": [
+        "manual.file-option",
+        "manual.file-default",
+        "manual.search-per-screen",
+        "manual.screen-file",
+        "manual.general-file",
+        "manual.system-file",
+        "manual.builtin-defaults",
+        "startup.explicit-file",
+        "startup.parse-per-screen",
+        "startup.parse-file",
+        "parse.search-order",
+        "parse.explicit",
+        "parse.screen-file",
+        "parse.general-file",
+        "parse.system-file",
+        "parse.builtin"
+      ]
+    },
+    "numeric_spatial_screen": {
+      "domain": "X screen numbers are zero-based indices into ScreenList and identify distinct X roots.",
+      "warp_parser": "f.warptoscreen accepts a string; unrecognized text reaches atoi and therefore commonly becomes numeric zero in the reference implementation.",
+      "warp_range": "WarpToScreen wraps any negative target once to the last X screen and any target at or above NumScreens once to zero; an explicitly selected unmanaged screen warns and rings the bell.",
+      "manual_code_note": "The manual's prose for back and prev is inconsistent with the dispatch code; this contract uses code for those named actions, but their complete behavior remains a later warp-to-screen task.",
+      "evidence": [
+        "manual.screen-number",
+        "manual.warp-screen",
+        "manual.warp-number",
+        "parse.warp-screen",
+        "dispatch.warp-next",
+        "dispatch.warp-prev",
+        "dispatch.warp-back",
+        "dispatch.warp-number",
+        "warp.negative-wrap",
+        "warp.high-wrap",
+        "warp.managed-screen",
+        "warp.unmanaged-warning"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": "behaviorally-equivalent global-namespace translation with a documented screen-index safety difference",
+    "configuration_namespace": {
+      "model": "One compositor-global parsed configuration and one compositor-global root/configuration namespace, regardless of output count.",
+      "implicit_search": [
+        "$HOME/.twmrc.0",
+        "$HOME/.twmrc",
+        "WTWM_SYSTEM_CONFIG or the packaged wtwm system.twmrc",
+        "built-in defaults"
+      ],
+      "screen_zero_rule": "Absent -f, screen zero is the sole compatibility source. Never read, merge, overlay, or assign $HOME/.twmrc.1 or higher merely because more Wayland outputs exist.",
+      "explicit_file_rule": "An explicit -f/config path is the sole user-file candidate for the global configuration; it is not suffixed, parsed per output, or combined with output-specific files.",
+      "application_rule": "Every current or later-created output scene, native Wayland client, and Xwayland client observes the same active global configuration.",
+      "zero_outputs": "Load and retain the global configuration even when no output is active; there is no output scene to receive it until an output appears.",
+      "one_output": "The sole active output is output index 0 and receives the global configuration.",
+      "multiple_outputs": "All active outputs receive the identical global configuration; different .twmrc.N files do not select different appearance or bindings per output."
+    },
+    "canonical_output_indices": {
+      "domain": "The current set of enabled, compositor-managed Wayland outputs; indices are dense zero-based integers 0..count-1.",
+      "stable_identity": "Each managed output records an immutable session identity key at its first announcement. The identity string tuple is (name, make, model, serial), with null treated as empty for every field; the normally nonempty wlr_output name is primary. A monotonically increasing, never-reused announcement ordinal is the final tie-break when all strings collide.",
+      "canonical_order": "Sort active outputs by unsigned-byte lexicographic order of the tuple (name, make, model, serial), then by announcement ordinal. Do not derive indices from wl_list insertion order, scene stacking order, layout coordinates, mode, scale, or pointer position.",
+      "stability": "An output's identity key and ordinal do not change while that output object remains managed. Mode, scale, transform, layout position, and focus changes therefore cannot change index order. Adding or removing an output recomputes the dense ordered view and may renumber other outputs.",
+      "restart_expectation": "Across restart, unique stable output names produce the same order independent of discovery order. Outputs whose complete string tuples collide are stable only within one compositor session; their ordinal tie-break and any resulting cross-restart order are intentionally not claimed persistent.",
+      "numeric_reference": "A valid decimal X-screen reference N selects canonical Wayland output index N from a single topology snapshot used for the operation.",
+      "valid_decimal": "ASCII decimal digits only, no sign, whitespace, suffix, overflow, or partial conversion; the parsed value must fit int and be less than the snapshot output count.",
+      "invalid_reference": "Null, empty, negative, signed, malformed, overflow, and out-of-range numeric references resolve to no output and cause no spatial mutation; callers may report a diagnostic or compatibility bell.",
+      "safety_difference": "Rejecting invalid or out-of-range numeric references is an intentional safety difference from twm's atoi-and-wrap behavior and prevents accidental selection of output 0."
+    },
+    "lifecycle": {
+      "reload": "A good reload atomically replaces the one global configuration and refreshes every output from it; an invalid reload preserves the active configuration and all output identities/indices.",
+      "restart": "In-place f.restart/f.twmrc repeats the same global source selection, preserves managed output identity records, and does not choose a configuration by the focused output.",
+      "output_add": "Adding an output never triggers another startup-file search or configuration merge; the new scene receives the already-active global configuration, and the canonical index view is recomputed.",
+      "output_remove": "Removing an output never changes the active configuration; the canonical index view is recomputed after removal.",
+      "output_property_change": "Mode, scale, transform, or layout changes do not reload configuration and do not change the identity-key order.",
+      "topology_boundary": "Safe window relocation, output-aware placement, per-output root interactions, next/prev/back warp history, and hotplug restoration are governed by later Milestone 8 tasks, not completed by this mapping contract."
+    }
+  },
+  "scope_boundaries": {
+    "this_mapping_requires": [
+      "one screen-zero/default or explicit global configuration selection",
+      "identical active configuration visibility on every output",
+      "a deterministic canonical output index view",
+      "strict rejection of invalid numeric output references",
+      "configuration and identity behavior defined across reload, restart, and topology changes"
+    ],
+    "explicitly_deferred": [
+      "output-aware window placement and complete per-output root behavior",
+      "f.warptoscreen next/prev/back history and topology-sensitive history repair",
+      "output addition/removal/scale/mode transaction mechanics",
+      "safe restoration or relocation of windows after output removal",
+      "input hotplug and multiple seats",
+      "persistent physical-output identity across sessions when backend identity strings collide"
+    ],
+    "non_claim": "This frozen compatibility mapping is necessary evidence for the Roadmap mapping item; it does not by itself complete any later implementation, testing, or exit-criteria checkbox."
+  },
+  "requirements": [
+    {
+      "id": "screen.reference-model",
+      "rule": "Preserve evidence that twm creates per-screen ScreenInfo/root state and parses one screen-selected configuration per managed X screen.",
+      "evidence": ["startup.per-screen-loop", "startup.screen-info", "startup.screen-root", "startup.parse-per-screen", "startup.parse-file"]
+    },
+    {
+      "id": "screen.global-config",
+      "rule": "wtwm owns exactly one active global configuration and every output consumes it.",
+      "evidence": ["manual.search-per-screen", "parse.search-order"]
+    },
+    {
+      "id": "screen.screen-zero-search",
+      "rule": "Without an explicit file, use only the screen-zero search order; never implicitly inspect or merge .twmrc.1 or higher.",
+      "evidence": ["manual.screen-file", "parse.screen-file", "parse.general-file", "parse.system-file", "parse.builtin"]
+    },
+    {
+      "id": "screen.explicit-global",
+      "rule": "An explicit file remains one unsuffixed global source for zero, one, or many outputs.",
+      "evidence": ["manual.file-option", "startup.explicit-file", "parse.explicit"]
+    },
+    {
+      "id": "screen.canonical-index",
+      "rule": "Expose dense zero-based output indices ordered by immutable session identity strings and the final announcement-ordinal tie-break, never by mutable geometry or list insertion.",
+      "evidence": ["manual.screen-number", "startup.screen-number"]
+    },
+    {
+      "id": "screen.numeric-safety",
+      "rule": "Accept only complete in-range unsigned decimal numeric output references; every invalid form resolves to no target without mutation.",
+      "evidence": ["manual.warp-number", "dispatch.warp-number", "warp.negative-wrap", "warp.high-wrap"]
+    },
+    {
+      "id": "screen.config-lifecycle",
+      "rule": "Reload/restart replace the global config atomically, while topology changes never select a different startup file.",
+      "evidence": ["startup.parse-file", "parse.search-order"]
+    },
+    {
+      "id": "screen.scope-boundary",
+      "rule": "Do not treat this namespace/index mapping as completion of later placement, root, named screen history, hotplug, restoration, or input tasks.",
+      "evidence": ["manual.warp-screen", "warp.managed-screen"]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-two-x-screens",
+      "kind": "reference-positive",
+      "oracle": "Two successfully managed X screens create two ScreenInfo/root namespaces and invoke ParseTwmrc once for each screen."
+    },
+    {
+      "id": "reference-single-option",
+      "kind": "reference-boundary",
+      "oracle": "-single parses and manages only DefaultScreen rather than every X screen."
+    },
+    {
+      "id": "reference-implicit-per-screen-files",
+      "kind": "reference-search-order",
+      "oracle": "X screen 0 tries .twmrc.0 and X screen 1 independently tries .twmrc.1 before the shared fallbacks."
+    },
+    {
+      "id": "reference-explicit-file",
+      "kind": "reference-search-order",
+      "oracle": "With -f, every managed X screen attempts the identical unsuffixed explicit filename."
+    },
+    {
+      "id": "wtwm-zero-output-startup",
+      "kind": "runtime-zero-output",
+      "oracle": "The screen-zero/default or explicit global config loads successfully and remains active with no output."
+    },
+    {
+      "id": "wtwm-one-output",
+      "kind": "runtime-one-output",
+      "oracle": "The sole output is canonical index 0 and consumes the active global config."
+    },
+    {
+      "id": "wtwm-multiple-outputs-single-config",
+      "kind": "runtime-multi-output",
+      "oracle": "Every output renders and dispatches from byte-for-byte the same normalized active config."
+    },
+    {
+      "id": "wtwm-ignore-higher-screen-files",
+      "kind": "runtime-negative",
+      "oracle": "Adding outputs does not open, parse, merge, or apply .twmrc.1 or any higher suffix."
+    },
+    {
+      "id": "wtwm-explicit-global",
+      "kind": "runtime-multi-output",
+      "oracle": "One explicit config is parsed once globally and applies to every output."
+    },
+    {
+      "id": "canonical-name-order",
+      "kind": "runtime-ordering",
+      "oracle": "Outputs announced in reverse order receive indices by unsigned-byte lexicographic identity tuple rather than announcement/list order."
+    },
+    {
+      "id": "canonical-secondary-fields",
+      "kind": "runtime-ordering",
+      "oracle": "Equal names are ordered deterministically by make, model, and serial."
+    },
+    {
+      "id": "canonical-collision-ordinal",
+      "kind": "runtime-ordering-boundary",
+      "oracle": "Complete identity-string collisions are ordered by immutable never-reused announcement ordinal within the session."
+    },
+    {
+      "id": "mode-scale-layout-stability",
+      "kind": "runtime-stability",
+      "oracle": "Changing mode, scale, transform, or layout coordinates does not change canonical indices or reload config."
+    },
+    {
+      "id": "valid-numeric-targets",
+      "kind": "runtime-boundary",
+      "oracle": "For three outputs, strings 0, 1, and 2 select exactly the matching canonical snapshot indices."
+    },
+    {
+      "id": "negative-numeric-rejected",
+      "kind": "runtime-negative",
+      "oracle": "-1 selects no output, causes no spatial mutation, and never wraps to the last output."
+    },
+    {
+      "id": "signed-and-whitespace-rejected",
+      "kind": "runtime-negative",
+      "oracle": "+1, leading/trailing whitespace, and an empty string select no output."
+    },
+    {
+      "id": "malformed-and-overflow-rejected",
+      "kind": "runtime-negative",
+      "oracle": "Text, partial decimals such as 1x, and integer overflow select no output rather than output 0."
+    },
+    {
+      "id": "out-of-range-rejected",
+      "kind": "runtime-negative",
+      "oracle": "An index equal to or above output count selects no output and never wraps."
+    },
+    {
+      "id": "good-reload-all-outputs",
+      "kind": "runtime-lifecycle",
+      "oracle": "A valid reload atomically changes the one config observed by all output scenes without changing their identity keys."
+    },
+    {
+      "id": "invalid-reload-preserves",
+      "kind": "runtime-lifecycle-negative",
+      "oracle": "An invalid reload preserves the prior global config, output set, identity keys, and canonical indices."
+    },
+    {
+      "id": "restart-source-stability",
+      "kind": "runtime-lifecycle",
+      "oracle": "In-place restart repeats the screen-zero or explicit selection independent of focused output and preserves live output identity records."
+    },
+    {
+      "id": "output-add-active-config",
+      "kind": "runtime-topology",
+      "oracle": "A newly added output receives the active config without any file search; the dense canonical view is recomputed."
+    },
+    {
+      "id": "output-remove-config-stability",
+      "kind": "runtime-topology",
+      "oracle": "Removing an output leaves the active config unchanged and recomputes only the canonical view."
+    },
+    {
+      "id": "deferred-behavior-not-claimed",
+      "kind": "contract-scope",
+      "oracle": "Passing mapping tests does not mark placement, per-output roots, next/prev/back screen history, hotplug transactions, or disappeared-output restoration complete."
+    }
+  ]
+}

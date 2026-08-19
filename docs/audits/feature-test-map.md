@@ -10,7 +10,7 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 
 **Features mapped:** 134 of 134
 
-**Automated case mappings:** 187
+**Automated case mappings:** 204
 
 ## Mapping counts
 
@@ -18,14 +18,14 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
 | --- | ---: |
 | `syntax` | 122 |
 | `source_contract` | 54 |
-| `runtime` | 11 |
+| `runtime` | 28 |
 
 | Category | Features | Syntax | Source contract | Runtime |
 | --- | ---: | ---: | ---: | ---: |
-| `action` | 38 | 38 | 18 | 4 |
-| `construct` | 19 | 19 | 0 | 0 |
-| `directive` | 65 | 65 | 24 | 7 |
-| `runtime_dispatch` | 12 | 0 | 12 | 0 |
+| `action` | 38 | 38 | 18 | 11 |
+| `construct` | 19 | 19 | 0 | 1 |
+| `directive` | 65 | 65 | 24 | 9 |
+| `runtime_dispatch` | 12 | 0 | 12 | 7 |
 
 | Implementation status | Features |
 | --- | ---: |
@@ -44,3 +44,12 @@ non-behavioral; they do not upgrade compatibility-ledger runtime or parity claim
   prove an observable effect, Xwayland behavior, or equivalence with X11 `twm`.
 - The immutable current audit retains the tests visible at its audited commit; this
   map is the authoritative current test-coverage layer for the Milestone 0 gate.
+- Runtime catalog `ledger_features` name frozen upstream ledger IDs separately
+  from honest current-audit runtime mappings: the no-op option runner maps three
+  X-resource keywords, the colormap runner maps `keyword.f.colormap`, and
+  the cut-buffer runner maps its three action keywords plus `lexical.cut-shorthand`
+  through configured-action dispatch.
+- The output-placement, topology, restoration, and input-hotplug runtime
+  mappings separate steady-state spatial selection, atomic output mutation,
+  managed-scene repair, and physical-device churn. Session lifecycle remains
+  separate Milestone 8 work.

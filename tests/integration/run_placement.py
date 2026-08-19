@@ -288,6 +288,21 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
                             f"remap cycle {cycle + 1} moved the frame: "
                             f"before={before!r} after={after!r}"
                         )
+            assert client.stdin is not None
+            client.stdin.write("QUIT\n")
+            client.stdin.flush()
+            client.wait(timeout=5)
+            if client.returncode != 0:
+                raise RuntimeError(
+                    f"placement client failed ({client.returncode})"
+                )
+            client = None
+            control.command("QUIT")
+            process.wait(timeout=5)
+            if process.returncode != 0:
+                raise RuntimeError(
+                    f"placement compositor failed ({process.returncode})"
+                )
         finally:
             if client is not None and client.poll() is None:
                 client.terminate()
@@ -295,6 +310,7 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
                     client.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     client.kill()
+                    client.wait(timeout=5)
             if control is not None:
                 control.close()
             if process.poll() is None:
@@ -303,6 +319,7 @@ def run_case(compositor: Path, client_binary: Path, scenario: str,
                     process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     process.kill()
+                    process.wait(timeout=5)
             if process.returncode not in (0, -15):
                 stderr = process.stderr.read() if process.stderr else ""
                 raise RuntimeError(f"compositor failed ({process.returncode}): {stderr}")

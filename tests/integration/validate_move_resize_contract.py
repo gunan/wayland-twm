@@ -53,6 +53,7 @@ SOURCE_FRAGMENTS = (
     "if (!server->config.no_raise_on_resize)",
     "wtwm_delta_stop_continues(server->last_interaction_moved)",
     "resume_action_continuation(server);",
+    "server->interaction.required_button_valid = false;",
 )
 
 RUNNER_FRAGMENTS = (
@@ -61,6 +62,8 @@ RUNNER_FRAGMENTS = (
     "MoveDelta equality did not start",
     "outline preview geometry is wrong",
     "second-button press did not abort outline move",
+    "does not synthesize release of the original holder",
+    'control.command("BUTTON 274 release")\n    release(control, 273)',
     "DontMoveOff did not clamp outer frame",
     "f.forcemove was incorrectly clamped",
     "rapid second move was not constrained",
@@ -75,6 +78,7 @@ RUNNER_FRAGMENTS = (
     "NoRaiseOnResize did not preserve stacking",
     "f.deltastop stopped a below-threshold function",
     "f.deltastop did not stop after threshold movement",
+    "pointer did not reach root context before press",
 )
 
 

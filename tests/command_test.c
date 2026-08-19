@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include <wtwm/command.h>
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -150,10 +151,50 @@ static void test_destroy_resets_plan(void) {
 		fail("destroy", 0, "plan was not reset");
 }
 
+static void test_safe_handoff_planning(void) {
+	struct {
+		const char *command;
+		const char *running_program;
+		enum wtwm_handoff_result expected;
+		const char *config_path;
+	} cases[] = {
+		{"wtwm", "/usr/bin/wtwm", WTWM_HANDOFF_RELOAD, NULL},
+		{"./wtwm -f alternate.twmrc", "/usr/bin/wtwm",
+			WTWM_HANDOFF_RELOAD_CONFIG, "alternate.twmrc"},
+		{"/opt/wtwm -f'alternate config'", "wtwm",
+			WTWM_HANDOFF_RELOAD_CONFIG, "alternate config"},
+		{"wtwm -fnext.twmrc", "wtwm",
+			WTWM_HANDOFF_RELOAD_CONFIG, "next.twmrc"},
+		{"other-wm", "wtwm", WTWM_HANDOFF_UNSUPPORTED, NULL},
+		{"wtwm && true", "wtwm", WTWM_HANDOFF_UNSUPPORTED, NULL},
+		{"wtwm -d", "wtwm", WTWM_HANDOFF_UNSUPPORTED, NULL},
+		{"wtwm -f", "wtwm", WTWM_HANDOFF_UNSUPPORTED, NULL},
+		{"wtwm -f ''", "wtwm", WTWM_HANDOFF_UNSUPPORTED, NULL},
+		{"wtwm", "wtwm-test-compositor", WTWM_HANDOFF_UNSUPPORTED, NULL},
+	};
+	for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+		struct wtwm_command_plan plan;
+		assert(wtwm_command_plan_create(cases[i].command, &plan) ==
+			WTWM_COMMAND_OK);
+		const char *config_path = "unchanged";
+		enum wtwm_handoff_result result = wtwm_command_handoff(
+			&plan, cases[i].running_program, &config_path);
+		assert(result == cases[i].expected);
+		if (cases[i].config_path == NULL) assert(config_path == NULL);
+		else assert(config_path != NULL &&
+			strcmp(config_path, cases[i].config_path) == 0);
+		wtwm_command_plan_destroy(&plan);
+	}
+	const char *config_path = "unchanged";
+	assert(wtwm_command_handoff(NULL, "wtwm", &config_path) ==
+		WTWM_HANDOFF_UNSUPPORTED && config_path == NULL);
+}
+
 int main(void) {
 	test_direct_commands();
 	test_shell_commands();
 	test_malformed_commands();
 	test_destroy_resets_plan();
+	test_safe_handoff_planning();
 	return failures == 0 ? 0 : 1;
 }

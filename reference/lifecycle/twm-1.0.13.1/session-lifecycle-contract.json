@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 session lifecycle and wtwm Wayland translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/session.c": "0dbc830242b74e8194e86a8a1600cd185c15e603f444ba4ca695e107ae3008a4",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.foreground-owner": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 73,
+      "text": "as the last client."
+    },
+    "manual.exit-logs-out": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 74,
+      "text": "When run this way, exiting \\fItwm\\fP causes the"
+    },
+    "manual.client-id": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 128,
+      "text": ".B \\-clientId \\fIID\\fP"
+    },
+    "manual.restore": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 151,
+      "text": ".B \\-restore \\fIfilename\\fP"
+    },
+    "manual.quit": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 1357,
+      "text": "This function causes \\fItwm\\fP to restore the window's borders and exit."
+    },
+    "parse.quit": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 456,
+      "text": "    { \"f.quit\",                 FKEYWORD, F_QUIT },"
+    },
+    "menu.quit": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2173,
+      "text": "    case F_QUIT:"
+    },
+    "menu.quit-done": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 2174,
+      "text": "        Done(NULL, NULL);"
+    },
+    "startup.sigint": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 285,
+      "text": "    newhandler(SIGINT);"
+    },
+    "startup.sighup": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 286,
+      "text": "    newhandler(SIGHUP);"
+    },
+    "startup.sigquit": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 287,
+      "text": "    newhandler(SIGQUIT);"
+    },
+    "startup.sigterm": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 288,
+      "text": "    newhandler(SIGTERM);"
+    },
+    "startup.signal-dispatch": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 317,
+      "text": "    si = XtAppAddSignal(appContext, Done, NULL);"
+    },
+    "startup.restore-read": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 329,
+      "text": "        ReadWinConfigFile(restore_filename);"
+    },
+    "startup.session-connect": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 643,
+      "text": "    (void) ConnectToSessionManager(client_id, appContext);"
+    },
+    "exit.reborder": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 925,
+      "text": "        Reborder(CurrentTime);"
+    },
+    "exit.session-destroy": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 930,
+      "text": "    DestroySession();"
+    },
+    "exit.success": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 931,
+      "text": "    exit(EXIT_SUCCESS);"
+    },
+    "xsm.restart-style": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 711,
+      "text": "        hint[0] = SmRestartIfRunning;"
+    },
+    "xsm.save-directory": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 725,
+      "text": "    path = getenv(\"SM_SAVE_DIR\");"
+    },
+    "xsm.restart-command": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 775,
+      "text": "    props[3]->name = strdup(SmRestartCommand);"
+    },
+    "xsm.discard-command": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 814,
+      "text": "    props[4]->name = strdup(SmDiscardCommand);"
+    },
+    "xsm.save-result": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 824,
+      "text": "    SmcSaveYourselfDone(smcConn2, success);"
+    },
+    "xsm.die": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 854,
+      "text": "    Done(NULL, NULL);"
+    },
+    "xsm.cancelled": {
+      "member": "twm-1.0.13.1/src/session.c",
+      "line": 867,
+      "text": "        SmcSaveYourselfDone(smcConn2, False);"
+    }
+  },
+  "reference_behavior": {
+    "session_owner": "When twm is the foreground last client, its exit is the login-session boundary.",
+    "orderly_exit_sources": [
+      "f.quit",
+      "SIGINT",
+      "SIGHUP",
+      "SIGQUIT",
+      "SIGTERM",
+      "XSM Die"
+    ],
+    "orderly_exit_status": 0,
+    "xsm": {
+      "connects_at_startup": true,
+      "restart_style": "SmRestartIfRunning",
+      "restart_arguments": [
+        "original arguments without old -clientId/-restore",
+        "-clientId with the current session-manager identity",
+        "-restore with the newly written window-state file"
+      ],
+      "discard_command_removes_state": true,
+      "shutdown_cancel_reports_failure_when_save_is_pending": true
+    }
+  },
+  "wayland_translation": {
+    "session_owner": {
+      "entrypoint": "wtwm-session",
+      "model": "one foreground compositor child supervised by the login manager",
+      "restart_loop": false,
+      "display_manager_mutation": false,
+      "child_status_preserved": true
+    },
+    "startup": {
+      "order": [
+        "validate command line",
+        "parse and validate the complete configuration",
+        "resolve and optionally load compositor-owned saved state",
+        "create display, backend, protocols, and input state",
+        "publish the Wayland socket and start the backend",
+        "allocate Xwayland and export WAYLAND_DISPLAY and DISPLAY",
+        "launch the optional startup command",
+        "enter the event loop"
+      ],
+      "startup_command_role": "best-effort child, never the compositor supervisor",
+      "startup_command_failure": "report through child status/logging without ending the compositor",
+      "validation_failure": "exit nonzero before sockets, backend start, Xwayland, or startup command",
+      "runtime_initialization_failure": "tear down all initialized resources and exit nonzero before startup command"
+    },
+    "logout": {
+      "sources": [
+        "f.quit",
+        "SIGINT",
+        "SIGHUP",
+        "SIGQUIT",
+        "SIGTERM"
+      ],
+      "event_loop_action": "terminate",
+      "status": 0,
+      "cleanup": "destroy compositor-owned resources and disconnect native Wayland and Xwayland clients",
+      "automatic_state_save": false,
+      "automatic_restart": false
+    },
+    "failure_recovery": {
+      "configuration_or_initialization_failure_status": 1,
+      "invalid_option_status": 2,
+      "missing_compositor_status_from_launcher": 127,
+      "launcher_restarts_compositor": false,
+      "login_manager_owns_greeter_return": true,
+      "existing_saved_state_is_never_replaced_by_startup_or_runtime_failure": true,
+      "crash_recovery": "the launcher returns the child failure; a later independent login starts from the last complete explicit save"
+    },
+    "state_file": {
+      "path": "$XDG_STATE_HOME/wtwm/state or $HOME/.local/state/wtwm/state",
+      "writer": "f.saveyourself only",
+      "reader_gate": "RestartPreviousState",
+      "missing_file": "successful empty state with root focus",
+      "malformed_or_unsupported_file": "diagnose, retain the file byte-for-byte, and start clean",
+      "save": "mode-0600 same-directory temporary file, flush, fsync, close, atomic rename",
+      "failed_save": "retain the previous complete file",
+      "lifetime": "persistent until an explicit successful replacement or user removal",
+      "xsm_client_id_option": false,
+      "xsm_restore_option": false,
+      "xsm_discard_command": false,
+      "restores_client_processes_or_documents": false
+    }
+  },
+  "requirements": [
+    {
+      "id": "session.foreground-owner",
+      "level": "MUST",
+      "rule": "wtwm-session runs exactly one foreground compositor child, never loops or replaces the display manager, and returns the child status.",
+      "evidence": ["manual.foreground-owner", "manual.exit-logs-out"]
+    },
+    {
+      "id": "session.startup-order",
+      "level": "MUST",
+      "rule": "Configuration validation completes before runtime resources and the optional startup command; the command runs only after the Wayland and Xwayland environment is published.",
+      "evidence": ["startup.restore-read", "startup.session-connect"]
+    },
+    {
+      "id": "session.startup-failure",
+      "level": "MUST",
+      "rule": "Invalid configuration or runtime initialization exits nonzero, does not execute the startup command, and leaves any saved state unchanged.",
+      "evidence": ["startup.restore-read"]
+    },
+    {
+      "id": "session.quit-orderly",
+      "level": "MUST",
+      "rule": "f.quit terminates the event loop, performs complete compositor cleanup, disconnects both protocol families, and exits successfully.",
+      "evidence": ["parse.quit", "menu.quit", "menu.quit-done", "exit.success"]
+    },
+    {
+      "id": "session.signal-orderly",
+      "level": "MUST",
+      "rule": "SIGINT, SIGHUP, SIGQUIT, and SIGTERM enter the same orderly successful cleanup boundary as f.quit.",
+      "evidence": ["startup.sigint", "startup.sighup", "startup.sigquit", "startup.sigterm", "exit.success"]
+    },
+    {
+      "id": "session.startup-child-isolation",
+      "level": "MUST",
+      "rule": "Failure of the optional startup command does not terminate or restart the compositor.",
+      "evidence": ["manual.foreground-owner"]
+    },
+    {
+      "id": "session.no-automatic-restart",
+      "level": "MUST",
+      "rule": "The launcher never automatically restarts a cleanly exited or failed compositor; the login manager owns the next login attempt.",
+      "evidence": ["manual.exit-logs-out", "xsm.restart-style"]
+    },
+    {
+      "id": "session.explicit-state",
+      "level": "MUST",
+      "rule": "Only f.saveyourself replaces the persistent compositor state; logout, signals, startup failures, and crashes never perform an implicit save.",
+      "evidence": ["xsm.save-result", "xsm.die"]
+    },
+    {
+      "id": "session.state-load-failure",
+      "level": "MUST",
+      "rule": "Missing state starts empty, while malformed or unsupported state is diagnosed and ignored without modifying the file or preventing startup.",
+      "evidence": ["manual.restore", "startup.restore-read"]
+    },
+    {
+      "id": "session.xsm-boundary",
+      "level": "MUST",
+      "rule": "wtwm does not implement XSM -clientId/-restore restart commands or discard callbacks; its explicit persistent state restores only compositor-owned state.",
+      "evidence": ["manual.client-id", "manual.restore", "xsm.restart-command", "xsm.discard-command"]
+    }
+  ],
+  "verification_scenarios": [
+    {"id": "invalid-command-line", "oracle": "Exit 2 before runtime initialization or startup command."},
+    {"id": "invalid-configuration", "oracle": "Exit 1 with no socket, Xwayland, startup command, or state-file mutation."},
+    {"id": "runtime-initialization-failure", "oracle": "Exit 1 after bounded teardown with no startup command or state-file mutation."},
+    {"id": "startup-command-environment", "oracle": "The command observes the new WAYLAND_DISPLAY and DISPLAY values."},
+    {"id": "startup-command-failure", "oracle": "A nonzero startup child does not end the live compositor."},
+    {"id": "f-quit-mixed-clients", "protocols": ["native-wayland", "xwayland"], "oracle": "Both clients are live before f.quit, then disconnect during complete cleanup and the compositor exits 0."},
+    {"id": "signal-int", "oracle": "SIGINT produces complete cleanup and exit 0."},
+    {"id": "signal-hup", "oracle": "SIGHUP produces complete cleanup and exit 0."},
+    {"id": "signal-quit", "oracle": "SIGQUIT produces complete cleanup and exit 0."},
+    {"id": "signal-term", "oracle": "SIGTERM produces complete cleanup and exit 0."},
+    {"id": "launcher-forward-and-reap", "oracle": "A controlling signal is forwarded as TERM, the child is reaped exactly once, and its final status is returned."},
+    {"id": "launcher-failed-child", "oracle": "A failed child status is logged and returned without another launch."},
+    {"id": "missing-state", "oracle": "RestartPreviousState starts with empty root-focused state and does not create a file."},
+    {"id": "malformed-state", "oracle": "Startup diagnoses the file, starts clean, and leaves its bytes unchanged through logout."},
+    {"id": "failed-explicit-save", "oracle": "The previous complete state remains byte-identical and no temporary file remains."},
+    {"id": "logout-without-save", "oracle": "f.quit and every orderly signal leave the persistent state path absent or byte-identical."},
+    {"id": "failure-then-new-login", "oracle": "The launcher returns the failure and a separate later invocation can start normally from the last complete explicit state."}
+  ],
+  "deferred": [
+    "XSM or D-Bus session-manager protocol emulation",
+    "automatic compositor restart after crash",
+    "client process or document resurrection",
+    "display-manager implementation and greeter policy",
+    "physical DRM login evidence"
+  ]
+}

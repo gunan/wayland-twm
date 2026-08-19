@@ -1,0 +1,576 @@
+{
+  "schema_version": 1,
+  "contract": "X.Org twm 1.0.13.1 backing-store, save-under, and server-grab behavior with the verified wtwm Wayland no-op translation",
+  "upstream": {
+    "name": "X.Org twm",
+    "version": "1.0.13.1",
+    "archive": "reference/upstream/twm-1.0.13.1/twm-1.0.13.1.tar.xz",
+    "sha256": "a52534755aa8b492c884e52fa988bac84ab4d54641954679b9aaf08e323df2c5",
+    "inventory": "reference/inventory/twm-1.0.13.1.json"
+  },
+  "source_members": {
+    "twm-1.0.13.1/man/twm.man": "a1743a47770bd63a2ff5e63b8c6e86d72ee02ddd126813951833fb33b8a56674",
+    "twm-1.0.13.1/src/events.c": "4fe7f9746d569abe64c7301a1b31197a299eede117d54456929b6e82726366e3",
+    "twm-1.0.13.1/src/menus.c": "f8192e767d40207e931a180415c97689f107fb1e330416f8d68bca9a68919a83",
+    "twm-1.0.13.1/src/parse.c": "d36e01520616b98a02a399462f5aef62e16147288c7818d99eb22ca85cd02b7c",
+    "twm-1.0.13.1/src/twm.c": "6a8c95df4df186a970e56ed7da4013f6305823c4a9b99cbebfe08f076f01ab3d"
+  },
+  "evidence": {
+    "manual.nobackingstore": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 758,
+      "text": ".IP \"\\fBNoBackingStore\\fP\" 8"
+    },
+    "manual.nobackingstore-scope": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 759,
+      "text": "This variable indicates that \\fItwm\\fP's menus should not request backing"
+    },
+    "manual.nobackingstore-effect": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 760,
+      "text": "store to minimize repainting of menus."
+    },
+    "manual.nograbserver": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 773,
+      "text": ".IP \"\\fBNoGrabServer\\fP\" 8"
+    },
+    "manual.nograbserver-scope": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 774,
+      "text": "This variable indicates that \\fItwm\\fP should not grab the server"
+    },
+    "manual.nograbserver-effect": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 775,
+      "text": "when popping up menus and moving opaque windows."
+    },
+    "manual.nosaveunders": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 811,
+      "text": ".IP \"\\fBNoSaveUnders\\fP\" 8"
+    },
+    "manual.nosaveunders-scope": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 812,
+      "text": "This variable indicates that menus should not request save-unders to minimize"
+    },
+    "manual.nosaveunders-effect": {
+      "member": "twm-1.0.13.1/man/twm.man",
+      "line": 813,
+      "text": "window repainting following menu selection."
+    },
+    "parse.nobackingstore": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 533,
+      "text": "    { \"nobackingstore\",         KEYWORD, kw0_NoBackingStore },"
+    },
+    "parse.nograbserver": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 536,
+      "text": "    { \"nograbserver\",           KEYWORD, kw0_NoGrabServer },"
+    },
+    "parse.nosaveunders": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 545,
+      "text": "    { \"nosaveunders\",           KEYWORD, kw0_NoSaveUnders },"
+    },
+    "default.nograbserver-disabled": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 744,
+      "text": "    Scr->NoGrabServer = FALSE;"
+    },
+    "default.backingstore-enabled": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 757,
+      "text": "    Scr->BackingStore = TRUE;"
+    },
+    "default.saveunder-enabled": {
+      "member": "twm-1.0.13.1/src/twm.c",
+      "line": 758,
+      "text": "    Scr->SaveUnder = TRUE;"
+    },
+    "state.nograbserver-enable": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 667,
+      "text": "        Scr->NoGrabServer = TRUE;"
+    },
+    "state.backingstore-disable": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 695,
+      "text": "        Scr->BackingStore = FALSE;"
+    },
+    "state.saveunder-disable": {
+      "member": "twm-1.0.13.1/src/parse.c",
+      "line": 699,
+      "text": "        Scr->SaveUnder = FALSE;"
+    },
+    "saveunder.shadow-condition": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 774,
+      "text": "            if (Scr->SaveUnder) {"
+    },
+    "saveunder.shadow-mask": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 775,
+      "text": "                valuemask |= CWSaveUnder;"
+    },
+    "saveunder.shadow-value": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 776,
+      "text": "                attributes.save_under = True;"
+    },
+    "saveunder.menu-condition": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 792,
+      "text": "        if (Scr->SaveUnder) {"
+    },
+    "saveunder.menu-mask": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 793,
+      "text": "            valuemask |= CWSaveUnder;"
+    },
+    "saveunder.menu-value": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 794,
+      "text": "            attributes.save_under = True;"
+    },
+    "backingstore.menu-condition": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 796,
+      "text": "        if (Scr->BackingStore) {"
+    },
+    "backingstore.menu-mask": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 797,
+      "text": "            valuemask |= CWBackingStore;"
+    },
+    "backingstore.menu-value": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 798,
+      "text": "            attributes.backing_store = Always;"
+    },
+    "grab.move-condition": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1462,
+      "text": "        if (!Scr->NoGrabServer || !Scr->OpaqueMove) {"
+    },
+    "grab.move-call": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1463,
+      "text": "            XGrabServer(dpy);"
+    },
+    "grab.exec-cleanup-condition": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1904,
+      "text": "        if (!Scr->NoGrabServer) {"
+    },
+    "grab.exec-cleanup-call": {
+      "member": "twm-1.0.13.1/src/menus.c",
+      "line": 1905,
+      "text": "            XUngrabServer(dpy);"
+    },
+    "grab.menu-condition": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1685,
+      "text": "    if (!Scr->NoGrabServer)"
+    },
+    "grab.menu-call": {
+      "member": "twm-1.0.13.1/src/events.c",
+      "line": 1686,
+      "text": "        XGrabServer(dpy);"
+    }
+  },
+  "reference_behavior": {
+    "directive_identity": [
+      {
+        "name": "NoBackingStore",
+        "inventory_id": "keyword.nobackingstore",
+        "parser_token": "KEYWORD",
+        "parser_value": "kw0_NoBackingStore",
+        "argument_count": 0,
+        "evidence": [
+          "manual.nobackingstore",
+          "parse.nobackingstore"
+        ]
+      },
+      {
+        "name": "NoSaveUnders",
+        "inventory_id": "keyword.nosaveunders",
+        "parser_token": "KEYWORD",
+        "parser_value": "kw0_NoSaveUnders",
+        "argument_count": 0,
+        "evidence": [
+          "manual.nosaveunders",
+          "parse.nosaveunders"
+        ]
+      },
+      {
+        "name": "NoGrabServer",
+        "inventory_id": "keyword.nograbserver",
+        "parser_token": "KEYWORD",
+        "parser_value": "kw0_NoGrabServer",
+        "argument_count": 0,
+        "evidence": [
+          "manual.nograbserver",
+          "parse.nograbserver"
+        ]
+      }
+    ],
+    "defaults": {
+      "BackingStore": true,
+      "SaveUnder": true,
+      "NoGrabServer": false,
+      "evidence": [
+        "default.backingstore-enabled",
+        "default.saveunder-enabled",
+        "default.nograbserver-disabled"
+      ]
+    },
+    "no_backing_store": {
+      "state_transition": "BackingStore true to false",
+      "complete_state_reads": [
+        "twm-1.0.13.1/src/menus.c:796"
+      ],
+      "effect": "omit CWBackingStore with backing_store Always when creating the twm menu window",
+      "scope": "twm menu window only",
+      "does_not_control": [
+        "client window backing-store attributes",
+        "the f.refresh temporary window request",
+        "application repaint behavior"
+      ],
+      "evidence": [
+        "manual.nobackingstore-scope",
+        "manual.nobackingstore-effect",
+        "state.backingstore-disable",
+        "backingstore.menu-condition",
+        "backingstore.menu-mask",
+        "backingstore.menu-value"
+      ]
+    },
+    "no_save_unders": {
+      "state_transition": "SaveUnder true to false",
+      "complete_state_reads": [
+        "twm-1.0.13.1/src/menus.c:774",
+        "twm-1.0.13.1/src/menus.c:792"
+      ],
+      "effect": "omit CWSaveUnder with save_under True when creating the twm menu shadow and menu windows",
+      "scope": "twm menu shadow and menu windows only",
+      "does_not_control": [
+        "a client window's own save_under attribute",
+        "the f.refresh temporary window request",
+        "application repaint behavior"
+      ],
+      "evidence": [
+        "manual.nosaveunders-scope",
+        "manual.nosaveunders-effect",
+        "state.saveunder-disable",
+        "saveunder.shadow-condition",
+        "saveunder.shadow-mask",
+        "saveunder.shadow-value",
+        "saveunder.menu-condition",
+        "saveunder.menu-mask",
+        "saveunder.menu-value"
+      ]
+    },
+    "no_grab_server": {
+      "state_transition": "NoGrabServer false to true",
+      "complete_state_reads": [
+        "twm-1.0.13.1/src/events.c:1685",
+        "twm-1.0.13.1/src/menus.c:1462",
+        "twm-1.0.13.1/src/menus.c:1904"
+      ],
+      "menu_rule": "skip the XGrabServer used while a twm menu is popped up and its conditional f.exec cleanup",
+      "move_rule": "grab unless both NoGrabServer and OpaqueMove are true",
+      "move_grab_truth_table": [
+        {
+          "NoGrabServer": false,
+          "OpaqueMove": false,
+          "XGrabServer": true
+        },
+        {
+          "NoGrabServer": false,
+          "OpaqueMove": true,
+          "XGrabServer": true
+        },
+        {
+          "NoGrabServer": true,
+          "OpaqueMove": false,
+          "XGrabServer": true
+        },
+        {
+          "NoGrabServer": true,
+          "OpaqueMove": true,
+          "XGrabServer": false
+        }
+      ],
+      "scope": "twm menu grabs and opaque-move grabs; outlined moves still grab",
+      "does_not_control": [
+        "unconditional X server grabs used by other twm lifecycle paths",
+        "the asynchronous pointer grab used during a move",
+        "client-originated X server grabs"
+      ],
+      "evidence": [
+        "manual.nograbserver-scope",
+        "manual.nograbserver-effect",
+        "state.nograbserver-enable",
+        "grab.menu-condition",
+        "grab.menu-call",
+        "grab.move-condition",
+        "grab.move-call",
+        "grab.exec-cleanup-condition",
+        "grab.exec-cleanup-call"
+      ]
+    }
+  },
+  "wayland_translation": {
+    "classification": [
+      {
+        "name": "NoBackingStore",
+        "status": "verified-no-op",
+        "reason": "wtwm menus are compositor scene content, not X windows with CWBackingStore attributes"
+      },
+      {
+        "name": "NoSaveUnders",
+        "status": "verified-no-op",
+        "reason": "wtwm menu and shadow pixels are compositor scene content, not X windows with CWSaveUnder attributes"
+      },
+      {
+        "name": "NoGrabServer",
+        "status": "verified-no-op",
+        "reason": "wtwm scene menus and moves use compositor input state and have no X server-grab operation to suppress"
+      }
+    ],
+    "parser_state": {
+      "retention_required": true,
+      "explicit_fields": [
+        "no_backing_store",
+        "no_save_unders",
+        "no_grab_server"
+      ],
+      "directive_value": true,
+      "absent_value": false,
+      "may_be_discarded_after_parse": false,
+      "rule": "Each recognized directive remains explicit in the active parsed configuration even though runtime behavior is invariant."
+    },
+    "platform_boundary": {
+      "wtwm_creates_x_menu_windows": false,
+      "wtwm_creates_x_menu_shadow_windows": false,
+      "wayland_has_x_server_grab_primitive": false,
+      "wtwm_uses_x_server_grab_for_scene_menu_or_move": false,
+      "scene_rendering_and_input_owned_by_compositor": true,
+      "xwayland_client_x_protocol_remains_owned_by_xwayland": true
+    },
+    "runtime_invariance": {
+      "comparison": "configs differing only by any combination of the three directives",
+      "directive_subsets": [
+        [],
+        [
+          "NoBackingStore"
+        ],
+        [
+          "NoSaveUnders"
+        ],
+        [
+          "NoGrabServer"
+        ],
+        [
+          "NoBackingStore",
+          "NoSaveUnders"
+        ],
+        [
+          "NoBackingStore",
+          "NoGrabServer"
+        ],
+        [
+          "NoSaveUnders",
+          "NoGrabServer"
+        ],
+        [
+          "NoBackingStore",
+          "NoSaveUnders",
+          "NoGrabServer"
+        ]
+      ],
+      "must_remain_identical": [
+        "visible pixels",
+        "compositor-owned window and menu state",
+        "input event sequence and resulting action",
+        "native Wayland client behavior and protocol continuity",
+        "Xwayland client behavior and protocol continuity"
+      ],
+      "menu_rule": "menu geometry, shadow, colors, exposure, selection, dismissal, and invoked action are identical",
+      "move_rule": "outlined and opaque move geometry, feedback, pointer handling, completion, and cancellation are identical",
+      "client_rule": "the directives do not issue, suppress, delay, disconnect, or reorder native Wayland or Xwayland client protocol traffic",
+      "state_rule": "the retained parser booleans are the only state difference"
+    },
+    "future_visible_effect": {
+      "allowed_without_reclassification": false,
+      "rule": "If a future backend gives one of these directives a visible compatibility effect, it must be source-grounded, documented, and covered by differential runtime tests before the directive stops being a verified no-op."
+    }
+  },
+  "requirements": [
+    {
+      "id": "x11-noop.nobackingstore-scope",
+      "level": "MUST",
+      "rule": "The upstream NoBackingStore effect is limited to omitting CWBackingStore/Always from the twm menu window request.",
+      "evidence": [
+        "manual.nobackingstore-scope",
+        "manual.nobackingstore-effect",
+        "state.backingstore-disable",
+        "backingstore.menu-condition",
+        "backingstore.menu-mask",
+        "backingstore.menu-value"
+      ]
+    },
+    {
+      "id": "x11-noop.nosaveunders-scope",
+      "level": "MUST",
+      "rule": "The upstream NoSaveUnders effect is limited to omitting CWSaveUnder/True from the twm menu shadow and menu window requests.",
+      "evidence": [
+        "manual.nosaveunders-scope",
+        "manual.nosaveunders-effect",
+        "state.saveunder-disable",
+        "saveunder.shadow-condition",
+        "saveunder.shadow-mask",
+        "saveunder.shadow-value",
+        "saveunder.menu-condition",
+        "saveunder.menu-mask",
+        "saveunder.menu-value"
+      ]
+    },
+    {
+      "id": "x11-noop.nograbserver-scope",
+      "level": "MUST",
+      "rule": "The upstream NoGrabServer effect skips the menu grab and skips the move grab only when OpaqueMove is also true.",
+      "evidence": [
+        "manual.nograbserver-scope",
+        "manual.nograbserver-effect",
+        "state.nograbserver-enable",
+        "grab.menu-condition",
+        "grab.menu-call",
+        "grab.move-condition",
+        "grab.move-call"
+      ]
+    },
+    {
+      "id": "x11-noop.outlined-move-boundary",
+      "level": "MUST",
+      "rule": "NoGrabServer does not suppress the upstream XGrabServer for an outlined move because !OpaqueMove makes the grab condition true.",
+      "evidence": [
+        "grab.move-condition",
+        "grab.move-call"
+      ]
+    },
+    {
+      "id": "x11-noop.parser-retention",
+      "level": "MUST",
+      "rule": "wtwm recognizes and retains a separate explicit boolean for every directive even though each is a verified runtime no-op.",
+      "evidence": [
+        "parse.nobackingstore",
+        "parse.nosaveunders",
+        "parse.nograbserver"
+      ]
+    },
+    {
+      "id": "x11-noop.runtime-invariance",
+      "level": "MUST",
+      "rule": "Adding or removing any combination of these directives changes no visible pixels, compositor-owned runtime state, input sequence/result, native Wayland behavior, or Xwayland protocol continuity.",
+      "evidence": [
+        "manual.nobackingstore-scope",
+        "manual.nosaveunders-scope",
+        "manual.nograbserver-effect"
+      ]
+    },
+    {
+      "id": "x11-noop.no-invented-x-resources",
+      "level": "MUST",
+      "rule": "wtwm does not create X menu or shadow windows or add an X server-grab operation merely to emulate these X11 resource hints.",
+      "evidence": [
+        "backingstore.menu-mask",
+        "saveunder.shadow-mask",
+        "saveunder.menu-mask",
+        "grab.menu-call",
+        "grab.move-call"
+      ]
+    },
+    {
+      "id": "x11-noop.future-effect-gate",
+      "level": "MUST",
+      "rule": "A future visible effect requires new source-grounded classification and differential runtime coverage before changing this verified no-op contract.",
+      "evidence": [
+        "manual.nobackingstore-effect",
+        "manual.nosaveunders-effect",
+        "manual.nograbserver-effect"
+      ]
+    }
+  ],
+  "verification_scenarios": [
+    {
+      "id": "reference-default-menu-attributes",
+      "kind": "reference-positive",
+      "oracle": "With no directives, twm requests CWBackingStore/Always for its menu window and CWSaveUnder/True for its menu and shadow windows."
+    },
+    {
+      "id": "reference-nobackingstore",
+      "kind": "reference-negative",
+      "oracle": "NoBackingStore disables only the conditional CWBackingStore/Always request on the twm menu window."
+    },
+    {
+      "id": "reference-nosaveunders",
+      "kind": "reference-negative",
+      "oracle": "NoSaveUnders disables only the conditional CWSaveUnder/True requests on the twm menu and shadow windows."
+    },
+    {
+      "id": "reference-menu-grab",
+      "kind": "reference-positive-negative-pair",
+      "oracle": "twm calls XGrabServer when popping a menu by default and skips that call with NoGrabServer."
+    },
+    {
+      "id": "reference-opaque-move-grab",
+      "kind": "reference-negative",
+      "oracle": "With NoGrabServer and OpaqueMove both true, twm skips the move XGrabServer call."
+    },
+    {
+      "id": "reference-outlined-move-grab",
+      "kind": "reference-boundary",
+      "oracle": "With NoGrabServer true and OpaqueMove false, twm still calls XGrabServer for the outlined move."
+    },
+    {
+      "id": "translation-parser-retention",
+      "kind": "translation-positive",
+      "oracle": "Each directive and all three combined produce distinct true parser fields in the active configuration."
+    },
+    {
+      "id": "translation-menu-invariance",
+      "kind": "translation-differential",
+      "oracle": "Menu pixels, selection, dismissal, input sequence, and invoked action are identical across configs differing only by NoBackingStore, NoSaveUnders, or NoGrabServer."
+    },
+    {
+      "id": "translation-opaque-move-invariance",
+      "kind": "translation-differential",
+      "oracle": "Opaque-move pixels, geometry, pointer sequence, completion, and cancellation are identical with and without NoGrabServer across all eight directive subsets."
+    },
+    {
+      "id": "translation-outlined-move-invariance",
+      "kind": "translation-differential",
+      "oracle": "Outlined-move pixels, geometry, pointer sequence, completion, and cancellation are identical with and without NoGrabServer across all eight directive subsets."
+    },
+    {
+      "id": "translation-native-continuity",
+      "kind": "translation-negative",
+      "oracle": "No directive combination issues or suppresses native Wayland requests, changes native behavior, or disconnects a native client."
+    },
+    {
+      "id": "translation-xwayland-continuity",
+      "kind": "translation-negative",
+      "oracle": "No directive combination issues an X server grab, changes Xwayland client protocol traffic, or disconnects an Xwayland client."
+    },
+    {
+      "id": "translation-combined-state-boundary",
+      "kind": "translation-differential",
+      "oracle": "The three retained parser booleans are the only difference between otherwise equivalent runtime snapshots for absent, individual, and combined directive configs."
+    }
+  ]
+}

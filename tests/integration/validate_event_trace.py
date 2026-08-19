@@ -71,6 +71,8 @@ def validate_source(source: str) -> None:
     for fragment in SCHEMA_FRAGMENTS:
         if fragment not in source:
             raise ValueError(f"event trace JSON schema lacks {fragment!r}")
+    if '"\\\"cursor\\\":{\\\"x\\\":%.17g,\\\"y\\\":%.17g}' not in source:
+        raise ValueError("STATE cursor coordinates are not round-trip-safe doubles")
     for fragment in (
         "TEST_TRACE_MAX_EVENTS = 4096",
         "char test_title[TEST_TRACE_IDENTITY_MAX]",
@@ -164,6 +166,17 @@ def main() -> None:
             pass
         else:
             raise ValueError("event trace contract accepted nondeterministic clear")
+        tampered_precision = source.replace(
+            '"\\\"cursor\\\":{\\\"x\\\":%.17g,\\\"y\\\":%.17g}',
+            '"\\\"cursor\\\":{\\\"x\\\":%.3f,\\\"y\\\":%.3f}',
+            1,
+        )
+        try:
+            validate_source(tampered_precision)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("event trace contract accepted lossy STATE cursor precision")
         tampered_identity = source.replace(
             'if (strcmp(event, "destroy") != 0) test_trace_snapshot_identity(toplevel);',
             "test_trace_snapshot_identity(toplevel);",

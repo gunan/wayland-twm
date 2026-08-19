@@ -461,7 +461,7 @@ static void dumps_comprehensive_ordered_model(void) {
 	wtwm_config_init(&config);
 	char error[512];
 	assert(wtwm_config_parse(&config, "dump",
-		"BorderWidth 8\nNoGrabServer\nTitleFont \"font\"\n",
+		"BorderWidth 8\nNoGrabServer\nTitleFont \"font\"\nNoVersion\n",
 		error, sizeof(error)));
 	FILE *file = tmpfile();
 	assert(file != NULL);
@@ -484,6 +484,7 @@ static void dumps_comprehensive_ordered_model(void) {
 	assert(strstr(dump, "title_font=\"font\"") != NULL);
 	assert(strstr(dump, "0 name=BorderWidth") != NULL);
 	assert(strstr(dump, "1 name=NoGrabServer") != NULL);
+	assert(strstr(dump, "3 name=NoVersion") != NULL);
 	assert(strstr(dump, "compatibility=unsupported") != NULL);
 	assert(strstr(dump, "compatibility=wayland-translated") != NULL);
 	assert(fclose(file) == 0);
@@ -632,6 +633,27 @@ static void classifies_runtime_visual_directives_effective(void) {
 	wtwm_config_finish(&config);
 }
 
+static void classifies_x11_server_resource_options_as_translated(void) {
+	static const char source[] =
+		"NoBackingStore\n"
+		"NoSaveUnders\n"
+		"NoGrabServer\n";
+	struct wtwm_config config;
+	wtwm_config_init(&config);
+	char error[512];
+	assert(wtwm_config_parse(&config, "x11-server-resources", source, error,
+		sizeof(error)));
+	assert(config.no_backing_store);
+	assert(config.no_save_unders);
+	assert(config.no_grab_server);
+	assert(config.directive_count == 3);
+	assert(config.warning_count == 3);
+	for (size_t i = 0; i < config.directive_count; ++i)
+		assert(config.directives[i].compatibility ==
+			WTWM_COMPAT_WAYLAND_TRANSLATED);
+	wtwm_config_finish(&config);
+}
+
 static void accepts_legacy_syntax(void) {
 	static const char source[] =
 		"SqueezeTitle { \"xterm\" Center 0 0 }\n"
@@ -736,6 +758,7 @@ int main(void) {
 	parse_rules_and_title_buttons();
 	rejects_invalid_binding();
 	classifies_runtime_visual_directives_effective();
+	classifies_x11_server_resource_options_as_translated();
 	accepts_legacy_syntax();
 	parses_all_actions_as_runtime_dispatchable();
 	applies_global_and_exception_rules();

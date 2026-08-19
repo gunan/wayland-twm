@@ -76,6 +76,9 @@ def validate_text(
         'Button3 = : window : f.focus',
         'state["focus"] == title and state["focus_root"] is False',
         'control.command("BUTTON 273 press")',
+        'state["pointer_window"] == title',
+        'state["pointer_context"] == "window"',
+        'timed out waiting for client content entry',
         'f"explicit pointer focus for {protocol} target {title}"',
         'description + " survivor refocus"',
         'if state["focus"] != title:',
@@ -101,12 +104,19 @@ def validate_text(
         'sscanf(command, "UNMAP %u", &cycle)',
         'sscanf(command, "REMAP %u", &cycle)',
         'sscanf(command, "TITLE %127s", title)',
+        'sscanf(command, "REPORT_FAMILY %63s", token)',
+        'sscanf(command, "REPORT %63s", token)',
         "xdg_toplevel_set_title(client->toplevel, client->title);",
         'printf("OK TITLE %s\\n", client->title);',
         "cycle != client->cycle + 1",
         "cycle != client->cycle",
         "wl_surface_attach(client->surface, NULL, 0, 0);",
         "wl_display_roundtrip(client->display)",
+        "if (width > 0 && height > 0)",
+        "client->buffer_width = client->pending_width;",
+        "client->child_buffer_width = client->child_pending_width;",
+        "if (!client->attach_on_configure && previous == NULL) return;",
+        "if (previous != NULL) wl_buffer_destroy(previous);",
         'strcmp(command, "CRASH")',
         "abort();",
         'strcmp(command, "HANG")',
@@ -119,6 +129,12 @@ def validate_text(
         "xdg_toplevel_set_title(client->toplevel, client->title);"
     ) != 2:
         errors.append("stress Wayland client must set its title on map and mutation")
+    family_report = wayland_client.find(
+        'sscanf(command, "REPORT_FAMILY %63s", token)'
+    )
+    single_report = wayland_client.find('sscanf(command, "REPORT %63s", token)')
+    if not 0 <= family_report < single_report:
+        errors.append("stress Wayland family report must precede its REPORT prefix")
 
     x11_markers = (
         '"WM_DELETE_WINDOW"',
@@ -214,6 +230,14 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
         ("focused-exit", runner.replace('if state["focus"] != title:',
                                         "if False:", 1),
          wayland, x11, meson, compatibility, integration_readme),
+        ("content-entry-context", runner.replace(
+            'state["pointer_context"] == "window"',
+            'state["pointer_context"] == "frame"', 1),
+         wayland, x11, meson, compatibility, integration_readme),
+        ("content-entry-target", runner.replace(
+            'state["pointer_window"] == title',
+            'state["pointer_window"] is not None', 1),
+         wayland, x11, meson, compatibility, integration_readme),
         ("survivor-root-focus", runner.replace(
             'state["focus"] not in (None, SURVIVOR_TITLE)',
             'state["focus"] != SURVIVOR_TITLE', 1),
@@ -246,6 +270,17 @@ def self_test_tamper(sources: tuple[str, ...]) -> list[str]:
         ("wayland-title", runner,
          wayland.replace(
              "xdg_toplevel_set_title(client->toplevel, client->title);", "", 1),
+         x11, meson, compatibility, integration_readme),
+        ("wayland-family-report-order", runner,
+         wayland.replace(
+             'sscanf(command, "REPORT_FAMILY %63s", token)',
+             'sscanf(command, "REPORT %63s", token);\n\t'
+             'if (sscanf(command, "REPORT_FAMILY %63s", token)',
+             1,
+         ), x11, meson, compatibility, integration_readme),
+        ("wayland-resize-commit", runner,
+         wayland.replace(
+             "client->buffer_width = client->pending_width;", "", 1),
          x11, meson, compatibility, integration_readme),
         ("x11-delete-protocol", runner, wayland,
          x11.replace('"WM_DELETE_WINDOW"', '"WM_TAKE_FOCUS"', 1),

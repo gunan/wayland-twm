@@ -4,8 +4,14 @@ set -eu
 source_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 launcher=$source_root/scripts/platform/wtwm-session
 test_dir=$(mktemp -d "${TMPDIR:-/tmp}/wtwm-session-test.XXXXXX")
+forwarded_launcher_pid=
+forwarded_child_pid=
 cleanup()
 {
+	test -z "$forwarded_launcher_pid" ||
+		kill -KILL "$forwarded_launcher_pid" 2>/dev/null || :
+	test -z "$forwarded_child_pid" ||
+		kill -KILL "$forwarded_child_pid" 2>/dev/null || :
 	rm -rf -- "$test_dir"
 }
 trap cleanup EXIT HUP INT TERM
@@ -56,5 +62,44 @@ else
 	status=$?
 fi
 test "$status" -eq 127 || fail 'missing compositor did not return 127'
+
+signal_mock=$test_dir/signal-wtwm
+signal_pid_file=$test_dir/signal-child.pid
+printf '%s\n' \
+	'#!/bin/sh' \
+	'trap '\''printf "%s\n" TERM > "$SIGNAL_MARKER"; exit 42'\'' TERM' \
+	'printf "%s\n" "$$" > "$SIGNAL_PID_FILE"' \
+	'while :; do sleep 1; done' > "$signal_mock"
+chmod +x "$signal_mock"
+SIGNAL_PID_FILE=$signal_pid_file SIGNAL_MARKER=$test_dir/signal.marker \
+	WTWM_BIN=$signal_mock XDG_RUNTIME_DIR=$test_dir/runtime \
+	XDG_STATE_HOME=$test_dir/state HOME=$test_dir \
+	"$launcher" &
+forwarded_launcher_pid=$!
+attempt=0
+while ! test -s "$signal_pid_file"; do
+	attempt=$((attempt + 1))
+	test "$attempt" -le 10 || fail 'forwarded child did not start'
+	kill -0 "$forwarded_launcher_pid" 2>/dev/null ||
+		fail 'launcher exited before signal forwarding'
+	sleep 1
+done
+forwarded_child_pid=$(sed -n '1p' "$signal_pid_file")
+kill -TERM "$forwarded_launcher_pid"
+if wait "$forwarded_launcher_pid"; then
+	status=0
+else
+	status=$?
+fi
+forwarded_launcher_pid=
+test "$status" -eq 42 || fail 'forwarded child status was not preserved'
+if kill -0 "$forwarded_child_pid" 2>/dev/null; then
+	fail 'forwarded child was not reaped'
+fi
+forwarded_child_pid=
+test "$(sed -n '1p' "$test_dir/signal.marker")" = TERM ||
+	fail 'launcher did not forward TERM to the child'
+grep -F 'compositor exit=42' "$log" >/dev/null ||
+	fail 'forwarded child exit was not logged'
 
 printf '%s\n' 'session-launcher-test: pass'
