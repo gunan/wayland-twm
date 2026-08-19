@@ -99,7 +99,8 @@ and icon movement, cross-output `f.forcemove`, owner recomputation, restart
 continuity, and a deferred zero-output map. Every session has bounded client,
 control, and compositor liveness checks and cleanup. The runner intentionally
 does not simulate topology mutation: warp history, output removal/repair,
-scale/mode changes, and session lifecycle remain later Milestone 8 slices.
+scale/mode changes, and session lifecycle are covered by separate bounded
+Milestone 8 runners.
 
 `run_m8_input_hotplug.py` exercises the single logical `seat0` translation over
 zero, one, and several physical keyboard/pointer wrappers. Its portable

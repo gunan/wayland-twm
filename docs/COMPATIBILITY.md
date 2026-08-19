@@ -298,8 +298,9 @@ position, mode, fractional scale, all transform repair paths, disable/reenable,
 automatic layout, canonical renumbering, repeated destruction, zero active and
 zero managed states, and a new post-destruction output. Exact `STATE`, rollback,
 pointer/history, protocol-roundtrip, and trace assertions distinguish topology
-repair from presentation restoration. Persistent topology reassociation,
-multiple seats, and session lifecycle are still separate Milestone 8 work.
+repair from presentation restoration. Dedicated Milestone 8 runners cover
+presentation restoration, single-seat input hotplugging, and session lifecycle;
+persistent topology reassociation and multiple logical seats remain deferred.
 
 After a successful output transaction, a managed outer frame that retains any
 positive intersection with an enabled output remains byte-exact. A stranded
