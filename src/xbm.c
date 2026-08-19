@@ -651,6 +651,12 @@ static bool read_file(const char *filename, char **source, size_t *length,
 			return false;
 		}
 		if (feof(file)) break;
+		if (count == 0) {
+			set_error(error, error_size, "%s: unable to read", filename);
+			free(buffer);
+			(void)fclose(file);
+			return false;
+		}
 	}
 	if (fclose(file) != 0) {
 		set_error(error, error_size, "%s: unable to close: %s", filename,
