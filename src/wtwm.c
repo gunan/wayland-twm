@@ -5136,7 +5136,8 @@ static bool restoration_icon_uses_planned_position(
 
 static bool apply_restored_zoom(struct toplevel *toplevel,
 		const struct wtwm_output_restore_record *record,
-		const struct restoration_output_snapshot *after) {
+		const struct restoration_output_snapshot *after,
+		struct wtwm_interaction_box *applied) {
 	if (record->target_output < 0 ||
 			(size_t)record->target_output >= after->count) return false;
 	enum wtwm_action_type mode = toplevel->zoom.mode;
@@ -5165,6 +5166,7 @@ static bool apply_restored_zoom(struct toplevel *toplevel,
 	set_toplevel_box(toplevel, next.x, next.y, next.width, next.height);
 	toplevel->zoom.mode = mode;
 	toplevel->zoom.saved = saved;
+	if (applied != NULL) *applied = next;
 	return true;
 }
 
@@ -5234,8 +5236,9 @@ static bool apply_output_restoration(struct server *server) {
 			toplevel->zoom.saved.x = record->zoom_restore.x;
 			toplevel->zoom.saved.y = record->zoom_restore.y;
 		}
+		struct wtwm_interaction_box applied_zoom = {0};
 		bool zoom_applied = record->recompute_zoom &&
-			apply_restored_zoom(toplevel, record, &after);
+			apply_restored_zoom(toplevel, record, &after, &applied_zoom);
 		if (!record->recompute_zoom && record->frame_changed)
 			set_toplevel_position(toplevel, record->frame.x, record->frame.y);
 		if (record->icon_changed &&
@@ -5248,8 +5251,14 @@ static bool apply_output_restoration(struct server *server) {
 		}
 		if (was_pending) restore_toplevel_scene_visibility(toplevel);
 		if (record->frame_changed || record->icon_changed ||
-				record->zoom_restore_changed || zoom_applied || was_pending)
-			test_trace_toplevel_event(toplevel, "restore", "topology");
+				record->zoom_restore_changed || zoom_applied || was_pending) {
+			if (zoom_applied)
+				test_trace_toplevel_event_at(toplevel, "restore", "topology",
+					applied_zoom.x, applied_zoom.y,
+					applied_zoom.width, applied_zoom.height);
+			else
+				test_trace_toplevel_event(toplevel, "restore", "topology");
+		}
 	}
 
 	if (after.count > 0)
