@@ -229,6 +229,10 @@ def restore_full_zoom(
     return planned
 
 
+def semantic_state(state: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in state.items() if key != "frame"}
+
+
 def validate_model() -> None:
     left = ("LEFT", Box(-320, 0, 320, 240))
     right = ("RIGHT", Box(0, 0, 400, 300))
@@ -306,6 +310,13 @@ def validate_model() -> None:
         [("OWNER", Box(0, 0, 300, 220)), ("OTHER", Box(300, 0, 360, 260))],
     ) != Box(0, 0, 300, 220):
         raise RuntimeError("unchanged full-zoom owner was recomputed")
+    stable = {"frame": 2, "topology_epoch": 9, "outputs": ["stable"]}
+    later_frame = {"frame": 3, "topology_epoch": 9, "outputs": ["stable"]}
+    changed_topology = {"frame": 3, "topology_epoch": 10, "outputs": ["stable"]}
+    if semantic_state(stable) != semantic_state(later_frame):
+        raise RuntimeError("render telemetry polluted topology rollback state")
+    if semantic_state(stable) == semantic_state(changed_topology):
+        raise RuntimeError("semantic topology mutation escaped rollback comparison")
 
     pending = restore_box(stranded, before, [])
     if pending.box != stranded or pending.target is not None or pending.changed:
@@ -1302,8 +1313,12 @@ def exercise(
             )
             if failure != "ERROR OUTPUT MODE requires enabled output: HEADLESS-2":
                 raise RuntimeError(f"disabled MODE failure changed: {failure!r}")
-            if control.state() != before_failure:
-                raise RuntimeError("failed topology mutation changed restoration state")
+            after_failure = control.state()
+            if semantic_state(after_failure) != semantic_state(before_failure):
+                raise RuntimeError(
+                    "failed topology mutation changed restoration state: "
+                    f"before={before_failure!r}, after={after_failure!r}"
+                )
             disabled_geometry = {
                 identity: outer(item) for identity, item in windows(state).items()
             }
