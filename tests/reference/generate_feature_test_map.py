@@ -86,6 +86,10 @@ SESSION_STATE_RUNTIME_FEATURES = {
     "action.f-saveyourself",
     "directive.restartpreviousstate",
 }
+SESSION_LIFECYCLE_RUNTIME_PATH = "tests/integration/run_m8_session_lifecycle.py"
+SESSION_LIFECYCLE_RUNTIME_TEST = "Milestone 8 session lifecycle integration"
+SESSION_LIFECYCLE_RUNTIME_ID = "test.current-feature.m8-session-lifecycle-runtime"
+SESSION_LIFECYCLE_RUNTIME_FEATURES = {"action.f-quit"}
 COLORMAP_RUNTIME_PATH = "tests/integration/run_m8_colormap.py"
 COLORMAP_RUNTIME_TEST = "Milestone 8 Xwayland and native colormap integration"
 COLORMAP_RUNTIME_ID = "test.current-feature.m8-colormap-runtime"
@@ -666,6 +670,27 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "fixture": "",
                 "checks": [],
             })
+        if feature_id in SESSION_LIFECYCLE_RUNTIME_FEATURES:
+            tests.append({
+                "test_id": SESSION_LIFECYCLE_RUNTIME_ID,
+                "path": SESSION_LIFECYCLE_RUNTIME_PATH,
+                "meson_test": SESSION_LIFECYCLE_RUNTIME_TEST,
+                "case": feature_id,
+                "dimension": "runtime",
+                "expected": "pass",
+                "assertions": sorted([
+                    f"The Linux headless session runner invokes {feature_id} "
+                    "with mapped native Wayland and Xwayland clients.",
+                    "Client disconnects, process status, removed sockets, and "
+                    "an absent state file prove orderly explicit logout without "
+                    "an implicit save or restart.",
+                    "Invalid configuration, runtime initialization failure, a "
+                    "failed startup child, malformed state, and all four "
+                    "reference termination signals prove bounded recovery.",
+                ]),
+                "fixture": "",
+                "checks": [],
+            })
         if feature_id in COLORMAP_RUNTIME_FEATURES:
             tests.append({
                 "test_id": COLORMAP_RUNTIME_ID,
@@ -802,6 +827,12 @@ def build(source_root: Path) -> tuple[dict[str, object], str]:
                 "test_id": SCREEN_OUTPUT_RUNTIME_ID,
                 "path": SCREEN_OUTPUT_RUNTIME_PATH,
                 "meson_test": SCREEN_OUTPUT_RUNTIME_TEST,
+                "dimension": "runtime",
+            },
+            {
+                "test_id": SESSION_LIFECYCLE_RUNTIME_ID,
+                "path": SESSION_LIFECYCLE_RUNTIME_PATH,
+                "meson_test": SESSION_LIFECYCLE_RUNTIME_TEST,
                 "dimension": "runtime",
             },
             {

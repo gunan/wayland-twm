@@ -757,6 +757,16 @@ test(
   ],
 )
 test(
+  'Milestone 8 session lifecycle contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/reference/validate_reference_session_lifecycle_contract.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
   'Milestone 8 X11 server resource no-op contract',
   find_program('python3'),
   args: [
@@ -1381,6 +1391,18 @@ if wlroots.found()
     integration_runner,
     args: [
       '-B', files('tests/integration/run_m8_session_state.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+    ],
+    timeout: 180,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 8 session lifecycle integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m8_session_lifecycle.py'),
       '--compositor', wtwm_test_compositor,
       '--wayland-client', wtwm_stress_wayland_client,
       '--x11-client', wtwm_stress_x11_client,

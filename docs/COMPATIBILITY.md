@@ -33,6 +33,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | `f.colormap` | Exact for relevant Xwayland clients; verified native no-op | Managed X11 targets retain the bounded `WM_COLORMAP_WINDOWS` order, including the top-level fallback, and `next`, `prev`, and `default` perform the reference circular selection and checked installed-colormap requests. Native true-color Wayland has no global installed-colormap mechanism, so the same configured action issues no X request and leaves Xwayland's installed set unchanged |
 | `f.cut`, `f.cutfile`, `f.file` | Exact X cut-buffer result; Wayland clipboard translation | Successful actions replace a persistent compositor-owned byte buffer, publish it as ordinary Wayland `CLIPBOARD` text, and mirror the same bytes to Xwayland root `CUT_BUFFER0` with `STRING` type and 8-bit format. Native clients observe `CLIPBOARD`, not a nonexistent native global cut-buffer protocol; `PRIMARY` remains independent |
 | Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
+| Session startup, logout, and recovery | Behaviorally equivalent | The namespaced `wtwm-session` entrypoint supervises exactly one foreground compositor and returns its status to the login manager without a restart loop. Complete configuration validation and runtime initialization precede `-s`; a failed startup child does not end the compositor. `f.quit` and INT/HUP/QUIT/TERM perform orderly success cleanup, while startup failures return nonzero without running `-s` or replacing saved state |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
@@ -406,6 +407,28 @@ transients, client process/document state, and ephemeral menus or grabs are not
 restored. Native clients have no `WM_SAVE_YOURSELF` protocol, so their action
 saves only the compositor-owned snapshot; Xwayland clients still receive the
 ClientMessage when advertised and retain the reference bell when it is absent.
+
+Reference `twm` may be the foreground last X client, so `f.quit`, its X session
+manager `Die` callback, and INT/HUP/QUIT/TERM all pass through one orderly
+successful exit. wtwm keeps that foreground ownership without emulating XSM:
+the separately named `wtwm-session` launcher starts one compositor child,
+forwards controlling signals, reaps it, logs and returns its exact status, and
+never restarts it or changes the display manager. `f.quit` and the four signals
+terminate the Wayland event loop before bounded teardown disconnects native and
+Xwayland clients. Invalid options, invalid configuration, and runtime
+initialization failures return nonzero; validation failures publish no display
+socket and no failing path runs the optional `-s` command. The `-s` child is
+best-effort and its own failure does not log out the compositor.
+
+XSM's generated `-clientId`, `-restore`, restart, and discard properties have no
+Wayland-session counterpart. `RestartPreviousState` gates reads from
+`$XDG_STATE_HOME/wtwm/state` (or `$HOME/.local/state/wtwm/state`), and only an
+explicit successful `f.saveyourself` atomically replaces that persistent file.
+Missing state starts clean with root focus; malformed or unsupported state is
+diagnosed, ignored, and retained byte-for-byte. Clean logout, signals, startup
+failure, and crashes do not save or discard it, so a later independent login
+can use the last complete explicit snapshot. This restores compositor-owned
+window state only, never client processes or documents.
 
 Reference `twm` uses `NoBackingStore` to suppress a backing-store request on
 its X menu windows, `NoSaveUnders` to suppress their save-under request, and

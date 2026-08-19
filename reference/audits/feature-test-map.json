@@ -82,6 +82,12 @@
       "dimension": "runtime"
     },
     {
+      "test_id": "test.current-feature.m8-session-lifecycle-runtime",
+      "path": "tests/integration/run_m8_session_lifecycle.py",
+      "meson_test": "Milestone 8 session lifecycle integration",
+      "dimension": "runtime"
+    },
+    {
       "test_id": "test.current-feature.m8-session-state-runtime",
       "path": "tests/integration/run_m8_session_state.py",
       "meson_test": "Milestone 8 saved session state integration",
@@ -967,6 +973,21 @@
       "category": "action",
       "implementation_status": "effective",
       "tests": [
+        {
+          "test_id": "test.current-feature.m8-session-lifecycle-runtime",
+          "path": "tests/integration/run_m8_session_lifecycle.py",
+          "meson_test": "Milestone 8 session lifecycle integration",
+          "case": "action.f-quit",
+          "dimension": "runtime",
+          "expected": "pass",
+          "assertions": [
+            "Client disconnects, process status, removed sockets, and an absent state file prove orderly explicit logout without an implicit save or restart.",
+            "Invalid configuration, runtime initialization failure, a failed startup child, malformed state, and all four reference termination signals prove bounded recovery.",
+            "The Linux headless session runner invokes action.f-quit with mapped native Wayland and Xwayland clients."
+          ],
+          "fixture": "",
+          "checks": []
+        },
         {
           "test_id": "test.current-feature.source-contract",
           "path": "tests/reference/validate_feature_test_map.py",

@@ -167,6 +167,24 @@ iconic, stacking, focus, manual-icon, auto-raise, and zoom state. Transients,
 ambiguous identities, client processes, client documents, and active menus or
 gestures are deliberately outside the persistence boundary.
 
+The login-session boundary remains outside the compositor. The installed
+`wtwm-session` wrapper supervises exactly one foreground child, forwards
+controlling signals as `SIGTERM`, reaps that child, and returns its exact status
+to the display manager without a restart loop. Inside wtwm, `f.quit` and
+`SIGINT`, `SIGHUP`, `SIGQUIT`, and `SIGTERM` only terminate the Wayland event
+loop; the shared normal-exit path then releases Xwayland, native resources,
+input, scenes, the backend, and the display before returning success. Command
+line, configuration, socket, backend, or protocol initialization failures use
+the bounded failure path and return nonzero before the optional startup command.
+That command is a best-effort child launched only after `WAYLAND_DISPLAY` and
+`DISPLAY` are published, and its exit status does not own the compositor.
+
+This lifecycle deliberately does not add XSM. State persistence remains an
+explicit `f.saveyourself` transaction; neither orderly logout nor failure
+implicitly writes or discards the state file. `RestartPreviousState` is the only
+read gate, and a malformed candidate is diagnosed and ignored while its bytes
+remain available for inspection or later replacement.
+
 Icon windows remain compositor-owned scene subtrees. `src/icon_layout.c` owns
 the reference first-fit region allocator, including gravity splits, grid-cell
 rounding, collision reservations, and release coalescing; the compositor only

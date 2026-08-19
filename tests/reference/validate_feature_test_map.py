@@ -38,6 +38,8 @@ from generate_feature_test_map import (
     RESTART_RUNTIME_FEATURES,
     SCREEN_OUTPUT_RUNTIME_FEATURES,
     SCREEN_OUTPUT_RUNTIME_ID,
+    SESSION_LIFECYCLE_RUNTIME_FEATURES,
+    SESSION_LIFECYCLE_RUNTIME_ID,
     SESSION_STATE_RUNTIME_FEATURES,
     STARTWM_RUNTIME_FEATURES,
     WARP_SCREEN_LEDGER_FEATURES,
@@ -204,8 +206,8 @@ def validate_feature_map(
     if feature_map["feature_count"] != len(audit_entries):
         errors.append("feature_map.feature_count differs from the immutable audit")
     catalog_values = feature_map["test_catalog"]
-    if not isinstance(catalog_values, list) or len(catalog_values) != 15:
-        errors.append("feature_map.test_catalog must contain the fifteen registered tests")
+    if not isinstance(catalog_values, list) or len(catalog_values) != 16:
+        errors.append("feature_map.test_catalog must contain the sixteen registered tests")
         catalog_values = []
     catalog: dict[str, dict[str, object]] = {}
     catalog_fields = ["test_id", "path", "meson_test", "dimension"]
@@ -333,6 +335,8 @@ def validate_feature_map(
         if feature.get("id") in STARTWM_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in SESSION_STATE_RUNTIME_FEATURES:
+            expected_dimensions.append("runtime")
+        if feature.get("id") in SESSION_LIFECYCLE_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
         if feature.get("id") in NOOP_OPTIONS_RUNTIME_FEATURES:
             expected_dimensions.append("runtime")
@@ -530,6 +534,23 @@ def tamper_self_test(
     )
     input_catalog["path"] = "tests/integration/run_m8_output_topology.py"
     mutations.append(("wrong-input-hotplug-catalog-path", changed))
+    changed = copy.deepcopy(feature_map)
+    lifecycle_entry = next(
+        item for item in changed["entries"]  # type: ignore[union-attr]
+        if item["feature_id"] in SESSION_LIFECYCLE_RUNTIME_FEATURES
+    )
+    lifecycle_entry["tests"] = [
+        item for item in lifecycle_entry["tests"]
+        if item["test_id"] != SESSION_LIFECYCLE_RUNTIME_ID
+    ]
+    mutations.append(("missing-session-lifecycle-runtime", changed))
+    changed = copy.deepcopy(feature_map)
+    lifecycle_catalog = next(
+        item for item in changed["test_catalog"]  # type: ignore[union-attr]
+        if item["test_id"] == SESSION_LIFECYCLE_RUNTIME_ID
+    )
+    lifecycle_catalog["path"] = "tests/integration/run_m8_session_state.py"
+    mutations.append(("wrong-session-lifecycle-catalog-path", changed))
     changed = copy.deepcopy(feature_map)
     noop_catalog = next(
         item for item in changed["test_catalog"]  # type: ignore[union-attr]
