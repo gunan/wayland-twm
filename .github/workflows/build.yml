@@ -22,6 +22,55 @@ jobs:
         run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
       - name: Build and test debug configuration
         run: sh scripts/ci/run-meson-build.sh build enabled debug
+      - name: Upload Milestone 9 mixed soak smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-mixed-soak-smoke-debug
+          path: build/m9-mixed-soak-smoke.json*
+          if-no-files-found: warn
+
+  debian-package:
+    name: Debian Trixie package lifecycle
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Prepare persistent package evidence
+        run: |
+          mkdir -p /tmp/wtwm-package-artifacts
+          printf '%s\n' 'Debian package job started' > /tmp/wtwm-package-artifacts/job-started.txt
+      - uses: actions/checkout@v4
+      - name: Install build, package, and co-installation dependencies
+        run: |
+          apt-get update
+          {
+            cat scripts/ci/debian-trixie-build-packages.txt
+            cat scripts/ci/debian-trixie-package-packages.txt
+          } | sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' | sort -u |
+            xargs apt-get install -y --no-install-recommends
+      - name: Verify real co-installed desktop assets
+        run: |
+          test "$(dpkg --print-architecture)" = amd64
+          test -x /usr/bin/twm
+          test -f /usr/share/xsessions/twm.desktop
+          test -x /usr/bin/weston
+          test -f /usr/share/wayland-sessions/weston.desktop
+          test ! -e /usr/bin/wtwm
+      - name: Validate package workflow contract
+        run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build and exercise clean candidate package
+        run: |
+          touch /etc/wtwm-package-ci-container
+          sh scripts/ci/run-debian-package-ci.sh "$GITHUB_WORKSPACE" /tmp/wtwm-package-artifacts
+      - name: Upload candidate package and lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package-${{ github.sha }}
+          path: /tmp/wtwm-package-artifacts
+          if-no-files-found: error
 
   debian-trixie-configurations:
     name: Debian Trixie ${{ matrix.name }}
@@ -66,6 +115,13 @@ jobs:
         run: apt-get install -y --no-install-recommends clang libclang-rt-dev
       - name: Build and test
         run: sh scripts/ci/run-meson-build.sh "build-${{ matrix.profile }}" enabled "${{ matrix.profile }}"
+      - name: Upload Milestone 9 mixed soak smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-mixed-soak-smoke-${{ matrix.architecture }}-${{ matrix.profile }}
+          path: build-${{ matrix.profile }}/m9-mixed-soak-smoke.json*
+          if-no-files-found: warn
       - name: Run sustained configuration fuzzer
         if: matrix.profile == 'asan'
         run: sh tests/fuzz/run_config_fuzzer.sh "$GITHUB_WORKSPACE" /tmp/wtwm-config-fuzz 100000
