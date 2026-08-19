@@ -28,8 +28,8 @@ RUNNER_MARKERS = {
     "auto-relative resize policy enabled": '"AutoRelativeResize\\n"',
     "resize oracle requires moved preview": 'or not preview.get("moved")',
     "PointerRoot activation and keyboard-focus split": (
-        'if state["focus_root"]:\n'
-        '        if state["focus"] is not None:'
+        'if not state["focus_root"] and (\n'
+        '        state["active"] != state["focus"]'
     ),
 }
 

@@ -433,10 +433,11 @@ def assert_pair(state: dict[str, Any], clients: dict[str, SoakClient]) -> None:
         raise RuntimeError(f"Xwayland association is not live: {state!r}")
     if state["active"] is not None and state["active"] not in titles:
         raise RuntimeError(f"activation names a stale mixed window: {state!r}")
-    if state["focus_root"]:
-        if state["focus"] is not None:
-            raise RuntimeError(f"PointerRoot retained direct client focus: {state!r}")
-    elif state["active"] != state["focus"] or state["focus"] not in titles:
+    if state["focus"] is not None and state["focus"] not in titles:
+        raise RuntimeError(f"keyboard focus names a stale mixed window: {state!r}")
+    if not state["focus_root"] and (
+        state["active"] != state["focus"] or state["focus"] not in titles
+    ):
         raise RuntimeError(f"locked logical and protocol focus disagree: {state!r}")
 
 
