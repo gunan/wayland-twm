@@ -34,13 +34,24 @@ forward_signal()
 {
 	test -z "$child_pid" || kill -TERM "$child_pid" 2>/dev/null || :
 }
-trap forward_signal HUP INT TERM
+trap forward_signal HUP INT QUIT TERM
+
+wait_for_child()
+{
+	while :; do
+		wait "$child_pid"
+		waited_status=$?
+		# A trapped controlling signal may interrupt wait before the child has
+		# handled the forwarded TERM.  Keep ownership until it is reaped.
+		kill -0 "$child_pid" 2>/dev/null || return "$waited_status"
+	done
+}
 
 {
 	printf 'wtwm-session: starting pid=%s at=%s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 	"$wtwm_bin" "$@" &
 	child_pid=$!
-	wait "$child_pid"
+	wait_for_child
 	status=$?
 	child_pid=
 	printf 'wtwm-session: compositor exit=%s at=%s\n' "$status" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

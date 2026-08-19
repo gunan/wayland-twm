@@ -88,6 +88,8 @@
 #include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon.h>
 
+#define WTWM_SESSION_SIGNAL_COUNT 4u
+
 enum cursor_mode { CURSOR_PASSTHROUGH, CURSOR_MOVE, CURSOR_RESIZE };
 
 enum interaction_intent {
@@ -511,6 +513,7 @@ struct server {
 	struct wtwm_config config;
 	enum wtwm_color_mode color_mode;
 	struct wl_display *display;
+	struct wl_event_source *session_signals[WTWM_SESSION_SIGNAL_COUNT];
 	struct wlr_backend *backend;
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
@@ -10473,6 +10476,37 @@ static void finish_session_state(struct server *server) {
 	server->session_state_path = NULL;
 }
 
+static int session_signal(int signal_number, void *data) {
+	struct server *server = data;
+	wlr_log(WLR_INFO, "received signal %d; ending the session", signal_number);
+	wl_display_terminate(server->display);
+	return 0;
+}
+
+static bool initialize_session_signals(struct server *server) {
+	static const int signals[WTWM_SESSION_SIGNAL_COUNT] = {
+		SIGINT, SIGHUP, SIGQUIT, SIGTERM,
+	};
+	struct wl_event_loop *loop = wl_display_get_event_loop(server->display);
+	for (size_t index = 0; index < WTWM_SESSION_SIGNAL_COUNT; ++index) {
+		server->session_signals[index] = wl_event_loop_add_signal(
+			loop, signals[index], session_signal, server);
+		if (server->session_signals[index] == NULL) {
+			wlr_log_errno(WLR_ERROR, "failed to register signal %d", signals[index]);
+			return false;
+		}
+	}
+	return true;
+}
+
+static void finish_session_signals(struct server *server) {
+	for (size_t index = 0; index < WTWM_SESSION_SIGNAL_COUNT; ++index) {
+		if (server->session_signals[index] == NULL) continue;
+		wl_event_source_remove(server->session_signals[index]);
+		server->session_signals[index] = NULL;
+	}
+}
+
 static void usage(FILE *stream, const char *program) {
 	fprintf(stream, "usage: %s [-d] [-f twmrc] [-s startup-command]"
 		" [--visual-mode color|grayscale|monochrome]", program);
@@ -10588,6 +10622,8 @@ int main(int argc, char **argv) {
 			server.config.warning_count);
 	initialize_session_state(&server);
 	server.display = wl_display_create();
+	if (server.display == NULL) goto fail_state;
+	if (!initialize_session_signals(&server)) goto fail_display;
 #ifdef WTWM_TEST_CONTROL
 	if (strcmp(test_backend, "headless") == 0) {
 		server.backend = wlr_headless_backend_create(
@@ -10730,6 +10766,7 @@ int main(int argc, char **argv) {
 	wlr_renderer_destroy(server.renderer);
 	wlr_backend_destroy(server.backend);
 	finish_input_adapter(&server);
+	finish_session_signals(&server);
 	wl_display_destroy(server.display);
 	restoration_transaction_finish(&server.restoration);
 	restoration_output_snapshot_finish(&server.restoration_pending_source);
@@ -10766,7 +10803,9 @@ fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
 	finish_input_adapter(&server);
+	finish_session_signals(&server);
 	wl_display_destroy(server.display);
+fail_state:
 	restoration_transaction_finish(&server.restoration);
 	restoration_output_snapshot_finish(&server.restoration_pending_source);
 	finish_session_state(&server);
