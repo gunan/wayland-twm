@@ -73,7 +73,7 @@ independent.
   reference-behavior research, test-harness work, CI-log diagnosis,
   documentation audits, and separate review passes.
 - Keep dependent tasks sequential. Do not parallelize work that modifies the
-  same functions, data structures, generated artifacts, Roadmap checkbox, or
+  same functions, data structures, generated artifacts, task checkbox, or
   other tightly overlapping files unless the coordinating agent has an
   explicit conflict-free integration plan.
 - Give each subagent one clearly scoped task, its acceptance criteria, its
@@ -106,14 +106,14 @@ The coordinating agent owns integration:
 5. Resolve integration conflicts only on `agent`; never rewrite a subagent's
    branch to conceal a conflict.
 6. Run the combined relevant tests after all approved branches are integrated.
-7. Confirm that each integrated task's Roadmap checkbox is checked only after
+7. Confirm that each integrated task's checkbox is checked only after
    the work is present on `agent` and verified in the combined tree. If combined
    validation invalidates a subagent's checked item, restore it to `[ ]`.
 8. Remove an isolated worktree or retire a feature branch only after its commits
    are safely integrated and the worktree is confirmed clean.
 
 Subagents never merge to `main`, never merge their own branches into `agent`,
-and never mark another subagent's Roadmap task complete. The coordinating agent
+and never mark another subagent's task complete. The coordinating agent
 is responsible for the final branch state and progress record.
 
 ## Project objective
@@ -121,22 +121,22 @@ is responsible for the final branch state and progress record.
 Build `wtwm`, a co-installable Wayland compositor whose observable appearance,
 configuration, and interaction behavior match X11 `twm` 1.0.13.1.
 
-- Use the `## Roadmap` section of `README.md` as the authoritative ordered task
+- Use the `## Tasks` section of `README.md` as the authoritative ordered task
   list, progress record, and release gate.
 - Use `docs/COMPATIBILITY.md` as the current compatibility record.
 - Use `docs/ARCHITECTURE.md` as the source of architectural boundaries.
 - Prefer the smallest unfinished, testable vertical slice in the current
-  roadmap milestone.
+  task group.
 - Do not claim a feature is complete merely because its configuration parses.
   Runtime behavior and appropriate tests are required.
 - Do not describe the project as having full parity until every final 1.0 gate
-  in the Roadmap is satisfied.
+  in the Tasks section is satisfied.
 
 ## Immediate task: Make GitHub Actions pass
 
-Before starting new Roadmap feature work, get the repository's GitHub Actions
-workflow running reliably and passing on `agent` and on pull requests from
-`agent` to `main`.
+Before starting work from the Tasks section, get the repository's GitHub
+Actions workflow running reliably and passing on `agent` and on pull requests
+from `agent` to `main`.
 
 1. Inspect the latest GitHub Actions run and record the failing job, step, and
    relevant error output.
@@ -156,28 +156,28 @@ workflow running reliably and passing on `agent` and on pull requests from
 This task is complete only when the latest `agent` workflow and the pull-request
 checks against `main` finish successfully with all intended checks enabled.
 
-## Roadmap execution and tracking
+## Task execution and tracking
 
 After the GitHub Actions task above is complete, use the checklists in the
-`## Roadmap` section of `README.md` as the work queue.
+`## Tasks` section of `README.md` as the work queue.
 
-1. Start with Milestone 0 and find the earliest milestone that has unchecked
-   implementation, testing, or exit-criteria items. The global
-   definition-of-parity checklist is a release gate, not the day-to-day queue.
-2. Select the first unchecked task in that milestone whose prerequisites are
+1. Start with the first task group and find the earliest group that has unchecked
+   items. The Full parity acceptance checklist is a release gate, not the
+   day-to-day queue.
+2. Select the first unchecked task in that group whose prerequisites are
    satisfied. Do not skip ahead merely because a later task is easier.
 3. Implement the task completely, add or update its tests, run the required
    verification, and update related compatibility documentation.
-4. Change that Roadmap item from `[ ]` to `[x]` in the same feature-focused
+4. Change that task item from `[ ]` to `[x]` in the same feature-focused
    commit. A checkbox is evidence of completed and verified work, not just work
    that was attempted or code that was written.
 5. Leave partially complete, untested, failing, or blocked items unchecked.
    Record the remaining work or blocker in the completion report.
-6. Check an exit criterion only after every fact it asserts has been verified.
-   When all implementation, testing, and exit-criteria items in a milestone are
-   checked, continue to the next milestone.
-7. After committing a completed Roadmap task, move directly to the next
-   unchecked task for roadmap-continuation requests. Stop only at the user's
+6. Check an acceptance criterion only after every fact it asserts has been
+   verified. When every item in a task group is checked, continue to the next
+   group.
+7. After committing a completed task, move directly to the next unchecked task
+   for task-continuation requests. Stop only at the user's
    requested boundary or when a genuine blocker prevents safe progress.
 
 Do not mark multiple boxes complete merely because they are related. Each
@@ -205,7 +205,7 @@ or regression commit.
 
 For each feature or fix:
 
-1. Read the relevant Roadmap milestone and compatibility entry.
+1. Read the relevant task group and compatibility entry.
 2. Inspect the reference `twm` behavior or grammar rather than relying on
    memory when exact compatibility matters.
 3. Add or update a failing focused test when the behavior is testable before
@@ -217,7 +217,7 @@ For each feature or fix:
 7. Inspect the diff for unrelated edits before committing.
 
 Do not bundle opportunistic refactors, formatting sweeps, dependency upgrades,
-or unrelated Roadmap items into a feature change.
+or unrelated task-list items into a feature change.
 
 ## Commit policy
 
@@ -231,7 +231,7 @@ commit.
 - Split independent parser, compositor, rendering, packaging, and documentation
   work into separate commits.
 - Commit after each complete subfeature passes its relevant tests; do not wait
-  until an entire milestone is implemented.
+  until an entire task group is implemented.
 - Do not commit known-broken intermediate states or placeholder code unless the
   user explicitly requests a checkpoint.
 - Use imperative, descriptive commit subjects, preferably with an area prefix,
@@ -274,8 +274,7 @@ meson test -C build --print-errorlogs
 - If dependencies or environment limitations prevent a required test, report
   exactly what was not run and why. Do not claim the test passed.
 - Changes that affect rendering or interaction require the most relevant
-  headless, nested, differential, or screenshot test available for that stage
-  of the Roadmap.
+  headless, nested, differential, or screenshot test required by that task.
 
 ## Configuration compatibility
 
@@ -295,7 +294,7 @@ meson test -C build --print-errorlogs
 At the end of a task, report:
 
 - the feature-sized commits created;
-- the Roadmap checkboxes completed and the next unchecked task;
+- the task checkboxes completed and the next unchecked task;
 - the tests run and their results;
 - any tests that could not run;
 - remaining compatibility differences or follow-up work;

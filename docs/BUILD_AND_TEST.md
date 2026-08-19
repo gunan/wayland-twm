@@ -101,7 +101,7 @@ driver's phase ordering. They cannot prove dpkg/apt maintainer behavior. For a
 release candidate, run the guarded Debian VM procedure in
 `packaging/debian/README.md` with the candidate and every prior released `.deb`
 for the same architecture. Keep clean install/removal and per-architecture
-Roadmap items unchecked until the real artifact run succeeds.
+task items unchecked until the real artifact run succeeds.
 
 The package intentionally has no maintainer script that changes login-manager
 policy or user files. It installs one `wtwm.desktop` Wayland session and never

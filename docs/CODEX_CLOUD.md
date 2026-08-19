@@ -66,7 +66,7 @@ Optional environment variables:
 Use `auto` for the first environment. Set `enabled` only after confirming that
 the environment provides `wlroots-0.18`. A parser-only pass is not evidence that
 compositor or interaction changes are complete; the agent must report that the
-enabled suite did not run, and any Roadmap item requiring runtime behavior stays
+enabled suite did not run, and any task item requiring runtime behavior stays
 unchecked.
 
 Codex caches cloud containers. Use **Reset cache** in the environment settings
@@ -120,10 +120,10 @@ implementation work.
 ## Dispatch tasks
 
 Use [`docs/CODEX_CLOUD_TASKS.md`](CODEX_CLOUD_TASKS.md) for the repository's
-copy/paste task contract, CI-fix example, Roadmap vertical-slice example, and
+copy/paste task contract, CI-fix example, task-list vertical-slice example, and
 parallel-work boundaries. Every cloud prompt should name one objective, exact
 file or subsystem scope, acceptance criteria, required tests, branch and push
-limits, Roadmap ownership, and completion evidence.
+limits, task-list ownership, and completion evidence.
 
 Review the returned diff and test evidence before creating a pull request or
 integrating it into `agent`. Codex Cloud can prepare a pull request, but this

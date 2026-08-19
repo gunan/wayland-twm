@@ -37,19 +37,19 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
-| Canonical X11 reference differential | Exact through Milestone 5 | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, and stacking after every event; a 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The Milestone 5 pixel comparison adds two stable 260×180 canonical phases whose complete PPM bytes, geometry classification, configured-color counts, and X core font pixels match the frozen reference with zero masks and zero mismatched pixels. Native/cross-protocol visual equivalence remains a separate boundary. |
+| Canonical X11 reference differential | Exact in the canonical profile | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, and stacking after every event; a 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The canonical pixel comparison adds two stable 260×180 phases whose complete PPM bytes, geometry classification, configured-color counts, and X core font pixels match the frozen reference with zero masks and zero mismatched pixels. Native/cross-protocol visual equivalence remains a separate boundary. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
 | Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
 | Client request hardening | Public wlroots 0.18 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with oversized popup positioners rejected. wlroots 0.18 consumes `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
 
-## Milestone 10 certification status
+## Final 1.0 certification status
 
-Milestone 10 is tracked by three fail-closed machine-readable records under
-`reference/certification/`. The differential contract maps all eleven required
-comparison dimensions to concrete runners, validators, and frozen evidence,
-but records only six as live reference differentials. Exact pointer
+Final 1.0 certification is tracked by three fail-closed machine-readable records
+under `reference/certification/`. The differential contract maps all eleven
+required comparison dimensions to concrete runners, validators, and frozen
+evidence, but records only six as live reference differentials. Exact pointer
 coordinates, live menu state, launched commands, close/destruction behavior,
 and screenshots after every significant action remain partial and therefore
 are not parity claims.
@@ -67,9 +67,10 @@ operations literally. The compatibility policy is to preserve the visible
 user result when possible, document the translation when it is not, and never
 silently reinterpret configuration as a different action.
 
-Milestone 5 also runs a compositor-owned visual-state matrix in color,
-grayscale, and monochrome modes. Every capture is repeated after stable frame
-barriers and must be byte-identical to its repeat; no masks are used. The matrix
+The canonical visual test suite also runs a compositor-owned visual-state
+matrix in color, grayscale, and monochrome modes. Every capture is repeated
+after stable frame barriers and must be byte-identical to its repeat; no masks
+are used. The matrix
 covers focused and unfocused decoration in the same frame, normal/hover/pressed
 title buttons, long/empty/non-ASCII/rapid titles, configured XBM icons, menu
 titles and separators, normal/highlight/pull/submenu rows, shadows, and exact
@@ -199,7 +200,7 @@ replacement reports an error and leaves the active configuration and session
 untouched. A successful swap rebuilds configured decorations, colors, cursors,
 icons, icon managers, bindings, menus, and placement policy while retaining the
 Wayland display, Xwayland server, client resources, stable window identities,
-mapping, stack, geometry, focus, and selections. The headless Milestone 8
+mapping, stack, geometry, focus, and selections. The headless session-lifecycle
 restart test exercises both aliases and an invalid replacement while native and
 Xwayland clients prove their original protocol connections remain usable.
 
@@ -234,9 +235,10 @@ replacement would. Successful topology changes repair history through the
 surviving immutable output identity, so canonical-index renumbering preserves
 `back`; disabling or destroying the remembered output invalidates it.
 
-The Milestone 8 headless runner starts an implicit session with zero outputs
-and mutually conflicting `.twmrc.0`, `.twmrc.1`, and `.twmrc` files. One and
-then two equal-sized auto-laid-out outputs prove that the screen-zero bindings
+The screen/output-mapping headless runner starts an implicit session with zero
+outputs and mutually conflicting `.twmrc.0`, `.twmrc.1`, and `.twmrc` files.
+One and then two equal-sized auto-laid-out outputs prove that the screen-zero
+bindings
 apply on both roots, `HEADLESS-1` remains index zero despite reverse compositor
 list insertion, an out-of-range target preserves exact pointer coordinates,
 and root `f.restart` retains the source and mapping. A second session proves an
@@ -286,7 +288,7 @@ The Linux live runner adds two auto-laid-out outputs and exact native/Xwayland
 `STATE`/`TRACE` checks for global random placement, requested positions,
 selected-output `MaxWindowSize`, root-menu/submenu clamping, full zoom on both
 sides, Button3 fill, pinned window/icon moves, `f.forcemove`, restart continuity,
-and deferred zero-output mapping. Milestone 7's globally ordered IconRegion and
+and deferred zero-output mapping. The globally ordered IconRegion and
 icon-manager allocation pools also remain global; only an explicit icon move's
 `DontMoveOff` bounds are output-pinned here.
 
@@ -317,7 +319,7 @@ position, mode, fractional scale, all transform repair paths, disable/reenable,
 automatic layout, canonical renumbering, repeated destruction, zero active and
 zero managed states, and a new post-destruction output. Exact `STATE`, rollback,
 pointer/history, protocol-roundtrip, and trace assertions distinguish topology
-repair from presentation restoration. Dedicated Milestone 8 runners cover
+repair from presentation restoration. Dedicated lifecycle runners cover
 presentation restoration, single-seat input hotplugging, and session lifecycle;
 persistent topology reassociation and multiple logical seats remain deferred.
 
@@ -465,7 +467,7 @@ This boundary covers wtwm-owned menus and movement for both native and managed
 Xwayland toplevels; it does not rewrite independent backing-store, save-under,
 or grab requests that an X11 client may make for its own windows.
 
-The Milestone 8 headless A/B runner starts all eight subsets of mixed-case
+The translated-no-op headless A/B runner starts all eight subsets of mixed-case
 spellings of these three flags and compares every non-empty subset with the
 same option-free baseline, preventing individual effects from cancelling one
 another. Each subset is tested in both outlined- and opaque-move
@@ -491,7 +493,7 @@ the cache or terminating the XWM connection.
 Native xdg-shell surfaces are true-color buffers and expose neither
 `WM_COLORMAP_WINDOWS` nor an installed-colormap protocol. Dispatch therefore
 returns before obtaining the XWM XCB connection, records a `native-noop`
-colormap trace, and logs that no X11 request was issued. The Milestone 8
+colormap trace, and logs that no X11 request was issued. The colormap
 headless runner creates an X11 top-level and three child windows with private
 colormaps, deliberately omits the top-level from the property, and exercises
 `next`, `prev`, and `default` through configured pointer bindings. It then
@@ -521,7 +523,7 @@ selection source. This is exact for the observable X cut-buffer result; native
 Wayland has no literal global cut-buffer protocol, so native clients receive
 the same bytes through the compositor-owned clipboard translation instead.
 
-The Milestone 8 headless runner dispatches the direct actions and `^` shorthand
+The cut-buffer headless runner dispatches the direct actions and `^` shorthand
 on native and managed Xwayland targets. It checks exact hexadecimal data from
 both clipboard paths and the root property's type, format, length, and bytes,
 including the newline rule, a 4095-byte embedded-NUL file, first-token filename
@@ -529,7 +531,7 @@ selection, successive replacement, empty/error preservation, foreign
 clipboard independence, unchanged PRIMARY, restart persistence, and client
 liveness.
 
-Milestone 6 verification enumerates all 66 upstream action spellings and 59
+Built-in action verification enumerates all 66 upstream action spellings and 59
 distinct behaviors from the frozen source contract. Each spelling is parsed as
 a direct action and through a two-level named function, checked against its
 runtime dispatch case and expected state/no-op condition, and classified as
