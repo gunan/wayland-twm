@@ -243,11 +243,23 @@ def run(compositor: Path, client_binary: Path) -> None:
                     + int(target["height"]) // 2
                 )
                 control.command(f"POINTER {pointer_x} {pointer_y}")
+                pointed = control.state()
+                if (
+                    pointed["pointer_window"] != "m9-protocol-serials"
+                    or pointed["pointer_context"] != "window"
+                ):
+                    raise RuntimeError(
+                        f"serial client did not receive content focus: {pointed!r}"
+                    )
                 wait_line(serials, "POINTER_ENTER ", prefix=True)
                 control.command("BUTTON 272 press")
-                wait_line(serials, "POINTER_BUTTON ", prefix=True)
+                pressed = wait_line(serials, "POINTER_BUTTON ", prefix=True)
+                if not pressed.endswith(" 272 press"):
+                    raise RuntimeError(f"unexpected pointer press event: {pressed!r}")
                 control.command("BUTTON 272 release")
-                wait_line(serials, "POINTER_BUTTON ", prefix=True)
+                released = wait_line(serials, "POINTER_BUTTON ", prefix=True)
+                if not released.endswith(" 272 release"):
+                    raise RuntimeError(f"unexpected pointer release event: {released!r}")
                 wait_line(serials, "FUZZ_SENT stale=", prefix=True)
                 wait_line(serials, "SURVIVED")
                 finish_client(serials, "serial fuzz client")
