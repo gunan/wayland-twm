@@ -115,6 +115,26 @@ scenarios first. Then exercise the required high window count. Only after those
 pass should the same candidate enter a 72-hour mixed-client soak. Any restart
 resets the duration; a process that merely remains alive is insufficient.
 
+The bounded CI smoke and its evidence validation use the same runner as the
+long test:
+
+```sh
+python3 -B tests/integration/run_m9_mixed_soak.py \
+  --compositor build/wtwm-test-compositor \
+  --wayland-client build/wtwm-stress-wayland-client \
+  --x11-client build/wtwm-stress-x11-client \
+  --output /tmp/wtwm-m9-soak-smoke.json --smoke --overwrite
+python3 -B tests/integration/validate_m9_mixed_soak.py \
+  --runner tests/integration/run_m9_mixed_soak.py \
+  --evidence /tmp/wtwm-m9-soak-smoke.json
+```
+
+Omit `--smoke` for the default 259200-second run. The evidence is qualified as
+a 72-hour result only when measured elapsed time reaches that value, every
+mixed-client workload counter is complete, bounded resource growth passes, and
+the one compositor exits cleanly. Preserve the JSON and both adjacent log
+files.
+
 Test the GPU renderer on representative physical AMD and Intel systems and the
 software renderer through the controlled pixman/headless profile. ARM coverage
 must state whether it is native VM hardware, physical hardware, or emulation.

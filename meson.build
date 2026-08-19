@@ -1041,6 +1041,15 @@ test(
   ],
 )
 test(
+  'Milestone 9 mixed soak evidence contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m9_mixed_soak.py'),
+    '--runner', files('tests/integration/run_m9_mixed_soak.py'),
+  ],
+)
+test(
   'randomized lifecycle model contract',
   find_program('python3'),
   args: [
@@ -1404,6 +1413,21 @@ if wlroots.found()
       '--x11-client', wtwm_stress_x11_client,
     ],
     timeout: 120,
+    is_parallel: false,
+  )
+  test(
+    'Milestone 9 mixed client soak smoke',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_m9_mixed_soak.py'),
+      '--compositor', wtwm_test_compositor,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--output', meson.current_build_dir() / 'm9-mixed-soak-smoke.json',
+      '--smoke',
+      '--overwrite',
+    ],
+    timeout: 300,
     is_parallel: false,
   )
   test(
