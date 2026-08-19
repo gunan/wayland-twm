@@ -44,6 +44,24 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
 | Client request hardening | Public wlroots 0.18 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with oversized popup positioners rejected. wlroots 0.18 consumes `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
 
+## Milestone 10 certification status
+
+Milestone 10 is tracked by three fail-closed machine-readable records under
+`reference/certification/`. The differential contract maps all eleven required
+comparison dimensions to concrete runners, validators, and frozen evidence,
+but records only six as live reference differentials. Exact pointer
+coordinates, live menu state, launched commands, close/destruction behavior,
+and screenshots after every significant action remain partial and therefore
+are not parity claims.
+
+The certification corpus contains nineteen cases across all seven required
+source, client, output/color, and interaction categories. Corpus inclusion is
+an inventory fact, not proof that one complete certification run passed. The
+release-gate manifest keeps all eleven final 1.0 gates pending until each has a
+validated checked-in evidence report; consequently a full observable parity
+claim remains prohibited. `docs/PARITY_CERTIFICATION.md` defines the evidence
+format and promotion procedure.
+
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
 user result when possible, document the translation when it is not, and never
