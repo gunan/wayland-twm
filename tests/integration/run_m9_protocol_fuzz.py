@@ -303,7 +303,7 @@ def main() -> None:
     parser.add_argument("--compositor", type=Path, required=True)
     parser.add_argument("--client", type=Path, required=True)
     args = parser.parse_args()
-    run(args.compositor, args.client)
+    run(args.compositor.resolve(), args.client.resolve())
 
 
 if __name__ == "__main__":

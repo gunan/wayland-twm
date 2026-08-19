@@ -1068,6 +1068,7 @@ test(
   args: [
     '-B',
     files('tests/integration/validate_m9_diagnostic_dump.py'),
+    '--source-root', meson.project_source_root(),
   ],
 )
 test(

@@ -31,6 +31,14 @@ MARKERS = (
     "compositor.returncode != 0",
 )
 
+COMPOSITOR_MARKERS = (
+    "if (!initialize_session_signals(&server)) goto fail_display;",
+    "if (!initialize_diagnostic_signal(&server)) goto fail_display;",
+    "server.backend = wlr_headless_backend_create(",
+    "fail_display:\n\tfinish_input_adapter(&server);\n"
+    "\tfinish_diagnostic_signal(&server);",
+)
+
 
 def validate_source(source: str) -> list[str]:
     errors: list[str] = []
@@ -57,9 +65,28 @@ def validate_source(source: str) -> list[str]:
     return errors
 
 
-def self_test(source: str) -> None:
+def validate_compositor(source: str) -> list[str]:
+    errors = [
+        f"compositor lacks {marker!r}"
+        for marker in COMPOSITOR_MARKERS if marker not in source
+    ]
+    if errors:
+        return errors
+    session_index = source.index(COMPOSITOR_MARKERS[0])
+    diagnostic_index = source.index(COMPOSITOR_MARKERS[1])
+    backend_index = source.index(COMPOSITOR_MARKERS[2])
+    if not session_index < diagnostic_index < backend_index:
+        errors.append(
+            "SIGUSR2 must be blocked before wlroots can create worker threads"
+        )
+    return errors
+
+
+def self_test(source: str, compositor: str) -> None:
     if validate_source(source):
         raise RuntimeError("valid diagnostic dump source was rejected")
+    if validate_compositor(compositor):
+        raise RuntimeError("valid compositor diagnostic wiring was rejected")
     tampers = {
         '"--diagnostic-dump", str(dump_path)': '"--dump", str(dump_path)',
         "os.kill(compositor.pid, signal.SIGUSR2)":
@@ -76,6 +103,12 @@ def self_test(source: str) -> None:
         tampered = source.replace(marker, replacement, 1)
         if not validate_source(tampered):
             raise RuntimeError(f"diagnostic dump tamper was accepted: {marker!r}")
+    for marker in COMPOSITOR_MARKERS:
+        tampered = compositor.replace(marker, "REMOVED", 1)
+        if not validate_compositor(tampered):
+            raise RuntimeError(
+                f"compositor diagnostic tamper was accepted: {marker!r}"
+            )
 
 
 def main() -> None:
@@ -84,12 +117,17 @@ def main() -> None:
         "--runner", type=Path,
         default=Path(__file__).with_name("run_m9_diagnostic_dump.py"),
     )
+    parser.add_argument(
+        "--source-root", type=Path,
+        default=Path(__file__).resolve().parents[2],
+    )
     arguments = parser.parse_args()
     source = arguments.runner.read_text(encoding="utf-8")
-    errors = validate_source(source)
+    compositor = (arguments.source_root / "src/wtwm.c").read_text(encoding="utf-8")
+    errors = validate_source(source) + validate_compositor(compositor)
     if errors:
         raise SystemExit("invalid diagnostic dump contract: " + "; ".join(errors))
-    self_test(source)
+    self_test(source, compositor)
     print("m9 diagnostic dump contract/tamper tests pass")
 
 

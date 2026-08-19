@@ -10967,6 +10967,8 @@ int main(int argc, char **argv) {
 	server.display = wl_display_create();
 	if (server.display == NULL) goto fail_state;
 	if (!initialize_session_signals(&server)) goto fail_display;
+	/* Block SIGUSR2 before wlroots can create worker threads. */
+	if (!initialize_diagnostic_signal(&server)) goto fail_display;
 #ifdef WTWM_TEST_CONTROL
 	if (strcmp(test_backend, "headless") == 0) {
 		server.backend = wlr_headless_backend_create(
@@ -11058,7 +11060,6 @@ int main(int argc, char **argv) {
 	server.request_primary_selection.notify = request_primary_selection;
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
-	if (!initialize_diagnostic_signal(&server)) goto fail_runtime;
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.server = &server;
 	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,
@@ -11149,6 +11150,7 @@ fail_backend:
 	wlr_backend_destroy(server.backend);
 fail_display:
 	finish_input_adapter(&server);
+	finish_diagnostic_signal(&server);
 	finish_session_signals(&server);
 	wl_display_destroy(server.display);
 fail_state:

@@ -965,11 +965,16 @@ def main() -> int:
                 "message": "; ".join(contract_errors),
             }
         write_evidence(arguments.output, evidence)
+    failure = evidence.get("error")
+    failure_summary = (
+        f" error={failure.get('type')}: {failure.get('message')}"
+        if isinstance(failure, dict) else ""
+    )
     print(
         f"m9 mixed soak {evidence['result']}: iterations="
         f"{evidence['iterations_completed']} elapsed={evidence['elapsed_seconds']:.3f}s "
         f"qualified_72_hour={str(evidence['qualified_72_hour']).lower()} "
-        f"evidence={arguments.output}"
+        f"evidence={arguments.output}{failure_summary}"
     )
     return 0 if evidence["result"] == "pass" else 1
 

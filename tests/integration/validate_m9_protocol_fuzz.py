@@ -71,6 +71,9 @@ RUNNER_MARKERS = {
     "toplevel size evidence": "boundary=xdg_commit outcome=adjusted",
     "popup size evidence": "role=popup boundary=popup_create outcome=rejected",
     "sanitizer evidence rejected": "ERROR: AddressSanitizer",
+    "Meson executable paths resolved": (
+        "run(args.compositor.resolve(), args.client.resolve())"
+    ),
 }
 
 
