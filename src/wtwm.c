@@ -5129,11 +5129,9 @@ static void restore_toplevel_scene_visibility(struct toplevel *toplevel) {
 	toplevel->restoration_icon_visible = false;
 }
 
-static bool restoration_icon_is_manual(const struct toplevel *toplevel) {
-	if (toplevel->icon_moved) return true;
-	return toplevel->xwayland != NULL && toplevel->xwayland->hints != NULL &&
-		(toplevel->xwayland->hints->flags &
-		XCB_ICCCM_WM_HINT_ICON_POSITION) != 0;
+static bool restoration_icon_uses_planned_position(
+		const struct toplevel *toplevel) {
+	return !toplevel->icon_region_allocated;
 }
 
 static bool apply_restored_zoom(struct toplevel *toplevel,
@@ -5240,7 +5238,8 @@ static bool apply_output_restoration(struct server *server) {
 			apply_restored_zoom(toplevel, record, &after);
 		if (!record->recompute_zoom && record->frame_changed)
 			set_toplevel_position(toplevel, record->frame.x, record->frame.y);
-		if (record->icon_changed && restoration_icon_is_manual(toplevel)) {
+		if (record->icon_changed &&
+				restoration_icon_uses_planned_position(toplevel)) {
 			toplevel->icon_x = record->icon.x;
 			toplevel->icon_y = record->icon.y;
 			if (toplevel->icon_tree != NULL)
