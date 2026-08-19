@@ -61,6 +61,8 @@ RUNNER_FRAGMENTS = (
     "MoveDelta equality did not start",
     "outline preview geometry is wrong",
     "second-button press did not abort outline move",
+    "does not synthesize release of the original holder",
+    'control.command("BUTTON 274 release")\n    release(control, 273)',
     "DontMoveOff did not clamp outer frame",
     "f.forcemove was incorrectly clamped",
     "rapid second move was not constrained",

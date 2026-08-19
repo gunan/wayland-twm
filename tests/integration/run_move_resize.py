@@ -125,6 +125,8 @@ def outline_scenario(control: Control) -> None:
     if not any(event["event"] == "abort" for event in control.trace()["events"]):
         raise RuntimeError("outline abort was not recorded in TRACE")
     control.command("BUTTON 274 release")
+    # The aborting button does not synthesize release of the original holder.
+    release(control)
 
     item = state_window(control)
     start = title_point(item)
@@ -214,6 +216,7 @@ def resize_scenario(control: Control) -> None:
             original["x"], original["y"], original["width"], original["height"]):
         raise RuntimeError(f"resize abort changed live geometry: {item!r}")
     control.command("BUTTON 274 release")
+    release(control, 273)
 
 
 def opaque_and_no_raise_scenario(control: Control) -> None:

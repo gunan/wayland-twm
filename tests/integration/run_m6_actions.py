@@ -180,6 +180,7 @@ def run(compositor_binary: Path, client_binary: Path) -> None:
             if control.state()["menu"] is not None:
                 raise RuntimeError("a second button press did not cancel the menu")
             control.command("BUTTON 273 release")
+            control.command("BUTTON 272 release")
 
             # Open the same path again to exercise release dispatch in the child.
             control.command("POINTER 10 10")

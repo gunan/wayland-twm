@@ -214,6 +214,20 @@ def validate_model() -> None:
         raise RuntimeError("target origin was not applied after clamping")
     if translated_point(third, first, (579, 89)) != (139, 89):
         raise RuntimeError("relative coordinate did not survive unequal origins")
+    before = {
+        "frame": 1,
+        "cursor": {"x": 1, "y": 2},
+        "inputs": [{"name": "pointer", "last_activity": 4, "pressed": []}],
+        "focus_root": True,
+    }
+    after = {
+        "frame": 2,
+        "cursor": {"x": 1, "y": 2},
+        "inputs": [{"name": "pointer", "last_activity": 9, "pressed": []}],
+        "focus_root": True,
+    }
+    if nonspatial_state(before) != nonspatial_state(after):
+        raise RuntimeError("input activity diagnostics polluted warp no-op state")
 
 
 def validate_generated_configs(config_tool: Path) -> None:
@@ -256,11 +270,23 @@ def validate_generated_configs(config_tool: Path) -> None:
 
 
 def nonspatial_state(state: dict[str, object]) -> dict[str, object]:
-    return {
+    projection = {
         key: value
         for key, value in state.items()
         if key not in {"frame", "cursor"}
     }
+    inputs = projection.get("inputs")
+    if isinstance(inputs, list):
+        projection["inputs"] = [
+            {
+                key: value
+                for key, value in item.items()
+                if key != "last_activity"
+            }
+            if isinstance(item, dict) else item
+            for item in inputs
+        ]
+    return projection
 
 
 def cursor_point(state: dict[str, object]) -> tuple[float, float]:
