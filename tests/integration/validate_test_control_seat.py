@@ -41,6 +41,15 @@ def validate(source: str) -> None:
         if fragment not in source:
             raise ValueError(f"dynamic aggregate seat setup lacks {fragment}")
     for fragment in (
+        "wlr_cursor_warp_closest(server->cursor, NULL, x, y);",
+        "holders == 0 : source_holds && holders == 1;",
+        "holders != 0 ? inherited_visible : false;",
+        "server->interaction.required_button_valid &&",
+        "input_held_count(state, WTWM_INPUT_DEVICE_POINTER,",
+    ):
+        if fragment not in source:
+            raise ValueError(f"physical input aggregation lacks {fragment}")
+    for fragment in (
         "sync_xwayland_input_focus(server, toplevel)",
         "wlr_xwayland_surface_activate(toplevel->xwayland, true);",
         "send_take_focus && !xwm_sent_take_focus",
@@ -153,6 +162,29 @@ def main() -> None:
             pass
         else:
             raise ValueError("synthetic seat contract accepted missing pointer")
+        tampered = source.replace(
+            "wlr_cursor_warp_closest(server->cursor, NULL, x, y);",
+            "wlr_cursor_warp_closest(server->cursor, "
+            "&device->wlr.pointer.base, x, y);",
+            1,
+        )
+        try:
+            validate(tampered)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("synthetic seat contract accepted device-local warping")
+        tampered = source.replace(
+            "holders == 0 : source_holds && holders == 1;",
+            "holders == 0 : source_holds;",
+            1,
+        )
+        try:
+            validate(tampered)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("synthetic seat contract accepted an early shared release")
         tampered_runner = runner.replace('x11, "WAIT BRIDGE"', 'x11, "STATUS"', 1)
         try:
             validate_bridge_handshake(wayland_client, x11_client, tampered_runner)

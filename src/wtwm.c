@@ -6293,6 +6293,48 @@ static uint64_t input_focus_cookie(struct toplevel *toplevel) {
 	return toplevel != NULL ? toplevel->icon_identity : 0;
 }
 
+static size_t input_held_count(const struct wtwm_input_hotplug_state *state,
+		enum wtwm_input_device_type type, uint32_t code,
+		bool *client_visible) {
+	size_t count = 0;
+	if (client_visible != NULL) *client_visible = false;
+	for (size_t device_index = 0; device_index < state->device_count;
+			++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&state->devices[device_index];
+		if (device->type != type) continue;
+		const struct wtwm_input_held *held =
+			type == WTWM_INPUT_DEVICE_KEYBOARD ? device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index) {
+			if (held[held_index].code != code) continue;
+			if (count == 0 && client_visible != NULL)
+				*client_visible = held[held_index].client_visible;
+			++count;
+		}
+	}
+	return count;
+}
+
+static bool input_device_holds(const struct wtwm_input_hotplug_state *state,
+		uint64_t ordinal, enum wtwm_input_device_type type, uint32_t code) {
+	for (size_t device_index = 0; device_index < state->device_count;
+			++device_index) {
+		const struct wtwm_input_hotplug_device *device =
+			&state->devices[device_index];
+		if (device->ordinal != ordinal || device->type != type) continue;
+		const struct wtwm_input_held *held =
+			type == WTWM_INPUT_DEVICE_KEYBOARD ? device->keys : device->buttons;
+		size_t held_count = type == WTWM_INPUT_DEVICE_KEYBOARD ?
+			device->key_count : device->button_count;
+		for (size_t held_index = 0; held_index < held_count; ++held_index)
+			if (held[held_index].code == code) return true;
+		return false;
+	}
+	return false;
+}
+
 static void sync_input_context(struct server *server) {
 	struct wtwm_input_hotplug_state *state = &server->input;
 	struct toplevel *keyboard_focus = toplevel_for_surface(
@@ -6323,14 +6365,19 @@ static void sync_input_context(struct server *server) {
 		else state->pointer_operation = server->cursor_mode == CURSOR_RESIZE ?
 			WTWM_INPUT_POINTER_RESIZE : WTWM_INPUT_POINTER_MOVE;
 		state->pointer_operation_button_valid =
-			server->interaction.required_button_valid;
+			server->interaction.required_button_valid &&
+			input_held_count(state, WTWM_INPUT_DEVICE_POINTER,
+				server->interaction.required_button, NULL) != 0;
 		state->pointer_operation_button =
-			server->interaction.required_button_valid ?
+			state->pointer_operation_button_valid ?
 			server->interaction.required_button : 0;
 		if (server->interaction.intent == INTERACTION_INITIAL_CONFIRM) {
-			state->pointer_operation_button_valid = true;
+			state->pointer_operation_button_valid = input_held_count(state,
+				WTWM_INPUT_DEVICE_POINTER,
+				server->interaction.confirming_button, NULL) != 0;
 			state->pointer_operation_button =
-				server->interaction.confirming_button;
+				state->pointer_operation_button_valid ?
+				server->interaction.confirming_button : 0;
 		}
 	}
 }
@@ -6641,7 +6688,16 @@ static void cursor_button(struct wl_listener *listener, void *data) {
 	server->current_input_time_ms = event->time_msec;
 	server->dispatch_pointer_button = event->button;
 	server->dispatch_pointer_button_valid = true;
-	bool client_visible = dispatch_cursor_button(server, event);
+	bool inherited_visible = false;
+	size_t holders = input_held_count(&server->input,
+		WTWM_INPUT_DEVICE_POINTER, event->button, &inherited_visible);
+	bool source_holds = input_device_holds(&server->input,
+		pointer->input_ordinal, WTWM_INPUT_DEVICE_POINTER, event->button);
+	bool dispatch = event->state == WL_POINTER_BUTTON_STATE_PRESSED ?
+		holders == 0 : source_holds && holders == 1;
+	bool client_visible = event->state == WL_POINTER_BUTTON_STATE_PRESSED &&
+		holders != 0 ? inherited_visible : false;
+	if (dispatch) client_visible = dispatch_cursor_button(server, event);
 	sync_input_context(server);
 	wtwm_input_hotplug_plan_init(server->input_plan);
 	bool built = event->state == WL_POINTER_BUTTON_STATE_PRESSED ?
@@ -6697,8 +6753,11 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 	uint32_t keycode = event->keycode + 8;
 	const xkb_keysym_t *symbols = NULL;
 	int count = xkb_state_key_get_syms(keyboard->wlr->xkb_state, keycode, &symbols);
-	bool handled = false;
-	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+	bool inherited_visible = false;
+	size_t holders = input_held_count(&server->input,
+		WTWM_INPUT_DEVICE_KEYBOARD, event->keycode, &inherited_visible);
+	bool handled = holders != 0 && !inherited_visible;
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED && holders == 0) {
 		struct wlr_surface *focused = server->seat->keyboard_state.focused_surface;
 		struct toplevel *toplevel = toplevel_for_surface(focused);
 		uint32_t context = toplevel ? WTWM_CONTEXT_WINDOW : WTWM_CONTEXT_ROOT;
@@ -6720,8 +6779,9 @@ static void keyboard_key(struct wl_listener *listener, void *data) {
 		}
 	}
 	if (server->input_plan == NULL) return;
-	bool client_visible = !handled;
+	bool client_visible = holders != 0 ? inherited_visible : !handled;
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED && client_visible &&
+			holders == 0 &&
 			server->aggregate_keyboard.num_keycodes >= WLR_KEYBOARD_KEYS_CAP) {
 		bool aggregate_holds = false;
 		for (size_t index = 0;
@@ -9877,7 +9937,7 @@ static bool test_input_clear(struct test_control *control) {
 static bool test_pointer(struct test_input_device *device, double x, double y) {
 	if (device == NULL || device->type != WTWM_INPUT_DEVICE_POINTER) return false;
 	struct server *server = device->control->server;
-	wlr_cursor_warp_closest(server->cursor, &device->wlr.pointer.base, x, y);
+	wlr_cursor_warp_closest(server->cursor, NULL, x, y);
 	struct pointer *pointer = pointer_for_wlr(server, &device->wlr.pointer);
 	if (pointer == NULL || !plan_pointer_motion(server, pointer->input_ordinal))
 		return false;
