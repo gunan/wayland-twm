@@ -273,7 +273,7 @@ def run_signal_logout(
     config.write_text(config_text(restore=malformed), encoding="utf-8")
     state_path = state_home / "wtwm" / "state"
     if malformed:
-        state_path.parent.mkdir(parents=True, mode=0o700)
+        state_path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
         state_path.write_bytes(MALFORMED_STATE)
     control_path = temporary / f"{label}-control.sock"
     display_name = f"wm8-lifecycle-{label}-{os.getpid()}"
