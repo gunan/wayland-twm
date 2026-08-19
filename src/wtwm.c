@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MIT
  *
- * wtwm is built on wlroots' public 0.18 scene and xdg-shell APIs.  The small
- * compositor core follows the same event-driven shape as wlroots/tinywl, with
- * server-side decorations and twm actions kept in this project.
+ * wtwm is built on wlroots' public 0.18 and 0.20 scene and xdg-shell APIs. The
+ * small compositor core follows the same event-driven shape as wlroots/tinywl,
+ * with server-side decorations and twm actions kept in this project.
  */
 #define _POSIX_C_SOURCE 200809L
 #define WLR_USE_UNSTABLE
@@ -89,6 +89,28 @@
 #include <wlr/xwayland/xwayland.h>
 #include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon.h>
+
+#ifndef WTWM_WLROOTS_API_MINOR
+#error "WTWM_WLROOTS_API_MINOR must identify the selected wlroots API"
+#endif
+
+static void wtwm_xdg_surface_get_geometry(struct wlr_xdg_surface *surface,
+		struct wlr_box *geometry) {
+#if WTWM_WLROOTS_API_MINOR >= 20
+	*geometry = surface->geometry;
+#else
+	wlr_xdg_surface_get_geometry(surface, geometry);
+#endif
+}
+
+static bool wtwm_xwayland_override_redirect_wants_focus(
+		const struct wlr_xwayland_surface *surface) {
+#if WTWM_WLROOTS_API_MINOR >= 20
+	return wlr_xwayland_surface_override_redirect_wants_focus(surface);
+#else
+	return wlr_xwayland_or_surface_wants_focus(surface);
+#endif
+}
 
 #define WTWM_SESSION_SIGNAL_COUNT 4u
 
@@ -236,6 +258,8 @@ struct toplevel {
 	bool associated;
 	bool rules_initialized;
 	bool xwayland_map_requested;
+	bool xwayland_was_associated;
+	bool xwayland_was_mapped;
 	bool start_iconified_match;
 	bool auto_raise;
 	bool iconify_by_unmapping;
@@ -279,6 +303,7 @@ struct toplevel {
 	size_t colormap_count;
 	size_t colormap_rotation;
 	struct wl_event_source *xwayland_sync_idle;
+	struct wl_event_source *xwayland_map_retry;
 #ifdef WTWM_TEST_CONTROL
 	uint64_t test_id;
 	char test_title[TEST_TRACE_IDENTITY_MAX];
@@ -371,6 +396,7 @@ struct output {
 	struct server *server;
 	struct wlr_output *wlr;
 	struct wlr_scene_output *scene_output;
+	struct wl_listener scene_output_destroy;
 	struct wtwm_output_identity identity;
 	struct wlr_scene_rect *background;
 	bool in_layout;
@@ -582,8 +608,11 @@ struct server {
 	struct wl_list keyboards;
 	struct wl_list pointers;
 	struct wlr_xwayland *xwayland;
+	xcb_connection_t *xwayland_text_connection;
 	struct wl_listener xwayland_ready;
 	struct wl_listener xwayland_new_surface;
+	const char *startup_command;
+	struct wl_event_source *startup_idle;
 	xcb_atom_t atom_wm_protocols;
 	xcb_atom_t atom_wm_take_focus;
 	xcb_atom_t atom_wm_delete_window;
@@ -636,7 +665,13 @@ struct server {
 };
 
 static void new_xwayland_surface(struct wl_listener *listener, void *data);
+static bool spawn_command(const char *command);
+#if WTWM_WLROOTS_API_MINOR >= 20
+static bool xwayland_user_event(struct wlr_xwayland *xwayland,
+	xcb_generic_event_t *event);
+#else
 static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event);
+#endif
 static void resume_action_continuation(struct server *server);
 static void process_cursor_motion(struct server *server, uint32_t time_msec);
 static void refresh_pointer_after_restart(struct server *server);
@@ -644,6 +679,8 @@ static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
 static void clear_keyboard_focus(struct server *server);
 static void set_xwayland_input_focus(struct server *server,
 	struct toplevel *toplevel);
+static struct toplevel *xwayland_toplevel_for_window(struct server *server,
+	xcb_window_t window);
 static void finish_initial_placement(struct server *server);
 static void cancel_initial_placement(struct toplevel *toplevel);
 static void start_next_initial_placement(struct server *server);
@@ -684,12 +721,31 @@ static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) 
 	return atom;
 }
 
+static void xwayland_startup_idle(void *data) {
+	struct server *server = data;
+	server->startup_idle = NULL;
+	const char *startup = server->startup_command;
+	server->startup_command = NULL;
+	if (startup != NULL) spawn_command(startup);
+}
+
 static void xwayland_ready(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, xwayland_ready);
 	(void)data;
 	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
 	if (connection != NULL) {
-		wtwm_text_set_x11_connection(connection);
+		server->xwayland_text_connection = xcb_connect(
+			server->xwayland->display_name, NULL);
+		if (server->xwayland_text_connection != NULL &&
+				xcb_connection_has_error(server->xwayland_text_connection) == 0) {
+			wtwm_text_set_x11_connection(server->xwayland_text_connection);
+		} else {
+			wlr_log(WLR_ERROR, "%s",
+				"failed to open the isolated X11 text-rendering connection");
+			if (server->xwayland_text_connection != NULL)
+				xcb_disconnect(server->xwayland_text_connection);
+			server->xwayland_text_connection = NULL;
+		}
 		server->atom_wm_protocols = xwayland_atom(connection, "WM_PROTOCOLS");
 		server->atom_wm_take_focus = xwayland_atom(connection, "WM_TAKE_FOCUS");
 		server->atom_wm_delete_window = xwayland_atom(connection, "WM_DELETE_WINDOW");
@@ -716,17 +772,32 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
 		}
 	}
 	wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
+	if (server->startup_command != NULL) {
+		server->startup_idle = wl_event_loop_add_idle(
+			wl_display_get_event_loop(server->display),
+			xwayland_startup_idle, server);
+		if (server->startup_idle == NULL) xwayland_startup_idle(server);
+	}
 }
 
 static void xwayland_finish(struct server *server) {
+	if (server->startup_idle != NULL) {
+		wl_event_source_remove(server->startup_idle);
+		server->startup_idle = NULL;
+	}
+	wtwm_text_set_x11_connection(NULL);
+	if (server->xwayland_text_connection != NULL) {
+		xcb_disconnect(server->xwayland_text_connection);
+		server->xwayland_text_connection = NULL;
+	}
 	if (server->xwayland != NULL) {
-		wtwm_text_set_x11_connection(NULL);
 		wl_list_remove(&server->xwayland_ready.link);
 		wl_list_remove(&server->xwayland_new_surface.link);
 		wlr_xwayland_destroy(server->xwayland);
 		server->xwayland = NULL;
 		if (xwayland_event_server == server) xwayland_event_server = NULL;
 	}
+	server->startup_command = NULL;
 	if (server->xwayland_display_exported) {
 		if (server->had_previous_display)
 			(void)setenv("DISPLAY", server->previous_display, true);
@@ -746,8 +817,11 @@ static bool xwayland_start(struct server *server) {
 			xwayland_override, strerror(errno));
 		return false;
 	}
-	server->xwayland = wlr_xwayland_create(
-		server->display, server->compositor, true);
+	/* Keep the no-command case lazy. With -s, start Xwayland eagerly and run
+	 * the command on the next idle cycle after readiness so early X11 requests
+	 * cannot race wlroots installing its XWM event selection. */
+	server->xwayland = wlr_xwayland_create(server->display, server->compositor,
+		server->startup_command == NULL);
 	if (server->xwayland == NULL) {
 		wlr_log(WLR_ERROR, "%s", "Xwayland setup failed; continuing without X11 support");
 		return false;
@@ -1080,6 +1154,39 @@ static unsigned sanitize_toplevel_client_size(struct toplevel *toplevel,
 			requested_height, *width, *height, adjustment);
 	}
 	return adjustment;
+}
+
+static bool normalize_xdg_surface_geometry(struct toplevel *toplevel,
+		const char *boundary) {
+#if WTWM_WLROOTS_API_MINOR >= 20
+	struct wlr_box *geometry = &toplevel->xdg->base->geometry;
+	if (wtwm_client_geometry_in_bounds(geometry->x, geometry->y,
+			geometry->width, geometry->height)) return false;
+	struct wlr_box requested = *geometry;
+	struct wlr_box extents;
+	wlr_surface_get_extents(toplevel->xdg->base->surface, &extents);
+	int width, height;
+	(void)wtwm_client_size_sanitize(extents.width, extents.height,
+		toplevel->width, toplevel->height, &width, &height);
+	int x = extents.x;
+	int y = extents.y;
+	if (x < -WTWM_CLIENT_SIZE_MAX) x = -WTWM_CLIENT_SIZE_MAX;
+	else if (x > WTWM_CLIENT_SIZE_MAX) x = WTWM_CLIENT_SIZE_MAX;
+	if (y < -WTWM_CLIENT_SIZE_MAX) y = -WTWM_CLIENT_SIZE_MAX;
+	else if (y > WTWM_CLIENT_SIZE_MAX) y = WTWM_CLIENT_SIZE_MAX;
+	*geometry = (struct wlr_box){x, y, width, height};
+	wlr_log(WLR_DEBUG,
+		"event=client_size protocol=xdg_shell boundary=%s outcome=adjusted "
+		"requested_x=%d requested_y=%d requested_width=%d requested_height=%d "
+		"x=%d y=%d width=%d height=%d adjustment=geometry_bounds",
+		boundary, requested.x, requested.y, requested.width, requested.height,
+		geometry->x, geometry->y, geometry->width, geometry->height);
+	return true;
+#else
+	(void)toplevel;
+	(void)boundary;
+	return false;
+#endif
 }
 
 #ifdef WTWM_TEST_CONTROL
@@ -2618,6 +2725,13 @@ static void configure_xwayland_frame(struct toplevel *toplevel,
 	if (client_y > INT16_MAX) client_y = INT16_MAX;
 	wlr_xwayland_surface_configure(toplevel->xwayland,
 		(int16_t)client_x, (int16_t)client_y, (uint16_t)width, (uint16_t)height);
+#if WTWM_WLROOTS_API_MINOR >= 20
+	/* wlroots 0.20 schedules XWM writes for a later writable callback. Flush
+	 * now so client repaint and ConfigureNotify ordering stays twm-compatible. */
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (connection != NULL) xcb_flush(connection);
+#endif
 	if (toplevel->tree != NULL && toplevel->content != NULL)
 		update_decoration(toplevel);
 	test_trace_toplevel_event_at(toplevel, "configure", "client",
@@ -2721,6 +2835,30 @@ static void set_xwayland_input_focus(struct server *server,
 		XCB_CURRENT_TIME);
 	xcb_flush(connection);
 }
+
+#if WTWM_WLROOTS_API_MINOR >= 20
+#define WTWM_XWAYLAND_WAKE_MAGIC_0 UINT32_C(0x5754574d)
+#define WTWM_XWAYLAND_WAKE_MAGIC_1 UINT32_C(0x57414b45)
+
+static void wake_xwayland_event_source(struct server *server,
+		xcb_connection_t *connection) {
+	if (server == NULL || connection == NULL) return;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(connection));
+	if (screens.data == NULL) return;
+	xcb_client_message_event_t event = {
+		.response_type = XCB_CLIENT_MESSAGE,
+		.format = 32,
+		.window = screens.data->root,
+		.type = XCB_ATOM_NONE,
+	};
+	event.data.data32[0] = WTWM_XWAYLAND_WAKE_MAGIC_0;
+	event.data.data32[1] = WTWM_XWAYLAND_WAKE_MAGIC_1;
+	xcb_send_event(connection, false, screens.data->root,
+		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char *)&event);
+	xcb_flush(connection);
+}
+#endif
 
 static bool sync_xwayland_input_focus(struct server *server,
 		struct toplevel *toplevel) {
@@ -6757,6 +6895,23 @@ static void cursor_frame(struct wl_listener *listener, void *data) {
 	wlr_seat_pointer_notify_frame(server->seat);
 }
 
+static void detach_runtime_listeners(struct server *server) {
+	wl_list_remove(&server->output_layout_change.link);
+	wl_list_remove(&server->new_output.link);
+	wl_list_remove(&server->new_toplevel.link);
+	wl_list_remove(&server->new_popup.link);
+	wl_list_remove(&server->new_decoration.link);
+	wl_list_remove(&server->cursor_motion.link);
+	wl_list_remove(&server->cursor_motion_absolute.link);
+	wl_list_remove(&server->cursor_button.link);
+	wl_list_remove(&server->cursor_axis.link);
+	wl_list_remove(&server->cursor_frame.link);
+	wl_list_remove(&server->new_input.link);
+	wl_list_remove(&server->request_cursor.link);
+	wl_list_remove(&server->request_selection.link);
+	wl_list_remove(&server->request_primary_selection.link);
+}
+
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, modifiers);
@@ -7169,12 +7324,26 @@ static void output_background_destroy(struct wl_listener *listener, void *data) 
 	wl_list_init(&output->background_destroy.link);
 }
 
+static void output_scene_output_destroy(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct output *output = wl_container_of(listener, output,
+		scene_output_destroy);
+	output->scene_output = NULL;
+	wl_list_remove(&output->scene_output_destroy.link);
+	wl_list_init(&output->scene_output_destroy.link);
+}
+
 static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct output *output = wl_container_of(listener, output, destroy);
 	struct server *server = output->server;
 	(void)begin_output_topology_mutation(server);
 	detach_output_layout(output);
+	/* wlroots 0.20 requires every output event listener to be gone when the
+	 * backend finishes the output. Destroying our scene output here also sends
+	 * the matching surface leaves before topology restoration can run. */
+	if (output->scene_output != NULL)
+		wlr_scene_output_destroy(output->scene_output);
 	wl_list_remove(&output->frame.link);
 	wl_list_remove(&output->request_state.link);
 	wl_list_remove(&output->destroy.link);
@@ -7254,6 +7423,9 @@ static void new_output(struct wl_listener *listener, void *data) {
 		free(output);
 		return;
 	}
+	output->scene_output_destroy.notify = output_scene_output_destroy;
+	wl_signal_add(&output->scene_output->events.destroy,
+		&output->scene_output_destroy);
 	output->frame.notify = output_frame;
 	wl_signal_add(&wlr_output->events.frame, &output->frame);
 	output->request_state.notify = output_request_state;
@@ -7552,10 +7724,11 @@ static void toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, map);
 	if (toplevel->mapped) return;
+	(void)normalize_xdg_surface_geometry(toplevel, "xdg_map");
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
 	struct wlr_box geometry;
-	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
+	wtwm_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
 	(void)sanitize_toplevel_client_size(toplevel, "xdg_map",
 		geometry.width, geometry.height, &toplevel->width, &toplevel->height);
 	update_decoration(toplevel);
@@ -7643,6 +7816,7 @@ static void toplevel_unmap(struct wl_listener *listener, void *data) {
 static void toplevel_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, commit);
+	(void)normalize_xdg_surface_geometry(toplevel, "xdg_commit");
 	int previous_width = toplevel->width;
 	int previous_height = toplevel->height;
 	if (toplevel->xdg->base->initial_commit) {
@@ -7650,7 +7824,7 @@ static void toplevel_commit(struct wl_listener *listener, void *data) {
 		update_toplevel_metadata(toplevel, false);
 	}
 	struct wlr_box geometry;
-	wlr_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
+	wtwm_xdg_surface_get_geometry(toplevel->xdg->base, &geometry);
 	(void)sanitize_toplevel_client_size(toplevel, "xdg_commit",
 		geometry.width, geometry.height, &toplevel->width, &toplevel->height);
 	update_decoration(toplevel);
@@ -7838,15 +8012,15 @@ static void new_toplevel(struct wl_listener *listener, void *data) {
 		wlr_xdg_toplevel_send_close(xdg);
 		return;
 	}
+	toplevel->map.notify = toplevel_map;
+	wl_signal_add(&xdg->base->surface->events.map, &toplevel->map);
+	toplevel->commit.notify = toplevel_commit;
+	wl_signal_add(&xdg->base->surface->events.commit, &toplevel->commit);
 	toplevel->content = wlr_scene_xdg_surface_create(toplevel->tree, xdg->base);
 	xdg->base->data = toplevel->content;
 	update_toplevel_metadata(toplevel, true);
-	toplevel->map.notify = toplevel_map;
-	wl_signal_add(&xdg->base->surface->events.map, &toplevel->map);
 	toplevel->unmap.notify = toplevel_unmap;
 	wl_signal_add(&xdg->base->surface->events.unmap, &toplevel->unmap);
-	toplevel->commit.notify = toplevel_commit;
-	wl_signal_add(&xdg->base->surface->events.commit, &toplevel->commit);
 	toplevel->destroy.notify = toplevel_destroy;
 	wl_signal_add(&xdg->events.destroy, &toplevel->destroy);
 	toplevel->request_move.notify = request_move;
@@ -8217,6 +8391,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	if (toplevel->tree == NULL ||
 			(toplevel->mapped && !toplevel->placement_waiting_output)) return;
 	bool first_map = !toplevel->mapped;
+	toplevel->xwayland_was_mapped = true;
 	if (first_map)
 		toplevel->placement_initial_rules = initialize_toplevel_rules(toplevel);
 	toplevel->mapped = true;
@@ -8237,7 +8412,7 @@ static void map_xwayland_toplevel(struct toplevel *toplevel) {
 	wlr_scene_node_set_enabled(&toplevel->tree->node, true);
 	test_trace_toplevel_event(toplevel, "map", "client");
 	if (toplevel->xwayland->override_redirect) {
-		if (wlr_xwayland_or_surface_wants_focus(toplevel->xwayland)) {
+		if (wtwm_xwayland_override_redirect_wants_focus(toplevel->xwayland)) {
 			struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(toplevel->server->seat);
 			if (toplevel->server->input.keyboard_count != 0 && keyboard != NULL) {
 				wlr_seat_keyboard_notify_enter(toplevel->server->seat,
@@ -8464,7 +8639,7 @@ static void read_xwayland_wm_hints_icon(struct toplevel *toplevel) {
 
 static void xwayland_deferred_sync(void *data) {
 	struct toplevel *toplevel = data;
-	bool parent_cleared = false;
+	bool parent_changed = false;
 	toplevel->xwayland_sync_idle = NULL;
 	xcb_connection_t *connection =
 		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
@@ -8499,16 +8674,37 @@ static void xwayland_deferred_sync(void *data) {
 			toplevel->server->atom_wm_transient_for, XCB_ATOM_WINDOW, 0, 1);
 		xcb_get_property_reply_t *reply =
 			xcb_get_property_reply(connection, cookie, NULL);
-		if ((reply == NULL || reply->type != XCB_ATOM_WINDOW || reply->value_len == 0) &&
-				toplevel->xwayland->parent != NULL) {
+		struct wlr_xwayland_surface *parent = NULL;
+		if (reply != NULL && reply->type == XCB_ATOM_WINDOW &&
+				reply->value_len != 0) {
+			xcb_window_t *window = xcb_get_property_value(reply);
+			struct toplevel *parent_toplevel = window != NULL ?
+				xwayland_toplevel_for_window(toplevel->server, *window) : NULL;
+			if (parent_toplevel != NULL && parent_toplevel != toplevel)
+				parent = parent_toplevel->xwayland;
+			for (struct wlr_xwayland_surface *ancestor = parent;
+					ancestor != NULL; ancestor = ancestor->parent)
+				if (ancestor == toplevel->xwayland) parent = NULL;
+		}
+		if (toplevel->xwayland->parent != parent) {
 			wl_list_remove(&toplevel->xwayland->parent_link);
-			wl_list_init(&toplevel->xwayland->parent_link);
-			toplevel->xwayland->parent = NULL;
-			parent_cleared = true;
+			toplevel->xwayland->parent = parent;
+			if (parent == NULL)
+				wl_list_init(&toplevel->xwayland->parent_link);
+			else
+				wl_list_insert(&parent->children,
+					&toplevel->xwayland->parent_link);
+			parent_changed = true;
 		}
 		free(reply);
 	}
-	if (parent_cleared) update_toplevel_metadata(toplevel, false);
+	if (parent_changed) {
+		update_toplevel_metadata(toplevel, false);
+		position_xwayland_transient(toplevel);
+	}
+#if WTWM_WLROOTS_API_MINOR >= 20
+	wake_xwayland_event_source(toplevel->server, connection);
+#endif
 	manage_bufferless_start_iconified(toplevel);
 }
 
@@ -8518,6 +8714,65 @@ static void schedule_xwayland_sync(struct toplevel *toplevel) {
 		wl_display_get_event_loop(toplevel->server->display),
 		xwayland_deferred_sync, toplevel);
 }
+
+#if WTWM_WLROOTS_API_MINOR >= 20
+static bool xwayland_root_has_area(xcb_connection_t *connection) {
+	if (connection == NULL) return false;
+	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
+		xcb_get_setup(connection));
+	if (screens.data == NULL) return false;
+	xcb_get_geometry_reply_t *geometry = xcb_get_geometry_reply(connection,
+		xcb_get_geometry(connection, screens.data->root), NULL);
+	bool ready = geometry != NULL && geometry->width > 0 && geometry->height > 0;
+	free(geometry);
+	return ready;
+}
+
+static void finish_xwayland_map_retry(struct toplevel *toplevel) {
+	if (toplevel->xwayland_map_retry == NULL) return;
+	wl_event_source_remove(toplevel->xwayland_map_retry);
+	toplevel->xwayland_map_retry = NULL;
+}
+
+static int xwayland_map_retry(void *data) {
+	struct toplevel *toplevel = data;
+	if (toplevel->associated || !toplevel->xwayland_map_requested) {
+		finish_xwayland_map_retry(toplevel);
+		return 0;
+	}
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
+		toplevel->server->xwayland);
+	if (!xwayland_root_has_area(connection)) {
+		wake_xwayland_event_source(toplevel->server, connection);
+		int delay_ms = enabled_output_count(toplevel->server) == 0 ? 100 : 10;
+		(void)wl_event_source_timer_update(toplevel->xwayland_map_retry, delay_ms);
+		return 0;
+	}
+	xcb_void_cookie_t cookie = xcb_map_window_checked(connection,
+		toplevel->xwayland->window_id);
+	xcb_generic_error_t *error = xcb_request_check(connection, cookie);
+	if (error != NULL) {
+		wlr_log(WLR_ERROR, "failed to map X11 window 0x%08" PRIx32
+			" after output synchronization (X error %u)",
+			toplevel->xwayland->window_id, error->error_code);
+		free(error);
+	}
+	wake_xwayland_event_source(toplevel->server, connection);
+	finish_xwayland_map_retry(toplevel);
+	return 0;
+}
+
+static bool schedule_xwayland_map_retry(struct toplevel *toplevel) {
+	if (toplevel->xwayland_map_retry == NULL) {
+		toplevel->xwayland_map_retry = wl_event_loop_add_timer(
+			wl_display_get_event_loop(toplevel->server->display),
+			xwayland_map_retry, toplevel);
+	}
+	int delay_ms = enabled_output_count(toplevel->server) == 0 ? 100 : 10;
+	return toplevel->xwayland_map_retry != NULL &&
+		wl_event_source_timer_update(toplevel->xwayland_map_retry, delay_ms) == 0;
+}
+#endif
 
 static void initialize_xwayland_border(struct toplevel *toplevel) {
 	if (toplevel->border_initialized) return;
@@ -8552,9 +8807,13 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, associate);
 	if (toplevel->associated || toplevel->xwayland->surface == NULL) return;
+#if WTWM_WLROOTS_API_MINOR >= 20
+	finish_xwayland_map_retry(toplevel);
+#endif
 	initialize_xwayland_border(toplevel);
 	if (!create_xwayland_scene(toplevel)) return;
 	toplevel->associated = true;
+	toplevel->xwayland_was_associated = true;
 	read_xwayland_icon_name(toplevel);
 	read_xwayland_net_wm_icon(toplevel);
 	read_xwayland_wm_hints_icon(toplevel);
@@ -8596,9 +8855,8 @@ static void xwayland_dissociate(struct wl_listener *listener, void *data) {
 	toplevel->auto_raise = false;
 }
 
-static void xwayland_request_configure(struct wl_listener *listener, void *data) {
-	struct toplevel *toplevel = wl_container_of(listener, toplevel, request_configure);
-	struct wlr_xwayland_surface_configure_event *event = data;
+static void apply_xwayland_request_configure(struct toplevel *toplevel,
+		const struct wlr_xwayland_surface_configure_event *event) {
 	if (!toplevel->associated || !toplevel->mapped || toplevel->tree == NULL) {
 		toplevel->pending_configure_mask = 0;
 		configure_xwayland_client(toplevel, event->x, event->y,
@@ -8629,6 +8887,11 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 		event->height : toplevel->height;
 	configure_xwayland_frame(toplevel, position.frame_x, position.frame_y,
 		width, height);
+}
+
+static void xwayland_request_configure(struct wl_listener *listener, void *data) {
+	struct toplevel *toplevel = wl_container_of(listener, toplevel, request_configure);
+	apply_xwayland_request_configure(toplevel, data);
 }
 
 static char *read_xwayland_property_bytes(struct toplevel *toplevel,
@@ -8814,6 +9077,9 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	if (toplevel->tree != NULL) destroy_xwayland_scene(toplevel);
 	if (toplevel->xwayland_sync_idle != NULL)
 		wl_event_source_remove(toplevel->xwayland_sync_idle);
+#if WTWM_WLROOTS_API_MINOR >= 20
+	finish_xwayland_map_retry(toplevel);
+#endif
 	wl_list_remove(&toplevel->associate.link);
 	wl_list_remove(&toplevel->dissociate.link);
 	wl_list_remove(&toplevel->destroy.link);
@@ -8939,11 +9205,27 @@ static void configure_override_redirect(xcb_connection_t *connection,
 	xcb_flush(connection);
 }
 
+#if WTWM_WLROOTS_API_MINOR >= 20
+static bool xwayland_user_event(struct wlr_xwayland *xwayland,
+		xcb_generic_event_t *event) {
+	(void)xwayland;
+#else
 static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) {
 	(void)xwm;
+#endif
 	struct server *server = xwayland_event_server;
 	if (server == NULL || server->xwayland == NULL) return 0;
 	uint8_t type = event->response_type & ~UINT8_C(0x80);
+#if WTWM_WLROOTS_API_MINOR >= 20
+	if (type == XCB_CLIENT_MESSAGE) {
+		xcb_client_message_event_t *message =
+			(xcb_client_message_event_t *)event;
+		if (message->format == 32 && message->type == XCB_ATOM_NONE &&
+				message->data.data32[0] == WTWM_XWAYLAND_WAKE_MAGIC_0 &&
+				message->data.data32[1] == WTWM_XWAYLAND_WAKE_MAGIC_1)
+			return true;
+	}
+#endif
 	if (type == XCB_FOCUS_IN) {
 		xcb_focus_in_event_t *focus = (xcb_focus_in_event_t *)event;
 		/* Managed X11 focus follows the twm model above. Consuming FocusIn
@@ -8972,6 +9254,10 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
 			schedule_xwayland_sync(toplevel);
+#if WTWM_WLROOTS_API_MINOR >= 20
+		wake_xwayland_event_source(server,
+			wlr_xwayland_get_xwm_connection(server->xwayland));
+#endif
 		return 0;
 	}
 	if (type == XCB_MAP_REQUEST) {
@@ -8985,6 +9271,21 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 			reserve_icon_manager_toplevel(toplevel);
 			manage_bufferless_start_iconified(toplevel);
 		}
+#if WTWM_WLROOTS_API_MINOR >= 20
+		xcb_connection_t *connection =
+			wlr_xwayland_get_xwm_connection(server->xwayland);
+		bool root_ready = xwayland_root_has_area(connection);
+		wake_xwayland_event_source(server, connection);
+		if (!root_ready && toplevel != NULL) {
+			if (enabled_output_count(server) == 0 &&
+					create_xwayland_frame_scene(toplevel))
+				map_xwayland_toplevel(toplevel);
+			if (schedule_xwayland_map_retry(toplevel)) return true;
+		}
+#endif
+		/* Preserve wlroots' default map path once Xwayland has a usable root.
+		 * The 0.20 retry above consumes only the zero-sized-root case and maps it
+		 * after Xwayland has processed the compositor's output globals. */
 		return 0;
 	}
 	if (type != XCB_CONFIGURE_REQUEST) return 0;
@@ -9006,6 +9307,24 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	}
 	uint16_t geometry = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+#if WTWM_WLROOTS_API_MINOR >= 20
+	if (configure->value_mask & geometry) {
+		struct wlr_xwayland_surface_configure_event request = {
+			.surface = toplevel->xwayland,
+			.x = configure->value_mask & XCB_CONFIG_WINDOW_X ?
+				configure->x : toplevel->xwayland->x,
+			.y = configure->value_mask & XCB_CONFIG_WINDOW_Y ?
+				configure->y : toplevel->xwayland->y,
+			.width = configure->value_mask & XCB_CONFIG_WINDOW_WIDTH ?
+				configure->width : toplevel->xwayland->width,
+			.height = configure->value_mask & XCB_CONFIG_WINDOW_HEIGHT ?
+				configure->height : toplevel->xwayland->height,
+			.mask = configure->value_mask,
+		};
+		apply_xwayland_request_configure(toplevel, &request);
+		return true;
+	}
+#endif
 	return (configure->value_mask & geometry) == 0 ? 1 : 0;
 }
 
@@ -9051,7 +9370,7 @@ static bool sync_popup_position(struct popup *popup) {
 	if (!wlr_scene_node_coords(&root->content->node, &content_x, &content_y))
 		return false;
 	struct wlr_box root_geometry;
-	wlr_xdg_surface_get_geometry(root->xdg->base, &root_geometry);
+	wtwm_xdg_surface_get_geometry(root->xdg->base, &root_geometry);
 	int popup_x = 0;
 	int popup_y = 0;
 	wlr_xdg_popup_get_toplevel_coords(popup->xdg,
@@ -9091,7 +9410,7 @@ static bool popup_constraint_box(struct popup *popup, struct wlr_box *box) {
 	if (!wlr_scene_node_coords(&root->content->node, &geometry_lx, &geometry_ly))
 		return false;
 	struct wlr_box geometry;
-	wlr_xdg_surface_get_geometry(root->xdg->base, &geometry);
+	wtwm_xdg_surface_get_geometry(root->xdg->base, &geometry);
 	struct wlr_output *output = wlr_output_layout_output_at(
 		root->server->output_layout,
 		geometry_lx + geometry.width / 2.0,
@@ -9791,6 +10110,16 @@ static void test_write_state(struct test_control *control) {
 	test_write(control, "],\"xwayland_lifecycle\":[");
 	first = true;
 	wl_list_for_each(toplevel, &server->xwayland_views, xwayland_link) {
+		bool has_buffer = toplevel->xwayland->surface != NULL &&
+			wlr_surface_has_buffer(toplevel->xwayland->surface);
+		/* Newer Xwayland exposes an internal, never-mapped helper surface.
+		 * The test-control lifecycle describes client windows wtwm has seen
+		 * request mapping, not XWM implementation details. */
+		if (!toplevel->xwayland_was_associated ||
+				(toplevel->xwayland->override_redirect &&
+				!toplevel->xwayland_was_mapped && !toplevel->mapped &&
+				!has_buffer))
+			continue;
 		if (!first) test_write(control, ",");
 		first = false;
 		test_write(control,
@@ -9799,8 +10128,7 @@ static void test_write_state(struct test_control *control) {
 			toplevel->xwayland->window_id,
 			toplevel->associated ? "true" : "false",
 			toplevel->mapped ? "true" : "false",
-			toplevel->xwayland->surface != NULL &&
-				wlr_surface_has_buffer(toplevel->xwayland->surface) ? "true" : "false",
+			has_buffer ? "true" : "false",
 			toplevel->xwayland->override_redirect ? "true" : "false");
 	}
 	test_write(control, "],\"icons\":[");
@@ -11038,6 +11366,10 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.cursor->events.frame, &server.cursor_frame);
 	wl_list_init(&server.keyboards);
 	wl_list_init(&server.pointers);
+	wl_list_init(&server.new_input.link);
+	wl_list_init(&server.request_cursor.link);
+	wl_list_init(&server.request_selection.link);
+	wl_list_init(&server.request_primary_selection.link);
 	server.input_plan = calloc(1, sizeof(*server.input_plan));
 	if (server.input_plan == NULL) goto fail_runtime;
 	server.seat = wlr_seat_create(server.display, "seat0");
@@ -11085,8 +11417,11 @@ int main(int argc, char **argv) {
 	}
 #endif
 	setenv("WAYLAND_DISPLAY", socket, true);
-	(void)xwayland_start(&server);
-	if (startup != NULL) spawn_command(startup);
+	server.startup_command = startup;
+	if (!xwayland_start(&server)) {
+		server.startup_command = NULL;
+		if (startup != NULL) spawn_command(startup);
+	}
 	wlr_log(WLR_INFO, "wtwm running on WAYLAND_DISPLAY=%s", socket);
 	wl_display_run(server.display);
 	server.shutting_down = true;
@@ -11095,6 +11430,7 @@ int main(int argc, char **argv) {
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);
 	wl_display_destroy_clients(server.display);
+	detach_runtime_listeners(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
 #endif
@@ -11130,6 +11466,7 @@ fail_runtime:
 	finish_compositor_reload(&server);
 	finish_cut_buffer(&server);
 	xwayland_finish(&server);
+	detach_runtime_listeners(&server);
 #ifdef WTWM_TEST_CONTROL
 	test_control_finish(&server);
 #endif

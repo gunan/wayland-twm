@@ -44,14 +44,31 @@ profiles also make AddressSanitizer or UndefinedBehaviorSanitizer abort the test
 run on the first reported defect. Separate build directories keep profile
 artifacts from contaminating one another.
 
+## Debian testing profile
+
+Debian testing is a continuously tested development target using wlroots 0.20;
+it does not replace the Debian 13 release and package-certification baseline.
+Install the same dependency set used by its CI lane and run the full debug
+profile with:
+
+```sh
+apt-get update
+xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
+sh scripts/ci/run-meson-build.sh build-testing enabled debug
+```
+
+The compositor must be explicitly enabled. A parser-only build is not evidence
+of Debian testing compatibility.
+
 ## Continuous integration
 
 GitHub Actions preserves the baseline Debian Trixie debug job and the controlled
-reference-`twm` job. Additional jobs cover release, AddressSanitizer, and
-UndefinedBehaviorSanitizer builds on x86-64; debug and release builds run on
-native ARM64 hardware. The workflow explicitly checks the architecture reported
-inside each Debian container, so an accidentally emulated or mislabeled build
-fails instead of being counted as native coverage.
+reference-`twm` job, and adds a Debian testing/wlroots 0.20 debug lane. Additional
+jobs cover release, AddressSanitizer, and UndefinedBehaviorSanitizer builds on
+x86-64; debug and release builds run on native ARM64 hardware. The workflow
+explicitly checks the architecture reported inside each Debian container, so an
+accidentally emulated or mislabeled build fails instead of being counted as
+native coverage.
 
 Portable builds run natively on macOS x86-64 and ARM64. GitHub documents the
 standard Linux ARM64 runner label in its
@@ -67,14 +84,15 @@ python3 -B tests/platform/validate_build_platforms.py \
 
 ## Debian package build and local contracts
 
-Build the binary package from a clean source tree on Debian Trixie:
+Build the binary package from a clean source tree on Debian Trixie. Substitute
+`libwlroots-0.20-dev` on Debian testing:
 
 ```sh
 sudo apt-get install -y --no-install-recommends \
   build-essential devscripts debhelper meson ninja-build pkgconf \
   libfontconfig-dev libpango1.0-dev libwayland-dev \
   libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
-  wayland-protocols
+  wayland-protocols dialog emacs-gtk x11-apps xterm xwayland
 dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
 ```
 

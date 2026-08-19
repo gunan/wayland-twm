@@ -1123,8 +1123,14 @@ test(
   ],
 )
 
-wlroots = dependency('wlroots-0.18', required: get_option('compositor'))
+wlroots_api_minor = '18'
+wlroots = dependency('wlroots-0.18', required: false)
+if not wlroots.found()
+  wlroots_api_minor = '20'
+  wlroots = dependency('wlroots-0.20', required: get_option('compositor'))
+endif
 if wlroots.found()
+  wlroots_c_args = ['-DWTWM_WLROOTS_API_MINOR=' + wlroots_api_minor]
   pangocairo = dependency('pangocairo')
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
@@ -1144,6 +1150,7 @@ if wlroots.found()
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
     dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, hardening_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
+    c_args: wlroots_c_args,
     install: true,
   )
   wtwm_test_compositor = executable(
@@ -1161,7 +1168,7 @@ if wlroots.found()
       xkbcommon,
       xcb,
     ],
-    c_args: ['-DWTWM_TEST_CONTROL'],
+    c_args: wlroots_c_args + ['-DWTWM_TEST_CONTROL'],
     install: false,
   )
   wayland_client = dependency('wayland-client')
@@ -1808,9 +1815,9 @@ if wlroots.found()
   )
   install_man('data/wtwm.1')
 elif get_option('compositor').enabled()
-  error('wlroots 0.18 is required when -Dcompositor=enabled')
+  error('wlroots 0.18 or 0.20 is required when -Dcompositor=enabled')
 else
-  warning('wlroots 0.18 was not found; building wtwm-config and parser tests only')
+  warning('wlroots 0.18 or 0.20 was not found; building wtwm-config and parser tests only')
 endif
 
 install_data(

@@ -20,6 +20,9 @@ for direct_build_dependency in libx11-dev libxcb1-dev; do
 	grep -Eq "^ ${direct_build_dependency},?$" "$source_root/debian/control" ||
 		fail "missing direct build dependency: $direct_build_dependency"
 done
+grep -Eq '^ libwlroots-0\.18-dev \| libwlroots-0\.20-dev,$' \
+	"$source_root/debian/control" ||
+	fail 'Debian stable/testing wlroots build dependency is missing'
 grep -Eq '^Depends: .*xkb-data' "$source_root/debian/control" ||
 	fail 'runtime keyboard data dependency is missing'
 grep -Eq '^Recommends: .*xwayland' "$source_root/debian/control" ||

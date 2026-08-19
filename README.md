@@ -21,12 +21,13 @@ drop-in compatibility.
 
 ## How to install
 
-`wtwm` currently targets Debian 13 (Trixie) with wlroots 0.18. There is no
-published package repository yet, so build either a co-installable Debian
-package or a local development tree. The Debian package is recommended for a
-real display-manager login because it installs and tracks the complete session
-entry; a source-tree build is the quickest way to test `wtwm` nested inside an
-existing Wayland desktop.
+`wtwm` targets Debian 13 (Trixie) with wlroots 0.18 and is also built and tested
+against Debian testing with wlroots 0.20. Debian 13 remains the initial packaged
+1.0 distribution. There is no published package repository yet, so build either
+a co-installable Debian package or a local development tree. The Debian package
+is recommended for a real display-manager login because it installs and tracks
+the complete session entry; a source-tree build is the quickest way to test
+`wtwm` nested inside an existing Wayland desktop.
 
 Do not run `wtwm` or `wtwm-session` as root. Keep your existing compositor
 available until you have tested the applications, configuration, input devices,
@@ -38,11 +39,13 @@ Install the package build dependencies, clone the source, build the binary
 package, and install the resulting artifact:
 
 ```sh
+wlroots_dev=libwlroots-0.18-dev # Debian testing: libwlroots-0.20-dev
 sudo apt update
 sudo apt install build-essential debhelper devscripts dpkg-dev meson ninja-build \
   pkgconf libfontconfig-dev libpango1.0-dev libwayland-dev \
-  libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
-  wayland-protocols lintian mandoc xkb-data xwayland foot xfonts-base
+  "$wlroots_dev" libx11-dev libxcb1-dev libxkbcommon-dev \
+  wayland-protocols lintian mandoc xkb-data xwayland foot xfonts-base \
+  dialog emacs-gtk x11-apps xterm
 git clone https://github.com/gunan/wayland-twm.git
 cd wayland-twm
 dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
@@ -69,11 +72,13 @@ place.
 For a development build without Debian packaging:
 
 ```sh
+wlroots_dev=libwlroots-0.18-dev # Debian testing: libwlroots-0.20-dev
 sudo apt update
 sudo apt install build-essential meson ninja-build pkgconf \
   libfontconfig-dev libpango1.0-dev libwayland-dev \
-  libwlroots-0.18-dev libx11-dev libxcb1-dev libxkbcommon-dev \
-  wayland-protocols xkb-data xwayland foot xfonts-base
+  "$wlroots_dev" libx11-dev libxcb1-dev libxkbcommon-dev \
+  wayland-protocols xkb-data xwayland foot xfonts-base \
+  dialog emacs-gtk x11-apps xterm
 git clone https://github.com/gunan/wayland-twm.git
 cd wayland-twm
 meson setup build -Dcompositor=enabled -Dwerror=true

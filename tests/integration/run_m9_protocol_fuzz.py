@@ -15,20 +15,46 @@ from run_compositor import Control
 
 
 SURVIVOR_TITLE = "m9-protocol-survivor"
+STDOUT_BUFFERS: dict[subprocess.Popen[str], bytearray] = {}
+
+
+def read_line(process: subprocess.Popen[str], deadline: float) -> str | None:
+    """Read one complete line without TextIOWrapper prefetch races."""
+    assert process.stdout is not None
+    buffer = STDOUT_BUFFERS.setdefault(process, bytearray())
+    while True:
+        newline = buffer.find(b"\n")
+        if newline >= 0:
+            raw = bytes(buffer[:newline])
+            del buffer[: newline + 1]
+            return raw.decode("utf-8", errors="replace")
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        readable, _, _ = select.select([process.stdout], [], [], remaining)
+        if not readable:
+            return None
+        chunk = os.read(process.stdout.fileno(), 4096)
+        if chunk:
+            buffer.extend(chunk)
+            continue
+        if buffer:
+            raw = bytes(buffer)
+            buffer.clear()
+            return raw.decode("utf-8", errors="replace")
+        return None
 
 
 def wait_line(
     process: subprocess.Popen[str], expected: str, *, prefix: bool = False
 ) -> str:
-    assert process.stdout is not None
     deadline = time.monotonic() + 10
     observed: list[str] = []
     while time.monotonic() < deadline:
-        remaining = deadline - time.monotonic()
-        readable, _, _ = select.select([process.stdout], [], [], remaining)
-        if not readable:
+        line = read_line(process, deadline)
+        if line is None:
             break
-        line = process.stdout.readline().rstrip("\n")
         observed.append(line)
         if (prefix and line.startswith(expected)) or (not prefix and line == expected):
             return line
@@ -41,16 +67,12 @@ def wait_line(
 
 
 def wait_one_of(process: subprocess.Popen[str], expected: set[str]) -> str:
-    assert process.stdout is not None
     deadline = time.monotonic() + 10
     observed: list[str] = []
     while time.monotonic() < deadline:
-        readable, _, _ = select.select(
-            [process.stdout], [], [], deadline - time.monotonic()
-        )
-        if not readable:
+        line = read_line(process, deadline)
+        if line is None:
             break
-        line = process.stdout.readline().rstrip("\n")
         observed.append(line)
         if line in expected:
             return line
@@ -80,7 +102,7 @@ def find_window(state: dict[str, object], title: str) -> dict[str, object]:
 
 
 def launch(client: Path, mode: str, environment: dict[str, str]) -> subprocess.Popen[str]:
-    return subprocess.Popen(
+    process = subprocess.Popen(
         [str(client), mode],
         env=environment,
         text=True,
@@ -88,6 +110,8 @@ def launch(client: Path, mode: str, environment: dict[str, str]) -> subprocess.P
         stderr=subprocess.PIPE,
         bufsize=1,
     )
+    STDOUT_BUFFERS[process] = bytearray()
+    return process
 
 
 def finish_client(process: subprocess.Popen[str], label: str) -> None:
@@ -97,6 +121,8 @@ def finish_client(process: subprocess.Popen[str], label: str) -> None:
         process.kill()
         _, stderr = process.communicate()
         raise RuntimeError(f"{label} hung; stderr:\n{stderr}")
+    finally:
+        STDOUT_BUFFERS.pop(process, None)
     if process.returncode != 0:
         raise RuntimeError(f"{label} returned {process.returncode}; stderr:\n{stderr}")
 
@@ -109,6 +135,7 @@ def stop_client(process: subprocess.Popen[str]) -> str:
     except subprocess.TimeoutExpired:
         process.kill()
         _, stderr = process.communicate()
+    STDOUT_BUFFERS.pop(process, None)
     return stderr
 
 

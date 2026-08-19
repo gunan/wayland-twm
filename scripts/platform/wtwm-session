@@ -38,12 +38,20 @@ trap forward_signal HUP INT QUIT TERM
 
 wait_for_child()
 {
+	last_wait_status=127
 	while :; do
 		wait "$child_pid"
 		waited_status=$?
+		test "$waited_status" -eq 127 || last_wait_status=$waited_status
 		# A trapped controlling signal may interrupt wait before the child has
-		# handled the forwarded TERM.  Keep ownership until it is reaped.
-		kill -0 "$child_pid" 2>/dev/null || return "$waited_status"
+		# handled the forwarded TERM.  Keep ownership until it is reaped.  If
+		# the child exits between wait and kill, one final wait retrieves the
+		# shell's cached child status instead of returning the interruption.
+		kill -0 "$child_pid" 2>/dev/null && continue
+		wait "$child_pid"
+		final_wait_status=$?
+		test "$final_wait_status" -eq 127 || return "$final_wait_status"
+		return "$last_wait_status"
 	done
 }
 

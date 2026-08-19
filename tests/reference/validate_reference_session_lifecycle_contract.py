@@ -124,6 +124,8 @@ CURRENT_MARKERS = {
     "scripts/platform/wtwm-session": [
         "trap forward_signal HUP INT QUIT TERM",
         "wait_for_child",
+        "last_wait_status=127",
+        "final_wait_status",
         'printf \'wtwm-session: compositor exit=%s',
     ],
     "src/wtwm.c": [
@@ -152,6 +154,7 @@ CURRENT_MARKERS = {
     "tests/platform/session-launcher-test.sh": [
         "forwarded child was not reaped",
         "forwarded child status was not preserved",
+        'while test "$iteration" -lt 50',
     ],
 }
 

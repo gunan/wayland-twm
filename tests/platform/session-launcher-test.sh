@@ -69,36 +69,41 @@ printf '%s\n' \
 	'#!/bin/sh' \
 	'trap '\''printf "%s\n" TERM > "$SIGNAL_MARKER"; exit 42'\'' TERM' \
 	'printf "%s\n" "$$" > "$SIGNAL_PID_FILE"' \
-	'while :; do sleep 1; done' > "$signal_mock"
+	'while :; do :; done' > "$signal_mock"
 chmod +x "$signal_mock"
-SIGNAL_PID_FILE=$signal_pid_file SIGNAL_MARKER=$test_dir/signal.marker \
-	WTWM_BIN=$signal_mock XDG_RUNTIME_DIR=$test_dir/runtime \
-	XDG_STATE_HOME=$test_dir/state HOME=$test_dir \
-	"$launcher" &
-forwarded_launcher_pid=$!
-attempt=0
-while ! test -s "$signal_pid_file"; do
-	attempt=$((attempt + 1))
-	test "$attempt" -le 10 || fail 'forwarded child did not start'
-	kill -0 "$forwarded_launcher_pid" 2>/dev/null ||
-		fail 'launcher exited before signal forwarding'
-	sleep 1
+iteration=0
+while test "$iteration" -lt 50; do
+	iteration=$((iteration + 1))
+	rm -f -- "$signal_pid_file" "$test_dir/signal.marker"
+	SIGNAL_PID_FILE=$signal_pid_file SIGNAL_MARKER=$test_dir/signal.marker \
+		WTWM_BIN=$signal_mock XDG_RUNTIME_DIR=$test_dir/runtime \
+		XDG_STATE_HOME=$test_dir/state HOME=$test_dir \
+		"$launcher" &
+	forwarded_launcher_pid=$!
+	attempt=0
+	while ! test -s "$signal_pid_file"; do
+		attempt=$((attempt + 1))
+		test "$attempt" -le 1000 || fail 'forwarded child did not start'
+		kill -0 "$forwarded_launcher_pid" 2>/dev/null ||
+			fail 'launcher exited before signal forwarding'
+		sleep 0.01
+	done
+	forwarded_child_pid=$(sed -n '1p' "$signal_pid_file")
+	kill -TERM "$forwarded_launcher_pid"
+	if wait "$forwarded_launcher_pid"; then
+		status=0
+	else
+		status=$?
+	fi
+	forwarded_launcher_pid=
+	test "$status" -eq 42 || fail 'forwarded child status was not preserved'
+	if kill -0 "$forwarded_child_pid" 2>/dev/null; then
+		fail 'forwarded child was not reaped'
+	fi
+	forwarded_child_pid=
+	test "$(sed -n '1p' "$test_dir/signal.marker")" = TERM ||
+		fail 'launcher did not forward TERM to the child'
 done
-forwarded_child_pid=$(sed -n '1p' "$signal_pid_file")
-kill -TERM "$forwarded_launcher_pid"
-if wait "$forwarded_launcher_pid"; then
-	status=0
-else
-	status=$?
-fi
-forwarded_launcher_pid=
-test "$status" -eq 42 || fail 'forwarded child status was not preserved'
-if kill -0 "$forwarded_child_pid" 2>/dev/null; then
-	fail 'forwarded child was not reaped'
-fi
-forwarded_child_pid=
-test "$(sed -n '1p' "$test_dir/signal.marker")" = TERM ||
-	fail 'launcher did not forward TERM to the child'
 grep -F 'compositor exit=42' "$log" >/dev/null ||
 	fail 'forwarded child exit was not logged'
 

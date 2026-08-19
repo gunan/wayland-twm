@@ -41,7 +41,8 @@ anchored constraint, delta-stop, and outline/opaque terminal decisions.
 random-placement state, and outer-frame clamping. The portable tests therefore
 exercise these exact decisions without a graphics stack. `wtwm-config` and
 those tests build on any ordinary Unix host. `src/wtwm.c` is the Linux
-compositor adapter and targets the wlroots 0.18 public API.
+compositor adapter and targets the public wlroots 0.18 and 0.20 APIs through a
+small version-selected compatibility boundary.
 
 `src/bindings.c` owns exact trigger selection, including twm's global
 `mods_used` mask, concrete/all contexts, case-sensitive key names, and named

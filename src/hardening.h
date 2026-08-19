@@ -31,4 +31,12 @@ unsigned wtwm_client_size_sanitize(int requested_width, int requested_height,
 
 bool wtwm_client_size_adjusted(unsigned adjustment);
 
+/**
+ * Return whether client-controlled geometry can safely reach scene arithmetic.
+ * Coordinates may be negative for shadows, but every field is kept within the
+ * same 16-bit magnitude used for client sizes so coordinate-plus-size math
+ * cannot overflow a signed int.
+ */
+bool wtwm_client_geometry_in_bounds(int x, int y, int width, int height);
+
 #endif

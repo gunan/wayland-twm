@@ -27,13 +27,17 @@ run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	libpango1.0-dev \
 	wayland-protocols
 
-# Debian Trixie provides the exact package used by CI. The Codex universal
-# image may use different apt sources, so install it only when available and
-# let build.sh select the documented portable fallback otherwise.
-if ! pkg-config --exists wlroots-0.18 \
-		&& apt-cache show libwlroots-0.18-dev >/dev/null 2>&1; then
-	run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y \
-		--no-install-recommends libwlroots-0.18-dev
+# Debian Trixie and testing expose different versioned wlroots pkg-config
+# modules. Install the first supported development package available from the
+# environment's apt suite and otherwise retain the documented portable fallback.
+if ! pkg-config --exists wlroots-0.18 && ! pkg-config --exists wlroots-0.20; then
+	for package in libwlroots-0.18-dev libwlroots-0.20-dev; do
+		if apt-cache show "$package" >/dev/null 2>&1; then
+			run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+				--no-install-recommends "$package"
+			break
+		fi
+	done
 fi
 
 bash scripts/codex-cloud/build.sh

@@ -37,6 +37,12 @@ CLIENT_MARKERS = {
 
 RUNNER_MARKERS = {
     "debug structured logging enabled": '"-d",',
+    "persistent raw stdout buffering": (
+        "STDOUT_BUFFERS.setdefault(process, bytearray())"
+    ),
+    "raw pipe reads avoid text-wrapper prefetch races": (
+        "os.read(process.stdout.fileno(), 4096)"
+    ),
     "separate survivor launched first": (
         'launch(client_binary, "survivor", client_environment)'
     ),

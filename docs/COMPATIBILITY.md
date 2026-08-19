@@ -32,7 +32,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Legacy bell, priority, and save-yourself actions | Effective or verified conditional no-op | Xwayland provides the X bell and advertised `WM_SAVE_YOURSELF`. Native Wayland has no bell or save-yourself protocol. Xwayland exposes no twm XSync priority control, so that action is an explicit no-op under its documented missing-capability condition |
 | `f.colormap` | Exact for relevant Xwayland clients; verified native no-op | Managed X11 targets retain the bounded `WM_COLORMAP_WINDOWS` order, including the top-level fallback, and `next`, `prev`, and `default` perform the reference circular selection and checked installed-colormap requests. Native true-color Wayland has no global installed-colormap mechanism, so the same configured action issues no X request and leaves Xwayland's installed set unchanged |
 | `f.cut`, `f.cutfile`, `f.file` | Exact X cut-buffer result; Wayland clipboard translation | Successful actions replace a persistent compositor-owned byte buffer, publish it as ordinary Wayland `CLIPBOARD` text, and mirror the same bytes to Xwayland root `CUT_BUFFER0` with `STRING` type and 8-bit format. Native clients observe `CLIPBOARD`, not a nonexistent native global cut-buffer protocol; `PRIMARY` remains independent |
-| Xwayland lifecycle and startup inheritance | Effective | A lazy wlroots-managed Xwayland server shares the compositor seat; its allocated `DISPLAY` is exported before `-s` commands and retired during compositor shutdown |
+| Xwayland lifecycle and startup inheritance | Effective | A wlroots-managed Xwayland server shares the compositor seat; it remains lazy without `-s`, while an `-s` command starts only after the reserved `DISPLAY` is ready, and the server is retired during compositor shutdown |
 | Session startup, logout, and recovery | Behaviorally equivalent | The namespaced `wtwm-session` entrypoint supervises exactly one foreground compositor and returns its status to the login manager without a restart loop. Complete configuration validation and runtime initialization precede `-s`; a failed startup child does not end the compositor. `f.quit` and INT/HUP/QUIT/TERM perform orderly success cleanup, while startup failures return nonzero without running `-s` or replacing saved state |
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
@@ -42,7 +42,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
 | Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
-| Client request hardening | Public wlroots 0.18 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with oversized popup positioners rejected. wlroots 0.18 consumes `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
+| Client request hardening | Public wlroots 0.18/0.20 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with wlroots 0.20 out-of-range XDG window geometry normalized to the real surface extents before scene listeners run and oversized popup positioners rejected. The supported wlroots APIs consume `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
 
 ## Final 1.0 certification status
 
@@ -116,13 +116,19 @@ object-lifetime decisions survive a protocol unmap/remap; in particular, a
 remap is not iconified a second time. Destroying the xdg-toplevel and creating
 a new one begins a fresh native management lifetime and takes fresh snapshots.
 
-wtwm reserves an Xwayland display during compositor startup and starts the X
-server lazily when the first X11 client connects. The allocated `DISPLAY` is
-exported before the `-s` startup command, so legacy programs launched there
-inherit the correct server instead of a parent session's display. Xwayland is
-wired to the compositor seat, reports every successful readiness event
-including a wlroots-managed restart, and is destroyed before the remaining
-Wayland clients and display. If Xwayland cannot be created or its display
+wtwm reserves an Xwayland display during compositor startup. Without `-s`, the
+X server starts lazily when the first X11 client connects. When `-s` is given,
+wtwm starts Xwayland first and launches the command on the next event-loop cycle
+after readiness processing completes. The allocated `DISPLAY` is exported
+before that command, so legacy programs cannot race XWM initialization or
+inherit a parent session's display. X11 font rendering uses a separate XCB
+connection so synchronous text queries cannot consume XWM events. On wlroots
+0.20, a redirected map waits for Xwayland to report a nonzero root geometry;
+zero-output windows retain wtwm's hidden placement record and resume when an
+output appears. Xwayland is wired to the compositor seat, reports every
+successful readiness event including a wlroots-managed restart, and is
+destroyed before the remaining Wayland clients and display. If Xwayland cannot
+be created or its display
 cannot be exported, wtwm keeps the inherited `DISPLAY` unchanged and continues
 with native Wayland support.
 

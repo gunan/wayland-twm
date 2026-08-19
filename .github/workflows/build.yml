@@ -30,6 +30,36 @@ jobs:
           path: build/m9-mixed-soak-smoke.json*
           if-no-files-found: warn
 
+  debian-testing:
+    name: Debian testing wlroots 0.20
+    runs-on: ubuntu-latest
+    container: debian:testing
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
+      - name: Verify native x86-64 environment
+        run: |
+          test "$(dpkg --print-architecture)" = amd64
+          pkg-config --atleast-version=0.20 wlroots-0.20
+          pkg-config --max-version=0.20.999 wlroots-0.20
+          dpkg-checkbuilddeps
+      - name: Validate build-platform contract
+        run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build and test debug configuration
+        run: sh scripts/ci/run-meson-build.sh build-testing enabled debug
+      - name: Upload Milestone 9 mixed soak smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-mixed-soak-smoke-debian-testing
+          path: build-testing/m9-mixed-soak-smoke.json*
+          if-no-files-found: warn
+
   debian-package:
     name: Debian Trixie package lifecycle
     runs-on: ubuntu-latest
