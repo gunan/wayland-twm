@@ -236,6 +236,7 @@ def validate(source_root: Path) -> list[str]:
 
     for marker in (
         "dpkg-buildpackage -us -uc -b",
+        "-name 'm9-mixed-soak-smoke.json*'",
         "lintian --fail-on error",
         "packaging/debian/clean-candidate-test.sh",
         "--protect /usr/bin/twm",

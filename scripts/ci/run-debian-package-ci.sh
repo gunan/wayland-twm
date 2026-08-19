@@ -19,6 +19,9 @@ finish()
 {
 	status=$?
 	trap - EXIT
+	find "$source_root" -maxdepth 2 -type f \
+		-name 'm9-mixed-soak-smoke.json*' \
+		-exec cp {} "$artifact_dir/" \;
 	{
 		printf 'phase\t%s\n' "$phase"
 		printf 'exit_status\t%s\n' "$status"
