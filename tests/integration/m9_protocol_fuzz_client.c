@@ -36,6 +36,9 @@ struct client {
 	struct xdg_surface *xdg_surface;
 	struct xdg_toplevel *toplevel;
 	struct wl_buffer *buffer;
+	struct wl_surface *popup_surface;
+	struct xdg_surface *popup_xdg_surface;
+	struct xdg_popup *popup;
 	enum client_mode mode;
 	uint32_t button_serial;
 	bool mapped;
@@ -51,6 +54,25 @@ static void emit(const char *message) {
 
 static int disconnect_client(struct client *client, int status) {
 	if (client->display != NULL) {
+		if (client->popup != NULL) xdg_popup_destroy(client->popup);
+		if (client->popup_xdg_surface != NULL)
+			xdg_surface_destroy(client->popup_xdg_surface);
+		if (client->popup_surface != NULL)
+			wl_surface_destroy(client->popup_surface);
+		if (client->toplevel != NULL) xdg_toplevel_destroy(client->toplevel);
+		if (client->xdg_surface != NULL)
+			xdg_surface_destroy(client->xdg_surface);
+		if (client->surface != NULL) wl_surface_destroy(client->surface);
+		if (client->buffer != NULL) wl_buffer_destroy(client->buffer);
+		if (client->cursor_surface != NULL)
+			wl_surface_destroy(client->cursor_surface);
+		if (client->pointer != NULL) wl_pointer_destroy(client->pointer);
+		if (client->seat != NULL) wl_seat_destroy(client->seat);
+		if (client->wm_base != NULL) xdg_wm_base_destroy(client->wm_base);
+		if (client->shm != NULL) wl_shm_destroy(client->shm);
+		if (client->compositor != NULL)
+			wl_compositor_destroy(client->compositor);
+		if (client->registry != NULL) wl_registry_destroy(client->registry);
 		wl_display_disconnect(client->display);
 		client->display = NULL;
 	}
@@ -340,10 +362,9 @@ static void send_oversized_geometry(struct client *client) {
 }
 
 static void send_oversized_positioner(struct client *client) {
-	struct wl_surface *popup_surface =
-		wl_compositor_create_surface(client->compositor);
-	struct xdg_surface *popup_xdg =
-		xdg_wm_base_get_xdg_surface(client->wm_base, popup_surface);
+	client->popup_surface = wl_compositor_create_surface(client->compositor);
+	client->popup_xdg_surface = xdg_wm_base_get_xdg_surface(client->wm_base,
+		client->popup_surface);
 	struct xdg_positioner *positioner =
 		xdg_wm_base_create_positioner(client->wm_base);
 	xdg_positioner_set_size(positioner, INT32_MAX, INT32_MAX);
@@ -352,9 +373,10 @@ static void send_oversized_positioner(struct client *client) {
 	xdg_positioner_set_anchor(positioner, XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT);
 	xdg_positioner_set_gravity(positioner,
 		XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
-	(void)xdg_surface_get_popup(popup_xdg, client->xdg_surface, positioner);
+	client->popup = xdg_surface_get_popup(client->popup_xdg_surface,
+		client->xdg_surface, positioner);
 	xdg_positioner_destroy(positioner);
-	wl_surface_commit(popup_surface);
+	wl_surface_commit(client->popup_surface);
 	emit("POSITIONER_SENT");
 }
 

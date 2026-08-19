@@ -31,6 +31,8 @@ CLIENT_MARKERS = {
         '[MODE_SURVIVOR] = "m9-protocol-survivor"'
     ),
     "client display cleanup": "wl_display_disconnect(client->display);",
+    "client toplevel proxy cleanup": "xdg_toplevel_destroy(client->toplevel);",
+    "client popup proxy cleanup": "xdg_popup_destroy(client->popup);",
 }
 
 RUNNER_MARKERS = {
