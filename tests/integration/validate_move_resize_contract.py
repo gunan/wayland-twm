@@ -53,6 +53,7 @@ SOURCE_FRAGMENTS = (
     "if (!server->config.no_raise_on_resize)",
     "wtwm_delta_stop_continues(server->last_interaction_moved)",
     "resume_action_continuation(server);",
+    "server->interaction.required_button_valid = false;",
 )
 
 RUNNER_FRAGMENTS = (

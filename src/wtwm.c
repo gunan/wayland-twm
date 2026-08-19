@@ -3087,6 +3087,8 @@ static void begin_menu_position(struct toplevel *toplevel, bool force_move,
 	wlr_cursor_warp_closest(server->cursor, NULL, center_x, center_y);
 	set_cursor_role(server, "Move");
 	server->interaction.intent = INTERACTION_MENU_POSITION;
+	server->interaction.required_button = 0;
+	server->interaction.required_button_valid = false;
 	server->interaction.pointer_start_x = server->cursor->x;
 	server->interaction.pointer_start_y = server->cursor->y;
 	server->interaction.grab_x = width / 2.0;

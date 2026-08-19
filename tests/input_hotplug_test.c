@@ -395,11 +395,15 @@ static bool test_motion_active_pointer_and_validation(void) {
 		&plan));
 	ASSERT(plan.active_pointer_changed && plan.button_transition_count == 0);
 	ASSERT(apply(&state, &plan));
+	state.pointer_operation = WTWM_INPUT_POINTER_MOVE;
+	ASSERT(wtwm_input_hotplug_state_valid(&state));
 	wtwm_input_hotplug_plan_init(&plan);
 	ASSERT(wtwm_input_hotplug_plan_button_release(&state, pointer_a, 400,
 		&plan));
 	ASSERT(plan.button_transition_count == 0);
 	ASSERT(apply(&state, &plan));
+	ASSERT(device(&state, pointer_a)->button_count == 0);
+	ASSERT(state.pointer_operation == WTWM_INPUT_POINTER_MOVE);
 	wtwm_input_hotplug_plan_init(&plan);
 	ASSERT(wtwm_input_hotplug_plan_remove(&state, pointer_a, &plan));
 	ASSERT(plan.active_pointer_changed);
