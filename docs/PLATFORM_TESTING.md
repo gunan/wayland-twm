@@ -52,6 +52,34 @@ those remain the later interactive nested-session task.
 
 ## DRM login run
 
+Before installing wtwm, record that the disposable VM already has a working
+local display-manager session with ownership of a real logind seat and DRM
+backend. This preflight is read-only and may be collected over SSH:
+
+```sh
+seat=seat0
+active_session=$(loginctl show-seat "$seat" -p ActiveSession --value)
+systemctl is-active display-manager.service
+loginctl show-session "$active_session" \
+  -p Name -p User -p Seat -p TTY -p Service -p Type \
+  -p Class -p Active -p Remote -p State
+loginctl seat-status "$seat"
+for connector in /sys/class/drm/card*-*/status; do
+  printf '%s: ' "$connector"
+  cat "$connector"
+done
+```
+
+Require an active, non-remote, local Wayland user session created by the
+display manager; a DRM card marked `[MASTER]` on the seat; at least one
+connected connector; and keyboard and pointer devices assigned to that seat.
+This establishes the full display-manager/DRM environment. It does not claim
+that wtwm itself has logged in: keep the later **Wayland twm** login and
+`drm_login` evidence checks pending until the package is installed and the
+interactive run below succeeds. Do not add the SSH account to `video` or
+`render`, reuse another user's device ACLs, or bypass the DRM runner's local
+session checks.
+
 Install wtwm and the session launcher in the disposable Debian ARM64 VM.  From
 the display manager, choose the separately named **Wayland twm** entry.  The
 launcher writes a mode-0700 log directory at
