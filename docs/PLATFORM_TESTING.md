@@ -25,6 +25,31 @@ iteration.  Preserve the test control transcript and screenshot from every
 failure, plus the first and last successful runs.  A loop that merely starts
 the process without mapping a native client does not meet the task item.
 
+An SSH session can establish a private, non-visible Weston parent without
+claiming the later interactive-output task. In one SSH terminal, run:
+
+```sh
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+weston --backend=headless --renderer=pixman --socket=wtwm-parent \
+  --idle-time=0 --width=1024 --height=768 --fake-seat --no-config
+```
+
+While that parent is running, use a second terminal to exercise the real nested
+backend, native client mapping, and synthetic event trace:
+
+```sh
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export WAYLAND_DISPLAY=wtwm-parent
+python3 -B tests/integration/run_compositor.py \
+  --compositor build/wtwm-test-compositor \
+  --client build/wtwm-wayland-test-client --nested
+```
+
+Stop Weston with `Ctrl-C` after the runner succeeds. This establishes the
+nested environment, but it does not prove visible pixels, physical keyboard or
+pointer input, a stable capture, or return to an unchanged graphical parent;
+those remain the later interactive nested-session task.
+
 ## DRM login run
 
 Install wtwm and the session launcher in the disposable Debian ARM64 VM.  From
@@ -73,11 +98,11 @@ tests/platform/session-launcher-test.sh
 They are not substitutes for a successful nested display or DRM-backed VM
 evidence record.
 
-The checked-in reproducible UTM image definition remains the pinned Debian 13
-recipe under `vm/debian-arm64`. A separately provisioned Debian 14/Forky guest
-is valid for interactive development and the platform task, but its VM evidence
-must not be promoted until its immutable base-image build and digest are checked
-in as a Forky definition. Never label the existing Trixie image digest as a
+The checked-in UTM image definition remains a reproducible Debian 13 recipe, but
+the platform contract does not require a pinned base image. For an existing
+Debian 14/Forky guest, record the exact OS release, kernel, architecture, and
+package-lock digest and leave the optional VM image build and digest fields
+null when they are not known. Never label the existing Trixie image digest as a
 Forky image.
 
 ## Package lifecycle and rollback

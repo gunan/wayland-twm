@@ -217,7 +217,7 @@ Development with Codex Cloud is documented in
 
 - [x] **Shared:** Provision a Debian 13 or Debian 14 ARM64 VM under UTM for
   interactive development on Apple Silicon.
-- [ ] **Shared:** Establish a nested Wayland environment inside a working parent
+- [x] **Shared:** Establish a nested Wayland environment inside a working parent
   compositor.
 - [ ] **Shared:** Establish a full display-manager login session using the DRM
   backend in a disposable VM.
