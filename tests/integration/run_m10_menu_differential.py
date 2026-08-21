@@ -256,7 +256,7 @@ def run_reference(arguments: argparse.Namespace, evidence: Path) -> dict[str, ob
     environment = os.environ.copy()
     environment.update({"LC_ALL": "C", "GDK_BACKEND": "x11"})
     xvfb = subprocess.Popen(
-        ["/usr/bin/Xvfb", "-displayfd", "1", "-screen", "0", "260x180x24",
+        [str(arguments.xvfb), "-displayfd", "1", "-screen", "0", "260x180x24",
          "-nolisten", "tcp"], cwd=arguments.source_root, env=environment,
         text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
@@ -618,6 +618,7 @@ def main() -> None:
     parser.add_argument("--self-test", action="store_true")
     parser.add_argument("--source-root", type=Path)
     parser.add_argument("--reference-twm", type=Path)
+    parser.add_argument("--xvfb", type=Path, default=Path("/usr/bin/Xvfb"))
     parser.add_argument("--compositor", type=Path)
     parser.add_argument("--input-driver", type=Path)
     parser.add_argument("--observer", type=Path)
@@ -629,14 +630,14 @@ def main() -> None:
         self_test()
         return
     required = (
-        "source_root", "reference_twm", "compositor", "input_driver",
+        "source_root", "reference_twm", "xvfb", "compositor", "input_driver",
         "observer", "config", "output", "evidence",
     )
     missing = [name for name in required if getattr(arguments, name) is None]
     if missing:
         parser.error("missing live arguments: " + ", ".join(missing))
     for name in (
-        "source_root", "reference_twm", "compositor", "input_driver",
+        "source_root", "reference_twm", "xvfb", "compositor", "input_driver",
         "observer", "config",
     ):
         setattr(arguments, name, getattr(arguments, name).resolve(strict=True))

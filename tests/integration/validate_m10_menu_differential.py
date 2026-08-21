@@ -26,6 +26,8 @@ REQUIRED = {
         '"WTWM_MENU_PAINT',
         'capture_reference_stable',
         'capture_wtwm_stable',
+        'default=Path("/usr/bin/Xvfb")',
+        '[str(arguments.xvfb), "-displayfd", "1"',
         '"mismatch_pixels": mismatch',
         '"exact": mismatch == 0',
         '"unexplained_pixel_differences": 0',
