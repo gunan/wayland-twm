@@ -134,6 +134,20 @@ def check_coverage(
         errors.append(f"{prefix}.{uncovered_field} must be empty")
 
 
+def check_equal_counts(
+    result: dict[str, Any], prefix: str, errors: list[str], *, item_name: str
+) -> None:
+    covered_field = f"covered_{item_name}"
+    total_field = f"total_{item_name}"
+    uncovered_field = f"uncovered_{item_name}"
+    covered_ok = integer(result[covered_field], f"{prefix}.{covered_field}", errors, 1)
+    total_ok = integer(result[total_field], f"{prefix}.{total_field}", errors, 1)
+    if covered_ok and total_ok and result[covered_field] != result[total_field]:
+        errors.append(f"{prefix} covered and total {item_name} counts must be equal")
+    if result[uncovered_field] != []:
+        errors.append(f"{prefix}.{uncovered_field} must be empty")
+
+
 def grammar(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     del root
     check_coverage(result, prefix, errors, item_name="productions")
@@ -141,7 +155,22 @@ def grammar(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
 
 def actions(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     del root
-    check_coverage(result, prefix, errors, item_name="actions")
+    fields = {
+        "coverage_percent",
+        "covered_actions",
+        "total_actions",
+        "uncovered_actions",
+        "covered_behaviors",
+        "total_behaviors",
+        "uncovered_behaviors",
+    }
+    if not exact_fields(result, fields, prefix, errors):
+        return
+    percent = result["coverage_percent"]
+    if not isinstance(percent, (int, float)) or isinstance(percent, bool) or percent != 100:
+        errors.append(f"{prefix}.coverage_percent must equal 100")
+    check_equal_counts(result, prefix, errors, item_name="actions")
+    check_equal_counts(result, prefix, errors, item_name="behaviors")
 
 
 def compatibility(result: Any, prefix: str, root: Path, errors: list[str]) -> None:

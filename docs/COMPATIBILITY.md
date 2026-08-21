@@ -551,7 +551,8 @@ effective, behaviorally equivalent, or a conditional verified no-op. Portable
 tests cross every binding context and modifier bit; Linux headless tests add
 menu cancellation, nested hover/release, client-list mutation during named
 bindings, icon move/resize rules, zoom restore, and function continuation and
-`f.deltastop` traces.
+`f.deltastop` traces. The consolidated certification report records 66 of 66
+spellings and 59 of 59 behaviors with no uncovered item.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling

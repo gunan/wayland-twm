@@ -291,7 +291,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
 
 - [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   grammar coverage with no uncovered productions.
-- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+- [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   built-in action coverage with no uncovered spellings or behaviors.
 - [ ] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
   runtime and test evidence; implement genuine gaps and reach zero partial,

@@ -16,9 +16,11 @@
     {
       "id": "builtin-action-coverage",
       "title": "One hundred percent built-in action coverage.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No consolidated Milestone 10 built-in-action coverage evidence report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/builtin-action-coverage.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "compatibility-entry-closure",
