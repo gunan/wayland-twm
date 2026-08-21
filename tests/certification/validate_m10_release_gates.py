@@ -8,6 +8,7 @@ import copy
 import datetime as dt
 import json
 import re
+import struct
 import subprocess
 import tempfile
 from pathlib import Path
@@ -63,25 +64,63 @@ def parse_time(value: Any, label: str, errors: list[str]) -> dt.datetime | None:
     return parsed
 
 
+def tracked_in_index(root: Path, relative: str) -> bool:
+    try:
+        git_directory = root / ".git"
+        if git_directory.is_file():
+            pointer = git_directory.read_text(encoding="utf-8").strip()
+            if not pointer.startswith("gitdir: "):
+                return False
+            git_directory = (root / pointer.removeprefix("gitdir: ")).resolve()
+        data = (git_directory / "index").read_bytes()
+        if len(data) < 12:
+            return False
+        signature, version, count = struct.unpack("!4sII", data[:12])
+        if signature != b"DIRC" or version not in {2, 3}:
+            return False
+        offset = 12
+        for _ in range(count):
+            start = offset
+            if start + 62 > len(data):
+                return False
+            flags = struct.unpack("!H", data[start + 60:start + 62])[0]
+            fixed_size = 64 if version == 3 and flags & 0x4000 else 62
+            path_start = start + fixed_size
+            path_end = data.index(b"\0", path_start)
+            path = data[path_start:path_end].decode("utf-8", "surrogateescape")
+            if path == relative:
+                return True
+            entry_size = path_end - start + 1
+            offset = start + ((entry_size + 7) // 8) * 8
+    except (OSError, UnicodeError, ValueError, struct.error):
+        return False
+    return False
+
+
 def tracked(root: Path, relative: str) -> bool:
     resolved_root = root.resolve()
-    result = subprocess.run(
-        [
-            "git",
-            "-c",
-            f"safe.directory={resolved_root}",
-            "-C",
-            str(resolved_root),
-            "ls-files",
-            "--error-unmatch",
-            "--",
-            relative,
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return result.returncode == 0
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-c",
+                "safe.directory=*",
+                "-C",
+                str(resolved_root),
+                "ls-files",
+                "--error-unmatch",
+                "--",
+                relative,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if result.returncode == 0:
+            return True
+    except OSError:
+        pass
+    return tracked_in_index(resolved_root, relative)
 
 
 def repo_file(
@@ -627,6 +666,12 @@ def read_manifest(path: Path) -> Any:
 
 def self_test_tamper(data: Any, root: Path) -> list[str]:
     failures: list[str] = []
+    if not tracked_in_index(
+        root, "reference/certification/reports/grammar-coverage.json"
+    ):
+        failures.append("self-test could not find tracked evidence in the Git index")
+    if tracked_in_index(root, "reference/certification/reports/missing-evidence.json"):
+        failures.append("self-test found nonexistent evidence in the Git index")
     accepted_package_sets = (
         {
             ("Debian", "13 (Trixie)", "amd64"),
