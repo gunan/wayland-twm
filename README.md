@@ -219,7 +219,7 @@ Development with Codex Cloud is documented in
   interactive development on Apple Silicon.
 - [x] **Shared:** Establish a nested Wayland environment inside a working parent
   compositor.
-- [ ] **Shared:** Establish a full display-manager login session using the DRM
+- [x] **Shared:** Establish a full display-manager login session using the DRM
   backend in a disposable VM.
 - [ ] **Manual:** Supply at least one non-virtualized Linux system with a real DRM
   device, display, keyboard, and pointer before the parity release.
