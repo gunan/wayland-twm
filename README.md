@@ -298,7 +298,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
   parsed-only, unavailable-without-explanation, or otherwise unexplained entries.
 - [x] **Agent:** Run the complete canonical one-output 1× matrix and check in a
   report showing zero geometry differences.
-- [ ] **Agent:** Run the complete focus and stacking differential and check in a
+- [x] **Agent:** Run the complete focus and stacking differential and check in a
   report showing zero unexplained differences.
 - [ ] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.

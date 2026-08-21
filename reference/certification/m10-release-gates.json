@@ -43,9 +43,11 @@
     {
       "id": "focus-stacking",
       "title": "Zero unexplained focus or stacking differences.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No complete focus-and-stacking differential certification report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/focus-stacking.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "golden-images",
