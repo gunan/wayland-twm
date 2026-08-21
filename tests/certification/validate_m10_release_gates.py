@@ -64,6 +64,52 @@ def parse_time(value: Any, label: str, errors: list[str]) -> dt.datetime | None:
     return parsed
 
 
+def decode_index_v4_strip(data: bytes, offset: int) -> tuple[int, int]:
+    """Decode the ofs-delta varint used for version-4 path compression."""
+    value = data[offset] & 0x7F
+    byte = data[offset]
+    offset += 1
+    while byte & 0x80:
+        value += 1
+        byte = data[offset]
+        offset += 1
+        value = (value << 7) + (byte & 0x7F)
+    return value, offset
+
+
+def path_tracked_in_index_data(data: bytes, relative: str) -> bool:
+    if len(data) < 12:
+        return False
+    signature, version, count = struct.unpack("!4sII", data[:12])
+    if signature != b"DIRC" or version not in {2, 3, 4}:
+        return False
+    offset = 12
+    previous_path = b""
+    for _ in range(count):
+        start = offset
+        if start + 62 > len(data):
+            return False
+        flags = struct.unpack("!H", data[start + 60:start + 62])[0]
+        fixed_size = 64 if version >= 3 and flags & 0x4000 else 62
+        path_start = start + fixed_size
+        if version == 4:
+            strip, path_start = decode_index_v4_strip(data, path_start)
+            if strip > len(previous_path):
+                return False
+            path_end = data.index(b"\0", path_start)
+            path = previous_path[:len(previous_path) - strip] + data[path_start:path_end]
+            offset = path_end + 1
+            previous_path = path
+        else:
+            path_end = data.index(b"\0", path_start)
+            path = data[path_start:path_end]
+            entry_size = path_end - start + 1
+            offset = start + ((entry_size + 7) // 8) * 8
+        if path.decode("utf-8", "surrogateescape") == relative:
+            return True
+    return False
+
+
 def tracked_in_index(root: Path, relative: str) -> bool:
     try:
         git_directory = root / ".git"
@@ -72,26 +118,7 @@ def tracked_in_index(root: Path, relative: str) -> bool:
             if not pointer.startswith("gitdir: "):
                 return False
             git_directory = (root / pointer.removeprefix("gitdir: ")).resolve()
-        data = (git_directory / "index").read_bytes()
-        if len(data) < 12:
-            return False
-        signature, version, count = struct.unpack("!4sII", data[:12])
-        if signature != b"DIRC" or version not in {2, 3}:
-            return False
-        offset = 12
-        for _ in range(count):
-            start = offset
-            if start + 62 > len(data):
-                return False
-            flags = struct.unpack("!H", data[start + 60:start + 62])[0]
-            fixed_size = 64 if version == 3 and flags & 0x4000 else 62
-            path_start = start + fixed_size
-            path_end = data.index(b"\0", path_start)
-            path = data[path_start:path_end].decode("utf-8", "surrogateescape")
-            if path == relative:
-                return True
-            entry_size = path_end - start + 1
-            offset = start + ((entry_size + 7) // 8) * 8
+        return path_tracked_in_index_data((git_directory / "index").read_bytes(), relative)
     except (OSError, UnicodeError, ValueError, struct.error):
         return False
     return False
@@ -666,6 +693,11 @@ def read_manifest(path: Path) -> Any:
 
 def self_test_tamper(data: Any, root: Path) -> list[str]:
     failures: list[str] = []
+    v4_path = b"reference/certification/reports/grammar-coverage.json"
+    v4_entry = bytes(62) + b"\0" + v4_path + b"\0"
+    v4_index = struct.pack("!4sII", b"DIRC", 4, 1) + v4_entry
+    if not path_tracked_in_index_data(v4_index, v4_path.decode("ascii")):
+        failures.append("self-test could not read a version-4 Git index")
     if not tracked_in_index(
         root, "reference/certification/reports/grammar-coverage.json"
     ):
