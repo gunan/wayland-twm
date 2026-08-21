@@ -1,0 +1,156 @@
+{
+  "masks": [],
+  "modes": {
+    "color": {
+      "button_hover_pressed_pixel_identical": true,
+      "captures": {
+        "button-hover": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e",
+        "button-pressed": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e",
+        "focused": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e",
+        "icon": "0f50307d8b892be96546e8f525a4100a1be83d620a36f3a52e979501c907c6fa",
+        "menu-highlight": "d822ccf0b7c02752173c2be1c461ce005da3be7737902b45ef49087e6c9d540b",
+        "menu-normal": "47f2b0838b65338f893c06e6b575e1e890203076ee3f6860ec6b6608676f20fb",
+        "menu-pull": "2ba357b8a1ab0f09883eb20d8a7e49d8af732ddd892112c0102271f1b204884b",
+        "menu-title": "47f2b0838b65338f893c06e6b575e1e890203076ee3f6860ec6b6608676f20fb",
+        "submenu": "67a2b2fcb72156bb74eb643296584e3074769a24668aa0d8638c6e304ad9e7a3",
+        "title-empty": "9ffeb2fbf44a315cd1d273fcf06b6bb8de0487830f480cb0b7f8ee1b450e0c2f",
+        "title-long": "898bd4e1d84eb9e8f29741ceaf4884af1e9b4a66866b57a81645121001a01998",
+        "title-nonascii": "85e690e5cb2d3db411ae6db42561d4a6b82feea99c074848c436bd5a91914760",
+        "title-rapid": "a945c31470700efd9e9d7903c33734f874320af72681d3aba05de71bc8ef9da6"
+      },
+      "configured_color_samples": {
+        "border": [
+          17,
+          34,
+          51
+        ],
+        "root": [
+          24,
+          40,
+          56
+        ],
+        "title": [
+          32,
+          64,
+          96
+        ]
+      },
+      "icon_geometry": {
+        "height": 23,
+        "region_allocated": false,
+        "source": "configured",
+        "title": "Reference Bravo",
+        "width": 100,
+        "x": 93,
+        "y": 63
+      },
+      "title_variant_hashes": {
+        "title-empty": "9ffeb2fbf44a315cd1d273fcf06b6bb8de0487830f480cb0b7f8ee1b450e0c2f",
+        "title-long": "898bd4e1d84eb9e8f29741ceaf4884af1e9b4a66866b57a81645121001a01998",
+        "title-nonascii": "85e690e5cb2d3db411ae6db42561d4a6b82feea99c074848c436bd5a91914760",
+        "title-rapid": "a945c31470700efd9e9d7903c33734f874320af72681d3aba05de71bc8ef9da6"
+      }
+    },
+    "grayscale": {
+      "button_hover_pressed_pixel_identical": true,
+      "captures": {
+        "button-hover": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33",
+        "button-pressed": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33",
+        "focused": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33",
+        "icon": "bb36fd891f68a4f614d450cbeadf2be139a20c7a66d80fc889b8ade66732fc39",
+        "menu-highlight": "61566d8ed469a677dfbe8d81314f0fea0de048692eefb4fa76f3f364c9e9805c",
+        "menu-normal": "99acf605e5bfd07a50ccb37ef764713c7c25323f645e0ed75115f3dae12e1f57",
+        "menu-pull": "2168f8245785469e703d9d19b0b5d233f7f57f299b8d67e9cdf66eb33df78749",
+        "menu-title": "99acf605e5bfd07a50ccb37ef764713c7c25323f645e0ed75115f3dae12e1f57",
+        "submenu": "b0d4908925e3f622a6a132995afd8188ac8da66d34cd01da8e54fcdef52a5b19",
+        "title-empty": "46ef653221aaa88505f157208ceb412535c4da2c417cbbca7d771fee8e555d1b",
+        "title-long": "51a1365f754d4884108721317ea8a08a96cbabac7704f4992ad44784f6078813",
+        "title-nonascii": "5727fca2d83e73af62659ca792ee450882adfd701f2179d9765c9b7d1bf0eddb",
+        "title-rapid": "655a9245615c607018ee68c9571b1963a777141073542b69fa3be16da0ec4d7a"
+      },
+      "configured_color_samples": {
+        "border": [
+          85,
+          85,
+          85
+        ],
+        "root": [
+          48,
+          48,
+          48
+        ],
+        "title": [
+          119,
+          119,
+          119
+        ]
+      },
+      "icon_geometry": {
+        "height": 23,
+        "region_allocated": false,
+        "source": "configured",
+        "title": "Reference Bravo",
+        "width": 100,
+        "x": 93,
+        "y": 63
+      },
+      "title_variant_hashes": {
+        "title-empty": "46ef653221aaa88505f157208ceb412535c4da2c417cbbca7d771fee8e555d1b",
+        "title-long": "51a1365f754d4884108721317ea8a08a96cbabac7704f4992ad44784f6078813",
+        "title-nonascii": "5727fca2d83e73af62659ca792ee450882adfd701f2179d9765c9b7d1bf0eddb",
+        "title-rapid": "655a9245615c607018ee68c9571b1963a777141073542b69fa3be16da0ec4d7a"
+      }
+    },
+    "monochrome": {
+      "button_hover_pressed_pixel_identical": true,
+      "captures": {
+        "button-hover": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845",
+        "button-pressed": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845",
+        "focused": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845",
+        "icon": "f16520612614bc2cf7c9b4aa8d36ae3d178da3046344ab8b595da393d1d08731",
+        "menu-highlight": "435d90394cbc159a5f8e49f222f41752f5c3d7bba78c5e7a3331a36802689b6a",
+        "menu-normal": "265ad5aa796c0fe2f47659eeb495b5eb4586d4d8e3f0df8060f66b48e3ba6475",
+        "menu-pull": "24139213fb5e1e64760455e013d0018007cf982e31b9012599497fa46ed8a88e",
+        "menu-title": "265ad5aa796c0fe2f47659eeb495b5eb4586d4d8e3f0df8060f66b48e3ba6475",
+        "submenu": "f135b2778897d62e3742b6e06e5e9967d677ed175bff9d344661ff736d36b6e5",
+        "title-empty": "e6612d3f33750b5452a304f05aa586897caf7746f741c6ba223a7f8eab8f8dd9",
+        "title-long": "f39ad11ef1ace3c655a972b05488f3fd1cb0beb8392ae53d8838b01b3107efe7",
+        "title-nonascii": "5edb418c278bde04f5d2cee3fd4e377c7811f8fa6f0cda585f02e15130dda2a4",
+        "title-rapid": "de137485a2d7610593a56196fbb775b63d4b02200c8701518b42c1d9128252ae"
+      },
+      "configured_color_samples": {
+        "border": [
+          255,
+          255,
+          255
+        ],
+        "root": [
+          0,
+          0,
+          0
+        ],
+        "title": [
+          0,
+          0,
+          0
+        ]
+      },
+      "icon_geometry": {
+        "height": 23,
+        "region_allocated": false,
+        "source": "configured",
+        "title": "Reference Bravo",
+        "width": 100,
+        "x": 93,
+        "y": 63
+      },
+      "title_variant_hashes": {
+        "title-empty": "e6612d3f33750b5452a304f05aa586897caf7746f741c6ba223a7f8eab8f8dd9",
+        "title-long": "f39ad11ef1ace3c655a972b05488f3fd1cb0beb8392ae53d8838b01b3107efe7",
+        "title-nonascii": "5edb418c278bde04f5d2cee3fd4e377c7811f8fa6f0cda585f02e15130dda2a4",
+        "title-rapid": "de137485a2d7610593a56196fbb775b63d4b02200c8701518b42c1d9128252ae"
+      }
+    }
+  },
+  "schema_version": 1
+}

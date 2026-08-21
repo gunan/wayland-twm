@@ -1,0 +1,84 @@
+{
+  "exact": true,
+  "phases": {
+    "alpha": {
+      "actual_sha256": "02c7bcd13f8e53dc07f9aa46a38c1341dcde66931668ec0f3270d0cc28e477e5",
+      "actual_size": [
+        260,
+        180
+      ],
+      "configured_color_pixel_counts": {
+        "actual": {
+          "alpha_accent": 2008,
+          "alpha_client": 4492,
+          "border": 2559,
+          "bravo_accent": 1812,
+          "bravo_client": 4178,
+          "root": 28946,
+          "title": 2485,
+          "title_text": 320
+        },
+        "match": true,
+        "reference": {
+          "alpha_accent": 2008,
+          "alpha_client": 4492,
+          "border": 2559,
+          "bravo_accent": 1812,
+          "bravo_client": 4178,
+          "root": 28946,
+          "title": 2485,
+          "title_text": 320
+        }
+      },
+      "font_mask_mismatch_pixels": 0,
+      "geometry_mask_mismatch_pixels": 0,
+      "mismatch_pixels": 0,
+      "reference_sha256": "02c7bcd13f8e53dc07f9aa46a38c1341dcde66931668ec0f3270d0cc28e477e5",
+      "reference_size": [
+        260,
+        180
+      ],
+      "size_match": true
+    },
+    "bravo": {
+      "actual_sha256": "1976780154cf605e478569cddda35e14ac3b5c9b126a23db09ec7da2750a06cc",
+      "actual_size": [
+        260,
+        180
+      ],
+      "configured_color_pixel_counts": {
+        "actual": {
+          "alpha_accent": 1278,
+          "alpha_client": 2612,
+          "border": 2694,
+          "bravo_accent": 2384,
+          "bravo_client": 5316,
+          "root": 28946,
+          "title": 3142,
+          "title_text": 428
+        },
+        "match": true,
+        "reference": {
+          "alpha_accent": 1278,
+          "alpha_client": 2612,
+          "border": 2694,
+          "bravo_accent": 2384,
+          "bravo_client": 5316,
+          "root": 28946,
+          "title": 3142,
+          "title_text": 428
+        }
+      },
+      "font_mask_mismatch_pixels": 0,
+      "geometry_mask_mismatch_pixels": 0,
+      "mismatch_pixels": 0,
+      "reference_sha256": "1976780154cf605e478569cddda35e14ac3b5c9b126a23db09ec7da2750a06cc",
+      "reference_size": [
+        260,
+        180
+      ],
+      "size_match": true
+    }
+  },
+  "schema_version": 1
+}

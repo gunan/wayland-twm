@@ -1,0 +1,21 @@
+stdout:
+
+stderr:
+00:00:00.000 [INFO] [../src/wtwm.c:11442] 3 twm directives accepted but not effective; run wtwm-config for details
+00:00:00.000 [INFO] [backend/headless/backend.c:67] Creating headless backend
+00:00:00.000 [INFO] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.000 [INFO] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.007 [INFO] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.008 [INFO] [../src/wtwm.c:856] Xwayland allocated DISPLAY=:0
+00:00:00.008 [INFO] [../src/wtwm.c:11579] wtwm running on WAYLAND_DISPLAY=wtwm-m10-menu-13122
+00:00:00.009 [INFO] [xwayland/server.c:107] Starting Xwayland on :0
+Xwayland glamor: GBM Wayland interfaces not available
+Failed to initialize glamor, falling back to sw
+00:00:00.070 [INFO] [../src/wtwm.c:775] Xwayland ready on DISPLAY=:0
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 708, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Could not resolve keysym XF86KbdInputAssistPrevgrou
+> Warning:          Could not resolve keysym XF86KbdInputAssistNextgrou
+Errors from xkbcomp are not fatal to the X server
+(EE) failed to read Wayland events: Broken pipe

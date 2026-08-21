@@ -1,0 +1,170 @@
+{
+  "comparison": "live-twm-1.0.13.1-vs-wtwm-menu-state-and-pixels",
+  "phases": [
+    "normal",
+    "title",
+    "highlight",
+    "pull-right",
+    "child"
+  ],
+  "reference_states": {
+    "child": {
+      "depth": 2,
+      "name": "cert-child",
+      "parent": "cert-root",
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": true
+    },
+    "highlight": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": 1,
+      "submenu_open": false
+    },
+    "normal": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": false
+    },
+    "pull-right": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": true,
+      "selected": 3,
+      "submenu_open": false
+    },
+    "title": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": false
+    }
+  },
+  "reference_version": "twm 1.0.13.1",
+  "result": "equivalent",
+  "schema_version": 1,
+  "screenshots": {
+    "child": {
+      "exact": true,
+      "mismatch_pixels": 0,
+      "reference_sha256": "c6f63cae3560f038d4ffe7d8b917928a9c904aa6afed42cb2d8f7dadbddc7376",
+      "reference_size": [
+        260,
+        180
+      ],
+      "wtwm_sha256": "c6f63cae3560f038d4ffe7d8b917928a9c904aa6afed42cb2d8f7dadbddc7376",
+      "wtwm_size": [
+        260,
+        180
+      ]
+    },
+    "highlight": {
+      "exact": true,
+      "mismatch_pixels": 0,
+      "reference_sha256": "75628982f9f113bee5b588a2cd0bb8ba90cc3f9f149cd7c0c7b54655dd880f7b",
+      "reference_size": [
+        260,
+        180
+      ],
+      "wtwm_sha256": "75628982f9f113bee5b588a2cd0bb8ba90cc3f9f149cd7c0c7b54655dd880f7b",
+      "wtwm_size": [
+        260,
+        180
+      ]
+    },
+    "normal": {
+      "exact": true,
+      "mismatch_pixels": 0,
+      "reference_sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92",
+      "reference_size": [
+        260,
+        180
+      ],
+      "wtwm_sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92",
+      "wtwm_size": [
+        260,
+        180
+      ]
+    },
+    "pull-right": {
+      "exact": true,
+      "mismatch_pixels": 0,
+      "reference_sha256": "4d1d3b39f8157de327dbe353afe429ad12fcea74d056280a6e8864112f9597f7",
+      "reference_size": [
+        260,
+        180
+      ],
+      "wtwm_sha256": "4d1d3b39f8157de327dbe353afe429ad12fcea74d056280a6e8864112f9597f7",
+      "wtwm_size": [
+        260,
+        180
+      ]
+    },
+    "title": {
+      "exact": true,
+      "mismatch_pixels": 0,
+      "reference_sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92",
+      "reference_size": [
+        260,
+        180
+      ],
+      "wtwm_sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92",
+      "wtwm_size": [
+        260,
+        180
+      ]
+    }
+  },
+  "unexplained_pixel_differences": 0,
+  "wtwm_states": {
+    "child": {
+      "depth": 2,
+      "name": "cert-child",
+      "parent": "cert-root",
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": true
+    },
+    "highlight": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": 1,
+      "submenu_open": false
+    },
+    "normal": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": false
+    },
+    "pull-right": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": true,
+      "selected": 3,
+      "submenu_open": false
+    },
+    "title": {
+      "depth": 1,
+      "name": "cert-root",
+      "parent": null,
+      "pull_right": false,
+      "selected": -1,
+      "submenu_open": false
+    }
+  }
+}

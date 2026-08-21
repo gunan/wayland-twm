@@ -1,0 +1,204 @@
+{
+  "comparison": "live-twm-1.0.13.1-vs-wtwm-Xwayland-icons",
+  "navigation_cells": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "reference": {
+    "navigation": [
+      {
+        "action": "named-bravo",
+        "cell": [
+          0,
+          1
+        ],
+        "pointer": {
+          "x": 171,
+          "y": 12
+        }
+      },
+      {
+        "action": "back-to-alpha",
+        "cell": [
+          0,
+          0
+        ],
+        "pointer": {
+          "x": 11,
+          "y": 12
+        }
+      }
+    ],
+    "pixel_bytes": 921615,
+    "screenshot": {
+      "palette": {
+        "icon_background": {
+          "box": {
+            "height": 19,
+            "width": 96,
+            "x": 302,
+            "y": 290
+          },
+          "count": 1610
+        },
+        "icon_border": {
+          "box": {
+            "height": 23,
+            "width": 100,
+            "x": 300,
+            "y": 288
+          },
+          "count": 476
+        },
+        "icon_foreground": {
+          "box": {
+            "height": 15,
+            "width": 89,
+            "x": 305,
+            "y": 290
+          },
+          "count": 214
+        },
+        "manager_background": {
+          "box": {
+            "height": 23,
+            "width": 320,
+            "x": 1,
+            "y": 1
+          },
+          "count": 6174
+        },
+        "manager_foreground": {
+          "box": {
+            "height": 19,
+            "width": 316,
+            "x": 3,
+            "y": 3
+          },
+          "count": 1186
+        },
+        "manager_highlight": {
+          "box": null,
+          "count": 0
+        }
+      },
+      "sha256": "8dbfcce3ff90745f7d735a85a4128a552cc3d03f0d78e9c8f1c9fe8e9114acad",
+      "size": [
+        640,
+        480
+      ]
+    }
+  },
+  "result": "equivalent",
+  "schema_version": 1,
+  "structural_comparison": {
+    "configured_pixel_area_ratios": {
+      "icon_background": 1.0,
+      "icon_border": 1.0,
+      "icon_foreground": 1.0,
+      "manager_background": 1.0,
+      "manager_foreground": 1.0
+    },
+    "icon_center_delta": [
+      0,
+      0
+    ],
+    "manager_extent_delta": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    }
+  },
+  "wtwm": {
+    "navigation": [
+      {
+        "action": "named-bravo",
+        "cell": [
+          0,
+          1
+        ],
+        "pointer": {
+          "x": 240,
+          "y": 11
+        }
+      },
+      {
+        "action": "back-to-alpha",
+        "cell": [
+          0,
+          0
+        ],
+        "pointer": {
+          "x": 80,
+          "y": 11
+        }
+      }
+    ],
+    "pixel_bytes": 921615,
+    "screenshot": {
+      "palette": {
+        "icon_background": {
+          "box": {
+            "height": 19,
+            "width": 96,
+            "x": 302,
+            "y": 290
+          },
+          "count": 1610
+        },
+        "icon_border": {
+          "box": {
+            "height": 23,
+            "width": 100,
+            "x": 300,
+            "y": 288
+          },
+          "count": 476
+        },
+        "icon_foreground": {
+          "box": {
+            "height": 15,
+            "width": 89,
+            "x": 305,
+            "y": 290
+          },
+          "count": 214
+        },
+        "manager_background": {
+          "box": {
+            "height": 23,
+            "width": 320,
+            "x": 1,
+            "y": 1
+          },
+          "count": 6174
+        },
+        "manager_foreground": {
+          "box": {
+            "height": 19,
+            "width": 316,
+            "x": 3,
+            "y": 3
+          },
+          "count": 1186
+        },
+        "manager_highlight": {
+          "box": null,
+          "count": 0
+        }
+      },
+      "sha256": "120fb916a4d8271b838e167ccf40bc6e4352e5e507753a649f5a9258574c8a92",
+      "size": [
+        640,
+        480
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+Breakpoint 1 at 0x140b0: file /tmp/wtwm-reference-build.UIGHKS/twm-1.0.13.1/src/menus.c, line 925.
+Breakpoint 2 at 0x139f0: file /tmp/wtwm-reference-build.UIGHKS/twm-1.0.13.1/src/menus.c, line 363.
+warning: Error disabling address space randomization: Operation not permitted
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+WTWM_MENU_POP	cert-root	1	-	130	90	1	102	68	17	2
+WTWM_MENU_PAINT	cert-root	1	0	0	0	1
+WTWM_MENU_PAINT	cert-root	1	1	0	0	1
+WTWM_MENU_PAINT	cert-root	1	2	0	0	1
+WTWM_MENU_PAINT	cert-root	1	3	0	1	1
+WTWM_MENU_PAINT	cert-root	1	1	1	0	0
+WTWM_MENU_PAINT	cert-root	1	1	0	0	0
+WTWM_MENU_PAINT	cert-root	1	3	1	1	0
+WTWM_MENU_POP	cert-child	2	cert-root	130	133	0	82	34	17	2
+WTWM_MENU_PAINT	cert-root	2	3	0	1	0
+WTWM_MENU_PAINT	cert-child	2	0	0	0	1
+WTWM_MENU_PAINT	cert-child	2	1	0	0	1

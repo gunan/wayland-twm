@@ -300,7 +300,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
   report showing zero geometry differences.
 - [x] **Agent:** Run the complete focus and stacking differential and check in a
   report showing zero unexplained differences.
-- [ ] **Shared:** Review every golden image and check in a review log with zero
+- [x] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.
 - [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
 - [ ] **Shared:** Check in successful package lifecycle evidence for amd64 and
