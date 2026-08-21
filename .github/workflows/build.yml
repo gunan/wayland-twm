@@ -280,6 +280,12 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/m7_icon_differential_client.c \
             -o /tmp/m7-icon-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror -fPIC -shared \
+            tests/integration/m10_command_interposer.c \
+            -o /tmp/m10-command-interposer.so -ldl
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            tests/integration/m10_command_observer.c \
+            -o /tmp/m10-command-observer
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -363,6 +369,21 @@ jobs:
             --config "$GITHUB_WORKSPACE/tests/integration/m10_menu_differential.twmrc" \
             --output /tmp/m10-menu-differential.json \
             --evidence /tmp/m10-menu-differential-evidence
+      - name: Compare live command dispatch with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_command_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --config-check "$GITHUB_WORKSPACE/build-differential/wtwm-config" \
+            --input-driver /tmp/m4-trace-input \
+            --observer /tmp/m7-icon-observer \
+            --command-observer /tmp/m10-command-observer \
+            --interposer /tmp/m10-command-interposer.so \
+            --output /tmp/m10-command-differential.json \
+            --evidence /tmp/m10-command-differential-evidence
       - name: Run deterministic Milestone 7 large-set lifecycle churn
         if: always()
         timeout-minutes: 25
@@ -434,6 +455,15 @@ jobs:
           path: |
             /tmp/m10-menu-differential.json
             /tmp/m10-menu-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 live command differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-command-differential
+          path: |
+            /tmp/m10-command-differential.json
+            /tmp/m10-command-differential-evidence
           if-no-files-found: error
       - name: Upload Milestone 7 lifecycle churn
         if: always()

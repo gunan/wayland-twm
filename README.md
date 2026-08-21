@@ -273,7 +273,7 @@ acceptance procedures for this group.
   compare exact pointer coordinates after every significant input action.
 - [x] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
   depth, selected row, pull-right submenu state, and rendered states.
-- [ ] **Agent:** Add controlled command observers and compare the action spelling,
+- [x] **Agent:** Add controlled command observers and compare the action spelling,
   decoded command, direct argument vector or unchanged shell text, execution,
   and intentional non-execution.
 - [ ] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction

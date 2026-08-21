@@ -169,6 +169,16 @@ state. Two consecutive full-output captures must stabilize for each phase and
 the reference/wtwm PPM bytes must then match exactly, with no tolerance or
 mask.
 
+`run_m10_command_differential.py` places a controlled interposer at the libc
+command boundary and a separate executable at the final process boundary. It
+compares the configured action spelling and decoded command, reference
+`system()`/`execlp()` shell text, wtwm direct `execvp()` argument vectors or
+unchanged `execl()` shell text, and the final observer argv. Explicit
+`f.exec`, the `!` alias, a shell-expansion command, an empty command, and
+`f.startwm` are covered. The empty command has no observable process effect;
+the startwm case records reference replacement and wtwm's intentional
+non-execution as the documented Wayland handoff translation.
+
 The `mixed native and Xwayland client integration` test maps two native xdg
 toplevels and two managed X11 toplevels together. It checks their exact
 identities and simultaneous lifecycle associations, drives

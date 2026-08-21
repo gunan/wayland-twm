@@ -49,9 +49,12 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 Final 1.0 certification is tracked by three fail-closed machine-readable records
 under `reference/certification/`. The differential contract maps all eleven
 required comparison dimensions to concrete runners, validators, and frozen
-evidence, and records eight as live reference differentials. Launched commands,
-close/destruction behavior, and screenshots after every significant action
-remain partial and therefore are not parity claims.
+evidence, and records nine as live reference differentials. A live five-phase
+command differential observes the libc launch boundary and executed argv for
+`f.exec`, its `!` alias, shell expansion, empty commands, and `f.startwm`; the
+last records wtwm's intentional non-execution as the unavoidable Wayland
+handoff translation. Close/destruction behavior and screenshots after every
+significant action remain partial and therefore are not parity claims.
 
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is

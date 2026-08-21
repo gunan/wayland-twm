@@ -238,8 +238,7 @@
     {
       "id": "commands-launched",
       "roadmap_text": "Commands launched.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Reference command semantics, configured-action dispatch, and safe f.startwm command handling exist, but launched-command observations are not yet compared in one live reference/wtwm scenario.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "decoded command string and action alias",
         "configured action dispatch",
@@ -247,10 +246,12 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_command_differential.py",
           "tests/integration/run_m6_actions.py",
           "tests/integration/run_m8_startwm.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_command_differential.py",
           "tests/reference/validate_reference_action_contract.py",
           "tests/reference/validate_m6_implementation_matrix.py",
           "tests/reference/validate_reference_startwm_contract.py"
