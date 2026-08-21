@@ -38,13 +38,13 @@ RUNNER_MARKERS = {
         '"native_crash_replacements"\n'
         '                    if crash_protocol == "wayland"'
     ),
-    "crashed client pipes are retired": (
+    "crashed client resources are retired": (
         'status = wait_process(crashed.process, f"{crash_protocol} crash")\n'
-        '                close_process_pipes(crashed.process)'
+        '                retire_process(crashed.process, all_processes)'
     ),
-    "clean client pipes are retired": (
+    "clean client resources are retired": (
         'status = wait_process(client.process, f"{client.protocol} clean exit")\n'
-        '                close_process_pipes(client.process)'
+        '                retire_process(client.process, all_processes)'
     ),
     "exception cleanup retires client pipes": (
         'child.wait(timeout=WAIT_SECONDS)\n'
@@ -150,7 +150,10 @@ def self_test(module) -> None:
     if child.stdin is None or child.stdout is None:
         raise RuntimeError("pipe regression child lacks control pipes")
     pipe_fds = (child.stdin.fileno(), child.stdout.fileno())
-    module.close_process_pipes(child)
+    tracked = [child]
+    module.retire_process(child, tracked)
+    if tracked:
+        raise RuntimeError("retired client remains in the cleanup ledger")
     if not child.stdin.closed or not child.stdout.closed:
         raise RuntimeError("retired client pipes remain open")
     for descriptor in pipe_fds:
