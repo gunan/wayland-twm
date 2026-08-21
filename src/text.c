@@ -509,6 +509,23 @@ struct wlr_buffer *wtwm_render_menu_icon(int height,
 	return &buffer->base;
 }
 
+struct wlr_buffer *wtwm_render_icon_manager_marker(
+		const float foreground[static 4]) {
+	static const unsigned char rows[11][2] = {
+		{0xff, 0x07}, {0x01, 0x04}, {0x0d, 0x05}, {0x9d, 0x05},
+		{0xb9, 0x04}, {0x51, 0x04}, {0xe9, 0x04}, {0xcd, 0x05},
+		{0x85, 0x05}, {0x01, 0x04}, {0xff, 0x07},
+	};
+	struct text_buffer *buffer = pixel_buffer_create(11, 11);
+	if (buffer == NULL) return NULL;
+	uint32_t pixel = color_pixel(foreground);
+	for (int y = 0; y < 11; ++y)
+		for (int x = 0; x < 11; ++x)
+			if ((rows[y][x / 8] & (1u << (x % 8))) != 0)
+				set_title_pixel(buffer, x, y, pixel);
+	return &buffer->base;
+}
+
 struct wlr_buffer *wtwm_render_builtin_title(const char *name, int size,
 		const float foreground[static 4]) {
 	if (name == NULL || size < 1 || name[0] != ':') return NULL;
