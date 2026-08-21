@@ -296,7 +296,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
 - [x] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
   runtime and test evidence; implement genuine gaps and reach zero partial,
   parsed-only, unavailable-without-explanation, or otherwise unexplained entries.
-- [ ] **Agent:** Run the complete canonical one-output 1× matrix and check in a
+- [x] **Agent:** Run the complete canonical one-output 1× matrix and check in a
   report showing zero geometry differences.
 - [ ] **Agent:** Run the complete focus and stacking differential and check in a
   report showing zero unexplained differences.

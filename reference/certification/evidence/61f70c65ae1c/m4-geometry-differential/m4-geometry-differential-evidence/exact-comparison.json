@@ -1,0 +1,2675 @@
+{
+  "case_count": 48,
+  "cases": [
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__frame-border__normal__none",
+      "configuration_id": "titled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__frame-border__normal__min-max",
+      "configuration_id": "titled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__frame-border__normal__base-increment",
+      "configuration_id": "titled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 111,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 111,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__frame-border__normal__aspect",
+      "configuration_id": "titled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 119,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 119,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__frame-border__transient-suppressed__none",
+      "configuration_id": "titled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__frame-border__transient-suppressed__min-max",
+      "configuration_id": "titled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__frame-border__transient-suppressed__base-increment",
+      "configuration_id": "titled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__frame-border__transient-suppressed__aspect",
+      "configuration_id": "titled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__frame-border__transient-decorated__none",
+      "configuration_id": "titled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__frame-border__transient-decorated__min-max",
+      "configuration_id": "titled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 114,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__frame-border__transient-decorated__base-increment",
+      "configuration_id": "titled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 111,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 111,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__frame-border__transient-decorated__aspect",
+      "configuration_id": "titled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 119,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 141
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 21
+        },
+        "frame_outer": {
+          "height": 119,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 21,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__client-border__normal__none",
+      "configuration_id": "titled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__client-border__normal__min-max",
+      "configuration_id": "titled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__client-border__normal__base-increment",
+      "configuration_id": "titled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 117,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 117,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "normal"
+      },
+      "case_id": "titled__client-border__normal__aspect",
+      "configuration_id": "titled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 125,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 125,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__client-border__transient-suppressed__none",
+      "configuration_id": "titled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__client-border__transient-suppressed__min-max",
+      "configuration_id": "titled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__client-border__transient-suppressed__base-increment",
+      "configuration_id": "titled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "titled__client-border__transient-suppressed__aspect",
+      "configuration_id": "titled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__client-border__transient-decorated__none",
+      "configuration_id": "titled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__client-border__transient-decorated__min-max",
+      "configuration_id": "titled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 120,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__client-border__transient-decorated__base-increment",
+      "configuration_id": "titled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 117,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 117,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "titled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "titled__client-border__transient-decorated__aspect",
+      "configuration_id": "titled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 125,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        }
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 145
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 25
+        },
+        "frame_outer": {
+          "height": 125,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": {
+          "height": 25,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        }
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__frame-border__normal__none",
+      "configuration_id": "untitled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__frame-border__normal__min-max",
+      "configuration_id": "untitled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__frame-border__normal__base-increment",
+      "configuration_id": "untitled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__frame-border__normal__aspect",
+      "configuration_id": "untitled__frame-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__frame-border__transient-suppressed__none",
+      "configuration_id": "untitled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__frame-border__transient-suppressed__min-max",
+      "configuration_id": "untitled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__frame-border__transient-suppressed__base-increment",
+      "configuration_id": "untitled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__frame-border__transient-suppressed__aspect",
+      "configuration_id": "untitled__frame-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__frame-border__transient-decorated__none",
+      "configuration_id": "untitled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__frame-border__transient-decorated__min-max",
+      "configuration_id": "untitled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 95,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__frame-border__transient-decorated__base-increment",
+      "configuration_id": "untitled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 92,
+          "width": 141,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "frame-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__frame-border__transient-decorated__aspect",
+      "configuration_id": "untitled__frame-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 162,
+          "y": 122
+        },
+        "extents": {
+          "bottom": 2,
+          "left": 2,
+          "right": 2,
+          "top": 2
+        },
+        "frame_outer": {
+          "height": 100,
+          "width": 148,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__client-border__normal__none",
+      "configuration_id": "untitled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__client-border__normal__min-max",
+      "configuration_id": "untitled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__client-border__normal__base-increment",
+      "configuration_id": "untitled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "normal"
+      },
+      "case_id": "untitled__client-border__normal__aspect",
+      "configuration_id": "untitled__client-border__normal",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__client-border__transient-suppressed__none",
+      "configuration_id": "untitled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__client-border__transient-suppressed__min-max",
+      "configuration_id": "untitled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__client-border__transient-suppressed__base-increment",
+      "configuration_id": "untitled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "transient-suppressed"
+      },
+      "case_id": "untitled__client-border__transient-suppressed__aspect",
+      "configuration_id": "untitled__client-border__transient-suppressed",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "none",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__client-border__transient-decorated__none",
+      "configuration_id": "untitled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "min-max",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__client-border__transient-decorated__min-max",
+      "configuration_id": "untitled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 91,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 99,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "base-increment",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__client-border__transient-decorated__base-increment",
+      "configuration_id": "untitled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 88,
+          "width": 137,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 96,
+          "width": 145,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    },
+    {
+      "axes": {
+        "border_policy": "client-border",
+        "hint_profile": "aspect",
+        "title_policy": "untitled",
+        "transient_policy": "transient-decorated"
+      },
+      "case_id": "untitled__client-border__transient-decorated__aspect",
+      "configuration_id": "untitled__client-border__transient-decorated",
+      "reference": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      },
+      "wtwm": {
+        "client_inner": {
+          "height": 96,
+          "width": 144,
+          "x": 164,
+          "y": 124
+        },
+        "extents": {
+          "bottom": 4,
+          "left": 4,
+          "right": 4,
+          "top": 4
+        },
+        "frame_outer": {
+          "height": 104,
+          "width": 152,
+          "x": 160,
+          "y": 120
+        },
+        "title_outer": null
+      }
+    }
+  ],
+  "clean_runs": 2,
+  "comparison": [
+    "client_inner",
+    "frame_outer",
+    "title_outer",
+    "extents"
+  ],
+  "generated": {
+    "cases_sha256": "cbd1db9fb55d20b7388af09a3c6d9f16f31f47a7188585382ea3d36dc83e56db",
+    "configurations_sha256": "8ad5a61637d91701e21ef5fcc7850042cc8cd75188cb9394e707a6e57564b3a7"
+  },
+  "result": "exactly-equivalent",
+  "schema_version": 1,
+  "stable_observations_per_backend": 3
+}

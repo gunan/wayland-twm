@@ -34,9 +34,11 @@
     {
       "id": "canonical-geometry",
       "title": "Zero geometry differences in the canonical profile.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No complete canonical-profile geometry certification report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/canonical-geometry.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "focus-stacking",
