@@ -1957,10 +1957,7 @@ static void refresh_icon_managers(struct server *server) {
 	memset(server->icon_manager_views, 0, sizeof(server->icon_manager_views));
 	server->icon_manager_view_count = server->icon_managers.manager_count;
 	if (server->icon_manager_tree == NULL) return;
-	int font_height = 1;
-	int font_ascent = 1;
-	(void)wtwm_measure_font_metrics(server->config.icon_manager_font,
-		&font_height, &font_ascent);
+	int font_height = wtwm_measure_font_height(server->config.icon_manager_font);
 	int row_height = font_height + 10;
 	if (row_height < 12) row_height = 12;
 	for (size_t index = 0; index < server->icon_managers.manager_count; ++index) {
@@ -2059,8 +2056,7 @@ static void refresh_icon_managers(struct server *server) {
 						wlr_scene_buffer_set_source_box(node, &source);
 						wlr_scene_buffer_set_dest_size(node, available, text_height);
 					}
-					wlr_scene_node_set_position(&node->node, text_x,
-						(row_height - font_height) / 2 + font_ascent - font_ascent);
+					wlr_scene_node_set_position(&node->node, text_x, 4);
 				}
 			}
 		}

@@ -28,6 +28,7 @@ REQUIRED = {
         "create_icon_manager_outline(row, 2",
         "(row_height - 11) / 2",
         "int text_x = 22",
+        "node->node, text_x, 4",
         "move_icon_manager_selection",
         "WTWM_CONTEXT_ICONMGR",
         'test_trace_toplevel_event(toplevel, "animation", "icon")',
