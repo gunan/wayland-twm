@@ -179,6 +179,16 @@ unchanged `execl()` shell text, and the final observer argv. Explicit
 the startwm case records reference replacement and wtwm's intentional
 non-execution as the documented Wayland handoff translation.
 
+`run_m10_close_differential.py` drives the same controlled X11 client under
+frozen `twm` and wtwm. It compares cooperative `WM_DELETE_WINDOW`, an ignored
+delete followed by forced X connection destruction, and a same-title
+destroy-and-recreate cycle after complete prior cleanup, with exactly one live
+instance and no stale lifecycle or scene state. XID reuse by the X server is
+accepted only after that cleanup boundary. The wtwm half separately sends both actions to
+a native xdg-shell client, proves that each is the same close request and that
+neither can kill the client, and records this as the unavoidable native
+xdg-shell close-only translation.
+
 The `mixed native and Xwayland client integration` test maps two native xdg
 toplevels and two managed X11 toplevels together. It checks their exact
 identities and simultaneous lifecycle associations, drives

@@ -73,7 +73,7 @@ REQUIRED = {
     ),
     "docs/COMPATIBILITY.md": (
         "command differential observes the libc launch boundary",
-        "records nine as live reference differentials",
+        "records ten as live reference differentials",
     ),
     "tests/certification/validate_m10_differential_contract.py": (
         '"commands-launched": "live-reference-differential"',

@@ -46,7 +46,7 @@ EXPECTED_COVERAGE = {
     "menu-state": "live-reference-differential",
     "icons-and-icon-managers": "live-reference-differential",
     "commands-launched": "live-reference-differential",
-    "client-close-and-destruction": "partial-existing-infrastructure",
+    "client-close-and-destruction": "live-reference-differential",
     "screenshots-after-significant-actions": "partial-existing-infrastructure",
 }
 
@@ -290,6 +290,14 @@ def self_test_tamper(contract: object, source_root: Path) -> list[str]:
     underclaimed_commands["dimensions"][8]["coverage_note"] = "tampered"
     if not validate_contract(underclaimed_commands, source_root):
         failures.append("live command differential coverage underclaim was accepted")
+
+    underclaimed_close = copy.deepcopy(contract)
+    underclaimed_close["dimensions"][9]["coverage_status"] = (
+        "partial-existing-infrastructure"
+    )
+    underclaimed_close["dimensions"][9]["coverage_note"] = "tampered"
+    if not validate_contract(underclaimed_close, source_root):
+        failures.append("live close differential coverage underclaim was accepted")
     return failures
 
 

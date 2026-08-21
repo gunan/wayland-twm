@@ -276,7 +276,7 @@ acceptance procedures for this group.
 - [x] **Agent:** Add controlled command observers and compare the action spelling,
   decoded command, direct argument vector or unchanged shell text, execution,
   and intentional non-execution.
-- [ ] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction
+- [x] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction
   differential, and separately record the unavoidable native Wayland close-only
   translation.
 - [ ] **Agent/shared:** Capture paired stable screenshots after every significant

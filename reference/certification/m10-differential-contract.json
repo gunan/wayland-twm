@@ -269,8 +269,7 @@
     {
       "id": "client-close-and-destruction",
       "roadmap_text": "Client close and destruction behavior.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Xwayland close/kill, icon lifecycle churn, and popup destruction are exercised under wtwm, while reference action semantics are frozen separately; a single live end-to-end differential is not recorded.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "WM_DELETE_WINDOW graceful close",
         "forced destruction fallback",
@@ -278,11 +277,13 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_close_differential.py",
           "tests/integration/run_xwayland_bridge.py",
           "tests/integration/run_m7_lifecycle_churn.py",
           "tests/integration/run_m9_popup_lifecycle_stress.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_close_differential.py",
           "tests/integration/validate_m9_popup_lifecycle_stress.py",
           "tests/reference/validate_reference_action_contract.py",
           "tests/reference/validate_reference_state_contract.py"

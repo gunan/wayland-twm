@@ -1,0 +1,7 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+RandomPlacement
+
+Button1 = : title : f.delete
+Button2 = : title : f.destroy

@@ -1129,6 +1129,24 @@ test(
   ],
 )
 test(
+  'Milestone 10 close/destruction differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m10_close_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 10 close/destruction differential model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m10_close_differential.py'),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 10 certification corpus',
   find_program('python3'),
   args: [

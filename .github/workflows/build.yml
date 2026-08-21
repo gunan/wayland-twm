@@ -286,6 +286,9 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             tests/integration/m10_command_observer.c \
             -o /tmp/m10-command-observer
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m10_close_observer.c \
+            -o /tmp/m10-close-observer $(pkg-config --libs x11)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -384,6 +387,23 @@ jobs:
             --interposer /tmp/m10-command-interposer.so \
             --output /tmp/m10-command-differential.json \
             --evidence /tmp/m10-command-differential-evidence
+      - name: Compare live close and destruction with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_close_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --xvfb /usr/bin/Xvfb \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --config "$GITHUB_WORKSPACE/tests/integration/m10_close_differential.twmrc" \
+            --input-driver /tmp/m4-trace-input \
+            --reference-observer /tmp/m7-icon-observer \
+            --close-observer /tmp/m10-close-observer \
+            --x11-client "$GITHUB_WORKSPACE/build-differential/wtwm-stress-x11-client" \
+            --native-client "$GITHUB_WORKSPACE/build-differential/wtwm-stress-wayland-client" \
+            --output /tmp/m10-close-differential.json \
+            --evidence /tmp/m10-close-differential-evidence
       - name: Run deterministic Milestone 7 large-set lifecycle churn
         if: always()
         timeout-minutes: 25
@@ -464,6 +484,15 @@ jobs:
           path: |
             /tmp/m10-command-differential.json
             /tmp/m10-command-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 close/destruction differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-close-differential
+          path: |
+            /tmp/m10-close-differential.json
+            /tmp/m10-close-differential-evidence
           if-no-files-found: error
       - name: Upload Milestone 7 lifecycle churn
         if: always()
