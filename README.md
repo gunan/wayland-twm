@@ -293,7 +293,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
   grammar coverage with no uncovered productions.
 - [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   built-in action coverage with no uncovered spellings or behaviors.
-- [ ] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
+- [x] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
   runtime and test evidence; implement genuine gaps and reach zero partial,
   parsed-only, unavailable-without-explanation, or otherwise unexplained entries.
 - [ ] **Agent:** Run the complete canonical one-output 1× matrix and check in a

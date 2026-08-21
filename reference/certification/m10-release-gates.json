@@ -25,9 +25,11 @@
     {
       "id": "compatibility-entry-closure",
       "title": "No “partial,” “parsed only,” or unexplained compatibility entries.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "The compatibility ledger has not been certified by a Milestone 10 closure report."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/compatibility-entry-closure.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "canonical-geometry",
