@@ -63,15 +63,50 @@ actions, fails on every nonzero pixel difference, and uses no masks.
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is
 an inventory fact, not proof that one complete certification run passed. The
-release-gate manifest keeps all eleven final 1.0 gates pending until each has a
-validated checked-in evidence report; consequently a full observable parity
-claim remains prohibited. `docs/PARITY_CERTIFICATION.md` defines the evidence
-format and promotion procedure.
+release-gate manifest keeps each final 1.0 gate pending until it has a validated
+checked-in evidence report; a full observable parity claim remains prohibited
+until all eleven pass. `docs/PARITY_CERTIFICATION.md` defines the evidence format
+and promotion procedure.
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
 user result when possible, document the translation when it is not, and never
 silently reinterpret configuration as a different action.
+
+## Unavoidable Wayland translation inventory
+
+These stable identifiers are the exhaustive release inventory. Each marker is
+also present in `data/wtwm.1` and on every affected row of the machine-readable
+compatibility ledger. The tracked audit at
+`reference/certification/wayland-translation-audit.json` maps every identifier
+to its exact ledger rows and live tests.
+
+| Translation ID | Wayland mapping | Why the literal X11 mechanism is impossible |
+| --- | --- | --- |
+| `[wayland-translation:compositor-owned-icons]` | X icon windows and pixmaps become compositor-owned icon scenes. | Rootless Xwayland cannot transplant arbitrary X windows into a Wayland scene, and xdg-shell has no standard icon-window request. |
+| `[wayland-translation:compositor-owned-menus]` | twm menus become a compositor-owned scene layer. | The compositor owns Wayland composition rather than creating X root-child menu windows. |
+| `[wayland-translation:compositor-owned-refresh]` | Refresh actions damage and repaint compositor scene content. | Native clients cannot receive X root-window exposure events. |
+| `[wayland-translation:cut-buffer-clipboard]` | The persistent X cut buffer is mirrored through Wayland `CLIPBOARD`. | Native Wayland has no root cut-buffer property. |
+| `[wayland-translation:embedded-rootless-xwayland]` | X11 clients run through a compositor-owned rootless Xwayland server. | A Wayland compositor does not manage an existing X server root. |
+| `[wayland-translation:fractional-scale-rounding]` | Fractional coordinates use deterministic shared-edge rounding. | Wayland scaling uses logical coordinates and 120ths rather than X screen pixels. |
+| `[wayland-translation:identify-version-log]` | `f.identify` and `f.version` write to the compositor log. | Wayland has no server-owned X information window. |
+| `[wayland-translation:in-process-restart]` | `f.restart`, `f.source`, and `f.twmrc` use one atomic in-process transaction. | Replacing the compositor would destroy accepted Wayland resources, focus, selections, and Xwayland ownership. |
+| `[wayland-translation:legacy-bell-priority]` | Bell and priority behavior is conditional at the native/Xwayland boundary. | Native Wayland defines neither a compositor bell request nor twm's XSync priority control. |
+| `[wayland-translation:logical-seat-aggregation]` | Physical devices are aggregated into one logical Wayland seat. | Wayland exposes capabilities and focus through logical seats rather than twm's direct X device model. |
+| `[wayland-translation:native-close-only]` | Native `f.delete` and `f.destroy` both issue xdg-shell close requests. | xdg-shell cannot forcibly disconnect one arbitrary client. |
+| `[wayland-translation:native-colormap-noop]` | `f.colormap` is a verified native no-op. | True-color Wayland buffers expose no installed-colormap protocol. |
+| `[wayland-translation:native-initial-placement]` | Native placement selects an output from pointer or parent state. | xdg-shell has no X position hints or blocking root placement grab. |
+| `[wayland-translation:native-popup-hierarchy]` | Native popups retain their validated xdg parent hierarchy. | xdg-shell popups are not independent X override-redirect root children. |
+| `[wayland-translation:native-size-constraints]` | Native resizing uses xdg-shell minimum and maximum constraints. | xdg-shell exposes no X base, increment, or aspect hints. |
+| `[wayland-translation:native-window-identity]` | X name, instance, and class matching maps to xdg title and `app_id`. | xdg-shell has no independent `WM_CLASS` instance and class pair. |
+| `[wayland-translation:output-root-spatial-model]` | Each enabled output box is a spatial root equivalent painted by the compositor. | Wayland outputs are not independent X screens with server-owned root windows. |
+| `[wayland-translation:rootless-cross-protocol-stacking]` | Native popups and Xwayland override-redirect surfaces share a map-ordered overlay. | X sibling requests cannot name native surfaces. |
+| `[wayland-translation:saved-state-snapshot]` | Session restoration uses an explicit compositor-owned snapshot. | Native Wayland has no `WM_SAVE_YOURSELF` or X session-manager property protocol. |
+| `[wayland-translation:screen-zero-global-config]` | The screen-zero configuration applies globally to every output. | Wayland outputs are not separate X screens with independently parsed roots. |
+| `[wayland-translation:selection-bridge]` | Wayland `CLIPBOARD` and `PRIMARY` offers bridge to X11 selections. | Wayland uses focused-seat offers and serials rather than X owner windows and properties. |
+| `[wayland-translation:startwm-in-process]` | A supported `f.startwm` self-handoff becomes an atomic in-process restart. | Accepted Wayland resources cannot transfer to an arbitrary replacement compositor. |
+| `[wayland-translation:unicode-font-fallback]` | Non-ASCII text falls back from X core fonts to bounded Pango rendering. | Native Wayland has no X core font server or XLFD glyph protocol. |
+| `[wayland-translation:x11-resource-noops]` | `NoBackingStore`, `NoSaveUnders`, and `NoGrabServer` are verified no-ops. | Those X server resources do not exist in a Wayland scene graph. |
 
 The canonical visual test suite also runs a compositor-owned visual-state
 matrix in color, grayscale, and monochrome modes. Every capture is repeated

@@ -21,6 +21,10 @@ POLICY = (
     "release gate is passed with validated checked-in evidence."
 )
 COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
+TRANSLATION_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+TRANSLATION_MARKER = re.compile(r"\[wayland-translation:([a-z0-9-]+)\]")
+TRANSLATION_AUDIT_PATH = "reference/certification/wayland-translation-audit.json"
+TRANSLATION_MANUAL_PATHS = {"data/wtwm.1", "docs/COMPATIBILITY.md"}
 SUPPORTED_PACKAGE_RELEASES = {"13 (Trixie)", "14 (Forky)"}
 SUPPORTED_PACKAGE_ARCHITECTURES = {"amd64", "arm64"}
 
@@ -530,15 +534,33 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
     if not exact_fields(result, fields, prefix, errors):
         return
     manual_paths = result["manual_paths"]
+    manual_files: list[tuple[str, Path]] = []
     if not isinstance(manual_paths, list) or not manual_paths:
         errors.append(f"{prefix}.manual_paths must be a non-empty array")
     else:
-        for index, path in enumerate(manual_paths):
-            repo_file(path, f"{prefix}.manual_paths[{index}]", root, errors)
+        if len(manual_paths) != len(set(manual_paths)):
+            errors.append(f"{prefix}.manual_paths must not contain duplicates")
+        if set(manual_paths) != TRANSLATION_MANUAL_PATHS:
+            errors.append(
+                f"{prefix}.manual_paths must exactly name data/wtwm.1 and "
+                "docs/COMPATIBILITY.md"
+            )
+        for index, path_value in enumerate(manual_paths):
+            path = repo_file(
+                path_value, f"{prefix}.manual_paths[{index}]", root, errors
+            )
+            if path is not None:
+                manual_files.append((path_value, path))
     if result["ledger_path"] != "reference/ledger/twm-1.0.13.1.json":
         errors.append(f"{prefix}.ledger_path must name the frozen compatibility ledger")
-    require_repo_path(result, "ledger_path", prefix, root, errors)
-    require_repo_path(result, "audit_path", prefix, root, errors)
+    ledger_path = repo_file(
+        result["ledger_path"], f"{prefix}.ledger_path", root, errors
+    )
+    if result["audit_path"] != TRANSLATION_AUDIT_PATH:
+        errors.append(f"{prefix}.audit_path must name {TRANSLATION_AUDIT_PATH}")
+    audit_path = repo_file(
+        result["audit_path"], f"{prefix}.audit_path", root, errors, json_only=True
+    )
     id_fields = ("unavoidable_translation_ids", "manual_documented_ids", "ledger_documented_ids")
     id_sets: dict[str, set[str]] = {}
     for field in id_fields:
@@ -550,6 +572,10 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
             continue
         if len(values) != len(set(values)):
             errors.append(f"{prefix}.{field} must not contain duplicates")
+        if values != sorted(values):
+            errors.append(f"{prefix}.{field} must be sorted")
+        if any(not TRANSLATION_ID.fullmatch(item) for item in values):
+            errors.append(f"{prefix}.{field} contains an invalid translation ID")
         id_sets[field] = set(values)
     if len(id_sets) == 3 and not (
         id_sets["unavoidable_translation_ids"]
@@ -557,6 +583,104 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
         == id_sets["ledger_documented_ids"]
     ):
         errors.append(f"{prefix} translation IDs must be documented in both the manual and ledger")
+
+    expected_ids = id_sets.get("unavoidable_translation_ids")
+    if expected_ids is None:
+        return
+    for path_value, path in manual_files:
+        observed = set(TRANSLATION_MARKER.findall(path.read_text(encoding="utf-8")))
+        if observed != expected_ids:
+            errors.append(
+                f"{prefix} translation markers in {path_value} do not exactly match "
+                "unavoidable_translation_ids"
+            )
+
+    ledger_ids: set[str] = set()
+    ledger_rows: set[str] = set()
+    if ledger_path is not None:
+        try:
+            ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger_ids = set(TRANSLATION_MARKER.findall(
+                ledger_path.read_text(encoding="utf-8")
+            ))
+            ledger_rows = {
+                str(entry["id"])
+                for entry in ledger_data.get("entries", [])
+                if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+            }
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            errors.append(f"{prefix}.ledger_path is not readable JSON")
+        if ledger_ids != expected_ids:
+            errors.append(
+                f"{prefix} ledger translation markers do not exactly match "
+                "unavoidable_translation_ids"
+            )
+
+    if audit_path is None:
+        return
+    try:
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        errors.append(f"{prefix}.audit_path is not readable JSON")
+        return
+    audit_fields = {"schema_version", "reference", "scope", "entries"}
+    if not exact_fields(audit, audit_fields, f"{prefix}.audit", errors):
+        return
+    if audit["schema_version"] != 1:
+        errors.append(f"{prefix}.audit.schema_version must be 1")
+    if audit["reference"] != REFERENCE:
+        errors.append(f"{prefix}.audit.reference must be {REFERENCE}")
+    non_empty_string(audit["scope"], f"{prefix}.audit.scope", errors)
+    entries = audit["entries"]
+    if not isinstance(entries, list) or not entries:
+        errors.append(f"{prefix}.audit.entries must be a non-empty array")
+        return
+    observed_ids: list[str] = []
+    entry_fields = {
+        "id", "summary", "unavoidable_reason", "ledger_rows", "test_paths"
+    }
+    for index, entry in enumerate(entries):
+        entry_prefix = f"{prefix}.audit.entries[{index}]"
+        if not exact_fields(entry, entry_fields, entry_prefix, errors):
+            continue
+        identifier = entry["id"]
+        if not isinstance(identifier, str) or not TRANSLATION_ID.fullmatch(identifier):
+            errors.append(f"{entry_prefix}.id is invalid")
+        else:
+            observed_ids.append(identifier)
+        non_empty_string(entry["summary"], f"{entry_prefix}.summary", errors)
+        non_empty_string(
+            entry["unavoidable_reason"], f"{entry_prefix}.unavoidable_reason", errors
+        )
+        rows = entry["ledger_rows"]
+        if not isinstance(rows, list) or not rows or not all(
+            isinstance(row, str) and row for row in rows
+        ):
+            errors.append(f"{entry_prefix}.ledger_rows must be a non-empty string array")
+        else:
+            if rows != sorted(set(rows)):
+                errors.append(f"{entry_prefix}.ledger_rows must be sorted and unique")
+            unknown = set(rows) - ledger_rows
+            if unknown:
+                errors.append(f"{entry_prefix}.ledger_rows names unknown rows: {sorted(unknown)}")
+        tests = entry["test_paths"]
+        if not isinstance(tests, list) or not tests or not all(
+            isinstance(path, str) and path for path in tests
+        ):
+            errors.append(f"{entry_prefix}.test_paths must be a non-empty string array")
+        else:
+            if tests != sorted(set(tests)):
+                errors.append(f"{entry_prefix}.test_paths must be sorted and unique")
+            for test_index, path in enumerate(tests):
+                if not path.startswith("tests/"):
+                    errors.append(f"{entry_prefix}.test_paths[{test_index}] must be under tests/")
+                repo_file(path, f"{entry_prefix}.test_paths[{test_index}]", root, errors)
+    if observed_ids != sorted(set(observed_ids)):
+        errors.append(f"{prefix}.audit entries must be sorted by unique ID")
+    if set(observed_ids) != expected_ids:
+        errors.append(
+            f"{prefix}.audit entry IDs do not exactly match unavoidable_translation_ids"
+        )
 
 
 GateCheck = Callable[[Any, str, Path, list[str]], None]

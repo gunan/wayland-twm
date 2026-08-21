@@ -400,6 +400,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:597",
           "src/wtwm.c:717",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -430,7 +431,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-window-identity]"
         ]
       }
     },
@@ -586,6 +588,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:520",
           "src/config.c:631",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -613,7 +616,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-size-constraints]"
         ]
       }
     },
@@ -1526,6 +1530,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m5_visual_states.py:1",
           "tests/integration/run_m6_actions.py:1",
@@ -1551,7 +1556,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:logical-seat-aggregation]"
         ]
       }
     },
@@ -3276,6 +3282,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m5_visual_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -3298,7 +3305,10 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:fractional-scale-rounding]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:output-root-spatial-model]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:screen-zero-global-config]"
         ]
       }
     },
@@ -5296,6 +5306,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:59",
           "src/wtwm.c:557",
@@ -5325,7 +5336,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:legacy-bell-priority]"
         ]
       }
     },
@@ -5666,6 +5678,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -5695,7 +5708,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:rootless-cross-protocol-stacking]"
         ]
       }
     },
@@ -5851,6 +5865,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -5880,7 +5895,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:rootless-cross-protocol-stacking]"
         ]
       }
     },
@@ -6036,6 +6052,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -6065,7 +6082,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-colormap-noop]"
         ]
       }
     },
@@ -6221,6 +6239,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -6250,7 +6269,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:cut-buffer-clipboard]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:selection-bridge]"
         ]
       }
     },
@@ -6406,6 +6427,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -6435,7 +6457,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:cut-buffer-clipboard]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:selection-bridge]"
         ]
       }
     },
@@ -6798,6 +6822,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:60",
           "src/wtwm.c:557",
@@ -6827,7 +6852,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-close-only]"
         ]
       }
     },
@@ -7179,6 +7205,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:63",
           "src/wtwm.c:557",
@@ -7208,7 +7235,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-close-only]"
         ]
       }
     },
@@ -7582,6 +7610,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:64",
           "src/wtwm.c:557",
@@ -7611,7 +7640,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:embedded-rootless-xwayland]"
         ]
       }
     },
@@ -7767,6 +7797,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -7796,7 +7827,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:cut-buffer-clipboard]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:selection-bridge]"
         ]
       }
     },
@@ -7952,6 +7985,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:65",
           "src/wtwm.c:557",
@@ -7981,7 +8015,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:logical-seat-aggregation]"
         ]
       }
     },
@@ -8529,6 +8564,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:67",
           "src/wtwm.c:557",
@@ -8558,7 +8594,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:output-root-spatial-model]"
         ]
       }
     },
@@ -10097,6 +10134,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -10126,7 +10164,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:identify-version-log]"
         ]
       }
     },
@@ -10674,6 +10713,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:75",
           "src/wtwm.c:557",
@@ -10703,7 +10743,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:rootless-cross-protocol-stacking]"
         ]
       }
     },
@@ -10889,6 +10930,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:76",
           "src/wtwm.c:557",
@@ -10921,7 +10963,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-menus]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-popup-hierarchy]"
         ]
       }
     },
@@ -11872,6 +11916,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -11901,7 +11946,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:legacy-bell-priority]"
         ]
       }
     },
@@ -12264,6 +12310,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:80",
           "src/wtwm.c:557",
@@ -12293,7 +12340,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:rootless-cross-protocol-stacking]"
         ]
       }
     },
@@ -12449,6 +12497,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:81",
           "src/wtwm.c:557",
@@ -12478,7 +12527,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:rootless-cross-protocol-stacking]"
         ]
       }
     },
@@ -12634,6 +12684,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:82",
           "src/wtwm.c:557",
@@ -12663,7 +12714,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-refresh]"
         ]
       }
     },
@@ -13015,6 +13067,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:84",
           "src/wtwm.c:557",
@@ -13044,7 +13097,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:in-process-restart]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:screen-zero-global-config]"
         ]
       }
     },
@@ -13592,6 +13647,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -13621,7 +13677,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:saved-state-snapshot]"
         ]
       }
     },
@@ -14191,6 +14248,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -14220,7 +14278,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:in-process-restart]"
         ]
       }
     },
@@ -14376,6 +14435,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -14405,7 +14465,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:startwm-in-process]"
         ]
       }
     },
@@ -14964,6 +15025,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:280",
           "src/config.c:88",
           "src/wtwm.c:557",
@@ -14993,7 +15055,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:in-process-restart]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:screen-zero-global-config]"
         ]
       }
     },
@@ -15541,6 +15605,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -15570,7 +15635,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:identify-version-log]"
         ]
       }
     },
@@ -17043,6 +17109,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -17072,7 +17139,10 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:fractional-scale-rounding]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:output-root-spatial-model]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:screen-zero-global-config]"
         ]
       }
     },
@@ -17228,6 +17298,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:270",
           "src/config.c:287",
           "src/wtwm.c:613",
@@ -17257,7 +17328,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-refresh]"
         ]
       }
     },
@@ -17593,6 +17665,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_m7_icon_differential.py:1",
@@ -17618,7 +17691,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-icons]"
         ]
       }
     },
@@ -19948,6 +20022,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:551",
           "src/config.c:650",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -19978,7 +20053,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:unicode-font-fallback]"
         ]
       }
     },
@@ -21040,6 +21116,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:552",
           "src/config.c:650",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -21070,7 +21147,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:unicode-font-fallback]"
         ]
       }
     },
@@ -21839,6 +21917,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:606",
           "src/config.c:614",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -21866,7 +21945,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-icons]"
         ]
       }
     },
@@ -22680,6 +22760,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:606",
           "src/config.c:614",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -22707,7 +22788,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-icons]"
         ]
       }
     },
@@ -23997,6 +24079,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:594",
           "src/wtwm.c:1011",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -24027,7 +24110,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-window-identity]"
         ]
       }
     },
@@ -24179,6 +24263,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1",
@@ -24204,7 +24289,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-size-constraints]"
         ]
       }
     },
@@ -24393,6 +24479,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:582",
           "src/wtwm.c:485",
           "src/wtwm.c:754",
@@ -24425,7 +24512,9 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-menus]",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-popup-hierarchy]"
         ]
       }
     },
@@ -25155,6 +25244,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:553",
           "src/config.c:650",
           "src/wtwm.c:476",
@@ -25187,7 +25277,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:unicode-font-fallback]"
         ]
       }
     },
@@ -26961,6 +27052,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -26983,7 +27075,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:x11-resource-noops]"
         ]
       }
     },
@@ -27429,6 +27522,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -27451,7 +27545,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:x11-resource-noops]"
         ]
       }
     },
@@ -28977,6 +29072,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -28999,7 +29095,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:x11-resource-noops]"
         ]
       }
     },
@@ -29398,6 +29495,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:586",
           "src/wtwm.c:1008",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -29428,7 +29526,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-window-identity]"
         ]
       }
     },
@@ -30750,6 +30849,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -30772,7 +30872,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:legacy-bell-priority]"
         ]
       }
     },
@@ -31119,6 +31220,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:531",
           "src/config.c:631",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -31146,7 +31248,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-initial-placement]"
         ]
       }
     },
@@ -31455,6 +31558,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:554",
           "src/config.c:650",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -31482,7 +31586,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:unicode-font-fallback]"
         ]
       }
     },
@@ -31614,6 +31719,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1"
@@ -31636,7 +31742,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:saved-state-snapshot]"
         ]
       }
     },
@@ -32141,6 +32248,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:320",
           "src/config.c:352",
           "src/config.c:622",
@@ -32175,7 +32283,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:output-root-spatial-model]"
         ]
       }
     },
@@ -33799,6 +33908,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:604",
           "src/wtwm.c:984",
           "tests/integration/run_m4_trace_differential.py:1",
@@ -33832,7 +33942,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-window-identity]"
         ]
       }
     },
@@ -34813,6 +34924,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:555",
           "src/config.c:650",
           "src/wtwm.c:296",
@@ -34842,7 +34954,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:unicode-font-fallback]"
         ]
       }
     },
@@ -35516,6 +35629,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_m7_icon_differential.py:1",
@@ -35541,7 +35655,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:compositor-owned-icons]"
         ]
       }
     },
@@ -35693,6 +35808,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:657",
           "tests/integration/run_m4_trace_differential.py:1",
           "tests/integration/run_mixed_clients.py:1",
@@ -35718,7 +35834,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:native-initial-placement]"
         ]
       }
     },
@@ -63529,6 +63646,7 @@
         "evidence": [
           "docs/COMPATIBILITY.md:1",
           "reference/certification/m10-differential-contract.json:1",
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:622",
           "src/config.c:626",
           "src/wtwm.c:795",
@@ -63555,7 +63673,8 @@
           }
         ],
         "notes": [
-          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles."
+          "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:logical-seat-aggregation]"
         ]
       }
     },
@@ -64872,13 +64991,15 @@
       "differences": {
         "status": "none-known",
         "evidence": [
+          "reference/certification/wayland-translation-audit.json:1",
           "src/config.c:276",
           "src/wtwm.c:613"
         ],
         "visual": [],
         "semantic": [],
         "notes": [
-          "No visual parity claim is made because the current audit contains no screenshot or differential evidence."
+          "No visual parity claim is made because the current audit contains no screenshot or differential evidence.",
+          "Unavoidable Wayland translation inventory: [wayland-translation:cut-buffer-clipboard]"
         ]
       }
     },

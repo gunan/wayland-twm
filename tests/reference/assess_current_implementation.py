@@ -27,6 +27,7 @@ CROSSWALK_PATH = "reference/audits/current-to-ledger.json"
 LEDGER_PATH = "reference/ledger/twm-1.0.13.1.json"
 SUMMARY_PATH = "docs/audits/compatibility-ledger.md"
 SCHEMA_PATH = "reference/ledger/schema-1.1.json"
+TRANSLATION_AUDIT_PATH = "reference/certification/wayland-translation-audit.json"
 PARSER_FIXTURE_TEST_PREFIX = "test.parser-fixture."
 
 
@@ -647,6 +648,50 @@ def apply_final_reconciliation(ledger: dict[str, object]) -> None:
         }
 
 
+def apply_wayland_translation_inventory(
+    source_root: Path, ledger: dict[str, object]
+) -> int:
+    """Attach every audited translation ID to its affected frozen rows."""
+    audit = json.loads((source_root / TRANSLATION_AUDIT_PATH).read_text())
+    if set(audit) != {"schema_version", "reference", "scope", "entries"}:
+        raise ValueError("Wayland translation audit has unexpected fields")
+    if audit["schema_version"] != 1 or audit["reference"] != "twm 1.0.13.1":
+        raise ValueError("Wayland translation audit identity is invalid")
+    entries = audit["entries"]
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("Wayland translation audit has no entries")
+
+    rows = {str(row["id"]): row for row in ledger["entries"]}  # type: ignore[index]
+    identifiers: set[str] = set()
+    audit_evidence = f"{TRANSLATION_AUDIT_PATH}:1"
+    for entry in entries:
+        if set(entry) != {
+            "id", "summary", "unavoidable_reason", "ledger_rows", "test_paths"
+        }:
+            raise ValueError("Wayland translation audit entry has unexpected fields")
+        identifier = str(entry["id"])
+        if normalize(identifier) != identifier or identifier in identifiers:
+            raise ValueError(f"invalid or duplicate Wayland translation ID: {identifier}")
+        identifiers.add(identifier)
+        ledger_rows = entry["ledger_rows"]
+        if not isinstance(ledger_rows, list) or not ledger_rows:
+            raise ValueError(f"Wayland translation {identifier} has no ledger rows")
+        for row_id in ledger_rows:
+            if row_id not in rows:
+                raise ValueError(
+                    f"Wayland translation {identifier} names unknown ledger row {row_id}"
+                )
+            differences = rows[row_id]["differences"]  # type: ignore[index]
+            differences["evidence"] = sorted(set(
+                differences["evidence"] + [audit_evidence]
+            ))
+            differences["notes"].append(
+                "Unavoidable Wayland translation inventory: "
+                f"[wayland-translation:{identifier}]"
+            )
+    return len(identifiers)
+
+
 def build(
     source_root: Path,
     *,
@@ -827,6 +872,7 @@ def build(
             parser_fixture_comparison,
         )
     apply_final_reconciliation(ordered_root)
+    translation_count = apply_wayland_translation_inventory(source_root, ordered_root)
 
     mappings = []
     for current_id, entry in sorted(current_entries.items()):
@@ -899,6 +945,7 @@ def build(
         "",
         "## Closure result and limitations",
         "",
+        f"- Unavoidable Wayland translation inventory IDs: {translation_count}.",
         f"- Unavailable Xwayland rows: {counts['xwayland_behavior'].get('unavailable', 0)}.",
         f"- Parsed-only runtime rows: {counts['runtime_support'].get('parsed-only', 0)}.",
         f"- Rows without exact test mappings: {counts['test_coverage'].get('none', 0)}.",

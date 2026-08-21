@@ -91,6 +91,131 @@ and both parts of
 See
 .BR wtwmrc (5)
 and the installed migration guide for translations of X11-only behavior.
+.SH WAYLAND TRANSLATION INVENTORY
+The following stable identifiers name every intentional boundary where native
+Wayland cannot reproduce the literal X11 mechanism.  Xwayland retains the X11
+path where stated; the compatibility guide provides the complete behavior and
+test rationale for each identifier.
+.TP
+.B [wayland-translation:compositor-owned-icons]
+X icon windows and pixmaps become compositor-owned icon scenes because
+rootless Xwayland cannot transplant arbitrary X windows into a Wayland scene.
+.TP
+.B [wayland-translation:compositor-owned-menus]
+twm menus become a compositor-owned scene layer because the compositor owns
+Wayland composition rather than creating X root-child menu windows.
+.TP
+.B [wayland-translation:compositor-owned-refresh]
+Refresh actions damage compositor scene content because native clients cannot
+receive X root-window exposure events.
+.TP
+.B [wayland-translation:cut-buffer-clipboard]
+The persistent X cut buffer is mirrored through Wayland
+.B CLIPBOARD
+because native Wayland has no root cut-buffer property.
+.TP
+.B [wayland-translation:embedded-rootless-xwayland]
+X11 clients run through a compositor-owned rootless Xwayland server rather
+than an existing X screen root.
+.TP
+.B [wayland-translation:fractional-scale-rounding]
+Fractional output coordinates use deterministic shared-edge rounding because
+Wayland scaling uses logical coordinates and 120ths rather than X pixels.
+.TP
+.B [wayland-translation:identify-version-log]
+.B f.identify
+and
+.B f.version
+write to the compositor log because Wayland has no server-owned information
+window.
+.TP
+.B [wayland-translation:in-process-restart]
+.BR f.restart ,
+.BR f.source ,
+and
+.B f.twmrc
+use one atomic in-process transaction so accepted Wayland resources survive.
+.TP
+.B [wayland-translation:legacy-bell-priority]
+Native Wayland has no compositor bell request or twm XSync priority control;
+the documented conditional behavior is retained for Xwayland.
+.TP
+.B [wayland-translation:logical-seat-aggregation]
+Physical input devices are aggregated into one logical Wayland seat rather
+than exposed through twm's direct X device model.
+.TP
+.B [wayland-translation:native-close-only]
+Native
+.B f.delete
+and
+.B f.destroy
+both issue xdg-shell close requests because the protocol cannot forcibly
+disconnect one arbitrary client.
+.TP
+.B [wayland-translation:native-colormap-noop]
+.B f.colormap
+is a verified native no-op because true-color Wayland buffers expose no
+installed-colormap protocol.
+.TP
+.B [wayland-translation:native-initial-placement]
+Native initial placement selects an output from pointer or parent state because
+xdg-shell has no X position hints or blocking root placement grab.
+.TP
+.B [wayland-translation:native-popup-hierarchy]
+Native application popups retain their xdg parent hierarchy rather than acting
+as independent X override-redirect root children.
+.TP
+.B [wayland-translation:native-size-constraints]
+Native resizing uses the minimum and maximum constraints exposed by xdg-shell;
+base, increment, and aspect hints remain X11-only.
+.TP
+.B [wayland-translation:native-window-identity]
+Native window-list matching maps X name, instance, and class identity to xdg
+title and
+.BR app_id .
+.TP
+.B [wayland-translation:output-root-spatial-model]
+Each enabled output box is a spatial root equivalent whose background is
+painted by the compositor; Wayland outputs are not independent X screens.
+.TP
+.B [wayland-translation:rootless-cross-protocol-stacking]
+Native popups and Xwayland override-redirect surfaces share a map-ordered
+overlay because X sibling requests cannot name native surfaces.
+.TP
+.B [wayland-translation:saved-state-snapshot]
+Session restoration uses an explicit compositor-owned snapshot because native
+Wayland has no
+.B WM_SAVE_YOURSELF
+or X session-manager property protocol.
+.TP
+.B [wayland-translation:screen-zero-global-config]
+The screen-zero configuration applies globally because Wayland outputs are not
+separate X screens with independently parsed root configurations.
+.TP
+.B [wayland-translation:selection-bridge]
+Wayland
+.B CLIPBOARD
+and
+.B PRIMARY
+offers bridge to X11 selections under Wayland seat-focus and serial rules.
+.TP
+.B [wayland-translation:startwm-in-process]
+A supported
+.B f.startwm
+self-handoff becomes an atomic in-process restart because Wayland client
+resources cannot transfer to an arbitrary replacement compositor.
+.TP
+.B [wayland-translation:unicode-font-fallback]
+Non-ASCII decoration text falls back from X core fonts to bounded Pango
+rendering because native Wayland has no X core font protocol.
+.TP
+.B [wayland-translation:x11-resource-noops]
+.BR NoBackingStore ,
+.BR NoSaveUnders ,
+and
+.B NoGrabServer
+are verified no-ops because their X server resources do not exist in a Wayland
+scene graph.
 .SH SESSION USE
 For a real login, select
 .B Wayland twm

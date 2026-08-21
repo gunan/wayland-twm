@@ -45,6 +45,7 @@ as implementation plumbing because they are not upstream syntax rows.
 
 ## Closure result and limitations
 
+- Unavoidable Wayland translation inventory IDs: 24.
 - Unavailable Xwayland rows: 0.
 - Parsed-only runtime rows: 0.
 - Rows without exact test mappings: 0.
