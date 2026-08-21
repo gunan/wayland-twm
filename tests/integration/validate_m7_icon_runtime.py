@@ -59,6 +59,11 @@ REQUIRED = {
         "INITIAL_ASSOCIATION_TIMEOUT_SECONDS = 360",
         "INITIAL_ASSOCIATION_STALL_SECONDS = 60",
         "initial Xwayland association stalled",
+        "CLEANUP_TIMEOUT_SECONDS = 120",
+        "CLEANUP_STALL_SECONDS = 30",
+        "Xwayland stress cleanup stalled",
+        'client_command(client, "QUIT", "OK QUIT")',
+        'result["result"] = "passed"',
     ),
     "reference/icons/twm-1.0.13.1/icon-contract.json": (
         '"test_scenarios"', '"evidence"', '"sha256"',

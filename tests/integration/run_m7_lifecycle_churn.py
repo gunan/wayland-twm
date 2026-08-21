@@ -25,6 +25,8 @@ OPERATION_COUNT = CYCLE_COUNT * OPERATIONS_PER_CYCLE
 OPERATION_KINDS = ("deiconify", "iconify", "rename", "destroy", "recreate")
 INITIAL_ASSOCIATION_TIMEOUT_SECONDS = 360
 INITIAL_ASSOCIATION_STALL_SECONDS = 60
+CLEANUP_TIMEOUT_SECONDS = 120
+CLEANUP_STALL_SECONDS = 30
 # Exactly 16 by 16 allocation cells: all 256 icons must fill the region.
 GRID = (76, 21)
 REGION = (0, 192, 1216, 336)
@@ -370,6 +372,38 @@ def wait_initial_association(
     )
 
 
+def wait_empty_state(
+    control: Control,
+    deadline_seconds: float = CLEANUP_TIMEOUT_SECONDS,
+) -> dict[str, object]:
+    """Wait for bounded, progressing cleanup after the stress client exits."""
+    deadline = time.monotonic() + deadline_seconds
+    last_progress = time.monotonic()
+    last_total: int | None = None
+    latest: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        latest = control.state()
+        current_manager = manager(latest)
+        counts = (
+            len(latest["windows"]),
+            len(latest["icon_views"]),
+            len(latest["xwayland_lifecycle"]),
+            len(current_manager["entries"]),
+        )
+        total = sum(counts)
+        if total == 0 and latest["focus"] is None:
+            return latest
+        if last_total is None or total < last_total:
+            last_total = total
+            last_progress = time.monotonic()
+        elif time.monotonic() - last_progress > CLEANUP_STALL_SECONDS:
+            raise RuntimeError(
+                f"Xwayland stress cleanup stalled: counts={counts!r}"
+            )
+        time.sleep(0.25)
+    raise RuntimeError(f"Xwayland stress cleanup timed out: {latest!r}")
+
+
 def wait_destroyed_state(
     control: Control, titles: list[str], destroyed_title: str,
     deadline_seconds: float = 15,
@@ -551,12 +585,17 @@ def run(arguments: argparse.Namespace) -> None:
                 "final_generation_sum": sum(live_generations),
                 "final_state_sha256": hashlib.sha256(signature_bytes).hexdigest(),
                 "final_manager_order": manager_order,
-                "result": "passed",
             })
+            client_command(client, "QUIT", "OK QUIT")
+            client.wait(timeout=30)
+            if client.returncode != 0:
+                raise RuntimeError(f"lifecycle client returned {client.returncode}")
+            wait_empty_state(control)
             control.command("QUIT")
-            compositor.wait(timeout=10)
+            compositor.wait(timeout=30)
             if compositor.returncode != 0:
                 raise RuntimeError(f"compositor returned {compositor.returncode}")
+            result["result"] = "passed"
         except Exception as error:
             result["error"] = str(error)
             raise
