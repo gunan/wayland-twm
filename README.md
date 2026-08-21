@@ -310,7 +310,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
 - [ ] **Manual:** Conduct a blinded canonical-profile A/B evaluation with at
   least two distinct experienced `twm` users and no repeatable distinguishing
   behavior.
-- [ ] **Agent/shared:** Audit every unavoidable Wayland translation and check in
+- [x] **Agent/shared:** Audit every unavoidable Wayland translation and check in
   matching translation inventories in the manual, compatibility ledger, and
   certification report.
 
