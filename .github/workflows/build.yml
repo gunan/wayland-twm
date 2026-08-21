@@ -11,11 +11,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native x86-64 environment
         run: test "$(dpkg --print-architecture)" = amd64
       - name: Validate build-platform contract
@@ -37,11 +39,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
       - name: Verify native x86-64 environment
         run: |
           test "$(dpkg --print-architecture)" = amd64
@@ -67,6 +71,10 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
       - name: Prepare persistent package evidence
         run: |
           mkdir -p /tmp/wtwm-package-artifacts
@@ -74,7 +82,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install build, package, and co-installation dependencies
         run: |
-          apt-get update
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat scripts/ci/debian-trixie-package-packages.txt
@@ -133,11 +140,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Debian Trixie dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install Debian Trixie dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native architecture
         run: test "$(dpkg --print-architecture)" = "${{ matrix.architecture }}"
       - name: Install libFuzzer toolchain
@@ -186,11 +195,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install controlled X11 build environment
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < reference/environment/debian-trixie-x11-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install controlled X11 build environment
+        run: xargs apt-get install -y --no-install-recommends < reference/environment/debian-trixie-x11-packages.txt
       - name: Record resolved package versions
         run: |
           xargs dpkg-query -W -f='${binary:Package}\t${Version}\n' < reference/environment/debian-trixie-x11-packages.txt
@@ -238,10 +249,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
       - uses: actions/checkout@v4
       - name: Install frozen reference and compositor dependencies
         run: |
-          apt-get update
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat reference/environment/debian-trixie-x11-packages.txt
