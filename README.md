@@ -289,7 +289,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
 
 ### 4. Final 1.0 certification
 
-- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+- [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   grammar coverage with no uncovered productions.
 - [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
   built-in action coverage with no uncovered spellings or behaviors.
