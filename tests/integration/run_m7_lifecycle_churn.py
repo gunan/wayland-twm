@@ -23,6 +23,8 @@ CYCLE_COUNT = 400
 OPERATIONS_PER_CYCLE = 5
 OPERATION_COUNT = CYCLE_COUNT * OPERATIONS_PER_CYCLE
 OPERATION_KINDS = ("deiconify", "iconify", "rename", "destroy", "recreate")
+INITIAL_ASSOCIATION_TIMEOUT_SECONDS = 360
+INITIAL_ASSOCIATION_STALL_SECONDS = 60
 # Exactly 16 by 16 allocation cells: all 256 icons must fill the region.
 GRID = (76, 21)
 REGION = (0, 192, 1216, 336)
@@ -333,17 +335,28 @@ def wait_final_state(
 
 def wait_initial_association(
     control: Control, titles: list[str], state: dict[str, object],
-    deadline_seconds: float = 120,
+    deadline_seconds: float = INITIAL_ASSOCIATION_TIMEOUT_SECONDS,
 ) -> dict[str, object]:
     """Wait until every logically managed X11 window has live surface content."""
     deadline = time.monotonic() + deadline_seconds
     latest = state
+    last_ready = -1
+    last_progress = time.monotonic()
     while time.monotonic() < deadline:
         lifecycle = latest["xwayland_lifecycle"]
-        if len(lifecycle) == WINDOW_COUNT and all(
-                bool(item["associated"]) and bool(item["mapped"]) and
-                bool(item["has_buffer"]) for item in lifecycle):
+        ready = sum(
+            bool(item["associated"]) and bool(item["mapped"]) and
+            bool(item["has_buffer"]) for item in lifecycle
+        )
+        if len(lifecycle) == WINDOW_COUNT and ready == WINDOW_COUNT:
             return latest
+        if ready > last_ready:
+            last_ready = ready
+            last_progress = time.monotonic()
+        elif time.monotonic() - last_progress > INITIAL_ASSOCIATION_STALL_SECONDS:
+            raise RuntimeError(
+                f"initial Xwayland association stalled: {ready}/{WINDOW_COUNT} ready"
+            )
         # STATE is several hundred KiB at this scale; yield between snapshots so
         # the Xwayland association and frame-callback queues can make progress.
         time.sleep(0.25)

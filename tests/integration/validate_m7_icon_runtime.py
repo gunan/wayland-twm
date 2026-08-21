@@ -55,6 +55,11 @@ REQUIRED = {
         "ppm_structure",
         'structure["structured"] < 1',
     ),
+    "tests/integration/run_m7_lifecycle_churn.py": (
+        "INITIAL_ASSOCIATION_TIMEOUT_SECONDS = 360",
+        "INITIAL_ASSOCIATION_STALL_SECONDS = 60",
+        "initial Xwayland association stalled",
+    ),
     "reference/icons/twm-1.0.13.1/icon-contract.json": (
         '"test_scenarios"', '"evidence"', '"sha256"',
     ),
