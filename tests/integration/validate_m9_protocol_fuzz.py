@@ -18,14 +18,24 @@ CLIENT_MARKERS = {
     "dedicated cursor surface": "client->cursor_surface, INT32_MIN, INT32_MAX",
     "cursor corpus excludes released-button serial": "if (serials[i] != stale)",
     "released button becomes stale corpus input": "send_serial_fuzz(client);",
+    "invalid drag serial corpus": "send_invalid_drag_fuzz(client, stale);",
+    "valid held-button drag request": (
+        "wl_data_device_start_drag(client->data_device, source, client->surface,"
+    ),
+    "valid drag request mode": '[MODE_DRAG] = "m9-protocol-drag"',
     "oversized toplevel geometry": (
         "xdg_surface_set_window_geometry(client->xdg_surface, INT32_MIN, INT32_MIN,"
     ),
-    "oversized positioner size": (
-        "xdg_positioner_set_size(positioner, INT32_MAX, INT32_MAX);"
+    "independent positioner size mode": "MODE_POSITIONER_SIZE",
+    "independent positioner anchor mode": "MODE_POSITIONER_ANCHOR",
+    "independent positioner parent mode": "MODE_POSITIONER_PARENT",
+    "independent positioner offset mode": "MODE_POSITIONER_OFFSET",
+    "independent effective geometry mode": "MODE_POSITIONER_GEOMETRY",
+    "oversized parent dimensions": (
+        "xdg_positioner_set_parent_size(positioner, INT32_MAX, INT32_MAX);"
     ),
-    "oversized positioner anchor rectangle": (
-        "xdg_positioner_set_anchor_rect(positioner, INT32_MIN, INT32_MIN,"
+    "oversized offset coordinates": (
+        "xdg_positioner_set_offset(positioner, INT32_MIN, INT32_MAX);"
     ),
     "separate healthy survivor mode": (
         '[MODE_SURVIVOR] = "m9-protocol-survivor"'
@@ -49,6 +59,12 @@ RUNNER_MARKERS = {
     "survivor retained after geometry": (
         'assert_responsive(control, expected_windows=1)'
     ),
+    "valid pointer drag started": (
+        'wait_state(control, lambda state: state["data_drag"],'
+    ),
+    "valid pointer drag finished": (
+        'wait_state(control, lambda state: not state["data_drag"],'
+    ),
     "pointer enter event observed": (
         'wait_line(serials, "POINTER_ENTER ", prefix=True)'
     ),
@@ -58,9 +74,8 @@ RUNNER_MARKERS = {
     "serial fuzz completed on live connection": (
         'wait_line(serials, "FUZZ_SENT stale=", prefix=True)'
     ),
-    "malformed popup isolation": (
-        'wait_one_of(positioner, {"SURVIVED", "DISCONNECTED"})'
-    ),
+    "malformed popup isolation": 'wait_one_of(positioner, {"SURVIVED", "DISCONNECTED"})',
+    "all popup positioner fields exercised": "for mode, sent, field in positioner_cases:",
     "control responsiveness oracle": (
         'control.command("PING") != "OK WTWM_TEST_CONTROL 1"'
     ),
@@ -79,8 +94,14 @@ RUNNER_MARKERS = {
     "cursor rejection evidence": (
         "event=client_request protocol=wl_pointer action=set_cursor outcome=rejected"
     ),
+    "drag acceptance evidence": (
+        "event=client_request protocol=wl_data_device action=start_drag outcome=accepted"
+    ),
+    "drag rejection evidence": (
+        "event=client_request protocol=wl_data_device action=start_drag outcome=rejected"
+    ),
     "toplevel size evidence": "boundary=xdg_commit outcome=adjusted",
-    "popup size evidence": "role=popup boundary=popup_create outcome=rejected",
+    "popup field evidence": 'for field in ("size", "anchor_rect", "parent_size", "offset", "geometry")',
     "sanitizer evidence rejected": "ERROR: AddressSanitizer",
     "Meson executable paths resolved": (
         "run(args.compositor.resolve(), args.client.resolve())"
@@ -93,9 +114,9 @@ def validate(client: str, runner: str) -> None:
         **{f"client: {name}": marker in client for name, marker in CLIENT_MARKERS.items()},
         **{f"runner: {name}": marker in runner for name, marker in RUNNER_MARKERS.items()},
     }
-    if runner.count('assert_responsive(control, expected_windows=1)') < 4:
+    if runner.count('assert_responsive(control, expected_windows=1)') < 5:
         requirements["runner: responsiveness checked between every hostile client"] = False
-    if client.count("INT32_MAX") < 8:
+    if client.count("INT32_MAX") < 10:
         requirements["client: multiple maximum-boundary request fields"] = False
     main_setup = client[client.find("int main("):client.find("if (!create_toplevel")]
     if main_setup.count("wl_display_roundtrip(client.display)") < 2:

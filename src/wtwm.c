@@ -605,6 +605,7 @@ struct server {
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
 	struct wl_listener request_primary_selection;
+	struct wl_listener request_start_drag;
 	struct wl_list keyboards;
 	struct wl_list pointers;
 	struct wlr_xwayland *xwayland;
@@ -6910,6 +6911,7 @@ static void detach_runtime_listeners(struct server *server) {
 	wl_list_remove(&server->request_cursor.link);
 	wl_list_remove(&server->request_selection.link);
 	wl_list_remove(&server->request_primary_selection.link);
+	wl_list_remove(&server->request_start_drag.link);
 }
 
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
@@ -7172,10 +7174,11 @@ static void request_cursor(struct wl_listener *listener, void *data) {
 	if (event == NULL || event->seat_client == NULL ||
 			server->seat->pointer_state.focused_client != event->seat_client ||
 			!wlr_seat_client_validate_event_serial(event->seat_client,
-				event->serial)) {
+				event->serial) ||
+			!wtwm_client_point_in_bounds(event->hotspot_x, event->hotspot_y)) {
 		wlr_log(WLR_DEBUG,
 			"event=client_request protocol=wl_pointer action=set_cursor "
-			"outcome=rejected reason=focus_or_serial serial=%" PRIu32,
+			"outcome=rejected reason=focus_serial_or_hotspot serial=%" PRIu32,
 			event != NULL ? event->serial : 0);
 		return;
 	}
@@ -7207,6 +7210,64 @@ static void request_primary_selection(struct wl_listener *listener, void *data) 
 		return;
 	}
 	wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
+}
+
+static void destroy_rejected_drag(struct server *server, struct wlr_drag *drag,
+		uint32_t serial) {
+	if (drag == NULL) return;
+	if (drag->source != NULL) {
+		wlr_data_source_destroy(drag->source);
+		return;
+	}
+	/* wlroots exposes no public destructor for an unstarted, source-less drag.
+	 * Enter and immediately cancel only its keyboard-only lifecycle so the
+	 * rejected object is reclaimed without granting a pointer or touch grab. */
+	wlr_seat_start_drag(server->seat, drag, serial);
+	wlr_seat_keyboard_end_grab(server->seat);
+}
+
+static void request_start_drag(struct wl_listener *listener, void *data) {
+	struct server *server =
+		wl_container_of(listener, server, request_start_drag);
+	struct wlr_seat_request_start_drag_event *event = data;
+	struct wlr_drag *drag = event != NULL ? event->drag : NULL;
+	bool ownership_valid = drag != NULL && drag->seat == server->seat &&
+		drag->seat_client != NULL && drag->seat_client->seat == server->seat &&
+		event->origin != NULL &&
+		wl_resource_get_client(event->origin->resource) ==
+			drag->seat_client->client;
+	bool pointer_valid = ownership_valid &&
+		server->seat->pointer_state.focused_client == drag->seat_client &&
+		server->seat->pointer_state.grab_serial == event->serial &&
+		wlr_seat_validate_pointer_grab_serial(server->seat, event->origin,
+			event->serial);
+	struct wlr_touch_point *touch_point = NULL;
+	bool touch_valid = ownership_valid && !pointer_valid &&
+		server->seat->touch_state.grab_serial == event->serial &&
+		wlr_seat_validate_touch_grab_serial(server->seat, event->origin,
+			event->serial, &touch_point) && touch_point != NULL &&
+		touch_point->client == drag->seat_client;
+	if (pointer_valid) {
+		wlr_seat_start_pointer_drag(server->seat, drag, event->serial);
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_data_device action=start_drag "
+			"outcome=accepted input=pointer serial=%" PRIu32, event->serial);
+		return;
+	}
+	if (touch_valid) {
+		wlr_seat_start_touch_drag(server->seat, drag, event->serial,
+			touch_point);
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_data_device action=start_drag "
+			"outcome=accepted input=touch serial=%" PRIu32, event->serial);
+		return;
+	}
+	wlr_log(WLR_DEBUG,
+		"event=client_request protocol=wl_data_device action=start_drag "
+		"outcome=rejected reason=%s serial=%" PRIu32,
+		ownership_valid ? "grab" : "origin_or_client",
+		event != NULL ? event->serial : 0);
+	destroy_rejected_drag(server, drag, event != NULL ? event->serial : 0);
 }
 
 static bool render_output(struct output *output) {
@@ -9426,20 +9487,39 @@ static bool popup_constraint_box(struct popup *popup, struct wlr_box *box) {
 	return box->width > 0 && box->height > 0;
 }
 
-static bool popup_size_valid(struct popup *popup, const char *boundary) {
-	int width = popup->xdg->scheduled.rules.size.width;
-	int height = popup->xdg->scheduled.rules.size.height;
-	if (width >= 1 && height >= 1 && width <= WTWM_CLIENT_SIZE_MAX &&
-			height <= WTWM_CLIENT_SIZE_MAX) return true;
+static bool popup_positioner_valid(struct popup *popup, const char *boundary) {
+	const struct wlr_xdg_positioner_rules *rules =
+		&popup->xdg->scheduled.rules;
+	const struct wlr_box *geometry = &popup->xdg->scheduled.geometry;
+	struct wtwm_client_positioner positioner = {
+		.width = rules->size.width,
+		.height = rules->size.height,
+		.anchor_x = rules->anchor_rect.x,
+		.anchor_y = rules->anchor_rect.y,
+		.anchor_width = rules->anchor_rect.width,
+		.anchor_height = rules->anchor_rect.height,
+		.parent_width = rules->parent_size.width,
+		.parent_height = rules->parent_size.height,
+		.offset_x = rules->offset.x,
+		.offset_y = rules->offset.y,
+		.geometry_x = geometry->x,
+		.geometry_y = geometry->y,
+		.geometry_width = geometry->width,
+		.geometry_height = geometry->height,
+	};
+	enum wtwm_client_positioner_error error =
+		wtwm_client_positioner_validate(&positioner);
+	if (error == WTWM_POSITIONER_VALID) return true;
 	wlr_log(WLR_DEBUG,
 		"event=client_size protocol=xdg_shell role=popup boundary=%s "
-		"outcome=rejected width=%d height=%d limit=%d",
-		boundary, width, height, WTWM_CLIENT_SIZE_MAX);
+		"outcome=rejected field=%s width=%d height=%d limit=%d",
+		boundary, wtwm_client_positioner_error_name(error),
+		positioner.width, positioner.height, WTWM_CLIENT_SIZE_MAX);
 	return false;
 }
 
 static bool configure_popup(struct popup *popup) {
-	if (!popup_size_valid(popup, "popup_configure")) {
+	if (!popup_positioner_valid(popup, "popup_configure")) {
 		wlr_xdg_popup_destroy(popup->xdg);
 		return false;
 	}
@@ -9528,7 +9608,7 @@ static void new_popup(struct wl_listener *listener, void *data) {
 		wlr_xdg_popup_destroy(xdg);
 		return;
 	}
-	if (!popup_size_valid(popup, "popup_create")) {
+	if (!popup_positioner_valid(popup, "popup_create")) {
 		free(popup);
 		wlr_xdg_popup_destroy(xdg);
 		return;
@@ -10219,7 +10299,8 @@ static void test_write_state(struct test_control *control) {
 			popup->xdg->current.geometry.height,
 			popup->mapped ? "true" : "false", visible ? "true" : "false");
 	}
-	test_write(control, "],\"interactive\":%s,\"interaction\":",
+	test_write(control, "],\"data_drag\":%s,\"interactive\":%s,\"interaction\":",
+		server->seat->drag != NULL ? "true" : "false",
 		server->grabbed != NULL ? "true" : "false");
 	if (server->grabbed == NULL) {
 		test_write(control, "null");
@@ -11370,6 +11451,7 @@ int main(int argc, char **argv) {
 	wl_list_init(&server.request_cursor.link);
 	wl_list_init(&server.request_selection.link);
 	wl_list_init(&server.request_primary_selection.link);
+	wl_list_init(&server.request_start_drag.link);
 	server.input_plan = calloc(1, sizeof(*server.input_plan));
 	if (server.input_plan == NULL) goto fail_runtime;
 	server.seat = wlr_seat_create(server.display, "seat0");
@@ -11392,6 +11474,9 @@ int main(int argc, char **argv) {
 	server.request_primary_selection.notify = request_primary_selection;
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
+	server.request_start_drag.notify = request_start_drag;
+	wl_signal_add(&server.seat->events.request_start_drag,
+		&server.request_start_drag);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.server = &server;
 	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,

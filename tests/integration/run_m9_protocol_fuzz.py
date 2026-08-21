@@ -150,14 +150,40 @@ def assert_responsive(control: Control, *, expected_windows: int | None = None) 
         raise RuntimeError(f"rejected request changed interactive state: {state!r}")
 
 
+def point_at_window(control: Control, title: str) -> dict[str, object]:
+    state = wait_state(
+        control,
+        lambda item: any(window["title"] == title for window in item["windows"]),
+        f"{title} map",
+    )
+    target = find_window(state, title)
+    pointer_x = int(target["x"]) + int(target["width"]) // 2
+    pointer_y = (
+        int(target["y"])
+        + int(target["title_height"])
+        + int(target["height"]) // 2
+    )
+    control.command(f"POINTER {pointer_x} {pointer_y}")
+    pointed = control.state()
+    if pointed["pointer_window"] != title or pointed["pointer_context"] != "window":
+        raise RuntimeError(f"{title} did not receive content focus: {pointed!r}")
+    return pointed
+
+
 def assert_log_evidence(log: str) -> None:
     required = (
         "event=client_request protocol=xdg_shell action=move outcome=rejected",
         "event=client_request protocol=xdg_shell action=resize outcome=rejected",
         "event=client_request protocol=xdg_shell action=show_window_menu outcome=rejected",
         "event=client_request protocol=wl_pointer action=set_cursor outcome=rejected",
+        "event=client_request protocol=wl_data_device action=start_drag outcome=accepted input=pointer",
+        "event=client_request protocol=wl_data_device action=start_drag outcome=rejected",
         "event=client_size protocol=xdg_shell boundary=xdg_commit outcome=adjusted",
-        "event=client_size protocol=xdg_shell role=popup boundary=popup_create outcome=rejected",
+    )
+    required += tuple(
+        "event=client_size protocol=xdg_shell role=popup boundary=popup_create "
+        f"outcome=rejected field={field}"
+        for field in ("size", "anchor_rect", "parent_size", "offset", "geometry")
     )
     missing = [marker for marker in required if marker not in log]
     if missing:
@@ -238,46 +264,52 @@ def run(compositor: Path, client_binary: Path) -> None:
                            "geometry client cleanup")
                 assert_responsive(control, expected_windows=1)
 
-                positioner = launch(client_binary, "positioner", client_environment)
-                clients.append(positioner)
-                wait_line(positioner, "MAPPED")
-                wait_line(positioner, "POSITIONER_SENT")
-                # A compositor may close only the malformed popup client's
-                # connection. The client reports that as success itself.
-                wait_one_of(positioner, {"SURVIVED", "DISCONNECTED"})
-                finish_client(positioner, "oversized positioner client")
-                clients.remove(positioner)
+                drag = launch(client_binary, "drag", client_environment)
+                clients.append(drag)
+                wait_line(drag, "MAPPED")
+                point_at_window(control, "m9-protocol-drag")
+                wait_line(drag, "POINTER_ENTER ", prefix=True)
+                control.command("BUTTON 272 press")
+                pressed = wait_line(drag, "POINTER_BUTTON ", prefix=True)
+                if not pressed.endswith(" 272 press"):
+                    raise RuntimeError(f"unexpected drag press event: {pressed!r}")
+                wait_line(drag, "DRAG_REQUESTED serial=", prefix=True)
+                wait_state(control, lambda state: state["data_drag"],
+                           "validated data drag start")
+                control.command("BUTTON 272 release")
+                wait_state(control, lambda state: not state["data_drag"],
+                           "validated data drag finish")
+                stop_client(drag)
+                clients.remove(drag)
                 wait_state(control, lambda state: len(state["windows"]) == 1,
-                           "positioner client cleanup")
+                           "drag client cleanup")
                 assert_responsive(control, expected_windows=1)
+
+                positioner_cases = (
+                    ("positioner-size", "POSITIONER_SIZE_SENT", "size"),
+                    ("positioner-anchor", "POSITIONER_ANCHOR_SENT", "anchor_rect"),
+                    ("positioner-parent", "POSITIONER_PARENT_SENT", "parent_size"),
+                    ("positioner-offset", "POSITIONER_OFFSET_SENT", "offset"),
+                    ("positioner-geometry", "POSITIONER_GEOMETRY_SENT", "geometry"),
+                )
+                for mode, sent, field in positioner_cases:
+                    positioner = launch(client_binary, mode, client_environment)
+                    clients.append(positioner)
+                    wait_line(positioner, "MAPPED")
+                    wait_line(positioner, sent)
+                    # A compositor may close only the malformed popup client's
+                    # connection. The client reports that as success itself.
+                    wait_one_of(positioner, {"SURVIVED", "DISCONNECTED"})
+                    finish_client(positioner, f"hostile {field} positioner client")
+                    clients.remove(positioner)
+                    wait_state(control, lambda state: len(state["windows"]) == 1,
+                               f"{field} positioner client cleanup")
+                    assert_responsive(control, expected_windows=1)
 
                 serials = launch(client_binary, "serials", client_environment)
                 clients.append(serials)
                 wait_line(serials, "MAPPED")
-                state = wait_state(
-                    control,
-                    lambda item: any(
-                        window["title"] == "m9-protocol-serials"
-                        for window in item["windows"]
-                    ),
-                    "serial client map",
-                )
-                target = find_window(state, "m9-protocol-serials")
-                pointer_x = int(target["x"]) + int(target["width"]) // 2
-                pointer_y = (
-                    int(target["y"])
-                    + int(target["title_height"])
-                    + int(target["height"]) // 2
-                )
-                control.command(f"POINTER {pointer_x} {pointer_y}")
-                pointed = control.state()
-                if (
-                    pointed["pointer_window"] != "m9-protocol-serials"
-                    or pointed["pointer_context"] != "window"
-                ):
-                    raise RuntimeError(
-                        f"serial client did not receive content focus: {pointed!r}"
-                    )
+                point_at_window(control, "m9-protocol-serials")
                 wait_line(serials, "POINTER_ENTER ", prefix=True)
                 control.command("BUTTON 272 press")
                 pressed = wait_line(serials, "POINTER_BUTTON ", prefix=True)

@@ -246,10 +246,10 @@ acceptance procedures for this group.
 
 ### 2. Hardening and endurance
 
-- [ ] **Shared:** Validate every Wayland request serial and client-supplied size.
-  Resolve the `xdg_popup.grab` limitation by approving and testing a wlroots
-  patch/fork or upgrade, or by explicitly narrowing the contract to the public
-  wlroots 0.18 boundary.
+- [x] **Shared:** Validate every Wayland request serial and client-supplied size.
+  The contract is explicitly limited to the public APIs of supported wlroots
+  0.18/0.20; the dependency-owned exceptions are recorded in
+  [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - [ ] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
   clean candidate commit, with bounded resource samples and no compositor
   restart.
