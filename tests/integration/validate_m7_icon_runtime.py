@@ -25,6 +25,7 @@ REQUIRED = {
         "sync_icon_manager_toplevel",
         "wtwm_render_icon_manager_marker",
         "view->width + 2",
+        "create_icon_manager_outline(row, 2",
         "(row_height - 11) / 2",
         "int text_x = 22",
         "move_icon_manager_selection",

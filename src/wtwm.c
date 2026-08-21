@@ -1926,6 +1926,29 @@ static struct wlr_buffer *cached_icon_manager_marker(struct toplevel *toplevel,
 	return toplevel->icon_manager_marker_buffer;
 }
 
+static void create_icon_manager_outline(struct wlr_scene_tree *parent,
+		int inset, int width, int height, const float color[4]) {
+	int outline_width = width - 2 * inset;
+	int outline_height = height - 2 * inset;
+	if (outline_width < 1 || outline_height < 1) return;
+	struct wlr_scene_rect *top = wlr_scene_rect_create(parent,
+		outline_width, 1, color);
+	struct wlr_scene_rect *bottom = wlr_scene_rect_create(parent,
+		outline_width, 1, color);
+	struct wlr_scene_rect *left = wlr_scene_rect_create(parent,
+		1, outline_height, color);
+	struct wlr_scene_rect *right = wlr_scene_rect_create(parent,
+		1, outline_height, color);
+	if (top != NULL) wlr_scene_node_set_position(&top->node, inset, inset);
+	if (bottom != NULL)
+		wlr_scene_node_set_position(&bottom->node, inset,
+			inset + outline_height - 1);
+	if (left != NULL) wlr_scene_node_set_position(&left->node, inset, inset);
+	if (right != NULL)
+		wlr_scene_node_set_position(&right->node,
+			inset + outline_width - 1, inset);
+}
+
 static void refresh_icon_managers(struct server *server) {
 	for (size_t i = 0; i < server->icon_manager_view_count; ++i) {
 		if (server->icon_manager_views[i].tree != NULL)
@@ -2001,23 +2024,13 @@ static void refresh_icon_managers(struct server *server) {
 					row_border);
 			else memcpy(row_border, row_foreground, sizeof(row_border));
 			wlr_scene_rect_create(row, cell_width, row_height, row_background);
+			create_icon_manager_outline(row, 2, cell_width, row_height,
+				row_foreground);
 			if (active) {
-				int outline_width = cell_width > 5 ? cell_width - 4 : 1;
-				int outline_height = row_height > 5 ? row_height - 4 : 1;
-				struct wlr_scene_rect *top = wlr_scene_rect_create(row,
-					outline_width, 1, row_border);
-				struct wlr_scene_rect *bottom = wlr_scene_rect_create(row,
-					outline_width, 1, row_border);
-				struct wlr_scene_rect *left = wlr_scene_rect_create(row,
-					1, outline_height, row_border);
-				struct wlr_scene_rect *right = wlr_scene_rect_create(row,
-					1, outline_height, row_border);
-				if (top != NULL) wlr_scene_node_set_position(&top->node, 2, 2);
-				if (bottom != NULL)
-					wlr_scene_node_set_position(&bottom->node, 2, row_height - 3);
-				if (left != NULL) wlr_scene_node_set_position(&left->node, 2, 2);
-				if (right != NULL)
-					wlr_scene_node_set_position(&right->node, cell_width - 3, 2);
+				create_icon_manager_outline(row, 0, cell_width, row_height,
+					row_border);
+				create_icon_manager_outline(row, 1, cell_width, row_height,
+					row_border);
 			}
 			if (toplevel->iconified) {
 				struct wlr_buffer *marker = cached_icon_manager_marker(toplevel,
