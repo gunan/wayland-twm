@@ -113,8 +113,8 @@ def _policy() -> dict[str, str]:
             "form in the frozen upstream inventory."
         ),
         "next_step": (
-            "Add focused reference, parser, native Wayland, and Xwayland tests "
-            "for the gaps recorded by this audit."
+            "Keep every row reconciled with focused parser, runtime, native "
+            "Wayland, Xwayland, visual, and semantic evidence."
         ),
     }
 
@@ -575,6 +575,42 @@ def validate_ledger(
         for field, status in (("runtime_support", runtime), ("native_wayland_behavior", native), ("xwayland_behavior", xwayland)):
             if status in {"exact", "behaviorally-equivalent", "verified-no-op"} and not mapping_ids:
                 errors.append(f"{label}.{field} strong equivalence/no-op claim requires exact tests")
+        categories = set(entry["upstream"].get("categories", [])) if isinstance(entry["upstream"], dict) else set()
+        behavior_relevant = (
+            entry["inventory_section"] != "lexical_forms"
+            and categories != {"grammar-structure"}
+        )
+        strong = {"exact", "behaviorally-equivalent", "verified-no-op"}
+        dimensions = {
+            dimension
+            for mapping in entry["test_coverage"].get("mappings", [])
+            if isinstance(mapping, dict)
+            for dimension in mapping.get("dimensions", [])
+            if isinstance(dimension, str)
+        } if isinstance(entry["test_coverage"], dict) else set()
+        if behavior_relevant:
+            for field, status in (
+                ("runtime_support", runtime),
+                ("native_wayland_behavior", native),
+                ("xwayland_behavior", xwayland),
+            ):
+                if status not in strong:
+                    errors.append(f"{label}.{field} remains unresolved: {status!r}")
+            for required in ("runtime", "native-wayland", "xwayland", "semantic"):
+                if required not in dimensions:
+                    errors.append(f"{label} closure lacks {required!r} test evidence")
+            if not isinstance(entry["test_coverage"], dict) or entry["test_coverage"].get("status") != "complete":
+                errors.append(f"{label} behavior closure requires complete test coverage")
+            if not isinstance(entry["differences"], dict) or entry["differences"].get("status") != "known":
+                errors.append(f"{label} behavior closure requires an explained difference record")
+        else:
+            for field, status in (
+                ("runtime_support", runtime),
+                ("native_wayland_behavior", native),
+                ("xwayland_behavior", xwayland),
+            ):
+                if status != "not-applicable":
+                    errors.append(f"{label}.{field} syntax-only row must be not-applicable")
     return errors
 
 
