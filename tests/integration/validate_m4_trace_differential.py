@@ -96,7 +96,7 @@ def validate_contract(value: object, source_root: Path) -> list[str]:
     if not isinstance(normalization, dict):
         errors.append("trace differential normalization is missing")
     else:
-        for key in ("reference_frame", "wtwm_frame", "focus", "stack"):
+        for key in ("reference_frame", "wtwm_frame", "focus", "stack", "pointer"):
             if not isinstance(normalization.get(key), str):
                 errors.append(f"trace differential normalization lacks {key}")
         excluded = normalization.get("excluded_observations")
@@ -136,18 +136,30 @@ def validate_sources(
         'outer_x = int(frame["x"]) - border',
         'if initial["windows"] != oracle:',
         "def normalize_wtwm(",
+        'raw_cursor = state.get("cursor")',
+        '"pointer": pointer,',
         'key=lambda pair: int(pair[1]["stack"]), reverse=True',
         '"mapped": bool(item["mapped"]) and not iconified',
         '"titled": bool(item["decorated"])',
         "for index, event in enumerate(events, 1):",
         "reference_input(driver, event, environment)",
         "wtwm_input(control, event)",
+        "reference_input(driver, events[0], environment)",
+        "wtwm_input(control, events[0])",
         "if reference != wtwm:",
         '"result": "failed"',
         'result["result"] = "equivalent"',
         'evidence / "reference-trace.json"',
         'evidence / "wtwm-trace.json"',
         'evidence / "runner-error.log"',
+        "def capture_reference_screenshot(",
+        "def compare_screenshots(",
+        'default=Path("/usr/bin/Xvfb")',
+        '[str(xvfb_binary), "-displayfd", "1"',
+        '"screenshot_masks": [],',
+        '"unexplained_pixel_differences": unexplained,',
+        '"exact": mismatches == 0,',
+        "paired stable screenshots contain nonzero differences for review",
     ):
         if marker not in runner:
             errors.append(f"trace differential runner lacks {marker!r}")
@@ -171,6 +183,8 @@ def validate_sources(
         "XQueryTree",
         "XTranslateCoordinates",
         "XGetInputFocus",
+        "XQueryPointer",
+        r'\"pointer\":{\"x\":%d,\"y\":%d}',
         'XInternAtom(display, "WM_STATE", False)',
         "item->frame_inner_x - border",
         "item->client_x - outer_x",
@@ -195,14 +209,17 @@ def validate_sources(
         'Button3 = : window|title|frame : f.focus',
         '"F1" = : all : f.raise', '"F2" = : all : f.lower',
         '"F3" = : all : f.iconify',
+        'DefaultBackground "#000000"',
     ):
         if marker not in config:
             errors.append(f"trace differential configuration lacks {marker!r}")
     for marker in (
         "same deterministic pointer, button, and key program",
+        "root-relative pointer coordinates",
         "client and outer-frame geometry",
         "bottom-to-top stack",
         "m4-trace-differential",
+        "no crop, tolerance, or mask",
     ):
         if marker not in readme:
             errors.append(f"trace differential documentation lacks {marker!r}")
@@ -214,6 +231,7 @@ def validate_sources(
         "tests/integration/m4_trace_probe.c",
         "tests/integration/m4_trace_input.c",
         "tests/integration/run_m4_trace_differential.py",
+        "--screenshot-observer /tmp/m7-icon-observer",
         "--reference-twm /tmp/reference-build/twm",
         "--contract \"$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json\"",
         "name: m4-trace-differential",
@@ -288,9 +306,15 @@ def self_test_tamper(source_root: Path) -> list[str]:
             "for index, event in enumerate(events, 1):",
             "for index, event in enumerate(events[:-1], 1):", 1),
          client, probe, input_driver, config, readme, workflow, meson),
+        ("pointer-normalization", runner.replace(
+            '        "pointer": pointer,\n', "", 1),
+         client, probe, input_driver, config, readme, workflow, meson),
         ("live-CI", runner, client, probe, input_driver, config, readme,
          workflow.replace("name: m4-trace-differential",
                           "name: removed-trace-artifact", 1), meson),
+        ("exact-pixels", runner.replace(
+            '"exact": mismatches == 0,', '"exact": True,', 1),
+         client, probe, input_driver, config, readme, workflow, meson),
     )
     for label, *sources in mutations:
         if not validate_sources(*sources):

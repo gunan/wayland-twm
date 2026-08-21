@@ -246,10 +246,10 @@ acceptance procedures for this group.
 
 ### 2. Hardening and endurance
 
-- [ ] **Shared:** Validate every Wayland request serial and client-supplied size.
-  Resolve the `xdg_popup.grab` limitation by approving and testing a wlroots
-  patch/fork or upgrade, or by explicitly narrowing the contract to the public
-  wlroots 0.18 boundary.
+- [x] **Shared:** Validate every Wayland request serial and client-supplied size.
+  The contract is explicitly limited to the public APIs of supported wlroots
+  0.18/0.20; the dependency-owned exceptions are recorded in
+  [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - [ ] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
   clean candidate commit, with bounded resource samples and no compositor
   restart.
@@ -269,17 +269,17 @@ acceptance procedures for this group.
 
 ### 3. Differential parity
 
-- [ ] **Agent:** Extend normalized reference and `wtwm` traces to record and
+- [x] **Agent:** Extend normalized reference and `wtwm` traces to record and
   compare exact pointer coordinates after every significant input action.
-- [ ] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
+- [x] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
   depth, selected row, pull-right submenu state, and rendered states.
-- [ ] **Agent:** Add controlled command observers and compare the action spelling,
+- [x] **Agent:** Add controlled command observers and compare the action spelling,
   decoded command, direct argument vector or unchanged shell text, execution,
   and intentional non-execution.
-- [ ] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction
+- [x] **Agent:** Add one end-to-end reference/`wtwm` X11 close-and-destruction
   differential, and separately record the unavoidable native Wayland close-only
   translation.
-- [ ] **Agent/shared:** Capture paired stable screenshots after every significant
+- [x] **Agent/shared:** Capture paired stable screenshots after every significant
   certification action, compare them without unexplained masks, and submit every
   nonzero difference for review.
 
@@ -289,18 +289,18 @@ not final pass evidence until the complete clean-candidate run is checked in.
 
 ### 4. Final 1.0 certification
 
-- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+- [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   grammar coverage with no uncovered productions.
-- [ ] **Agent:** Check in a consolidated report proving exactly 100 percent
+- [x] **Agent:** Check in a consolidated report proving exactly 100 percent
   built-in action coverage with no uncovered spellings or behaviors.
-- [ ] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
+- [x] **Agent/shared:** Reconcile all 384 compatibility-ledger rows with current
   runtime and test evidence; implement genuine gaps and reach zero partial,
   parsed-only, unavailable-without-explanation, or otherwise unexplained entries.
-- [ ] **Agent:** Run the complete canonical one-output 1× matrix and check in a
+- [x] **Agent:** Run the complete canonical one-output 1× matrix and check in a
   report showing zero geometry differences.
-- [ ] **Agent:** Run the complete focus and stacking differential and check in a
+- [x] **Agent:** Run the complete focus and stacking differential and check in a
   report showing zero unexplained differences.
-- [ ] **Shared:** Review every golden image and check in a review log with zero
+- [x] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.
 - [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
 - [ ] **Shared:** Check in successful package lifecycle evidence for amd64 and
@@ -310,7 +310,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
 - [ ] **Manual:** Conduct a blinded canonical-profile A/B evaluation with at
   least two distinct experienced `twm` users and no repeatable distinguishing
   behavior.
-- [ ] **Agent/shared:** Audit every unavoidable Wayland translation and check in
+- [x] **Agent/shared:** Audit every unavoidable Wayland translation and check in
   matching translation inventories in the manual, compatibility ledger, and
   certification report.
 

@@ -11,6 +11,7 @@ from pathlib import Path
 
 REQUIRED_PACKAGES = {
     "build-essential",
+    "git",
     "libfontconfig-dev",
     "libpango1.0-dev",
     "libwayland-dev",
@@ -322,7 +323,9 @@ def self_test_tamper(source_root: Path) -> list[str]:
             encoding="utf-8",
         )
         (root / "scripts/ci/debian-trixie-build-packages.txt").write_text(
-            (source_root / "scripts/ci/debian-trixie-build-packages.txt").read_text(encoding="utf-8"),
+            (source_root / "scripts/ci/debian-trixie-build-packages.txt")
+            .read_text(encoding="utf-8")
+            .replace("git\n", "", 1),
             encoding="utf-8",
         )
         (root / "scripts/ci/debian-testing-build-packages.txt").write_text(
@@ -354,6 +357,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
         for error in tamper_errors
     ):
         return ["self-test failed: replacing the Debian testing container was not detected"]
+    if not any(
+        "Debian Trixie package list is missing: git" in error
+        for error in tamper_errors
+    ):
+        return ["self-test failed: removing the validator git dependency was not detected"]
     return []
 
 

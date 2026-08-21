@@ -110,6 +110,19 @@ bool wtwm_menu_row_box(const struct wtwm_menu_layout *layout,
 bool wtwm_menu_text_origin(const struct wtwm_menu_layout *layout,
 	unsigned int index, int text_width, bool title_entry, int *x, int *y);
 
+/* Match twm's pull-right pixmap origin: five pixels from the row's right
+ * content edge and exactly at its y_offset, without vertical centering. */
+bool wtwm_menu_pull_origin(const struct wtwm_menu_layout *layout,
+	unsigned int index, int pull_width, int *x, int *y);
+
+/*
+ * Convert twm's menu invocation anchor to the menu's outer-border origin.
+ * Root menus center their content width and first row on the pointer;
+ * pull-right callers already supply the submenu origin.
+ */
+bool wtwm_menu_popup_origin(const struct wtwm_menu_layout *layout,
+	bool submenu, int anchor_x, int anchor_y, int *x, int *y);
+
 /*
  * Project logical compatibility pixels onto a fractional-scale output.  Scale
  * is expressed in Wayland's conventional 120ths; zero selects canonical 1x.

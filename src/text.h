@@ -33,6 +33,12 @@ struct wlr_buffer *wtwm_render_xbm_cursor(const struct wtwm_xbm *source,
 	const float background[static 4]);
 struct wlr_buffer *wtwm_render_xbm_title(const struct wtwm_xbm *bitmap,
 	int size, const float foreground[static 4]);
+/* Reproduce frozen twm's CreateMenuIcon pull-right bitmap exactly. */
+struct wlr_buffer *wtwm_render_menu_icon(int height,
+	const float foreground[static 4], int *width);
+/* Reproduce frozen twm's 11x11 siconify icon-manager marker exactly. */
+struct wlr_buffer *wtwm_render_icon_manager_marker(
+	const float foreground[static 4]);
 struct wlr_buffer *wtwm_render_builtin_title(const char *name, int size,
 	const float foreground[static 4]);
 

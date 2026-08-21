@@ -37,35 +37,76 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
-| Canonical X11 reference differential | Exact in the canonical profile | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, and stacking after every event; a 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The canonical pixel comparison adds two stable 260×180 phases whose complete PPM bytes, geometry classification, configured-color counts, and X core font pixels match the frozen reference with zero masks and zero mismatched pixels. Native/cross-protocol visual equivalence remains a separate boundary. |
+| Canonical X11 reference differential | Exact in the canonical profile | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, stacking, and root-relative pointer coordinates after every event; its initial state and every indexed action also produce a stable paired full-screen PPM with no crop, tolerance, mask, or unexplained mismatch. A 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The canonical pixel comparison adds two stable 260×180 decoration phases, while a live five-phase menu differential compares name, parent, depth, selected and pull-right rows, submenu state, and complete stable PPM bytes. These visual comparisons require zero masks and zero mismatched pixels; native/cross-protocol visual equivalence remains a separate boundary. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
 | Adversarial client lifecycle | Verified headlessly | Separate native and X11 connections cover `SIGABRT` crashes, non-dispatching hangs, ignored close requests, and 32 numbered unmap/remap cycles per protocol. Bounded control/state/frame barriers and survivor keyboard acknowledgements prove compositor liveness, while exact scene, focus, and Xwayland association counts reject stale or duplicate lifecycle state. |
-| Client request hardening | Public wlroots 0.18/0.20 boundary enforced | Cursor, xdg move, resize, and window-menu requests require the requesting seat/client, focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection serials before their compositor signals. Client geometry is bounded to 1..65535 before decoration and scene math, with wlroots 0.20 out-of-range XDG window geometry normalized to the real surface extents before scene listeners run and oversized popup positioners rejected. The supported wlroots APIs consume `xdg_popup.grab` serials internally without validating or exposing them, so that one serial class cannot be compositor-validated without a private wlroots hook or dependency fork. |
+| Client request hardening | Public wlroots 0.18/0.20 boundary enforced | wtwm validates every client authorization/grab serial exposed through the supported public compositor APIs before acting: cursor, xdg move/resize/window-menu, and data-device pointer/touch drag requests require the requesting seat/client, the correct origin or focused root surface, and a valid event or active grab serial. wlroots validates data-device and primary-selection ownership serials before their compositor signals. Every client-derived dimension used by wtwm placement, decoration, popup-unconstraint, or Xwayland scene math is bounded to 1..65535; popup size, anchor rectangle, offset, parent size, and effective geometry are rejected independently. wlroots owns core-surface buffer/damage/region validation and protocol correlation values: `xdg_surface.ack_configure`, `xdg_wm_base.pong`, `wl_data_offer.accept`, `xdg_positioner.set_parent_configure`, and the popup reposition token. Those correlation values do not authorize a wtwm action. The `xdg_popup.grab` authorization serial is the explicit dependency exception: wlroots 0.18 and 0.20 neither validate nor expose it, so compositor validation would require a patched/forked dependency. |
 
 ## Final 1.0 certification status
 
 Final 1.0 certification is tracked by three fail-closed machine-readable records
 under `reference/certification/`. The differential contract maps all eleven
 required comparison dimensions to concrete runners, validators, and frozen
-evidence, but records only six as live reference differentials. Exact pointer
-coordinates, live menu state, launched commands, close/destruction behavior,
-and screenshots after every significant action remain partial and therefore
-are not parity claims.
+evidence, and records all eleven as live reference differentials. A live five-phase
+command differential observes the libc launch boundary and executed argv for
+`f.exec`, its `!` alias, shell expansion, empty commands, and `f.startwm`; the
+last records wtwm's intentional non-execution as the unavoidable Wayland
+handoff translation. A three-phase live close/destruction differential compares
+cooperative `WM_DELETE_WINDOW`, ignored-delete forced X client destruction, and
+destroy-and-recreate cleanup; the same run separately records native
+xdg-shell's unavoidable native close-only translation. The canonical trace
+retains paired stable screenshots after its initial state and all 21 significant
+actions, fails on every nonzero pixel difference, and uses no masks.
 
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is
 an inventory fact, not proof that one complete certification run passed. The
-release-gate manifest keeps all eleven final 1.0 gates pending until each has a
-validated checked-in evidence report; consequently a full observable parity
-claim remains prohibited. `docs/PARITY_CERTIFICATION.md` defines the evidence
-format and promotion procedure.
+release-gate manifest keeps each final 1.0 gate pending until it has a validated
+checked-in evidence report; a full observable parity claim remains prohibited
+until all eleven pass. `docs/PARITY_CERTIFICATION.md` defines the evidence format
+and promotion procedure.
 
 Wayland intentionally prevents a compositor from reproducing a few X11
 operations literally. The compatibility policy is to preserve the visible
 user result when possible, document the translation when it is not, and never
 silently reinterpret configuration as a different action.
+
+## Unavoidable Wayland translation inventory
+
+These stable identifiers are the exhaustive release inventory. Each marker is
+also present in `data/wtwm.1` and on every affected row of the machine-readable
+compatibility ledger. The tracked audit at
+`reference/certification/wayland-translation-audit.json` maps every identifier
+to its exact ledger rows and live tests.
+
+| Translation ID | Wayland mapping | Why the literal X11 mechanism is impossible |
+| --- | --- | --- |
+| `[wayland-translation:compositor-owned-icons]` | X icon windows and pixmaps become compositor-owned icon scenes. | Rootless Xwayland cannot transplant arbitrary X windows into a Wayland scene, and xdg-shell has no standard icon-window request. |
+| `[wayland-translation:compositor-owned-menus]` | twm menus become a compositor-owned scene layer. | The compositor owns Wayland composition rather than creating X root-child menu windows. |
+| `[wayland-translation:compositor-owned-refresh]` | Refresh actions damage and repaint compositor scene content. | Native clients cannot receive X root-window exposure events. |
+| `[wayland-translation:cut-buffer-clipboard]` | The persistent X cut buffer is mirrored through Wayland `CLIPBOARD`. | Native Wayland has no root cut-buffer property. |
+| `[wayland-translation:embedded-rootless-xwayland]` | X11 clients run through a compositor-owned rootless Xwayland server. | A Wayland compositor does not manage an existing X server root. |
+| `[wayland-translation:fractional-scale-rounding]` | Fractional coordinates use deterministic shared-edge rounding. | Wayland scaling uses logical coordinates and 120ths rather than X screen pixels. |
+| `[wayland-translation:identify-version-log]` | `f.identify` and `f.version` write to the compositor log. | Wayland has no server-owned X information window. |
+| `[wayland-translation:in-process-restart]` | `f.restart`, `f.source`, and `f.twmrc` use one atomic in-process transaction. | Replacing the compositor would destroy accepted Wayland resources, focus, selections, and Xwayland ownership. |
+| `[wayland-translation:legacy-bell-priority]` | Bell and priority behavior is conditional at the native/Xwayland boundary. | Native Wayland defines neither a compositor bell request nor twm's XSync priority control. |
+| `[wayland-translation:logical-seat-aggregation]` | Physical devices are aggregated into one logical Wayland seat. | Wayland exposes capabilities and focus through logical seats rather than twm's direct X device model. |
+| `[wayland-translation:native-close-only]` | Native `f.delete` and `f.destroy` both issue xdg-shell close requests. | xdg-shell cannot forcibly disconnect one arbitrary client. |
+| `[wayland-translation:native-colormap-noop]` | `f.colormap` is a verified native no-op. | True-color Wayland buffers expose no installed-colormap protocol. |
+| `[wayland-translation:native-initial-placement]` | Native placement selects an output from pointer or parent state. | xdg-shell has no X position hints or blocking root placement grab. |
+| `[wayland-translation:native-popup-hierarchy]` | Native popups retain their validated xdg parent hierarchy. | xdg-shell popups are not independent X override-redirect root children. |
+| `[wayland-translation:native-size-constraints]` | Native resizing uses xdg-shell minimum and maximum constraints. | xdg-shell exposes no X base, increment, or aspect hints. |
+| `[wayland-translation:native-window-identity]` | X name, instance, and class matching maps to xdg title and `app_id`. | xdg-shell has no independent `WM_CLASS` instance and class pair. |
+| `[wayland-translation:output-root-spatial-model]` | Each enabled output box is a spatial root equivalent painted by the compositor. | Wayland outputs are not independent X screens with server-owned root windows. |
+| `[wayland-translation:rootless-cross-protocol-stacking]` | Native popups and Xwayland override-redirect surfaces share a map-ordered overlay. | X sibling requests cannot name native surfaces. |
+| `[wayland-translation:saved-state-snapshot]` | Session restoration uses an explicit compositor-owned snapshot. | Native Wayland has no `WM_SAVE_YOURSELF` or X session-manager property protocol. |
+| `[wayland-translation:screen-zero-global-config]` | The screen-zero configuration applies globally to every output. | Wayland outputs are not separate X screens with independently parsed roots. |
+| `[wayland-translation:selection-bridge]` | Wayland `CLIPBOARD` and `PRIMARY` offers bridge to X11 selections. | Wayland uses focused-seat offers and serials rather than X owner windows and properties. |
+| `[wayland-translation:startwm-in-process]` | A supported `f.startwm` self-handoff becomes an atomic in-process restart. | Accepted Wayland resources cannot transfer to an arbitrary replacement compositor. |
+| `[wayland-translation:unicode-font-fallback]` | Non-ASCII text falls back from X core fonts to bounded Pango rendering. | Native Wayland has no X core font server or XLFD glyph protocol. |
+| `[wayland-translation:x11-resource-noops]` | `NoBackingStore`, `NoSaveUnders`, and `NoGrabServer` are verified no-ops. | Those X server resources do not exist in a Wayland scene graph. |
 
 The canonical visual test suite also runs a compositor-owned visual-state
 matrix in color, grayscale, and monochrome modes. Every capture is repeated
@@ -545,7 +586,8 @@ effective, behaviorally equivalent, or a conditional verified no-op. Portable
 tests cross every binding context and modifier bit; Linux headless tests add
 menu cancellation, nested hover/release, client-list mutation during named
 bindings, icon move/resize rules, zoom restore, and function continuation and
-`f.deltastop` traces.
+`f.deltastop` traces. The consolidated certification report records 66 of 66
+spellings and 59 of 59 behaviors with no uncovered item.
 
 This overlay ordering follows the visible X11 result: override-redirect windows
 bypass twm's `MapRequest` management path and participate in the root sibling
@@ -588,7 +630,9 @@ icons allocate the first fitting border-inclusive cell from configured
 `IconRegion` records, with X-geometry negative offsets, reference gravity
 split order, independent grid rounding, centered contents, collision avoidance,
 release coalescing, and client `IconPositionHint` precedence. A manually moved
-icon leaves its region allocation, as in reference twm.
+icon leaves its region allocation, as in reference twm. Initial pointer-based
+placement also preserves twm's asymmetric boundary rule: an icon whose origin
+is still on-screen may extend past the right or bottom edge.
 
 The portable icon-manager model retains stable insertion order, optional
 case-sensitive or folded icon-name sorting, partial-row packing, active and

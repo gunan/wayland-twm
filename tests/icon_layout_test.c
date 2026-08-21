@@ -46,6 +46,42 @@ static bool placements_overlap(struct wtwm_icon_layout_placement first,
 		second.cell_y < first.cell_y + first.cell_height;
 }
 
+static void test_reference_fallback_clamp(void) {
+	int x = 175;
+	int y = 95;
+	assert(wtwm_icon_reference_clamp(0, 0, 260, 180, 98, 21, &x, &y));
+	assert(x == 175);
+	assert(y == 95);
+
+	x = 260;
+	y = 180;
+	assert(wtwm_icon_reference_clamp(0, 0, 260, 180, 98, 21, &x, &y));
+	assert(x == 260);
+	assert(y == 180);
+
+	x = 261;
+	y = 181;
+	assert(wtwm_icon_reference_clamp(0, 0, 260, 180, 98, 21, &x, &y));
+	assert(x == 162);
+	assert(y == 159);
+
+	x = -40;
+	y = -30;
+	assert(wtwm_icon_reference_clamp(10, 20, 100, 80, 20, 10, &x, &y));
+	assert(x == -40);
+	assert(y == -30);
+
+	x = 111;
+	y = 101;
+	assert(wtwm_icon_reference_clamp(10, 20, 100, 80, 20, 10, &x, &y));
+	assert(x == 90);
+	assert(y == 90);
+
+	assert(!wtwm_icon_reference_clamp(0, 0, 0, 180, 98, 21, &x, &y));
+	assert(!wtwm_icon_reference_clamp(0, 0, 260, 180, 0, 21, &x, &y));
+	assert(!wtwm_icon_reference_clamp(0, 0, 260, 180, 98, 21, NULL, &y));
+}
+
 static void test_config_conversion(void) {
 	struct wtwm_icon_region config = {
 		.geometry = "200x120+10+20",
@@ -380,6 +416,7 @@ static void test_randomized_lifecycle_churn(void) {
 }
 
 int main(void) {
+	test_reference_fallback_clamp();
 	test_config_conversion();
 	test_malformed_config();
 	test_gravity_and_grid();

@@ -1,0 +1,38 @@
+NoDefaults
+NoGrabServer
+NoIconManagers
+NoHighlight
+NoTitleHighlight
+NoTitleFocus
+NoMenuShadows
+MenuBorderWidth 2
+MenuFont "fixed"
+
+Color
+{
+    DefaultForeground "#ffffff"
+    # Xvfb leaves the X11 root black; align wtwm's compositor-owned root so
+    # the stable full-screen comparison needs no crop, tolerance, or mask.
+    DefaultBackground "#000000"
+    MenuForeground "#f0f0f0"
+    MenuBackground "#203040"
+    MenuTitleForeground "#ffffff"
+    MenuTitleBackground "#405060"
+    MenuBorderColor "#e0e0e0"
+}
+
+Button3 = : root : f.menu "cert-root"
+
+Menu "cert-child"
+{
+    "Child title" f.title
+    "Child action" f.nop
+}
+
+Menu "cert-root"
+{
+    "Menu states" f.title
+    "First" f.nop
+    "Second" f.nop
+    "Pull right" f.menu "cert-child"
+}

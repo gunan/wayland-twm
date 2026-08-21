@@ -1,6 +1,7 @@
 build-essential
 dialog
 emacs-gtk
+git
 libfontconfig-dev
 libpango1.0-dev
 libwayland-dev

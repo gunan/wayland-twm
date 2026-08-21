@@ -458,6 +458,74 @@ static void set_title_pixel(struct text_buffer *buffer, int x, int y,
 	buffer->pixels[(size_t)y * buffer->stride / 4u + (size_t)x] = pixel;
 }
 
+static void fill_title_rectangle(struct text_buffer *buffer, int x, int y,
+		int width, int height, uint32_t pixel) {
+	for (int row = 0; row < height; ++row)
+		for (int column = 0; column < width; ++column)
+			set_title_pixel(buffer, x + column, y + row, pixel);
+}
+
+struct wlr_buffer *wtwm_render_menu_icon(int height,
+		const float foreground[static 4], int *width) {
+	if (height < 1 || width == NULL) return NULL;
+	int icon_width = height * 7 / 8;
+	if (icon_width < 1) icon_width = 1;
+	*width = icon_width;
+	struct text_buffer *buffer = pixel_buffer_create(icon_width, height);
+	if (buffer == NULL) return NULL;
+
+	/* This is the pixel construction in frozen twm 1.0.13.1 CreateMenuIcon. */
+	int inner_height = height - 2;
+	int inner_width = icon_width - 2;
+	int offset = inner_height / 8;
+	int menu_height = inner_height - offset;
+	int menu_width = inner_width - offset;
+	int border_width = menu_height / 16;
+	if (border_width == 0 && menu_width > 2) border_width = 1;
+	int text_width = menu_width - border_width * 2;
+	int text_height = menu_height - border_width * 2;
+	uint32_t pixel = color_pixel(foreground);
+	fill_title_rectangle(buffer, 1, 1, menu_width, menu_height, pixel);
+	fill_title_rectangle(buffer, 1 + inner_width - menu_width,
+		1 + inner_height - menu_height, menu_width, menu_height, pixel);
+	fill_title_rectangle(buffer, 1 + border_width, 1 + border_width,
+		text_width, text_height, 0);
+
+	int line_width = text_width / 2;
+	if ((text_width & 1) ^ (line_width & 1)) ++line_width;
+	int line_x = 1 + border_width + (text_width - line_width) / 2;
+	int line_height = text_height / 2 - border_width;
+	if ((line_height & 1) ^ ((text_height - border_width) & 1)) ++line_height;
+	int line_y = 1 + border_width +
+		(text_height - border_width - line_height) / 2;
+	int lines = 3;
+	if ((line_height & 1) && line_height < 6) --lines;
+	int line_delta = line_height / (lines - 1);
+	while (lines-- > 0) {
+		fill_title_rectangle(buffer, line_x, line_y, line_width,
+			border_width, pixel);
+		line_y += line_delta;
+	}
+	return &buffer->base;
+}
+
+struct wlr_buffer *wtwm_render_icon_manager_marker(
+		const float foreground[static 4]) {
+	static const unsigned char rows[11][2] = {
+		{0xff, 0x07}, {0x01, 0x04}, {0x0d, 0x05}, {0x9d, 0x05},
+		{0xb9, 0x04}, {0x51, 0x04}, {0xe9, 0x04}, {0xcd, 0x05},
+		{0x85, 0x05}, {0x01, 0x04}, {0xff, 0x07},
+	};
+	struct text_buffer *buffer = pixel_buffer_create(11, 11);
+	if (buffer == NULL) return NULL;
+	uint32_t pixel = color_pixel(foreground);
+	for (int y = 0; y < 11; ++y)
+		for (int x = 0; x < 11; ++x)
+			if ((rows[y][x / 8] & (1u << (x % 8))) != 0)
+				set_title_pixel(buffer, x, y, pixel);
+	return &buffer->base;
+}
+
 struct wlr_buffer *wtwm_render_builtin_title(const char *name, int size,
 		const float foreground[static 4]) {
 	if (name == NULL || size < 1 || name[0] != ':') return NULL;

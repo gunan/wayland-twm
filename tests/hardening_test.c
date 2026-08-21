@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 static void expect_size(int requested_width, int requested_height,
 		int fallback_width, int fallback_height, int expected_width,
@@ -18,6 +19,25 @@ static void expect_size(int requested_width, int requested_height,
 	assert(adjustment == expected_adjustment);
 	assert(wtwm_client_size_adjusted(adjustment) ==
 		(expected_adjustment != WTWM_CLIENT_SIZE_UNCHANGED));
+}
+
+static struct wtwm_client_positioner valid_positioner(void) {
+	return (struct wtwm_client_positioner){
+		.width = 320,
+		.height = 200,
+		.anchor_x = -20,
+		.anchor_y = 30,
+		.anchor_width = 640,
+		.anchor_height = 480,
+		.parent_width = 800,
+		.parent_height = 600,
+		.offset_x = 5,
+		.offset_y = -7,
+		.geometry_x = 10,
+		.geometry_y = 20,
+		.geometry_width = 320,
+		.geometry_height = 200,
+	};
 }
 
 int main(void) {
@@ -41,6 +61,39 @@ int main(void) {
 	assert(!wtwm_client_geometry_in_bounds(0, INT_MAX, 640, 480));
 	assert(!wtwm_client_geometry_in_bounds(0, 0, INT_MAX, INT_MAX));
 	assert(!wtwm_client_geometry_in_bounds(0, 0, 0, 480));
+	assert(wtwm_client_point_in_bounds(-WTWM_CLIENT_SIZE_MAX,
+		WTWM_CLIENT_SIZE_MAX));
+	assert(!wtwm_client_point_in_bounds(INT_MIN, 0));
+
+	struct wtwm_client_positioner positioner = valid_positioner();
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_VALID);
+	positioner.parent_width = positioner.parent_height = 0;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_VALID);
+
+	positioner = valid_positioner();
+	positioner.width = INT_MAX;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_INVALID_SIZE);
+	positioner = valid_positioner();
+	positioner.anchor_x = INT_MIN;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_INVALID_ANCHOR_RECT);
+	positioner = valid_positioner();
+	positioner.parent_height = INT_MAX;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_INVALID_PARENT_SIZE);
+	positioner = valid_positioner();
+	positioner.offset_y = INT_MAX;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_INVALID_OFFSET);
+	positioner = valid_positioner();
+	positioner.geometry_width = INT_MAX;
+	assert(wtwm_client_positioner_validate(&positioner) ==
+		WTWM_POSITIONER_INVALID_GEOMETRY);
+	assert(strcmp(wtwm_client_positioner_error_name(
+		WTWM_POSITIONER_INVALID_ANCHOR_RECT), "anchor_rect") == 0);
 
 	/* Exercise the boundary policy over a deterministic hostile-size stream.
 	 * This catches wraparound and guarantees that no input can escape the range

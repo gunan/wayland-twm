@@ -10,6 +10,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import tempfile
+import time
 from typing import Any
 
 from run_client_stress import ClientChannel, wait_path, wait_process, wait_state
@@ -40,6 +41,8 @@ PORTABLE_UNIX_SOCKET_PATH_BYTES = 103
 FULL_OUTPUT_HEADER = b"P6\n640 480\n255\n"
 FULL_OUTPUT_CAPTURE_BYTES = len(FULL_OUTPUT_HEADER) + 640 * 480 * 3
 READINESS_CAPTURE_ATTEMPTS = 12
+OBSERVATION_STABLE_SAMPLES = 3
+OBSERVATION_MAX_ATTEMPTS = 24
 
 
 def session_socket_names(
@@ -109,6 +112,146 @@ def normalized(value: Any) -> Any:
     if isinstance(value, list):
         return [normalized(item) for item in value]
     return value
+
+
+def trace_window_key(event: Any) -> tuple[str, str, str, str, str] | None:
+    if not isinstance(event, dict) or not isinstance(event.get("window"), dict):
+        return None
+    window_value = event["window"]
+    fields = ("type", "title", "app_id", "instance", "class")
+    if not all(isinstance(window_value.get(field), str) for field in fields):
+        return None
+    return tuple(window_value[field] for field in fields)
+
+
+def trace_client_geometry(event: Any) -> tuple[int, int, int, int] | None:
+    if not isinstance(event, dict) or not isinstance(event.get("geometry"), dict):
+        return None
+    client = event["geometry"].get("client")
+    fields = ("x", "y", "width", "height")
+    if not isinstance(client, dict) or not all(
+        isinstance(client.get(field), int) for field in fields
+    ):
+        return None
+    return tuple(client[field] for field in fields)
+
+
+def event_without_geometry(event: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in event.items() if key != "geometry"}
+
+
+def is_redundant_xwayland_configure_echo(
+    events: list[Any], index: int,
+) -> bool:
+    if index < 2 or index + 1 >= len(events):
+        return False
+    old_echo, new_echo = events[index:index + 2]
+    if not isinstance(old_echo, dict) or not isinstance(new_echo, dict):
+        return False
+    if any(
+        event.get("event") != "configure" or event.get("context") != "client"
+        for event in (old_echo, new_echo)
+    ):
+        return False
+    key = trace_window_key(old_echo)
+    if key is None or key[0] != "x11" or trace_window_key(new_echo) != key:
+        return False
+    old_geometry = trace_client_geometry(old_echo)
+    new_geometry = trace_client_geometry(new_echo)
+    if old_geometry is None or new_geometry is None or old_geometry == new_geometry:
+        return False
+    if event_without_geometry(old_echo) != event_without_geometry(new_echo):
+        return False
+
+    # A compositor move configures the X11 client and records the matching
+    # semantic move immediately afterwards.  Xwayland can later echo the
+    # pre-move and post-move geometries back through set_geometry.  Recognize
+    # only that already-recorded transition; unique, reordered, or novel
+    # configure events remain part of the oracle.
+    for prior_index in range(index - 1):
+        configured = events[prior_index]
+        moved = events[prior_index + 1]
+        if not isinstance(configured, dict) or not isinstance(moved, dict):
+            continue
+        if (
+            configured.get("event") == "configure"
+            and configured.get("context") == "client"
+            and moved.get("event") == "move"
+            and moved.get("context") == "frame"
+            and trace_window_key(configured) == key
+            and trace_window_key(moved) == key
+            and trace_client_geometry(configured) == new_geometry
+            and trace_client_geometry(moved) == new_geometry
+        ):
+            if any(
+                trace_window_key(prior) == key
+                and trace_client_geometry(prior) == old_geometry
+                for prior in events[:prior_index]
+            ):
+                return True
+    return False
+
+
+def canonical_trace(value: Any) -> Any:
+    if not isinstance(value, dict) or not isinstance(value.get("events"), list):
+        return value
+    events = list(value["events"])
+    index = 0
+    while index + 1 < len(events):
+        if is_redundant_xwayland_configure_echo(events, index):
+            del events[index:index + 2]
+            continue
+        index += 1
+    result = dict(value)
+    result["events"] = events
+    return result
+
+
+def self_test_trace_normalization() -> None:
+    def event(kind: str, x: int, *, window_type: str = "x11") -> dict[str, Any]:
+        return {
+            "event": kind,
+            "context": "client" if kind == "configure" else "frame",
+            "window": {
+                "type": window_type,
+                "title": "client",
+                "app_id": "App",
+                "instance": "app",
+                "class": "App",
+            },
+            "geometry": {
+                "client": {"x": x, "y": 20, "width": 100, "height": 80},
+            },
+            "state": {"mapped": True},
+        }
+
+    semantic = [
+        event("pointer", 10),
+        event("configure", 30),
+        event("move", 30),
+        event("commit", 30),
+    ]
+    echo = [event("configure", 10), event("configure", 30)]
+    trace = {"version": 1, "dropped": 0, "events": semantic + echo}
+    if canonical_trace(trace)["events"] != semantic:
+        raise RuntimeError("redundant Xwayland configure echo was not canonicalized")
+    if canonical_trace({**trace, "events": semantic + echo[:1]})["events"] != (
+        semantic + echo[:1]
+    ):
+        raise RuntimeError("a unique Xwayland configure was canonicalized")
+    changed_final = [event("configure", 10), event("configure", 31)]
+    if canonical_trace({**trace, "events": semantic + changed_final})["events"] != (
+        semantic + changed_final
+    ):
+        raise RuntimeError("an unproven configure transition was canonicalized")
+    native_echo = [
+        event("configure", 10, window_type="wayland"),
+        event("configure", 30, window_type="wayland"),
+    ]
+    if canonical_trace({**trace, "events": semantic + native_echo})["events"] != (
+        semantic + native_echo
+    ):
+        raise RuntimeError("native Wayland configure events were canonicalized")
 
 
 def read_full_output_capture(capture: Path, label: str) -> bytes:
@@ -236,15 +379,36 @@ class Session:
         self.observations: dict[str, dict[str, object]] = {}
 
     def observe(self, root: Path, phase: str) -> None:
-        self.control.command("WAIT 3")
-        state = normalized(self.control.state())
-        trace = normalized(self.control.trace())
+        previous: dict[str, object] | None = None
+        consecutive = 0
+        observation: dict[str, object] | None = None
+        for _ in range(OBSERVATION_MAX_ATTEMPTS):
+            self.control.command("WAIT 3")
+            observation = {
+                "state": normalized(self.control.state()),
+                "trace": canonical_trace(normalized(self.control.trace())),
+            }
+            if observation == previous:
+                consecutive += 1
+            else:
+                previous = observation
+                consecutive = 1
+            if consecutive >= OBSERVATION_STABLE_SAMPLES:
+                break
+            time.sleep(0.01)
+        else:
+            raise RuntimeError(
+                f"{phase} state/trace did not converge after "
+                f"{OBSERVATION_MAX_ATTEMPTS} samples"
+            )
+        if observation is None:
+            raise RuntimeError(f"{phase} produced no state/trace observation")
         capture = root / f"{phase}.ppm"
         self.control.command(f"CAPTURE {capture}")
         pixels = read_full_output_capture(capture, phase)
         self.observations[phase] = {
-            "state": state,
-            "trace": trace,
+            "state": observation["state"],
+            "trace": observation["trace"],
             "pixels": pixels,
         }
 
@@ -436,6 +600,7 @@ def compare_variants(
 
 
 def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
+    self_test_trace_normalization()
     with (
         tempfile.TemporaryDirectory(prefix="wtwm-m8-noop-options-") as directory,
         tempfile.TemporaryDirectory(prefix="wm8-", dir="/tmp") as socket_directory,
@@ -470,10 +635,18 @@ def run(compositor: Path, wayland_client: Path, x11_client: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--compositor", required=True, type=Path)
-    parser.add_argument("--wayland-client", required=True, type=Path)
-    parser.add_argument("--x11-client", required=True, type=Path)
+    parser.add_argument("--compositor", type=Path)
+    parser.add_argument("--wayland-client", type=Path)
+    parser.add_argument("--x11-client", type=Path)
+    parser.add_argument("--self-test-trace-normalization", action="store_true")
     args = parser.parse_args()
+    if args.self_test_trace_normalization:
+        self_test_trace_normalization()
+        return 0
+    if args.compositor is None or args.wayland_client is None or args.x11_client is None:
+        parser.error(
+            "--compositor, --wayland-client, and --x11-client are required"
+        )
     run(
         args.compositor.resolve(),
         args.wayland_client.resolve(),

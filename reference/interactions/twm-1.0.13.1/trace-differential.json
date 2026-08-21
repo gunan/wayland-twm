@@ -12,7 +12,7 @@
     "depth": 24
   },
   "configuration": "tests/integration/m4_trace_differential.twmrc",
-  "configuration_sha256": "4f604f71873c1de6d2c62d97bbbf426988994a84ea1f10d5c2a23630be632f07",
+  "configuration_sha256": "b06d402f013d43602a0dd193843e30eb39e0a3661553fda415f8adb2ee1343fc",
   "initial_oracle": {
     "alpha": "reference/captures/twm-1.0.13.1/baseline/phase-alpha.json",
     "alpha_sha256": "f70a39cb321ccffcdef0a43b1ecd8ba1e95085bbf4dd37784545476f70313cda",
@@ -24,6 +24,7 @@
     "wtwm_frame": "outer coordinates are the compositor scene frame origin",
     "focus": "client identity is reduced to alpha or bravo; root, PointerRoot, and no focused client normalize to root",
     "stack": "visible managed roles only, ordered bottom to top",
+    "pointer": "integer root-relative coordinates observed after initial convergence and every indexed input action",
     "volatile_fields_omitted": [
       "display_number",
       "event_time",

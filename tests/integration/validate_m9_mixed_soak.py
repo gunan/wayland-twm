@@ -5,9 +5,12 @@ from __future__ import annotations
 
 import argparse
 import copy
+import errno
 import importlib.util
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 from typing import Any
@@ -34,6 +37,18 @@ RUNNER_MARKERS = {
     "native replacement counter schema mapping": (
         '"native_crash_replacements"\n'
         '                    if crash_protocol == "wayland"'
+    ),
+    "crashed client resources are retired": (
+        'status = wait_process(crashed.process, f"{crash_protocol} crash")\n'
+        '                retire_process(crashed.process, all_processes)'
+    ),
+    "clean client resources are retired": (
+        'status = wait_process(client.process, f"{client.protocol} clean exit")\n'
+        '                retire_process(client.process, all_processes)'
+    ),
+    "exception cleanup retires client pipes": (
+        'child.wait(timeout=WAIT_SECONDS)\n'
+        '                close_process_pipes(child)'
     ),
 }
 
@@ -125,6 +140,31 @@ def self_test(module) -> None:
         raise RuntimeError("default soak duration is not exactly 72 hours")
     if module.SMOKE_ITERATIONS != EXPECTED_SMOKE_ITERATIONS:
         raise RuntimeError("bounded smoke iteration contract changed")
+
+    child = subprocess.Popen(
+        [sys.executable, "-c", "import sys; sys.stdout.write('x')"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    child.wait(timeout=10)
+    if child.stdin is None or child.stdout is None:
+        raise RuntimeError("pipe regression child lacks control pipes")
+    pipe_fds = (child.stdin.fileno(), child.stdout.fileno())
+    tracked = [child]
+    module.retire_process(child, tracked)
+    if tracked:
+        raise RuntimeError("retired client remains in the cleanup ledger")
+    if not child.stdin.closed or not child.stdout.closed:
+        raise RuntimeError("retired client pipes remain open")
+    for descriptor in pipe_fds:
+        try:
+            os.fstat(descriptor)
+        except OSError as error:
+            if error.errno != errno.EBADF:
+                raise
+        else:
+            raise RuntimeError("retired client descriptor remains valid")
+
     smoke_profile = module.profile(True, None)
     default_profile = module.profile(False, None)
     if smoke_profile != {

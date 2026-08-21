@@ -1,0 +1,504 @@
+{
+  "diagnostic_diff_images": [
+    {
+      "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-alpha.diff.ppm",
+      "sha256": "64090fd3c19fced5b579a69dc08adbdec683119782bd8a3410e617fb8c051ea2"
+    },
+    {
+      "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-bravo.diff.ppm",
+      "sha256": "64090fd3c19fced5b579a69dc08adbdec683119782bd8a3410e617fb8c051ea2"
+    }
+  ],
+  "exact_comparisons": {
+    "m10_menu_pairs": 5,
+    "m4_trace_screenshot_pairs": 22,
+    "m5_decoration_pairs": 2,
+    "mismatch_pixels": 0
+  },
+  "recorded_at": "2026-08-21T07:25:27Z",
+  "reference": "twm 1.0.13.1",
+  "review": {
+    "all_capture_images_reviewed": true,
+    "capture_image_count": 99,
+    "comparison_masks": [],
+    "diagnostic_diff_image_count": 2,
+    "method": "Lossless exhaustive contact-sheet inspection of every capture, followed by machine verification of every recorded SHA-256, exact-pair assertion, mask count, and nonzero pixel transition.",
+    "reviewed_difference_count": 1,
+    "reviewer": "Codex agent",
+    "unreviewed_difference_count": 0
+  },
+  "reviewed_differences": [
+    {
+      "color_transitions": [
+        {
+          "pixel_count": 285870,
+          "reference_rgb": "#000000",
+          "wtwm_rgb": "#252525"
+        }
+      ],
+      "disposition": "reviewed-unavoidable-wayland-translation",
+      "id": "m7-output-background-ownership",
+      "mismatch_pixels": 285870,
+      "rationale": "Reference twm leaves the X root pixels outside its windows unchanged, while a Wayland compositor owns and paints every enabled output background. The configured icon-manager and icon extents, centers, palette areas, and navigation result are exact.",
+      "reference_image": "reference/certification/evidence/61f70c65ae1c/m7-icon-differential/m7-icon-differential-evidence/reference-initial.ppm",
+      "translation_id": "output-root-spatial-model",
+      "unchanged_structure": {
+        "configured_pixel_area_ratios": {
+          "icon_background": 1.0,
+          "icon_border": 1.0,
+          "icon_foreground": 1.0,
+          "manager_background": 1.0,
+          "manager_foreground": 1.0
+        },
+        "icon_center_delta": [
+          0,
+          0
+        ],
+        "manager_extent_delta": {
+          "height": 0,
+          "width": 0,
+          "x": 0,
+          "y": 0
+        }
+      },
+      "wtwm_image": "reference/certification/evidence/61f70c65ae1c/m7-icon-differential/m7-icon-differential-evidence/wtwm-initial.ppm"
+    }
+  ],
+  "reviewed_image_sets": [
+    {
+      "id": "m4-trace",
+      "image_count": 44,
+      "images": [
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-00-initial.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-01-pointer-root.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-02-pointer-alpha-client.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-03-focus-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-04-focus-alpha-release.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-05-raise-alpha-press.ppm",
+          "sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-06-raise-alpha-release.ppm",
+          "sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-07-lower-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-08-lower-alpha-release.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-09-pointer-alpha-title.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-10-move-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-11-move-alpha-motion.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-12-move-alpha-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-13-pointer-bravo-client.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-14-focus-bravo-press.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-15-focus-bravo-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-16-raise-bravo-press.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-17-raise-bravo-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-18-lower-bravo-press.ppm",
+          "sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-19-lower-bravo-release.ppm",
+          "sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-20-iconify-bravo-press.ppm",
+          "sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/reference-21-iconify-bravo-release.ppm",
+          "sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-00-initial.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-01-pointer-root.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-02-pointer-alpha-client.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-03-focus-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-04-focus-alpha-release.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-05-raise-alpha-press.ppm",
+          "sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-06-raise-alpha-release.ppm",
+          "sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-07-lower-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-08-lower-alpha-release.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-09-pointer-alpha-title.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-10-move-alpha-press.ppm",
+          "sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-11-move-alpha-motion.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-12-move-alpha-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-13-pointer-bravo-client.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-14-focus-bravo-press.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-15-focus-bravo-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-16-raise-bravo-press.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-17-raise-bravo-release.ppm",
+          "sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-18-lower-bravo-press.ppm",
+          "sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-19-lower-bravo-release.ppm",
+          "sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-20-iconify-bravo-press.ppm",
+          "sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential-evidence/wtwm-21-iconify-bravo-release.ppm",
+          "sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+        }
+      ]
+    },
+    {
+      "id": "m5-visual",
+      "image_count": 4,
+      "images": [
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-alpha.actual.ppm",
+          "sha256": "02c7bcd13f8e53dc07f9aa46a38c1341dcde66931668ec0f3270d0cc28e477e5"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-alpha.reference.ppm",
+          "sha256": "02c7bcd13f8e53dc07f9aa46a38c1341dcde66931668ec0f3270d0cc28e477e5"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-bravo.actual.ppm",
+          "sha256": "1976780154cf605e478569cddda35e14ac3b5c9b126a23db09ec7da2750a06cc"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-differential/m5-visual-evidence/phase-bravo.reference.ppm",
+          "sha256": "1976780154cf605e478569cddda35e14ac3b5c9b126a23db09ec7da2750a06cc"
+        }
+      ]
+    },
+    {
+      "id": "m5-states",
+      "image_count": 39,
+      "images": [
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/button-hover.ppm",
+          "sha256": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/button-pressed.ppm",
+          "sha256": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/focused.ppm",
+          "sha256": "c41b416709436890f31454e300901bf7d8e5a88eb49fb805f7f3bad9888c4c2e"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/icon.ppm",
+          "sha256": "0f50307d8b892be96546e8f525a4100a1be83d620a36f3a52e979501c907c6fa"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/menu-highlight.ppm",
+          "sha256": "d822ccf0b7c02752173c2be1c461ce005da3be7737902b45ef49087e6c9d540b"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/menu-normal.ppm",
+          "sha256": "47f2b0838b65338f893c06e6b575e1e890203076ee3f6860ec6b6608676f20fb"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/menu-pull.ppm",
+          "sha256": "2ba357b8a1ab0f09883eb20d8a7e49d8af732ddd892112c0102271f1b204884b"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/menu-title.ppm",
+          "sha256": "47f2b0838b65338f893c06e6b575e1e890203076ee3f6860ec6b6608676f20fb"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/submenu.ppm",
+          "sha256": "67a2b2fcb72156bb74eb643296584e3074769a24668aa0d8638c6e304ad9e7a3"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/title-empty.ppm",
+          "sha256": "9ffeb2fbf44a315cd1d273fcf06b6bb8de0487830f480cb0b7f8ee1b450e0c2f"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/title-long.ppm",
+          "sha256": "898bd4e1d84eb9e8f29741ceaf4884af1e9b4a66866b57a81645121001a01998"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/title-nonascii.ppm",
+          "sha256": "85e690e5cb2d3db411ae6db42561d4a6b82feea99c074848c436bd5a91914760"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/color/title-rapid.ppm",
+          "sha256": "a945c31470700efd9e9d7903c33734f874320af72681d3aba05de71bc8ef9da6"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/button-hover.ppm",
+          "sha256": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/button-pressed.ppm",
+          "sha256": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/focused.ppm",
+          "sha256": "1b650e937cbc1d98f02f349894b3b40a7c123cb48142a6321208d9691d8ffc33"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/icon.ppm",
+          "sha256": "bb36fd891f68a4f614d450cbeadf2be139a20c7a66d80fc889b8ade66732fc39"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/menu-highlight.ppm",
+          "sha256": "61566d8ed469a677dfbe8d81314f0fea0de048692eefb4fa76f3f364c9e9805c"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/menu-normal.ppm",
+          "sha256": "99acf605e5bfd07a50ccb37ef764713c7c25323f645e0ed75115f3dae12e1f57"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/menu-pull.ppm",
+          "sha256": "2168f8245785469e703d9d19b0b5d233f7f57f299b8d67e9cdf66eb33df78749"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/menu-title.ppm",
+          "sha256": "99acf605e5bfd07a50ccb37ef764713c7c25323f645e0ed75115f3dae12e1f57"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/submenu.ppm",
+          "sha256": "b0d4908925e3f622a6a132995afd8188ac8da66d34cd01da8e54fcdef52a5b19"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/title-empty.ppm",
+          "sha256": "46ef653221aaa88505f157208ceb412535c4da2c417cbbca7d771fee8e555d1b"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/title-long.ppm",
+          "sha256": "51a1365f754d4884108721317ea8a08a96cbabac7704f4992ad44784f6078813"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/title-nonascii.ppm",
+          "sha256": "5727fca2d83e73af62659ca792ee450882adfd701f2179d9765c9b7d1bf0eddb"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/grayscale/title-rapid.ppm",
+          "sha256": "655a9245615c607018ee68c9571b1963a777141073542b69fa3be16da0ec4d7a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/button-hover.ppm",
+          "sha256": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/button-pressed.ppm",
+          "sha256": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/focused.ppm",
+          "sha256": "6327aaf85552a48b2614c2a86e6c408f375895c6b35290bd07ac5d645ca5a845"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/icon.ppm",
+          "sha256": "f16520612614bc2cf7c9b4aa8d36ae3d178da3046344ab8b595da393d1d08731"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/menu-highlight.ppm",
+          "sha256": "435d90394cbc159a5f8e49f222f41752f5c3d7bba78c5e7a3331a36802689b6a"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/menu-normal.ppm",
+          "sha256": "265ad5aa796c0fe2f47659eeb495b5eb4586d4d8e3f0df8060f66b48e3ba6475"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/menu-pull.ppm",
+          "sha256": "24139213fb5e1e64760455e013d0018007cf982e31b9012599497fa46ed8a88e"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/menu-title.ppm",
+          "sha256": "265ad5aa796c0fe2f47659eeb495b5eb4586d4d8e3f0df8060f66b48e3ba6475"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/submenu.ppm",
+          "sha256": "f135b2778897d62e3742b6e06e5e9967d677ed175bff9d344661ff736d36b6e5"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/title-empty.ppm",
+          "sha256": "e6612d3f33750b5452a304f05aa586897caf7746f741c6ba223a7f8eab8f8dd9"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/title-long.ppm",
+          "sha256": "f39ad11ef1ace3c655a972b05488f3fd1cb0beb8392ae53d8838b01b3107efe7"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/title-nonascii.ppm",
+          "sha256": "5edb418c278bde04f5d2cee3fd4e377c7811f8fa6f0cda585f02e15130dda2a4"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m5-visual-states/m5-visual-states/monochrome/title-rapid.ppm",
+          "sha256": "de137485a2d7610593a56196fbb775b63d4b02200c8701518b42c1d9128252ae"
+        }
+      ]
+    },
+    {
+      "id": "m7-icons",
+      "image_count": 2,
+      "images": [
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m7-icon-differential/m7-icon-differential-evidence/reference-initial.ppm",
+          "sha256": "8dbfcce3ff90745f7d735a85a4128a552cc3d03f0d78e9c8f1c9fe8e9114acad"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m7-icon-differential/m7-icon-differential-evidence/wtwm-initial.ppm",
+          "sha256": "120fb916a4d8271b838e167ccf40bc6e4352e5e507753a649f5a9258574c8a92"
+        }
+      ]
+    },
+    {
+      "id": "m10-menus",
+      "image_count": 10,
+      "images": [
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/child.reference.ppm",
+          "sha256": "c6f63cae3560f038d4ffe7d8b917928a9c904aa6afed42cb2d8f7dadbddc7376"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/child.wtwm.ppm",
+          "sha256": "c6f63cae3560f038d4ffe7d8b917928a9c904aa6afed42cb2d8f7dadbddc7376"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/highlight.reference.ppm",
+          "sha256": "75628982f9f113bee5b588a2cd0bb8ba90cc3f9f149cd7c0c7b54655dd880f7b"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/highlight.wtwm.ppm",
+          "sha256": "75628982f9f113bee5b588a2cd0bb8ba90cc3f9f149cd7c0c7b54655dd880f7b"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/normal.reference.ppm",
+          "sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/normal.wtwm.ppm",
+          "sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/pull-right.reference.ppm",
+          "sha256": "4d1d3b39f8157de327dbe353afe429ad12fcea74d056280a6e8864112f9597f7"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/pull-right.wtwm.ppm",
+          "sha256": "4d1d3b39f8157de327dbe353afe429ad12fcea74d056280a6e8864112f9597f7"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/title.reference.ppm",
+          "sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92"
+        },
+        {
+          "path": "reference/certification/evidence/61f70c65ae1c/m10-menu-differential/m10-menu-differential-evidence/title.wtwm.ppm",
+          "sha256": "08e66a522bc501847a04249e8941e98c68a36ab808d408fce2a3aad579bd0e92"
+        }
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "source": {
+    "job_conclusion": "success",
+    "job_id": 96692464755,
+    "revision": "61f70c65ae1c729d8575d2cbca1c6dfc647c4af9",
+    "workflow_run_id": 32455708485,
+    "workflow_url": "https://github.com/gunan/wayland-twm/actions/runs/32455708485"
+  },
+  "unreviewed_differences": []
+}

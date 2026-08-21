@@ -57,7 +57,7 @@ Every report has these exact top-level fields:
 | Gate ID | Required proof in `result` |
 | --- | --- |
 | `grammar-coverage` | Exactly 100 percent coverage, equal positive covered/total production counts, and no uncovered productions. |
-| `builtin-action-coverage` | Exactly 100 percent coverage, equal positive covered/total action counts, and no uncovered actions. |
+| `builtin-action-coverage` | Exactly 100 percent coverage, equal positive covered/total counts for all action spellings and distinct behaviors, and no uncovered action or behavior. |
 | `compatibility-entry-closure` | The frozen ledger path, a positive entry count, and zero partial, parsed-only, or unexplained entries. |
 | `canonical-geometry` | The canonical one-output 1x profile, at least one scenario, zero geometry differences, and a checked-in comparison artifact. |
 | `focus-stacking` | At least one scenario, zero unexplained focus and stacking differences, and a checked-in differential trace. |

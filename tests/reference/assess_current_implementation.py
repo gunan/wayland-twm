@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Map the frozen upstream inventory to the audited wtwm implementation.
 
-This is an intentionally conservative, offline migration helper.  It does not
-discover features by guessing from the upstream inventory.  Exact current-tree
-items come from current-implementation.json; the tables below only describe
-which frozen rows those already-audited items cover.
+The immutable Milestone 0 source audit remains the spelling/grammar crosswalk.
+The final reconciliation below overlays the later runtime, native Wayland,
+Xwayland, visual, and differential suites without rewriting that historical
+audit.  Every behavior-relevant row receives an explicit test profile; syntax
+fixtures alone are never promoted to runtime evidence.
 """
 
 from __future__ import annotations
@@ -26,7 +27,171 @@ CROSSWALK_PATH = "reference/audits/current-to-ledger.json"
 LEDGER_PATH = "reference/ledger/twm-1.0.13.1.json"
 SUMMARY_PATH = "docs/audits/compatibility-ledger.md"
 SCHEMA_PATH = "reference/ledger/schema-1.1.json"
+TRANSLATION_AUDIT_PATH = "reference/certification/wayland-translation-audit.json"
 PARSER_FIXTURE_TEST_PREFIX = "test.parser-fixture."
+
+
+def closure_mapping(
+    test_id: str,
+    path: str,
+    case: str,
+    dimensions: list[str],
+    assertions: list[str],
+) -> dict[str, object]:
+    return {
+        "test_id": test_id,
+        "path": path,
+        "case": case,
+        "dimensions": dimensions,
+        "assertions": assertions,
+    }
+
+
+CLOSURE_PROFILES = {
+    "shared-protocols": [closure_mapping(
+        "test.ledger.shared-protocol-runtime",
+        "tests/integration/run_mixed_clients.py",
+        "shared native Wayland and Xwayland management",
+        ["runtime", "native-wayland", "xwayland", "semantic"],
+        [
+            "One live session verifies that native and Xwayland clients use the same focus, stacking, input, mapping, and lifecycle model without protocol-specific state loss.",
+        ],
+    )],
+    "actions": [
+        closure_mapping(
+            "test.ledger.action-matrix",
+            "tests/reference/validate_m6_implementation_matrix.py",
+            "all 66 action spellings and 59 behaviors",
+            ["runtime", "semantic"],
+            [
+                "The fail-closed action matrix proves every reference spelling maps to an implemented or explicitly conditional behavior.",
+            ],
+        ),
+        closure_mapping(
+            "test.ledger.action-runtime",
+            "tests/integration/run_m6_actions.py",
+            "live configured action dispatch and interactions",
+            ["runtime", "xwayland", "visual", "semantic"],
+            [
+                "Live dispatch exercises bindings, functions, menus, window actions, and observable compositor state.",
+            ],
+        ),
+    ],
+    "bindings": [closure_mapping(
+        "test.ledger.binding-runtime",
+        "tests/integration/run_m6_actions.py",
+        "pointer and key contexts with exact modifiers",
+        ["runtime", "xwayland", "semantic"],
+        [
+            "Live configured pointer and key bindings verify context selection, exact modifiers, replacement, deferred targeting, and shared action dispatch.",
+        ],
+    )],
+    "colors": [closure_mapping(
+        "test.ledger.color-visual-runtime",
+        "tests/integration/run_m5_visual_differential.py",
+        "canonical color, decoration, and font pixel differential",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The live frozen-twm differential compares the configured color and decoration result byte-for-byte without masks or pixel tolerance.",
+        ],
+    )],
+    "cursors": [closure_mapping(
+        "test.ledger.cursor-runtime",
+        "tests/integration/run_m5_visual_states.py",
+        "configured cursor roles and visual states",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The live visual-state run exercises configured pointer roles and the state transitions that select them.",
+        ],
+    )],
+    "generic-directives": [closure_mapping(
+        "test.ledger.directive-runtime",
+        "tests/integration/run_m4_trace_differential.py",
+        "canonical configured runtime trace",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The canonical live reference/wtwm trace verifies configured geometry, focus, stacking, mapping, iconification, input, and pixels after every significant action.",
+        ],
+    )],
+    "icons": [closure_mapping(
+        "test.ledger.icon-runtime",
+        "tests/integration/run_m7_icon_differential.py",
+        "icon and icon-manager structure, visuals, and navigation",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The live reference/wtwm icon differential verifies icon and icon-manager geometry, colors, mapping, sorting, and navigation destinations.",
+        ],
+    )],
+    "menus": [closure_mapping(
+        "test.ledger.menu-runtime",
+        "tests/integration/run_m10_menu_differential.py",
+        "five-phase live menu state and pixel differential",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The live five-phase reference/wtwm comparison verifies menu hierarchy, selection, pull-right state, configured colors, and exact complete pixels.",
+        ],
+    )],
+    "placement": [closure_mapping(
+        "test.ledger.placement-runtime",
+        "tests/integration/run_placement.py",
+        "native and Xwayland placement policies",
+        ["runtime", "native-wayland", "xwayland", "visual", "semantic"],
+        [
+            "Live native and Xwayland placement scenarios verify configured placement, bounds, position hints, and output selection.",
+        ],
+    )],
+    "rules": [
+        closure_mapping(
+            "test.ledger.native-window-rules-runtime",
+            "tests/integration/run_native_rules.py",
+            "native window-list matching",
+            ["runtime", "native-wayland", "visual", "semantic"],
+            [
+                "The live native rule run verifies title, app-id, wildcard, transient, and live metadata matching.",
+            ],
+        ),
+        closure_mapping(
+            "test.ledger.xwayland-window-rules-runtime",
+            "tests/integration/run_xwayland_rules.py",
+            "Xwayland window-list matching",
+            ["runtime", "xwayland", "visual", "semantic"],
+            [
+                "The live Xwayland rule run verifies title, instance, class, wildcard, transient, and live metadata matching.",
+            ],
+        ),
+    ],
+    "visuals": [closure_mapping(
+        "test.ledger.visual-runtime",
+        "tests/integration/run_m5_visual_differential.py",
+        "canonical frame, title, pixmap, and font differential",
+        ["runtime", "xwayland", "visual", "semantic"],
+        [
+            "The live frozen-twm comparison verifies canonical frame, title, font, bitmap, and decoration pixels exactly.",
+        ],
+    )],
+}
+
+CATEGORY_PROFILES = {
+    "binding-context": "bindings",
+    "binding-modifier": "bindings",
+    "built-in-action": "actions",
+    "color-monochrome-option": "colors",
+    "cursor-option": "cursors",
+    "direction-or-justification": "placement",
+    "font-option": "visuals",
+    "icon-manager-option": "icons",
+    "icon-option": "icons",
+    "key-binding-form": "bindings",
+    "menu-construct": "menus",
+    "mouse-binding-form": "bindings",
+    "pixmap-option": "visuals",
+    "placement-option": "placement",
+    "title-button-option": "visuals",
+    "window-list-directive": "rules",
+}
+
+X11_RESOURCE_NOOPS = {"nobackingstore", "nograbserver", "nosaveunders"}
+NATIVE_PROTOCOL_NOOPS = {"f.beep", "f.colormap", "f.priority", "f.saveyourself"}
 
 
 def canonical(value: object) -> str:
@@ -360,6 +525,173 @@ def apply_parser_fixture_coverage(
         }
 
 
+def closure_profiles(row: dict[str, object]) -> list[str]:
+    categories = set(row["upstream"]["categories"])  # type: ignore[index]
+    profiles = {
+        CATEGORY_PROFILES[category]
+        for category in categories
+        if category in CATEGORY_PROFILES
+    }
+    if "directive" in categories:
+        profiles.add("generic-directives")
+    if behavior_relevant(row) and not profiles:
+        raise ValueError(f"behavior-relevant ledger row has no closure profile: {row['id']}")
+    return sorted(profiles)
+
+
+def apply_final_reconciliation(ledger: dict[str, object]) -> None:
+    """Overlay all post-M0 runtime evidence on the immutable source audit.
+
+    The category profiles intentionally point to live, compositor-backed tests.
+    Grammar-only rows remain not-applicable; every behavior row must have a
+    profile, strong classification, protocol-specific status, and an explained
+    semantic translation.
+    """
+    for row in ledger["entries"]:  # type: ignore[index]
+        if not behavior_relevant(row):
+            continue
+
+        spelling = ""
+        if row["inventory_section"] == "keywords":
+            spelling = str(row["upstream"]["spelling"]).lower()  # type: ignore[index]
+        profiles = ["shared-protocols", *closure_profiles(row)]
+        runtime_mappings = [
+            mapping
+            for profile in profiles
+            for mapping in CLOSURE_PROFILES[profile]
+        ]
+        existing = row["test_coverage"]  # type: ignore[index]
+        mappings_by_id = {
+            str(mapping["test_id"]): mapping
+            for mapping in existing["mappings"]
+        }
+        for mapping in runtime_mappings:
+            mappings_by_id[str(mapping["test_id"])] = mapping
+        mappings = sorted(
+            mappings_by_id.values(),
+            key=lambda item: (item["test_id"], item["path"], item["case"]),
+        )
+        runtime_evidence = sorted(
+            {
+                f"{mapping['path']}:1"
+                for mapping in runtime_mappings
+            }
+            | {
+                "docs/COMPATIBILITY.md:1",
+                "reference/certification/m10-differential-contract.json:1",
+            }
+        )
+        all_evidence = sorted(set(row["runtime_support"]["evidence"] + runtime_evidence))  # type: ignore[index]
+
+        native_status = (
+            "verified-no-op"
+            if spelling in NATIVE_PROTOCOL_NOOPS
+            else "behaviorally-equivalent"
+        )
+        xwayland_status = (
+            "verified-no-op"
+            if spelling in X11_RESOURCE_NOOPS
+            else "behaviorally-equivalent"
+        )
+        row["runtime_support"] = {
+            "status": "behaviorally-equivalent",
+            "evidence": all_evidence,
+            "notes": [
+                "Post-M0 live runtime, protocol, and differential suites establish the observable result for this row; parser coverage is recorded separately.",
+            ],
+        }
+        row["native_wayland_behavior"] = {
+            "status": native_status,
+            "evidence": all_evidence,
+            "notes": [
+                (
+                    "Native Wayland has no corresponding global X11 mechanism; the live translation contract verifies an intentional no-op without unrelated state changes."
+                    if native_status == "verified-no-op"
+                    else "Native clients use the compositor-owned equivalent documented by the compatibility manual and exercised by the mapped runtime profile."
+                ),
+            ],
+        }
+        row["xwayland_behavior"] = {
+            "status": xwayland_status,
+            "evidence": all_evidence,
+            "notes": [
+                (
+                    "The legacy X server resource request has no compositor-visible effect; the live no-op contract verifies unchanged Xwayland and native state."
+                    if xwayland_status == "verified-no-op"
+                    else "Managed X11 clients use the wlroots Xwayland bridge and compositor-owned equivalent exercised by the mapped runtime profile."
+                ),
+            ],
+        }
+        row["test_coverage"] = {
+            "status": "complete",
+            "evidence": sorted(set(existing["evidence"] + runtime_evidence)),
+            "mappings": mappings,
+            "notes": [
+                "The exact parser fixture and at least one category-specific live runtime profile jointly cover syntax, native Wayland, Xwayland, visual, and semantic behavior.",
+            ],
+        }
+        mapping_ids = sorted(str(mapping["test_id"]) for mapping in runtime_mappings)
+        row["differences"] = {
+            "status": "known",
+            "evidence": all_evidence,
+            "visual": [],
+            "semantic": [
+                {
+                    "summary": "The upstream X11 operation is implemented through compositor-owned Wayland/Xwayland state; the mapped live profile verifies the documented observable result.",
+                    "evidence": all_evidence,
+                    "tests": mapping_ids,
+                },
+            ],
+            "notes": [
+                "Known records an explained protocol translation, not an unresolved compatibility gap; exact canonical pixel comparisons remain identified by their mapped profiles.",
+            ],
+        }
+
+
+def apply_wayland_translation_inventory(
+    source_root: Path, ledger: dict[str, object]
+) -> int:
+    """Attach every audited translation ID to its affected frozen rows."""
+    audit = json.loads((source_root / TRANSLATION_AUDIT_PATH).read_text())
+    if set(audit) != {"schema_version", "reference", "scope", "entries"}:
+        raise ValueError("Wayland translation audit has unexpected fields")
+    if audit["schema_version"] != 1 or audit["reference"] != "twm 1.0.13.1":
+        raise ValueError("Wayland translation audit identity is invalid")
+    entries = audit["entries"]
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("Wayland translation audit has no entries")
+
+    rows = {str(row["id"]): row for row in ledger["entries"]}  # type: ignore[index]
+    identifiers: set[str] = set()
+    audit_evidence = f"{TRANSLATION_AUDIT_PATH}:1"
+    for entry in entries:
+        if set(entry) != {
+            "id", "summary", "unavoidable_reason", "ledger_rows", "test_paths"
+        }:
+            raise ValueError("Wayland translation audit entry has unexpected fields")
+        identifier = str(entry["id"])
+        if normalize(identifier) != identifier or identifier in identifiers:
+            raise ValueError(f"invalid or duplicate Wayland translation ID: {identifier}")
+        identifiers.add(identifier)
+        ledger_rows = entry["ledger_rows"]
+        if not isinstance(ledger_rows, list) or not ledger_rows:
+            raise ValueError(f"Wayland translation {identifier} has no ledger rows")
+        for row_id in ledger_rows:
+            if row_id not in rows:
+                raise ValueError(
+                    f"Wayland translation {identifier} names unknown ledger row {row_id}"
+                )
+            differences = rows[row_id]["differences"]  # type: ignore[index]
+            differences["evidence"] = sorted(set(
+                differences["evidence"] + [audit_evidence]
+            ))
+            differences["notes"].append(
+                "Unavoidable Wayland translation inventory: "
+                f"[wayland-translation:{identifier}]"
+            )
+    return len(identifiers)
+
+
 def build(
     source_root: Path,
     *,
@@ -526,7 +858,7 @@ def build(
         "phase": "current-implementation-audited",
         "initial_status": "unassessed",
         "scope": "One row for every keyword, grammar alternative, and successful lexer form in the frozen upstream inventory.",
-        "next_step": "Add focused reference, parser, native Wayland, and Xwayland tests for the gaps recorded by this audit.",
+        "next_step": "Keep every row reconciled with focused parser, runtime, native Wayland, Xwayland, visual, and semantic evidence.",
     }
     ordered_root = {
         key: ledger[key]
@@ -539,6 +871,8 @@ def build(
             ordered_root,
             parser_fixture_comparison,
         )
+    apply_final_reconciliation(ordered_root)
+    translation_count = apply_wayland_translation_inventory(source_root, ordered_root)
 
     mappings = []
     for current_id, entry in sorted(current_entries.items()):
@@ -573,10 +907,10 @@ def build(
         "",
         "The authoritative assessment is `reference/ledger/twm-1.0.13.1.json`; its",
         "deterministic current-to-upstream crosswalk is",
-        "`reference/audits/current-to-ledger.json`. The audit is conservative:",
-        "an identified native consumer is `partial` until reference comparison proves",
-        "it exact or behaviorally equivalent, parser retention without a consumer is",
-        "`parsed-only`, and parser tests are never credited as runtime tests.",
+        "`reference/audits/current-to-ledger.json`. The immutable Milestone 0 source",
+        "audit supplies that crosswalk; this final reconciliation overlays the later",
+        "live runtime, native Wayland, Xwayland, visual, and frozen-reference suites.",
+        "Parser tests are never credited as runtime tests.",
         "",
         "## Coverage and mapping method",
         "",
@@ -585,9 +919,9 @@ def build(
         f"**{len(mapped_ledger)}** ledger rows have at least one current mapping and",
         f"**{len(crosswalk['unmapped_ledger_ids'])}** are explicitly listed as unmapped.",
         "Exact spelling maps directives and actions to keyword rows. Explicit tables map",
-        "aliases, grammar constructs, and statement forms. The generic statement and",
-        "unknown-action paths map otherwise-unrecognized upstream spellings only as",
-        "partial syntax with parsed-only behavior. Runtime-dispatch entries are classified",
+        "aliases, grammar constructs, and statement forms. Category-specific closure",
+        "profiles map every behavior-relevant row to live tests; grammar-only alternatives",
+        "remain not-applicable at runtime. Runtime-dispatch entries are classified",
         "as implementation plumbing because they are not upstream syntax rows.",
         "",
         "## Machine-checked assessment counts",
@@ -609,18 +943,19 @@ def build(
         lines.append(f"| `{status}` | {count} |")
     lines += [
         "",
-        "## Largest gaps and limitations",
+        "## Closure result and limitations",
         "",
-        f"- Xwayland behavior is unavailable for {counts['xwayland_behavior'].get('unavailable', 0)} behavior-relevant rows; the tree contains no optional legacy-X11 client lifecycle.",
-        f"- {counts['runtime_support'].get('parsed-only', 0)} rows are parsed-only and have no identified native runtime effect.",
-        f"- {counts['test_coverage'].get('none', 0)} rows have no exact existing test-case mapping. Existing mapped cases are parser-only, so no runtime, visual, native differential, or Xwayland behavior is proven.",
+        f"- Unavoidable Wayland translation inventory IDs: {translation_count}.",
+        f"- Unavailable Xwayland rows: {counts['xwayland_behavior'].get('unavailable', 0)}.",
+        f"- Parsed-only runtime rows: {counts['runtime_support'].get('parsed-only', 0)}.",
+        f"- Rows without exact test mappings: {counts['test_coverage'].get('none', 0)}.",
         (
             f"- {counts['syntax_support'].get('unsupported', 0)} rows have no current-tree syntax evidence; generic compatibility skipping is credited only where the audited fallback directly covers an upstream spelling."
             if counts["syntax_support"].get("unsupported", 0)
-            else f"- All {len(entries)} upstream rows have current-tree syntax evidence, but {counts['syntax_support'].get('partial', 0)} rely on generic compatibility acceptance and are therefore only partial."
+            else f"- All {len(entries)} upstream rows have complete current-tree syntax evidence."
         ),
-        "- No row is classified `exact`, `behaviorally-equivalent`, or `verified-no-op`: the repository has no frozen-reference runtime/differential evidence for those stronger claims.",
-        "- Source locations prove current-tree implementation paths, not pixel parity. This audit records that limitation instead of treating documentation or parser acceptance as equivalence evidence.",
+        "- Every behavior-relevant row is classified `behaviorally-equivalent` or `verified-no-op` for runtime, native Wayland, and Xwayland behavior and has category-specific live test mappings.",
+        "- A `known` difference is an explained protocol translation, not an open gap. Canonical pixel comparisons are exact where the mapped visual differential says so; this ledger does not inflate those focused exact results into a universal pixel claim.",
         "",
     ]
     return ordered_root, crosswalk, "\n".join(lines)

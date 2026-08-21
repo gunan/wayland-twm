@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "gate_id": "focus-stacking",
+  "reference": "twm 1.0.13.1",
+  "recorded_at": "2026-08-21T07:24:39Z",
+  "revision": {
+    "commit": "61f70c65ae1c729d8575d2cbca1c6dfc647c4af9",
+    "clean": true
+  },
+  "result": {
+    "scenario_count": 21,
+    "unexplained_focus_differences": 0,
+    "unexplained_stacking_differences": 0,
+    "differential_trace_path": "reference/certification/evidence/61f70c65ae1c/m4-trace-differential/m4-trace-differential.json"
+  }
+}

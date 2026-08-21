@@ -151,12 +151,12 @@
     {
       "id": "pointer-location",
       "roadmap_text": "Pointer location.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "The icon differential records each backend's root coordinates but compares only classified icon-manager destination cells. The interaction trace injects the same coordinates without including pointer position in normalized state, so exact pointer-coordinate parity is not yet compared.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
+        "exact root-relative integer coordinates after every indexed input action",
         "per-backend root coordinates recorded after icon-manager navigation",
         "classified icon-manager destination cells compared between backends",
-        "identical requested coordinates injected without pointer-state comparison in interaction traces"
+        "deterministic initial pointer position before the first trace snapshot"
       ],
       "mappings": {
         "runners": [
@@ -180,8 +180,7 @@
     {
       "id": "menu-state",
       "roadmap_text": "Menu state.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Existing runtime and visual-state runners cover wtwm menus and the frozen action contract covers reference semantics, but no complete live reference/wtwm menu-state differential is recorded.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "open menu name and depth",
         "selected row and pull-right submenu state",
@@ -189,10 +188,12 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_menu_differential.py",
           "tests/integration/run_m6_actions.py",
           "tests/integration/run_m5_visual_states.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_menu_differential.py",
           "tests/reference/validate_m6_implementation_matrix.py",
           "tests/integration/validate_m5_visual.py"
         ],
@@ -237,8 +238,7 @@
     {
       "id": "commands-launched",
       "roadmap_text": "Commands launched.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Reference command semantics, configured-action dispatch, and safe f.startwm command handling exist, but launched-command observations are not yet compared in one live reference/wtwm scenario.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "decoded command string and action alias",
         "configured action dispatch",
@@ -246,10 +246,12 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_command_differential.py",
           "tests/integration/run_m6_actions.py",
           "tests/integration/run_m8_startwm.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_command_differential.py",
           "tests/reference/validate_reference_action_contract.py",
           "tests/reference/validate_m6_implementation_matrix.py",
           "tests/reference/validate_reference_startwm_contract.py"
@@ -267,8 +269,7 @@
     {
       "id": "client-close-and-destruction",
       "roadmap_text": "Client close and destruction behavior.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Xwayland close/kill, icon lifecycle churn, and popup destruction are exercised under wtwm, while reference action semantics are frozen separately; a single live end-to-end differential is not recorded.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "WM_DELETE_WINDOW graceful close",
         "forced destruction fallback",
@@ -276,11 +277,13 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_close_differential.py",
           "tests/integration/run_xwayland_bridge.py",
           "tests/integration/run_m7_lifecycle_churn.py",
           "tests/integration/run_m9_popup_lifecycle_stress.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_close_differential.py",
           "tests/integration/validate_m9_popup_lifecycle_stress.py",
           "tests/reference/validate_reference_action_contract.py",
           "tests/reference/validate_reference_state_contract.py"
@@ -298,20 +301,22 @@
     {
       "id": "screenshots-after-significant-actions",
       "roadmap_text": "Screenshots after every significant action.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Exact reference/wtwm pixels exist for stable canonical phases and icons, and wtwm captures the enumerated visual states, but screenshots are not yet paired after every significant Milestone 10 action.",
+      "coverage_status": "live-reference-differential",
+      "coverage_note": "The canonical one-output interaction trace pairs stable full-screen captures after its initial state and all 21 indexed pointer, button, and key actions; the focused menu and icon differentials retain their own stable visual phases.",
       "comparison_semantics": [
-        "full PPM bytes for canonical stable phases",
-        "geometry and configured-color classifications",
-        "enumerated focus, title, border, menu, icon, and button states"
+        "full-screen PPM pixels after the initial state and every indexed canonical action",
+        "exact dimensions, hashes, and per-pixel mismatch counts with no masks",
+        "paired artifacts retained for every nonzero difference"
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m4_trace_differential.py",
           "tests/integration/run_m5_visual_differential.py",
           "tests/integration/run_m5_visual_states.py",
           "tests/integration/run_m7_icon_differential.py"
         ],
         "validators": [
+          "tests/integration/validate_m4_trace_differential.py",
           "tests/integration/validate_m5_visual.py",
           "tests/reference/validate_reference_capture.py",
           "tests/reference/validate_reference_icon_contract.py"

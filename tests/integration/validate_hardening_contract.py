@@ -7,7 +7,14 @@ import argparse
 from pathlib import Path
 
 
-def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> None:
+def validate_sources(
+    wtwm: str,
+    protocol: str,
+    hardening: str,
+    header: str,
+    readme: str,
+    compatibility: str,
+) -> None:
     requirements = {
         "xdg move/resize grab serial validation": (
             "wlr_seat_validate_pointer_grab_serial" in wtwm
@@ -35,6 +42,18 @@ def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> N
         "selection zero-serial rejection": (
             wtwm.count("event == NULL || event->serial == 0") >= 2
         ),
+        "data drag serial and origin validation": all(
+            marker in wtwm
+            for marker in (
+                "request_start_drag",
+                "wlr_seat_validate_pointer_grab_serial(server->seat, event->origin",
+                "wlr_seat_validate_touch_grab_serial(server->seat, event->origin",
+                "touch_point->client == drag->seat_client",
+                "wlr_seat_start_pointer_drag",
+                "wlr_seat_start_touch_drag",
+                "destroy_rejected_drag",
+            )
+        ),
         "bounded native and Xwayland size ingestion": all(
             marker in wtwm
             for marker in (
@@ -45,12 +64,40 @@ def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> N
                 '"xwayland_geometry"',
             )
         ),
-        "bounded popup positioner sizes": (
-            "popup_size_valid" in wtwm and "WTWM_CLIENT_SIZE_MAX" in wtwm
+        "bounded complete popup positioner": (
+            "popup_positioner_valid" in wtwm
+            and "wtwm_client_positioner_validate" in wtwm
+            and all(
+                marker in wtwm
+                for marker in (
+                    "rules->size.width",
+                    "rules->anchor_rect.width",
+                    "rules->parent_size.width",
+                    "rules->offset.x",
+                    "geometry->width",
+                )
+            )
         ),
         "portable size ceiling and fallback policy": (
             "#define WTWM_CLIENT_SIZE_MAX 65535" in header
             and "sanitize_fallback" in hardening
+            and "WTWM_POSITIONER_INVALID_GEOMETRY" in header
+            and "wtwm_client_positioner_validate" in hardening
+        ),
+        "explicit public wlroots request boundary": all(
+            marker in compatibility
+            for marker in (
+                "authorization/grab serial",
+                "xdg_popup.grab",
+                "wl_data_offer.accept",
+                "set_parent_configure",
+                "reposition token",
+                "core-surface",
+            )
+        ),
+        "README hardening gate completed": (
+            "- [x] **Shared:** Validate every Wayland request serial and "
+            "client-supplied size." in readme
         ),
         "scene geometry is normalized before wlroots listeners": (
             "wtwm_client_geometry_in_bounds" in hardening
@@ -83,17 +130,19 @@ def validate_sources(wtwm: str, protocol: str, hardening: str, header: str) -> N
         raise AssertionError("missing hardening contract: " + ", ".join(failed))
 
 
-def read_sources(source_root: Path) -> tuple[str, str, str, str]:
+def read_sources(source_root: Path) -> tuple[str, str, str, str, str, str]:
     return (
         (source_root / "src" / "wtwm.c").read_text(encoding="utf-8"),
         (source_root / "src" / "test_control.c").read_text(encoding="utf-8"),
         (source_root / "src" / "hardening.c").read_text(encoding="utf-8"),
         (source_root / "src" / "hardening.h").read_text(encoding="utf-8"),
+        (source_root / "README.md").read_text(encoding="utf-8"),
+        (source_root / "docs" / "COMPATIBILITY.md").read_text(encoding="utf-8"),
     )
 
 
-def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
-    wtwm, protocol, hardening, header = sources
+def self_test_tamper(sources: tuple[str, str, str, str, str, str]) -> None:
+    wtwm, protocol, hardening, header, readme, compatibility = sources
     wtwm_gates = (
         "wlr_seat_validate_pointer_grab_serial",
         "wlr_seat_validate_touch_grab_serial",
@@ -108,12 +157,21 @@ def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
         'event->seat, event->serial, "resize"',
         'event->seat, event->serial, "show_window_menu"',
         "event == NULL || event->serial == 0",
+        "request_start_drag",
+        "wlr_seat_validate_pointer_grab_serial(server->seat, event->origin",
+        "wlr_seat_validate_touch_grab_serial(server->seat, event->origin",
+        "touch_point->client == drag->seat_client",
+        "destroy_rejected_drag",
         '"xdg_map"',
         '"xdg_commit"',
         '"xwayland_create"',
         '"xwayland_commit"',
         '"xwayland_geometry"',
-        "popup_size_valid",
+        "popup_positioner_valid",
+        "rules->anchor_rect.width",
+        "rules->parent_size.width",
+        "rules->offset.x",
+        "geometry->width",
         "normalize_xdg_surface_geometry",
         "DIAGNOSTIC_MAX_WINDOWS = 256",
     )
@@ -122,7 +180,9 @@ def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
         if tampered == wtwm:
             raise AssertionError(f"self-test could not locate gate: {gate}")
         try:
-            validate_sources(tampered, protocol, hardening, header)
+            validate_sources(
+                tampered, protocol, hardening, header, readme, compatibility
+            )
         except AssertionError:
             pass
         else:
@@ -130,11 +190,37 @@ def self_test_tamper(sources: tuple[str, str, str, str]) -> None:
 
     tampered_protocol = protocol.replace("parse_int(limit, 1, 256", "removed")
     try:
-        validate_sources(wtwm, tampered_protocol, hardening, header)
+        validate_sources(
+            wtwm, tampered_protocol, hardening, header, readme, compatibility
+        )
     except AssertionError:
         pass
     else:
         raise AssertionError("contract accepted an unbounded DUMP command")
+
+    for gate in ("authorization/grab serial", "xdg_popup.grab", "core-surface"):
+        tampered = compatibility.replace(gate, "removed")
+        try:
+            validate_sources(wtwm, protocol, hardening, header, readme, tampered)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"contract accepted missing boundary: {gate}")
+
+    tampered_readme = readme.replace(
+        "- [x] **Shared:** Validate every Wayland request serial and "
+        "client-supplied size.",
+        "- [ ] **Shared:** Validate every Wayland request serial and "
+        "client-supplied size.",
+    )
+    try:
+        validate_sources(
+            wtwm, protocol, hardening, header, tampered_readme, compatibility
+        )
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("contract accepted an unchecked hardening gate")
 
 
 def main() -> None:

@@ -8,6 +8,7 @@ import copy
 import datetime as dt
 import json
 import re
+import struct
 import subprocess
 import tempfile
 from pathlib import Path
@@ -20,6 +21,10 @@ POLICY = (
     "release gate is passed with validated checked-in evidence."
 )
 COMMIT = re.compile(r"^[0-9a-f]{40,64}$")
+TRANSLATION_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+TRANSLATION_MARKER = re.compile(r"\[wayland-translation:([a-z0-9-]+)\]")
+TRANSLATION_AUDIT_PATH = "reference/certification/wayland-translation-audit.json"
+TRANSLATION_MANUAL_PATHS = {"data/wtwm.1", "docs/COMPATIBILITY.md"}
 SUPPORTED_PACKAGE_RELEASES = {"13 (Trixie)", "14 (Forky)"}
 SUPPORTED_PACKAGE_ARCHITECTURES = {"amd64", "arm64"}
 
@@ -63,14 +68,90 @@ def parse_time(value: Any, label: str, errors: list[str]) -> dt.datetime | None:
     return parsed
 
 
+def decode_index_v4_strip(data: bytes, offset: int) -> tuple[int, int]:
+    """Decode the ofs-delta varint used for version-4 path compression."""
+    value = data[offset] & 0x7F
+    byte = data[offset]
+    offset += 1
+    while byte & 0x80:
+        value += 1
+        byte = data[offset]
+        offset += 1
+        value = (value << 7) + (byte & 0x7F)
+    return value, offset
+
+
+def path_tracked_in_index_data(data: bytes, relative: str) -> bool:
+    if len(data) < 12:
+        return False
+    signature, version, count = struct.unpack("!4sII", data[:12])
+    if signature != b"DIRC" or version not in {2, 3, 4}:
+        return False
+    offset = 12
+    previous_path = b""
+    for _ in range(count):
+        start = offset
+        if start + 62 > len(data):
+            return False
+        flags = struct.unpack("!H", data[start + 60:start + 62])[0]
+        fixed_size = 64 if version >= 3 and flags & 0x4000 else 62
+        path_start = start + fixed_size
+        if version == 4:
+            strip, path_start = decode_index_v4_strip(data, path_start)
+            if strip > len(previous_path):
+                return False
+            path_end = data.index(b"\0", path_start)
+            path = previous_path[:len(previous_path) - strip] + data[path_start:path_end]
+            offset = path_end + 1
+            previous_path = path
+        else:
+            path_end = data.index(b"\0", path_start)
+            path = data[path_start:path_end]
+            entry_size = path_end - start + 1
+            offset = start + ((entry_size + 7) // 8) * 8
+        if path.decode("utf-8", "surrogateescape") == relative:
+            return True
+    return False
+
+
+def tracked_in_index(root: Path, relative: str) -> bool:
+    try:
+        git_directory = root / ".git"
+        if git_directory.is_file():
+            pointer = git_directory.read_text(encoding="utf-8").strip()
+            if not pointer.startswith("gitdir: "):
+                return False
+            git_directory = (root / pointer.removeprefix("gitdir: ")).resolve()
+        return path_tracked_in_index_data((git_directory / "index").read_bytes(), relative)
+    except (OSError, UnicodeError, ValueError, struct.error):
+        return False
+    return False
+
+
 def tracked(root: Path, relative: str) -> bool:
-    result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--error-unmatch", "--", relative],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return result.returncode == 0
+    resolved_root = root.resolve()
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-c",
+                "safe.directory=*",
+                "-C",
+                str(resolved_root),
+                "ls-files",
+                "--error-unmatch",
+                "--",
+                relative,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if result.returncode == 0:
+            return True
+    except OSError:
+        pass
+    return tracked_in_index(resolved_root, relative)
 
 
 def repo_file(
@@ -134,6 +215,20 @@ def check_coverage(
         errors.append(f"{prefix}.{uncovered_field} must be empty")
 
 
+def check_equal_counts(
+    result: dict[str, Any], prefix: str, errors: list[str], *, item_name: str
+) -> None:
+    covered_field = f"covered_{item_name}"
+    total_field = f"total_{item_name}"
+    uncovered_field = f"uncovered_{item_name}"
+    covered_ok = integer(result[covered_field], f"{prefix}.{covered_field}", errors, 1)
+    total_ok = integer(result[total_field], f"{prefix}.{total_field}", errors, 1)
+    if covered_ok and total_ok and result[covered_field] != result[total_field]:
+        errors.append(f"{prefix} covered and total {item_name} counts must be equal")
+    if result[uncovered_field] != []:
+        errors.append(f"{prefix}.{uncovered_field} must be empty")
+
+
 def grammar(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     del root
     check_coverage(result, prefix, errors, item_name="productions")
@@ -141,7 +236,22 @@ def grammar(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
 
 def actions(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     del root
-    check_coverage(result, prefix, errors, item_name="actions")
+    fields = {
+        "coverage_percent",
+        "covered_actions",
+        "total_actions",
+        "uncovered_actions",
+        "covered_behaviors",
+        "total_behaviors",
+        "uncovered_behaviors",
+    }
+    if not exact_fields(result, fields, prefix, errors):
+        return
+    percent = result["coverage_percent"]
+    if not isinstance(percent, (int, float)) or isinstance(percent, bool) or percent != 100:
+        errors.append(f"{prefix}.coverage_percent must equal 100")
+    check_equal_counts(result, prefix, errors, item_name="actions")
+    check_equal_counts(result, prefix, errors, item_name="behaviors")
 
 
 def compatibility(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
@@ -424,15 +534,33 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
     if not exact_fields(result, fields, prefix, errors):
         return
     manual_paths = result["manual_paths"]
+    manual_files: list[tuple[str, Path]] = []
     if not isinstance(manual_paths, list) or not manual_paths:
         errors.append(f"{prefix}.manual_paths must be a non-empty array")
     else:
-        for index, path in enumerate(manual_paths):
-            repo_file(path, f"{prefix}.manual_paths[{index}]", root, errors)
+        if len(manual_paths) != len(set(manual_paths)):
+            errors.append(f"{prefix}.manual_paths must not contain duplicates")
+        if set(manual_paths) != TRANSLATION_MANUAL_PATHS:
+            errors.append(
+                f"{prefix}.manual_paths must exactly name data/wtwm.1 and "
+                "docs/COMPATIBILITY.md"
+            )
+        for index, path_value in enumerate(manual_paths):
+            path = repo_file(
+                path_value, f"{prefix}.manual_paths[{index}]", root, errors
+            )
+            if path is not None:
+                manual_files.append((path_value, path))
     if result["ledger_path"] != "reference/ledger/twm-1.0.13.1.json":
         errors.append(f"{prefix}.ledger_path must name the frozen compatibility ledger")
-    require_repo_path(result, "ledger_path", prefix, root, errors)
-    require_repo_path(result, "audit_path", prefix, root, errors)
+    ledger_path = repo_file(
+        result["ledger_path"], f"{prefix}.ledger_path", root, errors
+    )
+    if result["audit_path"] != TRANSLATION_AUDIT_PATH:
+        errors.append(f"{prefix}.audit_path must name {TRANSLATION_AUDIT_PATH}")
+    audit_path = repo_file(
+        result["audit_path"], f"{prefix}.audit_path", root, errors, json_only=True
+    )
     id_fields = ("unavoidable_translation_ids", "manual_documented_ids", "ledger_documented_ids")
     id_sets: dict[str, set[str]] = {}
     for field in id_fields:
@@ -444,6 +572,10 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
             continue
         if len(values) != len(set(values)):
             errors.append(f"{prefix}.{field} must not contain duplicates")
+        if values != sorted(values):
+            errors.append(f"{prefix}.{field} must be sorted")
+        if any(not TRANSLATION_ID.fullmatch(item) for item in values):
+            errors.append(f"{prefix}.{field} contains an invalid translation ID")
         id_sets[field] = set(values)
     if len(id_sets) == 3 and not (
         id_sets["unavoidable_translation_ids"]
@@ -451,6 +583,104 @@ def translations(result: Any, prefix: str, root: Path, errors: list[str]) -> Non
         == id_sets["ledger_documented_ids"]
     ):
         errors.append(f"{prefix} translation IDs must be documented in both the manual and ledger")
+
+    expected_ids = id_sets.get("unavoidable_translation_ids")
+    if expected_ids is None:
+        return
+    for path_value, path in manual_files:
+        observed = set(TRANSLATION_MARKER.findall(path.read_text(encoding="utf-8")))
+        if observed != expected_ids:
+            errors.append(
+                f"{prefix} translation markers in {path_value} do not exactly match "
+                "unavoidable_translation_ids"
+            )
+
+    ledger_ids: set[str] = set()
+    ledger_rows: set[str] = set()
+    if ledger_path is not None:
+        try:
+            ledger_data = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger_ids = set(TRANSLATION_MARKER.findall(
+                ledger_path.read_text(encoding="utf-8")
+            ))
+            ledger_rows = {
+                str(entry["id"])
+                for entry in ledger_data.get("entries", [])
+                if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+            }
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            errors.append(f"{prefix}.ledger_path is not readable JSON")
+        if ledger_ids != expected_ids:
+            errors.append(
+                f"{prefix} ledger translation markers do not exactly match "
+                "unavoidable_translation_ids"
+            )
+
+    if audit_path is None:
+        return
+    try:
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        errors.append(f"{prefix}.audit_path is not readable JSON")
+        return
+    audit_fields = {"schema_version", "reference", "scope", "entries"}
+    if not exact_fields(audit, audit_fields, f"{prefix}.audit", errors):
+        return
+    if audit["schema_version"] != 1:
+        errors.append(f"{prefix}.audit.schema_version must be 1")
+    if audit["reference"] != REFERENCE:
+        errors.append(f"{prefix}.audit.reference must be {REFERENCE}")
+    non_empty_string(audit["scope"], f"{prefix}.audit.scope", errors)
+    entries = audit["entries"]
+    if not isinstance(entries, list) or not entries:
+        errors.append(f"{prefix}.audit.entries must be a non-empty array")
+        return
+    observed_ids: list[str] = []
+    entry_fields = {
+        "id", "summary", "unavoidable_reason", "ledger_rows", "test_paths"
+    }
+    for index, entry in enumerate(entries):
+        entry_prefix = f"{prefix}.audit.entries[{index}]"
+        if not exact_fields(entry, entry_fields, entry_prefix, errors):
+            continue
+        identifier = entry["id"]
+        if not isinstance(identifier, str) or not TRANSLATION_ID.fullmatch(identifier):
+            errors.append(f"{entry_prefix}.id is invalid")
+        else:
+            observed_ids.append(identifier)
+        non_empty_string(entry["summary"], f"{entry_prefix}.summary", errors)
+        non_empty_string(
+            entry["unavoidable_reason"], f"{entry_prefix}.unavoidable_reason", errors
+        )
+        rows = entry["ledger_rows"]
+        if not isinstance(rows, list) or not rows or not all(
+            isinstance(row, str) and row for row in rows
+        ):
+            errors.append(f"{entry_prefix}.ledger_rows must be a non-empty string array")
+        else:
+            if rows != sorted(set(rows)):
+                errors.append(f"{entry_prefix}.ledger_rows must be sorted and unique")
+            unknown = set(rows) - ledger_rows
+            if unknown:
+                errors.append(f"{entry_prefix}.ledger_rows names unknown rows: {sorted(unknown)}")
+        tests = entry["test_paths"]
+        if not isinstance(tests, list) or not tests or not all(
+            isinstance(path, str) and path for path in tests
+        ):
+            errors.append(f"{entry_prefix}.test_paths must be a non-empty string array")
+        else:
+            if tests != sorted(set(tests)):
+                errors.append(f"{entry_prefix}.test_paths must be sorted and unique")
+            for test_index, path in enumerate(tests):
+                if not path.startswith("tests/"):
+                    errors.append(f"{entry_prefix}.test_paths[{test_index}] must be under tests/")
+                repo_file(path, f"{entry_prefix}.test_paths[{test_index}]", root, errors)
+    if observed_ids != sorted(set(observed_ids)):
+        errors.append(f"{prefix}.audit entries must be sorted by unique ID")
+    if set(observed_ids) != expected_ids:
+        errors.append(
+            f"{prefix}.audit entry IDs do not exactly match unavoidable_translation_ids"
+        )
 
 
 GateCheck = Callable[[Any, str, Path, list[str]], None]
@@ -587,6 +817,17 @@ def read_manifest(path: Path) -> Any:
 
 def self_test_tamper(data: Any, root: Path) -> list[str]:
     failures: list[str] = []
+    v4_path = b"reference/certification/reports/grammar-coverage.json"
+    v4_entry = bytes(62) + b"\0" + v4_path + b"\0"
+    v4_index = struct.pack("!4sII", b"DIRC", 4, 1) + v4_entry
+    if not path_tracked_in_index_data(v4_index, v4_path.decode("ascii")):
+        failures.append("self-test could not read a version-4 Git index")
+    if not tracked_in_index(
+        root, "reference/certification/reports/grammar-coverage.json"
+    ):
+        failures.append("self-test could not find tracked evidence in the Git index")
+    if tracked_in_index(root, "reference/certification/reports/missing-evidence.json"):
+        failures.append("self-test found nonexistent evidence in the Git index")
     accepted_package_sets = (
         {
             ("Debian", "13 (Trixie)", "amd64"),

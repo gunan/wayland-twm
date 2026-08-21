@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "gate_id": "compatibility-entry-closure",
+  "reference": "twm 1.0.13.1",
+  "recorded_at": "2026-08-21T07:22:58Z",
+  "revision": {
+    "commit": "61f70c65ae1c729d8575d2cbca1c6dfc647c4af9",
+    "clean": true
+  },
+  "result": {
+    "ledger_path": "reference/ledger/twm-1.0.13.1.json",
+    "total_entries": 384,
+    "partial_entries": 0,
+    "parsed_only_entries": 0,
+    "unexplained_entries": 0
+  }
+}

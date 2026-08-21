@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -88,6 +89,48 @@ def capture_reference(probe: Path, environment: dict[str, str]) -> dict[str, obj
     return json.loads(result.stdout)
 
 
+def parse_ppm(data: bytes) -> tuple[int, int, bytes]:
+    fields = data.split(b"\n", 3)
+    if len(fields) != 4 or fields[0] != b"P6" or fields[2] != b"255":
+        raise RuntimeError("screenshot is not an un-commented 8-bit PPM P6 image")
+    width, height = (int(value) for value in fields[1].split())
+    if len(fields[3]) != width * height * 3:
+        raise RuntimeError("screenshot has an invalid pixel payload")
+    return width, height, fields[3]
+
+
+def screenshot_name(backend: str, index: int, after: str) -> str:
+    return f"{backend}-{index:02d}-{after}.ppm"
+
+
+def capture_reference_screenshot(
+    observer: Path,
+    environment: dict[str, str],
+    evidence: Path,
+    index: int,
+    after: str,
+) -> bytes:
+    output = evidence / screenshot_name("reference", index, after)
+    repeat = evidence / ("." + screenshot_name("reference-repeat", index, after))
+    for _ in range(12):
+        subprocess.run(
+            [str(observer), "capture", str(output)], env=environment,
+            check=True, timeout=10,
+        )
+        time.sleep(0.03)
+        subprocess.run(
+            [str(observer), "capture", str(repeat)], env=environment,
+            check=True, timeout=10,
+        )
+        data = output.read_bytes()
+        if data == repeat.read_bytes():
+            repeat.unlink()
+            parse_ppm(data)
+            return data
+        time.sleep(0.03)
+    raise RuntimeError(f"reference screenshot {index} ({after}) did not converge")
+
+
 def normalize_wtwm(state: dict[str, object], screen: dict[str, int]) -> dict[str, object]:
     raw_windows = state["windows"]
     if not isinstance(raw_windows, list):
@@ -100,6 +143,13 @@ def normalize_wtwm(state: dict[str, object], screen: dict[str, int]) -> dict[str
         selected[role] = matches[0]
     focus_title = state.get("focus")
     focus = next((role for role in ROLES if focus_title == TITLES[role]), "root")
+    raw_cursor = state.get("cursor")
+    if not isinstance(raw_cursor, dict):
+        raise RuntimeError(f"wtwm STATE has no cursor coordinates: {state!r}")
+    pointer = {
+        "x": int(float(raw_cursor["x"])),
+        "y": int(float(raw_cursor["y"])),
+    }
     stack = [
         role for role, _ in sorted(
             (
@@ -137,7 +187,13 @@ def normalize_wtwm(state: dict[str, object], screen: dict[str, int]) -> dict[str
             "iconified": iconified,
             "titled": bool(item["decorated"]) and int(item["title_bar_height"]) > 0,
         })
-    return {"screen": screen, "focus": focus, "stack": stack, "windows": windows}
+    return {
+        "screen": screen,
+        "pointer": pointer,
+        "focus": focus,
+        "stack": stack,
+        "windows": windows,
+    }
 
 
 def converge(
@@ -258,17 +314,19 @@ def tagged(index: int, event: dict[str, object] | None,
 
 
 def run_reference(
+    xvfb_binary: Path,
     reference_twm: Path,
     client_binary: Path,
     probe: Path,
+    screenshot_observer: Path,
     driver: Path,
     config: Path,
     events: list[dict[str, object]],
     oracle: list[dict[str, object]],
     evidence: Path,
-) -> list[dict[str, object]]:
+) -> tuple[list[dict[str, object]], list[bytes]]:
     xvfb = subprocess.Popen(
-        ["/usr/bin/Xvfb", "-displayfd", "1", "-screen", "0", "260x180x24",
+        [str(xvfb_binary), "-displayfd", "1", "-screen", "0", "260x180x24",
          "-nolisten", "tcp"],
         text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
@@ -298,6 +356,7 @@ def run_reference(
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         wait_line(client, "READY")
+        reference_input(driver, events[0], environment)
         initial = converge(
             lambda: capture_reference(probe, environment), evidence, "reference", 0
         )
@@ -307,6 +366,9 @@ def run_reference(
                 + json.dumps({"expected": oracle, "actual": initial["windows"]}, indent=2)
             )
         trace = [tagged(0, None, initial)]
+        screenshots = [capture_reference_screenshot(
+            screenshot_observer, environment, evidence, 0, "initial"
+        )]
         for index, event in enumerate(events, 1):
             print(f"reference trace input {index}/{len(events)}: {event['id']}",
                   flush=True)
@@ -316,9 +378,12 @@ def run_reference(
                 evidence, "reference", index,
             )
             trace.append(tagged(index, event, state))
+            screenshots.append(capture_reference_screenshot(
+                screenshot_observer, environment, evidence, index, str(event["id"])
+            ))
         if twm.poll() is not None:
             raise RuntimeError(f"reference twm exited with {twm.returncode}")
-        return trace
+        return trace, screenshots
     finally:
         stdout, stderr = stop_process(client)
         logs.append(f"client stdout:\n{stdout}\nstderr:\n{stderr}")
@@ -338,7 +403,7 @@ def run_wtwm(
     events: list[dict[str, object]],
     screen: dict[str, int],
     evidence: Path,
-) -> list[dict[str, object]]:
+) -> tuple[list[dict[str, object]], list[bytes]]:
     with tempfile.TemporaryDirectory(prefix="wtwm-m4-trace-") as directory:
         temporary = Path(directory)
         runtime = temporary / "runtime"
@@ -373,6 +438,7 @@ def run_wtwm(
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             wait_line(client, "READY")
+            wtwm_input(control, events[0])
 
             def capture() -> dict[str, object]:
                 assert control is not None
@@ -380,6 +446,25 @@ def run_wtwm(
 
             initial = converge(capture, evidence, "wtwm", 0)
             trace = [tagged(0, None, initial)]
+
+            def screenshot(index: int, after: str) -> bytes:
+                assert control is not None
+                output = evidence / screenshot_name("wtwm", index, after)
+                repeat = temporary / screenshot_name("wtwm-repeat", index, after)
+                for _ in range(12):
+                    control.command("WAIT 3")
+                    control.command(f"CAPTURE {output}")
+                    control.command("WAIT 3")
+                    control.command(f"CAPTURE {repeat}")
+                    data = output.read_bytes()
+                    if data == repeat.read_bytes():
+                        parse_ppm(data)
+                        return data
+                raise RuntimeError(
+                    f"wtwm screenshot {index} ({after}) did not converge"
+                )
+
+            screenshots = [screenshot(0, "initial")]
             for index, event in enumerate(events, 1):
                 print(f"wtwm trace input {index}/{len(events)}: {event['id']}",
                       flush=True)
@@ -387,7 +472,8 @@ def run_wtwm(
                 trace.append(tagged(
                     index, event, converge(capture, evidence, "wtwm", index)
                 ))
-            return trace
+                screenshots.append(screenshot(index, str(event["id"])))
+            return trace, screenshots
         finally:
             stdout, stderr = stop_process(client)
             logs.append(f"client stdout:\n{stdout}\nstderr:\n{stderr}")
@@ -402,6 +488,43 @@ def run_wtwm(
             (evidence / "wtwm-session.log").write_text(
                 "\n".join(logs), encoding="utf-8"
             )
+
+
+def compare_screenshots(
+    reference: list[bytes],
+    wtwm: list[bytes],
+    events: list[dict[str, object]],
+    screen: dict[str, int],
+) -> list[dict[str, object]]:
+    if len(reference) != len(events) + 1 or len(wtwm) != len(reference):
+        raise RuntimeError("paired screenshot count does not cover every trace action")
+    comparisons: list[dict[str, object]] = []
+    labels = ["initial"] + [str(event["id"]) for event in events]
+    for index, (after, reference_data, wtwm_data) in enumerate(
+            zip(labels, reference, wtwm, strict=True)):
+        ref_width, ref_height, ref_pixels = parse_ppm(reference_data)
+        width, height, pixels = parse_ppm(wtwm_data)
+        expected_size = (int(screen["width"]), int(screen["height"]))
+        if (ref_width, ref_height) != expected_size or (width, height) != expected_size:
+            raise RuntimeError(
+                f"screenshot {index} ({after}) size differs from {expected_size}: "
+                f"reference={(ref_width, ref_height)}, wtwm={(width, height)}"
+            )
+        mismatches = sum(
+            ref_pixels[offset:offset + 3] != pixels[offset:offset + 3]
+            for offset in range(0, len(ref_pixels), 3)
+        )
+        comparisons.append({
+            "index": index,
+            "after": after,
+            "reference": screenshot_name("reference", index, after),
+            "wtwm": screenshot_name("wtwm", index, after),
+            "reference_sha256": hashlib.sha256(reference_data).hexdigest(),
+            "wtwm_sha256": hashlib.sha256(wtwm_data).hexdigest(),
+            "mismatch_pixels": mismatches,
+            "exact": mismatches == 0,
+        })
+    return comparisons
 
 
 def run(arguments: argparse.Namespace) -> None:
@@ -427,14 +550,15 @@ def run(arguments: argparse.Namespace) -> None:
         if version != "twm 1.0.13.1":
             raise RuntimeError(f"unexpected reference version: {version!r}")
         oracle = oracle_windows(arguments.oracle)
-        reference = run_reference(
-            arguments.reference_twm, arguments.client, arguments.probe,
-            arguments.input_driver, arguments.config, events, oracle, evidence,
+        reference, reference_screenshots = run_reference(
+            arguments.xvfb, arguments.reference_twm, arguments.client, arguments.probe,
+            arguments.screenshot_observer, arguments.input_driver,
+            arguments.config, events, oracle, evidence,
         )
         (evidence / "reference-trace.json").write_text(
             json.dumps(reference, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
-        wtwm = run_wtwm(
+        wtwm, wtwm_screenshots = run_wtwm(
             arguments.compositor, arguments.client, arguments.config,
             events, screen, evidence,
         )
@@ -446,10 +570,29 @@ def run(arguments: argparse.Namespace) -> None:
             "reference_trace": "m4-trace-differential-evidence/reference-trace.json",
             "wtwm_trace": "m4-trace-differential-evidence/wtwm-trace.json",
         })
+        screenshots = compare_screenshots(
+            reference_screenshots, wtwm_screenshots, events, screen
+        )
+        unexplained = sum(int(item["mismatch_pixels"]) for item in screenshots)
+        result.update({
+            "screenshot_count": len(screenshots),
+            "screenshots": screenshots,
+            "screenshot_masks": [],
+            "unexplained_pixel_differences": unexplained,
+        })
         if reference != wtwm:
             raise RuntimeError(
                 "normalized M4 event traces differ:\n"
                 + json.dumps({"reference": reference, "wtwm": wtwm}, indent=2)
+            )
+        if unexplained != 0:
+            differing = [
+                f"{item['after']}={item['mismatch_pixels']}"
+                for item in screenshots if not item["exact"]
+            ]
+            raise RuntimeError(
+                "paired stable screenshots contain nonzero differences for review: "
+                + ", ".join(differing)
             )
         result["result"] = "equivalent"
     except Exception as error:
@@ -462,15 +605,17 @@ def run(arguments: argparse.Namespace) -> None:
     arguments.output.write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    print("Milestone 4 identical-input traces match reference twm")
+    print("Milestone 4 traces and every paired stable screenshot match reference twm")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--xvfb", type=Path, default=Path("/usr/bin/Xvfb"))
     parser.add_argument("--reference-twm", type=Path, required=True)
     parser.add_argument("--compositor", type=Path, required=True)
     parser.add_argument("--client", type=Path, required=True)
     parser.add_argument("--probe", type=Path, required=True)
+    parser.add_argument("--screenshot-observer", type=Path, required=True)
     parser.add_argument("--input-driver", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--contract", type=Path, required=True)

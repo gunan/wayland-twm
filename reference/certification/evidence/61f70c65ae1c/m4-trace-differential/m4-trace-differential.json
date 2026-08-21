@@ -1,0 +1,251 @@
+{
+  "comparison": "reference-twm-1.0.13.1-vs-wtwm-xwayland",
+  "event_count": 21,
+  "normalization": {
+    "excluded_observations": [
+      "decoration pixels",
+      "temporary rubber-band outline pixels"
+    ],
+    "focus": "client identity is reduced to alpha or bravo; root, PointerRoot, and no focused client normalize to root",
+    "pointer": "integer root-relative coordinates observed after initial convergence and every indexed input action",
+    "reference_frame": "outer coordinates are the reparent frame's root-relative inner origin minus its border width",
+    "stack": "visible managed roles only, ordered bottom to top",
+    "volatile_fields_omitted": [
+      "display_number",
+      "event_time",
+      "frame_sequence",
+      "pid",
+      "xid"
+    ],
+    "wtwm_frame": "outer coordinates are the compositor scene frame origin"
+  },
+  "reference_trace": "m4-trace-differential-evidence/reference-trace.json",
+  "result": "equivalent",
+  "schema_version": 1,
+  "screenshot_count": 22,
+  "screenshot_masks": [],
+  "screenshots": [
+    {
+      "after": "initial",
+      "exact": true,
+      "index": 0,
+      "mismatch_pixels": 0,
+      "reference": "reference-00-initial.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-00-initial.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "pointer-root",
+      "exact": true,
+      "index": 1,
+      "mismatch_pixels": 0,
+      "reference": "reference-01-pointer-root.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-01-pointer-root.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "pointer-alpha-client",
+      "exact": true,
+      "index": 2,
+      "mismatch_pixels": 0,
+      "reference": "reference-02-pointer-alpha-client.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-02-pointer-alpha-client.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "focus-alpha-press",
+      "exact": true,
+      "index": 3,
+      "mismatch_pixels": 0,
+      "reference": "reference-03-focus-alpha-press.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-03-focus-alpha-press.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "focus-alpha-release",
+      "exact": true,
+      "index": 4,
+      "mismatch_pixels": 0,
+      "reference": "reference-04-focus-alpha-release.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-04-focus-alpha-release.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "raise-alpha-press",
+      "exact": true,
+      "index": 5,
+      "mismatch_pixels": 0,
+      "reference": "reference-05-raise-alpha-press.ppm",
+      "reference_sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d",
+      "wtwm": "wtwm-05-raise-alpha-press.ppm",
+      "wtwm_sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+    },
+    {
+      "after": "raise-alpha-release",
+      "exact": true,
+      "index": 6,
+      "mismatch_pixels": 0,
+      "reference": "reference-06-raise-alpha-release.ppm",
+      "reference_sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d",
+      "wtwm": "wtwm-06-raise-alpha-release.ppm",
+      "wtwm_sha256": "e3ca85b28fe170cb60b21e0b347bfd940ea66c33edb54cbd2645a9615c6aeb4d"
+    },
+    {
+      "after": "lower-alpha-press",
+      "exact": true,
+      "index": 7,
+      "mismatch_pixels": 0,
+      "reference": "reference-07-lower-alpha-press.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-07-lower-alpha-press.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "lower-alpha-release",
+      "exact": true,
+      "index": 8,
+      "mismatch_pixels": 0,
+      "reference": "reference-08-lower-alpha-release.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-08-lower-alpha-release.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "pointer-alpha-title",
+      "exact": true,
+      "index": 9,
+      "mismatch_pixels": 0,
+      "reference": "reference-09-pointer-alpha-title.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-09-pointer-alpha-title.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "move-alpha-press",
+      "exact": true,
+      "index": 10,
+      "mismatch_pixels": 0,
+      "reference": "reference-10-move-alpha-press.ppm",
+      "reference_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a",
+      "wtwm": "wtwm-10-move-alpha-press.ppm",
+      "wtwm_sha256": "1617db1fe604280c94981fb1f8b5d98f3a0bee2899f65ca4da8403570ca4d06a"
+    },
+    {
+      "after": "move-alpha-motion",
+      "exact": true,
+      "index": 11,
+      "mismatch_pixels": 0,
+      "reference": "reference-11-move-alpha-motion.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-11-move-alpha-motion.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "move-alpha-release",
+      "exact": true,
+      "index": 12,
+      "mismatch_pixels": 0,
+      "reference": "reference-12-move-alpha-release.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-12-move-alpha-release.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "pointer-bravo-client",
+      "exact": true,
+      "index": 13,
+      "mismatch_pixels": 0,
+      "reference": "reference-13-pointer-bravo-client.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-13-pointer-bravo-client.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "focus-bravo-press",
+      "exact": true,
+      "index": 14,
+      "mismatch_pixels": 0,
+      "reference": "reference-14-focus-bravo-press.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-14-focus-bravo-press.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "focus-bravo-release",
+      "exact": true,
+      "index": 15,
+      "mismatch_pixels": 0,
+      "reference": "reference-15-focus-bravo-release.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-15-focus-bravo-release.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "raise-bravo-press",
+      "exact": true,
+      "index": 16,
+      "mismatch_pixels": 0,
+      "reference": "reference-16-raise-bravo-press.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-16-raise-bravo-press.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "raise-bravo-release",
+      "exact": true,
+      "index": 17,
+      "mismatch_pixels": 0,
+      "reference": "reference-17-raise-bravo-release.ppm",
+      "reference_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023",
+      "wtwm": "wtwm-17-raise-bravo-release.ppm",
+      "wtwm_sha256": "af02424d29c273eb095e04c51758fce5a90e419290ff3dda025b8132d6cf3023"
+    },
+    {
+      "after": "lower-bravo-press",
+      "exact": true,
+      "index": 18,
+      "mismatch_pixels": 0,
+      "reference": "reference-18-lower-bravo-press.ppm",
+      "reference_sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9",
+      "wtwm": "wtwm-18-lower-bravo-press.ppm",
+      "wtwm_sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+    },
+    {
+      "after": "lower-bravo-release",
+      "exact": true,
+      "index": 19,
+      "mismatch_pixels": 0,
+      "reference": "reference-19-lower-bravo-release.ppm",
+      "reference_sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9",
+      "wtwm": "wtwm-19-lower-bravo-release.ppm",
+      "wtwm_sha256": "f19bdf834c83184107128ff53945a700f08fca7c4c76aac2822017510b6f14f9"
+    },
+    {
+      "after": "iconify-bravo-press",
+      "exact": true,
+      "index": 20,
+      "mismatch_pixels": 0,
+      "reference": "reference-20-iconify-bravo-press.ppm",
+      "reference_sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1",
+      "wtwm": "wtwm-20-iconify-bravo-press.ppm",
+      "wtwm_sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+    },
+    {
+      "after": "iconify-bravo-release",
+      "exact": true,
+      "index": 21,
+      "mismatch_pixels": 0,
+      "reference": "reference-21-iconify-bravo-release.ppm",
+      "reference_sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1",
+      "wtwm": "wtwm-21-iconify-bravo-release.ppm",
+      "wtwm_sha256": "08abb0062ef896ceb0cd7569b97f689124ab4d57f021d1e02ecac54c368223e1"
+    }
+  ],
+  "unexplained_pixel_differences": 0,
+  "wtwm_trace": "m4-trace-differential-evidence/wtwm-trace.json"
+}

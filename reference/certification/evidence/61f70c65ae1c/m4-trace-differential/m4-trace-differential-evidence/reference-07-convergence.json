@@ -1,0 +1,206 @@
+{
+  "backend": "reference",
+  "event_index": 7,
+  "required_consecutive_equal": 3,
+  "samples": [
+    {
+      "focus": "alpha",
+      "pointer": {
+        "x": 60,
+        "y": 80
+      },
+      "screen": {
+        "depth": 24,
+        "height": 180,
+        "width": 260
+      },
+      "stack": [
+        "alpha",
+        "bravo"
+      ],
+      "windows": [
+        {
+          "client": {
+            "border_width": 0,
+            "height": 65,
+            "width": 100,
+            "x": 33,
+            "y": 51
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 85,
+            "outer_height": 91,
+            "outer_width": 106,
+            "width": 100,
+            "x": 30,
+            "y": 28
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "alpha",
+          "titled": true
+        },
+        {
+          "client": {
+            "border_width": 0,
+            "height": 70,
+            "width": 110,
+            "x": 91,
+            "y": 81
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 90,
+            "outer_height": 96,
+            "outer_width": 116,
+            "width": 110,
+            "x": 88,
+            "y": 58
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "bravo",
+          "titled": true
+        }
+      ]
+    },
+    {
+      "focus": "alpha",
+      "pointer": {
+        "x": 60,
+        "y": 80
+      },
+      "screen": {
+        "depth": 24,
+        "height": 180,
+        "width": 260
+      },
+      "stack": [
+        "alpha",
+        "bravo"
+      ],
+      "windows": [
+        {
+          "client": {
+            "border_width": 0,
+            "height": 65,
+            "width": 100,
+            "x": 33,
+            "y": 51
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 85,
+            "outer_height": 91,
+            "outer_width": 106,
+            "width": 100,
+            "x": 30,
+            "y": 28
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "alpha",
+          "titled": true
+        },
+        {
+          "client": {
+            "border_width": 0,
+            "height": 70,
+            "width": 110,
+            "x": 91,
+            "y": 81
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 90,
+            "outer_height": 96,
+            "outer_width": 116,
+            "width": 110,
+            "x": 88,
+            "y": 58
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "bravo",
+          "titled": true
+        }
+      ]
+    },
+    {
+      "focus": "alpha",
+      "pointer": {
+        "x": 60,
+        "y": 80
+      },
+      "screen": {
+        "depth": 24,
+        "height": 180,
+        "width": 260
+      },
+      "stack": [
+        "alpha",
+        "bravo"
+      ],
+      "windows": [
+        {
+          "client": {
+            "border_width": 0,
+            "height": 65,
+            "width": 100,
+            "x": 33,
+            "y": 51
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 85,
+            "outer_height": 91,
+            "outer_width": 106,
+            "width": 100,
+            "x": 30,
+            "y": 28
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "alpha",
+          "titled": true
+        },
+        {
+          "client": {
+            "border_width": 0,
+            "height": 70,
+            "width": 110,
+            "x": 91,
+            "y": 81
+          },
+          "frame": {
+            "border_width": 3,
+            "content_x": 3,
+            "content_y": 23,
+            "height": 90,
+            "outer_height": 96,
+            "outer_width": 116,
+            "width": 110,
+            "x": 88,
+            "y": 58
+          },
+          "iconified": false,
+          "mapped": true,
+          "role": "bravo",
+          "titled": true
+        }
+      ]
+    }
+  ],
+  "schema_version": 1
+}

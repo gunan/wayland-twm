@@ -1,0 +1,48 @@
+{
+  "icon": {
+    "height": 23,
+    "region_allocated": true,
+    "source": "configured",
+    "title": "Reference Bravo",
+    "width": 100,
+    "x": 300,
+    "y": 288
+  },
+  "manager": {
+    "active_entry": 1,
+    "columns": 2,
+    "entries": [
+      {
+        "column": 0,
+        "id": 1,
+        "label": "Reference Alpha",
+        "row": 0
+      },
+      {
+        "column": 1,
+        "id": 2,
+        "label": "Reference Bravo",
+        "row": 0
+      }
+    ],
+    "height": 23,
+    "id": 1,
+    "name": "TWM Icons",
+    "rows": 1,
+    "sorted": false,
+    "visible": true,
+    "width": 320,
+    "x": 0,
+    "y": 0
+  },
+  "windows": [
+    {
+      "iconified": true,
+      "title": "Reference Bravo"
+    },
+    {
+      "iconified": false,
+      "title": "Reference Alpha"
+    }
+  ]
+}

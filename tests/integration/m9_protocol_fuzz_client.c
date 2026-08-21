@@ -16,11 +16,18 @@
 #include <unistd.h>
 #include <wayland-client.h>
 
+#define WTWM_PROTOCOL_BOUNDARY 65535
+
 enum client_mode {
 	MODE_SURVIVOR,
 	MODE_SERIALS,
 	MODE_GEOMETRY,
-	MODE_POSITIONER,
+	MODE_DRAG,
+	MODE_POSITIONER_SIZE,
+	MODE_POSITIONER_ANCHOR,
+	MODE_POSITIONER_PARENT,
+	MODE_POSITIONER_OFFSET,
+	MODE_POSITIONER_GEOMETRY,
 };
 
 struct client {
@@ -30,6 +37,11 @@ struct client {
 	struct wl_shm *shm;
 	struct wl_seat *seat;
 	struct wl_pointer *pointer;
+	struct wl_data_device_manager *data_manager;
+	struct wl_data_device *data_device;
+	struct wl_data_offer *drag_offer;
+	struct wl_data_source *drag_sources[4];
+	size_t drag_source_count;
 	struct wl_surface *cursor_surface;
 	struct xdg_wm_base *wm_base;
 	struct wl_surface *surface;
@@ -43,6 +55,7 @@ struct client {
 	uint32_t button_serial;
 	bool mapped;
 	bool button_pressed;
+	bool drag_requested;
 	bool fuzz_sent;
 	bool closed;
 };
@@ -67,6 +80,13 @@ static int disconnect_client(struct client *client, int status) {
 		if (client->cursor_surface != NULL)
 			wl_surface_destroy(client->cursor_surface);
 		if (client->pointer != NULL) wl_pointer_destroy(client->pointer);
+		for (size_t i = 0; i < client->drag_source_count; ++i)
+			wl_data_source_destroy(client->drag_sources[i]);
+		if (client->drag_offer != NULL) wl_data_offer_destroy(client->drag_offer);
+		if (client->data_device != NULL)
+			wl_data_device_destroy(client->data_device);
+		if (client->data_manager != NULL)
+			wl_data_device_manager_destroy(client->data_manager);
 		if (client->seat != NULL) wl_seat_destroy(client->seat);
 		if (client->wm_base != NULL) xdg_wm_base_destroy(client->wm_base);
 		if (client->shm != NULL) wl_shm_destroy(client->shm);
@@ -119,6 +139,170 @@ static const struct xdg_wm_base_listener wm_base_listener = {
 	.ping = wm_base_ping,
 };
 
+static void drag_source_target(void *data, struct wl_data_source *source,
+		const char *mime_type) {
+	(void)data;
+	(void)source;
+	(void)mime_type;
+}
+
+static void drag_source_send(void *data, struct wl_data_source *source,
+		const char *mime_type, int32_t fd) {
+	(void)data;
+	(void)source;
+	(void)mime_type;
+	close(fd);
+}
+
+static void drag_source_cancelled(void *data, struct wl_data_source *source) {
+	(void)data;
+	(void)source;
+}
+
+static void drag_source_drop_performed(void *data,
+		struct wl_data_source *source) {
+	(void)data;
+	(void)source;
+}
+
+static void drag_source_finished(void *data, struct wl_data_source *source) {
+	(void)data;
+	(void)source;
+}
+
+static void drag_source_action(void *data, struct wl_data_source *source,
+		uint32_t action) {
+	(void)data;
+	(void)source;
+	(void)action;
+}
+
+static const struct wl_data_source_listener drag_source_listener = {
+	.target = drag_source_target,
+	.send = drag_source_send,
+	.cancelled = drag_source_cancelled,
+	.dnd_drop_performed = drag_source_drop_performed,
+	.dnd_finished = drag_source_finished,
+	.action = drag_source_action,
+};
+
+static void drag_offer_mime(void *data, struct wl_data_offer *offer,
+		const char *mime_type) {
+	(void)data;
+	(void)offer;
+	(void)mime_type;
+}
+
+static void drag_offer_actions(void *data, struct wl_data_offer *offer,
+		uint32_t actions) {
+	(void)data;
+	(void)offer;
+	(void)actions;
+}
+
+static void drag_offer_action(void *data, struct wl_data_offer *offer,
+		uint32_t action) {
+	(void)data;
+	(void)offer;
+	(void)action;
+}
+
+static const struct wl_data_offer_listener drag_offer_listener = {
+	.offer = drag_offer_mime,
+	.source_actions = drag_offer_actions,
+	.action = drag_offer_action,
+};
+
+static void data_device_offer(void *data, struct wl_data_device *device,
+		struct wl_data_offer *offer) {
+	(void)device;
+	struct client *client = data;
+	if (client->drag_offer != NULL) wl_data_offer_destroy(client->drag_offer);
+	client->drag_offer = offer;
+	wl_data_offer_add_listener(offer, &drag_offer_listener, client);
+}
+
+static void data_device_enter(void *data, struct wl_data_device *device,
+		uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y,
+		struct wl_data_offer *offer) {
+	(void)data;
+	(void)device;
+	(void)serial;
+	(void)surface;
+	(void)x;
+	(void)y;
+	(void)offer;
+}
+
+static void data_device_leave(void *data, struct wl_data_device *device) {
+	(void)data;
+	(void)device;
+}
+
+static void data_device_motion(void *data, struct wl_data_device *device,
+		uint32_t time, wl_fixed_t x, wl_fixed_t y) {
+	(void)data;
+	(void)device;
+	(void)time;
+	(void)x;
+	(void)y;
+}
+
+static void data_device_drop(void *data, struct wl_data_device *device) {
+	(void)data;
+	(void)device;
+}
+
+static void data_device_selection(void *data, struct wl_data_device *device,
+		struct wl_data_offer *offer) {
+	(void)data;
+	(void)device;
+	(void)offer;
+}
+
+static const struct wl_data_device_listener data_device_listener = {
+	.data_offer = data_device_offer,
+	.enter = data_device_enter,
+	.leave = data_device_leave,
+	.motion = data_device_motion,
+	.drop = data_device_drop,
+	.selection = data_device_selection,
+};
+
+static struct wl_data_source *create_drag_source(struct client *client) {
+	if (client->drag_source_count >=
+			sizeof(client->drag_sources) / sizeof(client->drag_sources[0]))
+		return NULL;
+	struct wl_data_source *source =
+		wl_data_device_manager_create_data_source(client->data_manager);
+	if (source == NULL) return NULL;
+	wl_data_source_add_listener(source, &drag_source_listener, client);
+	wl_data_source_offer(source, "text/plain");
+	client->drag_sources[client->drag_source_count++] = source;
+	return source;
+}
+
+static void send_invalid_drag_fuzz(struct client *client, uint32_t stale) {
+	const uint32_t serials[] = {0, stale, UINT32_MAX};
+	for (size_t i = 0; i < sizeof(serials) / sizeof(serials[0]); ++i) {
+		struct wl_data_source *source = create_drag_source(client);
+		if (source == NULL) continue;
+		wl_data_device_start_drag(client->data_device, source,
+			client->surface, NULL, serials[i]);
+	}
+}
+
+static void send_valid_drag(struct client *client, uint32_t serial) {
+	struct wl_data_source *source = create_drag_source(client);
+	if (source == NULL) return;
+	wl_data_device_start_drag(client->data_device, source, client->surface,
+		NULL, serial);
+	(void)wl_display_flush(client->display);
+	client->drag_requested = true;
+	printf("DRAG_REQUESTED serial=%" PRIu32 "\n", serial);
+	fflush(stdout);
+}
+
 static void send_serial_fuzz(struct client *client) {
 	const uint32_t stale = client->button_serial;
 	const uint32_t invalid = UINT32_MAX;
@@ -133,6 +317,7 @@ static void send_serial_fuzz(struct client *client) {
 			wl_pointer_set_cursor(client->pointer, serials[i],
 				client->cursor_surface, INT32_MIN, INT32_MAX);
 	}
+	send_invalid_drag_fuzz(client, stale);
 	client->fuzz_sent = true;
 	printf("FUZZ_SENT stale=%" PRIu32 "\n", stale);
 	fflush(stdout);
@@ -175,6 +360,12 @@ static void pointer_button(void *data, struct wl_pointer *pointer,
 	printf("POINTER_BUTTON %" PRIu32 " %" PRIu32 " %s\n", serial, button,
 		state == WL_POINTER_BUTTON_STATE_PRESSED ? "press" : "release");
 	fflush(stdout);
+	if (client->mode == MODE_DRAG &&
+			state == WL_POINTER_BUTTON_STATE_PRESSED &&
+			!client->drag_requested) {
+		send_valid_drag(client, serial);
+		return;
+	}
 	if (client->mode != MODE_SERIALS) return;
 	if (state == WL_POINTER_BUTTON_STATE_PRESSED) {
 		client->button_serial = serial;
@@ -267,9 +458,12 @@ static void registry_global(void *data, struct wl_registry *registry,
 		client->seat = wl_registry_bind(registry, name, &wl_seat_interface,
 			version < 7 ? version : 7);
 		wl_seat_add_listener(client->seat, &seat_listener, client);
+	} else if (strcmp(interface, wl_data_device_manager_interface.name) == 0) {
+		client->data_manager = wl_registry_bind(registry, name,
+			&wl_data_device_manager_interface, version < 3 ? version : 3);
 	} else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
 		client->wm_base = wl_registry_bind(registry, name,
-			&xdg_wm_base_interface, 1);
+			&xdg_wm_base_interface, version < 6 ? version : 6);
 		xdg_wm_base_add_listener(client->wm_base, &wm_base_listener, client);
 	}
 }
@@ -361,37 +555,75 @@ static void send_oversized_geometry(struct client *client) {
 	emit("GEOMETRY_SENT");
 }
 
-static void send_oversized_positioner(struct client *client) {
+static void send_hostile_positioner(struct client *client) {
 	client->popup_surface = wl_compositor_create_surface(client->compositor);
 	client->popup_xdg_surface = xdg_wm_base_get_xdg_surface(client->wm_base,
 		client->popup_surface);
 	struct xdg_positioner *positioner =
 		xdg_wm_base_create_positioner(client->wm_base);
-	xdg_positioner_set_size(positioner, INT32_MAX, INT32_MAX);
-	xdg_positioner_set_anchor_rect(positioner, INT32_MIN, INT32_MIN,
-		INT32_MAX, INT32_MAX);
+	int size_width = 64, size_height = 48;
+	int anchor_x = 0, anchor_y = 0, anchor_width = 100, anchor_height = 80;
+	if (client->mode == MODE_POSITIONER_SIZE) {
+		size_width = INT32_MAX;
+		size_height = INT32_MAX;
+	} else if (client->mode == MODE_POSITIONER_ANCHOR) {
+		anchor_x = INT32_MIN;
+		anchor_y = INT32_MAX;
+		anchor_width = INT32_MAX;
+		anchor_height = INT32_MAX;
+	} else if (client->mode == MODE_POSITIONER_GEOMETRY) {
+		size_width = WTWM_PROTOCOL_BOUNDARY;
+		size_height = WTWM_PROTOCOL_BOUNDARY;
+		anchor_x = WTWM_PROTOCOL_BOUNDARY;
+		anchor_y = WTWM_PROTOCOL_BOUNDARY;
+		anchor_width = WTWM_PROTOCOL_BOUNDARY;
+		anchor_height = WTWM_PROTOCOL_BOUNDARY;
+	}
+	xdg_positioner_set_size(positioner, size_width, size_height);
+	xdg_positioner_set_anchor_rect(positioner, anchor_x, anchor_y,
+		anchor_width, anchor_height);
 	xdg_positioner_set_anchor(positioner, XDG_POSITIONER_ANCHOR_BOTTOM_RIGHT);
 	xdg_positioner_set_gravity(positioner,
 		XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+	if (client->mode == MODE_POSITIONER_PARENT)
+		xdg_positioner_set_parent_size(positioner, INT32_MAX, INT32_MAX);
+	if (client->mode == MODE_POSITIONER_OFFSET)
+		xdg_positioner_set_offset(positioner, INT32_MIN, INT32_MAX);
+	if (client->mode == MODE_POSITIONER_GEOMETRY)
+		xdg_positioner_set_offset(positioner, WTWM_PROTOCOL_BOUNDARY,
+			WTWM_PROTOCOL_BOUNDARY);
 	client->popup = xdg_surface_get_popup(client->popup_xdg_surface,
 		client->xdg_surface, positioner);
 	xdg_positioner_destroy(positioner);
 	wl_surface_commit(client->popup_surface);
-	emit("POSITIONER_SENT");
+	const char *fields[] = {
+		[MODE_POSITIONER_SIZE] = "POSITIONER_SIZE_SENT",
+		[MODE_POSITIONER_ANCHOR] = "POSITIONER_ANCHOR_SENT",
+		[MODE_POSITIONER_PARENT] = "POSITIONER_PARENT_SENT",
+		[MODE_POSITIONER_OFFSET] = "POSITIONER_OFFSET_SENT",
+		[MODE_POSITIONER_GEOMETRY] = "POSITIONER_GEOMETRY_SENT",
+	};
+	emit(fields[client->mode]);
 }
 
 static enum client_mode parse_mode(const char *value) {
 	if (strcmp(value, "survivor") == 0) return MODE_SURVIVOR;
 	if (strcmp(value, "serials") == 0) return MODE_SERIALS;
 	if (strcmp(value, "geometry") == 0) return MODE_GEOMETRY;
-	if (strcmp(value, "positioner") == 0) return MODE_POSITIONER;
+	if (strcmp(value, "drag") == 0) return MODE_DRAG;
+	if (strcmp(value, "positioner-size") == 0) return MODE_POSITIONER_SIZE;
+	if (strcmp(value, "positioner-anchor") == 0) return MODE_POSITIONER_ANCHOR;
+	if (strcmp(value, "positioner-parent") == 0) return MODE_POSITIONER_PARENT;
+	if (strcmp(value, "positioner-offset") == 0) return MODE_POSITIONER_OFFSET;
+	if (strcmp(value, "positioner-geometry") == 0)
+		return MODE_POSITIONER_GEOMETRY;
 	fprintf(stderr, "unknown mode: %s\n", value);
 	exit(2);
 }
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
-		fprintf(stderr, "usage: %s survivor|serials|geometry|positioner\n",
+		fprintf(stderr, "usage: %s survivor|serials|geometry|drag|positioner-*\n",
 			argv[0]);
 		return 2;
 	}
@@ -406,12 +638,21 @@ int main(int argc, char **argv) {
 	wl_registry_add_listener(client.registry, &registry_listener, &client);
 	if (wl_display_roundtrip(client.display) < 0 ||
 			client.compositor == NULL || client.shm == NULL ||
-			client.seat == NULL || client.wm_base == NULL ||
+			client.seat == NULL || client.data_manager == NULL ||
+			client.wm_base == NULL ||
 			wl_display_roundtrip(client.display) < 0 ||
 			client.pointer == NULL) {
 		fprintf(stderr, "protocol fuzz client: required globals unavailable\n");
 		return disconnect_client(&client, 1);
 	}
+	client.data_device = wl_data_device_manager_get_data_device(
+		client.data_manager, client.seat);
+	if (client.data_device == NULL) {
+		fprintf(stderr, "protocol fuzz client: data device setup failed\n");
+		return disconnect_client(&client, 1);
+	}
+	wl_data_device_add_listener(client.data_device, &data_device_listener,
+		&client);
 	client.cursor_surface = wl_compositor_create_surface(client.compositor);
 	if (client.cursor_surface == NULL) {
 		fprintf(stderr, "protocol fuzz client: cursor surface setup failed\n");
@@ -421,7 +662,12 @@ int main(int argc, char **argv) {
 		[MODE_SURVIVOR] = "m9-protocol-survivor",
 		[MODE_SERIALS] = "m9-protocol-serials",
 		[MODE_GEOMETRY] = "m9-protocol-geometry",
-		[MODE_POSITIONER] = "m9-protocol-positioner",
+		[MODE_DRAG] = "m9-protocol-drag",
+		[MODE_POSITIONER_SIZE] = "m9-protocol-positioner-size",
+		[MODE_POSITIONER_ANCHOR] = "m9-protocol-positioner-anchor",
+		[MODE_POSITIONER_PARENT] = "m9-protocol-positioner-parent",
+		[MODE_POSITIONER_OFFSET] = "m9-protocol-positioner-offset",
+		[MODE_POSITIONER_GEOMETRY] = "m9-protocol-positioner-geometry",
 	};
 	if (!create_toplevel(&client, titles[client.mode])) {
 		fprintf(stderr, "protocol fuzz client: toplevel setup failed\n");
@@ -430,12 +676,12 @@ int main(int argc, char **argv) {
 	while (!client.mapped && wl_display_dispatch(client.display) >= 0) {}
 	if (!client.mapped) return disconnect_client(&client, 1);
 	if (client.mode == MODE_GEOMETRY) send_oversized_geometry(&client);
-	if (client.mode == MODE_POSITIONER) send_oversized_positioner(&client);
-	if (client.mode == MODE_GEOMETRY || client.mode == MODE_POSITIONER) {
+	if (client.mode >= MODE_POSITIONER_SIZE) send_hostile_positioner(&client);
+	if (client.mode == MODE_GEOMETRY || client.mode >= MODE_POSITIONER_SIZE) {
 		if (wl_display_roundtrip(client.display) < 0) {
 			emit("DISCONNECTED");
 			return disconnect_client(&client,
-				client.mode == MODE_POSITIONER ? 0 : 1);
+				client.mode >= MODE_POSITIONER_SIZE ? 0 : 1);
 		}
 		emit("SURVIVED");
 		return disconnect_client(&client, 0);

@@ -7,44 +7,56 @@
     {
       "id": "grammar-coverage",
       "title": "One hundred percent grammar coverage.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No consolidated Milestone 10 grammar-coverage evidence report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/grammar-coverage.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "builtin-action-coverage",
       "title": "One hundred percent built-in action coverage.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No consolidated Milestone 10 built-in-action coverage evidence report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/builtin-action-coverage.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "compatibility-entry-closure",
       "title": "No “partial,” “parsed only,” or unexplained compatibility entries.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "The compatibility ledger has not been certified by a Milestone 10 closure report."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/compatibility-entry-closure.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "canonical-geometry",
       "title": "Zero geometry differences in the canonical profile.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No complete canonical-profile geometry certification report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/canonical-geometry.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "focus-stacking",
       "title": "Zero unexplained focus or stacking differences.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No complete focus-and-stacking differential certification report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/focus-stacking.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "golden-images",
       "title": "No unreviewed golden-image differences.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No complete golden-image review report is checked in."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/golden-images.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "soak-72-hours",
@@ -77,9 +89,11 @@
     {
       "id": "wayland-translation-documentation",
       "title": "All unavoidable Wayland translations documented in the manual and compatibility ledger.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "No release-wide audit proves that every unavoidable translation is documented in both required locations."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/wayland-translation-documentation.json"
+      ],
+      "pending_reason": null
     }
   ]
 }

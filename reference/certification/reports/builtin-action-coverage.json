@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "gate_id": "builtin-action-coverage",
+  "reference": "twm 1.0.13.1",
+  "recorded_at": "2026-08-21T04:34:37Z",
+  "revision": {
+    "commit": "f1a68a4d3c1aa63d7c6572b7a00957d7c9b4249c",
+    "clean": true
+  },
+  "result": {
+    "coverage_percent": 100,
+    "covered_actions": 66,
+    "total_actions": 66,
+    "uncovered_actions": [],
+    "covered_behaviors": 59,
+    "total_behaviors": 59,
+    "uncovered_behaviors": []
+  }
+}

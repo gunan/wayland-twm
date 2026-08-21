@@ -605,6 +605,7 @@ struct server {
 	struct wl_listener request_cursor;
 	struct wl_listener request_selection;
 	struct wl_listener request_primary_selection;
+	struct wl_listener request_start_drag;
 	struct wl_list keyboards;
 	struct wl_list pointers;
 	struct wlr_xwayland *xwayland;
@@ -1909,20 +1910,43 @@ static struct wlr_buffer *cached_icon_manager_text(struct toplevel *toplevel,
 }
 
 static struct wlr_buffer *cached_icon_manager_marker(struct toplevel *toplevel,
-		int size, const float color[4]) {
+		const float color[4]) {
 	if (toplevel->icon_manager_marker_buffer == NULL ||
-			toplevel->icon_manager_marker_size != size ||
+			toplevel->icon_manager_marker_size != 11 ||
 			memcmp(toplevel->icon_manager_marker_color, color,
 				sizeof(toplevel->icon_manager_marker_color)) != 0) {
 		if (toplevel->icon_manager_marker_buffer != NULL)
 			wlr_buffer_drop(toplevel->icon_manager_marker_buffer);
-		toplevel->icon_manager_marker_buffer = wtwm_render_builtin_title(
-			":iconify", size, color);
-		toplevel->icon_manager_marker_size = size;
+		toplevel->icon_manager_marker_buffer =
+			wtwm_render_icon_manager_marker(color);
+		toplevel->icon_manager_marker_size = 11;
 		memcpy(toplevel->icon_manager_marker_color, color,
 			sizeof(toplevel->icon_manager_marker_color));
 	}
 	return toplevel->icon_manager_marker_buffer;
+}
+
+static void create_icon_manager_outline(struct wlr_scene_tree *parent,
+		int inset, int width, int height, const float color[4]) {
+	int outline_width = width - 2 * inset;
+	int outline_height = height - 2 * inset;
+	if (outline_width < 1 || outline_height < 1) return;
+	struct wlr_scene_rect *top = wlr_scene_rect_create(parent,
+		outline_width, 1, color);
+	struct wlr_scene_rect *bottom = wlr_scene_rect_create(parent,
+		outline_width, 1, color);
+	struct wlr_scene_rect *left = wlr_scene_rect_create(parent,
+		1, outline_height, color);
+	struct wlr_scene_rect *right = wlr_scene_rect_create(parent,
+		1, outline_height, color);
+	if (top != NULL) wlr_scene_node_set_position(&top->node, inset, inset);
+	if (bottom != NULL)
+		wlr_scene_node_set_position(&bottom->node, inset,
+			inset + outline_height - 1);
+	if (left != NULL) wlr_scene_node_set_position(&left->node, inset, inset);
+	if (right != NULL)
+		wlr_scene_node_set_position(&right->node,
+			inset + outline_width - 1, inset);
 }
 
 static void refresh_icon_managers(struct server *server) {
@@ -1933,10 +1957,7 @@ static void refresh_icon_managers(struct server *server) {
 	memset(server->icon_manager_views, 0, sizeof(server->icon_manager_views));
 	server->icon_manager_view_count = server->icon_managers.manager_count;
 	if (server->icon_manager_tree == NULL) return;
-	int font_height = 1;
-	int font_ascent = 1;
-	(void)wtwm_measure_font_metrics(server->config.icon_manager_font,
-		&font_height, &font_ascent);
+	int font_height = wtwm_measure_font_height(server->config.icon_manager_font);
 	int row_height = font_height + 10;
 	if (row_height < 12) row_height = 12;
 	for (size_t index = 0; index < server->icon_managers.manager_count; ++index) {
@@ -1967,10 +1988,12 @@ static void refresh_icon_managers(struct server *server) {
 			foreground);
 		configured_color(server, "IconManagerBackground", "white", NULL,
 			background);
-		wlr_scene_rect_create(view->tree, view->width, view->height, foreground);
+		float border[4];
+		configured_color(server, "BorderColor", "black", NULL, border);
+		wlr_scene_rect_create(view->tree, view->width + 2, view->height + 2,
+			border);
 		struct wlr_scene_rect *inside = wlr_scene_rect_create(view->tree,
-			view->width > 2 ? view->width - 2 : 1,
-			view->height > 2 ? view->height - 2 : 1, background);
+			view->width, view->height, background);
 		if (inside != NULL) wlr_scene_node_set_position(&inside->node, 1, 1);
 		int cell_width = view->width / (int)columns;
 		if (cell_width < 1) cell_width = 1;
@@ -1984,35 +2007,37 @@ static void refresh_icon_managers(struct server *server) {
 			if (row == NULL) continue;
 			row->node.data = toplevel;
 			wlr_scene_node_set_position(&row->node,
-				(int)entry->column * cell_width,
-				(int)entry->row * row_height);
+				1 + (int)entry->column * cell_width,
+				1 + (int)entry->row * row_height);
 			float row_background[4], row_border[4], row_foreground[4];
 			configured_color(server, "IconManagerBackground", "white", toplevel,
 				row_background);
 			configured_color(server, "IconManagerForeground", "black", toplevel,
 				row_foreground);
-			if (server->icon_managers.active_entry_identity == entry->identity)
+			bool active = server->icon_managers.active_entry_identity ==
+				entry->identity;
+			if (active)
 				configured_color(server, "IconManagerHighlight", "black", toplevel,
 					row_border);
 			else memcpy(row_border, row_foreground, sizeof(row_border));
-			wlr_scene_rect_create(row, cell_width, row_height, row_border);
-			int inset = server->icon_manager_down_identity == entry->identity ? 2 : 1;
-			struct wlr_scene_rect *row_inside = wlr_scene_rect_create(row,
-				cell_width > 2 * inset ? cell_width - 2 * inset : 1,
-				row_height > 2 * inset ? row_height - 2 * inset : 1,
-				row_background);
-			if (row_inside != NULL)
-				wlr_scene_node_set_position(&row_inside->node, inset, inset);
-			int button_size = row_height - 6;
-			if (button_size < 4) button_size = 4;
+			wlr_scene_rect_create(row, cell_width, row_height, row_background);
+			create_icon_manager_outline(row, 2, cell_width, row_height,
+				row_foreground);
+			if (active) {
+				create_icon_manager_outline(row, 0, cell_width, row_height,
+					row_border);
+				create_icon_manager_outline(row, 1, cell_width, row_height,
+					row_border);
+			}
 			if (toplevel->iconified) {
 				struct wlr_buffer *marker = cached_icon_manager_marker(toplevel,
-					button_size, row_foreground);
+					row_foreground);
 				if (marker != NULL) {
 					struct wlr_scene_buffer *button = wlr_scene_buffer_create(row,
 						marker);
 					if (button != NULL)
-						wlr_scene_node_set_position(&button->node, 3, 3);
+						wlr_scene_node_set_position(&button->node, 5,
+							(row_height - 11) / 2);
 				}
 			}
 			int text_width = 0;
@@ -2023,7 +2048,7 @@ static void refresh_icon_managers(struct server *server) {
 			if (text != NULL) {
 				struct wlr_scene_buffer *node = wlr_scene_buffer_create(row, text);
 				if (node != NULL) {
-					int text_x = button_size + 6;
+					int text_x = 22;
 					int available = cell_width - text_x - 2;
 					if (available > 0 && available < text_width) {
 						struct wlr_fbox source = {.width = available,
@@ -2031,8 +2056,7 @@ static void refresh_icon_managers(struct server *server) {
 						wlr_scene_buffer_set_source_box(node, &source);
 						wlr_scene_buffer_set_dest_size(node, available, text_height);
 					}
-					wlr_scene_node_set_position(&node->node, text_x,
-						(row_height - font_height) / 2 + font_ascent - font_ascent);
+					wlr_scene_node_set_position(&node->node, text_x, 4);
 				}
 			}
 		}
@@ -2367,20 +2391,26 @@ static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
 	struct wlr_box layout = {0};
 	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
 	if (layout.width > 0 && layout.height > 0) {
-		int64_t right = (int64_t)layout.x + layout.width;
-		int64_t bottom = (int64_t)layout.y + layout.height;
-		int64_t max_x = right - toplevel->icon_width;
-		int64_t max_y = bottom - toplevel->icon_height;
-		if (max_x < layout.x) max_x = layout.x;
-		if (max_y < layout.y) max_y = layout.y;
-		if ((int64_t)toplevel->icon_x < layout.x)
-			toplevel->icon_x = layout.x;
-		else if ((int64_t)toplevel->icon_x > max_x)
-			toplevel->icon_x = (int)max_x;
-		if ((int64_t)toplevel->icon_y < layout.y)
-			toplevel->icon_y = layout.y;
-		else if ((int64_t)toplevel->icon_y > max_y)
-			toplevel->icon_y = (int)max_y;
+		if (use_fallback) {
+			(void)wtwm_icon_reference_clamp(layout.x, layout.y, layout.width,
+				layout.height, toplevel->icon_width, toplevel->icon_height,
+				&toplevel->icon_x, &toplevel->icon_y);
+		} else {
+			int64_t right = (int64_t)layout.x + layout.width;
+			int64_t bottom = (int64_t)layout.y + layout.height;
+			int64_t max_x = right - toplevel->icon_width;
+			int64_t max_y = bottom - toplevel->icon_height;
+			if (max_x < layout.x) max_x = layout.x;
+			if (max_y < layout.y) max_y = layout.y;
+			if ((int64_t)toplevel->icon_x < layout.x)
+				toplevel->icon_x = layout.x;
+			else if ((int64_t)toplevel->icon_x > max_x)
+				toplevel->icon_x = (int)max_x;
+			if ((int64_t)toplevel->icon_y < layout.y)
+				toplevel->icon_y = layout.y;
+			else if ((int64_t)toplevel->icon_y > max_y)
+				toplevel->icon_y = (int)max_y;
+		}
 	}
 	wlr_scene_node_set_position(&toplevel->icon_tree->node,
 		toplevel->icon_x, toplevel->icon_y);
@@ -3644,12 +3674,15 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 		if (menu->items[i].action.type == WTWM_ACTION_MENU) {
 			int pull_size = font_height > 0 ? font_height : 1;
-			struct wlr_buffer *pull = wtwm_render_builtin_title(":menu",
-				pull_size, normal_foreground);
-			struct wlr_buffer *pull_hi = wtwm_render_builtin_title(":menu",
-				pull_size, highlight_foreground);
-			int pull_x = layout.content.x + layout.content.width - pull_size - 5;
-			int pull_y = row_box.y + (row_box.height - pull_size) / 2;
+			int pull_width = 0;
+			struct wlr_buffer *pull = wtwm_render_menu_icon(pull_size,
+				normal_foreground, &pull_width);
+			struct wlr_buffer *pull_hi = wtwm_render_menu_icon(pull_size,
+				highlight_foreground, &pull_width);
+			int pull_x = 0;
+			int pull_y = 0;
+			(void)wtwm_menu_pull_origin(&layout, (unsigned int)i, pull_width,
+				&pull_x, &pull_y);
 			if (pull != NULL) {
 				rows[i].pull_normal = wlr_scene_buffer_create(tree, pull);
 				if (rows[i].pull_normal != NULL)
@@ -3669,8 +3702,12 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 	}
 	free(widths); free(heights); free(palettes);
-	int menu_x = submenu ? requested_x : (int)server->cursor->x;
-	int menu_y = submenu ? requested_y : (int)server->cursor->y;
+	int anchor_x = submenu ? requested_x : (int)server->cursor->x;
+	int anchor_y = submenu ? requested_y : (int)server->cursor->y;
+	int menu_x = 0;
+	int menu_y = 0;
+	(void)wtwm_menu_popup_origin(&layout, submenu, anchor_x, anchor_y,
+		&menu_x, &menu_y);
 	int64_t output_right = (int64_t)output_area.x + output_area.width;
 	int64_t output_bottom = (int64_t)output_area.y + output_area.height;
 	if ((int64_t)menu_x + layout.outer.width > output_right) {
@@ -3694,6 +3731,23 @@ static void show_menu_at(struct server *server, const char *name,
 			return;
 		}
 		*parent = server->menu;
+		if (parent->selected >= 0 &&
+				(size_t)parent->selected < parent->row_count) {
+			struct menu_row_view *row = &parent->rows[parent->selected];
+			if (row->normal_background != NULL)
+				wlr_scene_node_set_enabled(&row->normal_background->node, true);
+			if (row->highlight_background != NULL)
+				wlr_scene_node_set_enabled(&row->highlight_background->node, false);
+			if (row->normal_text != NULL)
+				wlr_scene_node_set_enabled(&row->normal_text->node, true);
+			if (row->highlight_text != NULL)
+				wlr_scene_node_set_enabled(&row->highlight_text->node, false);
+			if (row->pull_normal != NULL)
+				wlr_scene_node_set_enabled(&row->pull_normal->node, true);
+			if (row->pull_highlight != NULL)
+				wlr_scene_node_set_enabled(&row->pull_highlight->node, false);
+			parent->selected = -1;
+		}
 	} else {
 		hide_menu(server);
 	}
@@ -3763,10 +3817,13 @@ static void update_menu_selection(struct server *server) {
 			server->cursor->x >= server->menu.x + server->menu.width / 2.0) {
 		const struct wtwm_action *pull =
 			&server->menu.definition->items[selected].action;
+		int border = server->config.menu_border_width;
+		if (border < 0) border = 0;
+		int content_width = server->menu.width - 2 * border;
+		if (content_width < 1) content_width = 1;
 		show_menu_at(server, pull->argument, server->menu.target, true,
-			server->menu.x + server->menu.width / 2,
-			server->menu.y + server->config.menu_border_width +
-				selected * server->menu.row_height);
+			server->menu.x + content_width / 2,
+			server->menu.y + selected * server->menu.row_height);
 	}
 }
 
@@ -6910,6 +6967,7 @@ static void detach_runtime_listeners(struct server *server) {
 	wl_list_remove(&server->request_cursor.link);
 	wl_list_remove(&server->request_selection.link);
 	wl_list_remove(&server->request_primary_selection.link);
+	wl_list_remove(&server->request_start_drag.link);
 }
 
 static void keyboard_modifiers(struct wl_listener *listener, void *data) {
@@ -7172,10 +7230,11 @@ static void request_cursor(struct wl_listener *listener, void *data) {
 	if (event == NULL || event->seat_client == NULL ||
 			server->seat->pointer_state.focused_client != event->seat_client ||
 			!wlr_seat_client_validate_event_serial(event->seat_client,
-				event->serial)) {
+				event->serial) ||
+			!wtwm_client_point_in_bounds(event->hotspot_x, event->hotspot_y)) {
 		wlr_log(WLR_DEBUG,
 			"event=client_request protocol=wl_pointer action=set_cursor "
-			"outcome=rejected reason=focus_or_serial serial=%" PRIu32,
+			"outcome=rejected reason=focus_serial_or_hotspot serial=%" PRIu32,
 			event != NULL ? event->serial : 0);
 		return;
 	}
@@ -7207,6 +7266,64 @@ static void request_primary_selection(struct wl_listener *listener, void *data) 
 		return;
 	}
 	wlr_seat_set_primary_selection(server->seat, event->source, event->serial);
+}
+
+static void destroy_rejected_drag(struct server *server, struct wlr_drag *drag,
+		uint32_t serial) {
+	if (drag == NULL) return;
+	if (drag->source != NULL) {
+		wlr_data_source_destroy(drag->source);
+		return;
+	}
+	/* wlroots exposes no public destructor for an unstarted, source-less drag.
+	 * Enter and immediately cancel only its keyboard-only lifecycle so the
+	 * rejected object is reclaimed without granting a pointer or touch grab. */
+	wlr_seat_start_drag(server->seat, drag, serial);
+	wlr_seat_keyboard_end_grab(server->seat);
+}
+
+static void request_start_drag(struct wl_listener *listener, void *data) {
+	struct server *server =
+		wl_container_of(listener, server, request_start_drag);
+	struct wlr_seat_request_start_drag_event *event = data;
+	struct wlr_drag *drag = event != NULL ? event->drag : NULL;
+	bool ownership_valid = drag != NULL && drag->seat == server->seat &&
+		drag->seat_client != NULL && drag->seat_client->seat == server->seat &&
+		event->origin != NULL &&
+		wl_resource_get_client(event->origin->resource) ==
+			drag->seat_client->client;
+	bool pointer_valid = ownership_valid &&
+		server->seat->pointer_state.focused_client == drag->seat_client &&
+		server->seat->pointer_state.grab_serial == event->serial &&
+		wlr_seat_validate_pointer_grab_serial(server->seat, event->origin,
+			event->serial);
+	struct wlr_touch_point *touch_point = NULL;
+	bool touch_valid = ownership_valid && !pointer_valid &&
+		server->seat->touch_state.grab_serial == event->serial &&
+		wlr_seat_validate_touch_grab_serial(server->seat, event->origin,
+			event->serial, &touch_point) && touch_point != NULL &&
+		touch_point->client == drag->seat_client;
+	if (pointer_valid) {
+		wlr_seat_start_pointer_drag(server->seat, drag, event->serial);
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_data_device action=start_drag "
+			"outcome=accepted input=pointer serial=%" PRIu32, event->serial);
+		return;
+	}
+	if (touch_valid) {
+		wlr_seat_start_touch_drag(server->seat, drag, event->serial,
+			touch_point);
+		wlr_log(WLR_DEBUG,
+			"event=client_request protocol=wl_data_device action=start_drag "
+			"outcome=accepted input=touch serial=%" PRIu32, event->serial);
+		return;
+	}
+	wlr_log(WLR_DEBUG,
+		"event=client_request protocol=wl_data_device action=start_drag "
+		"outcome=rejected reason=%s serial=%" PRIu32,
+		ownership_valid ? "grab" : "origin_or_client",
+		event != NULL ? event->serial : 0);
+	destroy_rejected_drag(server, drag, event != NULL ? event->serial : 0);
 }
 
 static bool render_output(struct output *output) {
@@ -9426,20 +9543,39 @@ static bool popup_constraint_box(struct popup *popup, struct wlr_box *box) {
 	return box->width > 0 && box->height > 0;
 }
 
-static bool popup_size_valid(struct popup *popup, const char *boundary) {
-	int width = popup->xdg->scheduled.rules.size.width;
-	int height = popup->xdg->scheduled.rules.size.height;
-	if (width >= 1 && height >= 1 && width <= WTWM_CLIENT_SIZE_MAX &&
-			height <= WTWM_CLIENT_SIZE_MAX) return true;
+static bool popup_positioner_valid(struct popup *popup, const char *boundary) {
+	const struct wlr_xdg_positioner_rules *rules =
+		&popup->xdg->scheduled.rules;
+	const struct wlr_box *geometry = &popup->xdg->scheduled.geometry;
+	struct wtwm_client_positioner positioner = {
+		.width = rules->size.width,
+		.height = rules->size.height,
+		.anchor_x = rules->anchor_rect.x,
+		.anchor_y = rules->anchor_rect.y,
+		.anchor_width = rules->anchor_rect.width,
+		.anchor_height = rules->anchor_rect.height,
+		.parent_width = rules->parent_size.width,
+		.parent_height = rules->parent_size.height,
+		.offset_x = rules->offset.x,
+		.offset_y = rules->offset.y,
+		.geometry_x = geometry->x,
+		.geometry_y = geometry->y,
+		.geometry_width = geometry->width,
+		.geometry_height = geometry->height,
+	};
+	enum wtwm_client_positioner_error error =
+		wtwm_client_positioner_validate(&positioner);
+	if (error == WTWM_POSITIONER_VALID) return true;
 	wlr_log(WLR_DEBUG,
 		"event=client_size protocol=xdg_shell role=popup boundary=%s "
-		"outcome=rejected width=%d height=%d limit=%d",
-		boundary, width, height, WTWM_CLIENT_SIZE_MAX);
+		"outcome=rejected field=%s width=%d height=%d limit=%d",
+		boundary, wtwm_client_positioner_error_name(error),
+		positioner.width, positioner.height, WTWM_CLIENT_SIZE_MAX);
 	return false;
 }
 
 static bool configure_popup(struct popup *popup) {
-	if (!popup_size_valid(popup, "popup_configure")) {
+	if (!popup_positioner_valid(popup, "popup_configure")) {
 		wlr_xdg_popup_destroy(popup->xdg);
 		return false;
 	}
@@ -9528,7 +9664,7 @@ static void new_popup(struct wl_listener *listener, void *data) {
 		wlr_xdg_popup_destroy(xdg);
 		return;
 	}
-	if (!popup_size_valid(popup, "popup_create")) {
+	if (!popup_positioner_valid(popup, "popup_create")) {
 		free(popup);
 		wlr_xdg_popup_destroy(xdg);
 		return;
@@ -10219,7 +10355,8 @@ static void test_write_state(struct test_control *control) {
 			popup->xdg->current.geometry.height,
 			popup->mapped ? "true" : "false", visible ? "true" : "false");
 	}
-	test_write(control, "],\"interactive\":%s,\"interaction\":",
+	test_write(control, "],\"data_drag\":%s,\"interactive\":%s,\"interaction\":",
+		server->seat->drag != NULL ? "true" : "false",
 		server->grabbed != NULL ? "true" : "false");
 	if (server->grabbed == NULL) {
 		test_write(control, "null");
@@ -10257,14 +10394,27 @@ static void test_write_state(struct test_control *control) {
 	if (server->menu.tree == NULL) {
 		test_write(control, "null");
 	} else {
+		bool pull_right = server->menu.selected >= 0 &&
+			(size_t)server->menu.selected < server->menu.definition->item_count &&
+			server->menu.definition->items[server->menu.selected].action.type ==
+				WTWM_ACTION_MENU;
 		test_write(control, "{\"name\":");
 		test_write_json_string(control, server->menu.definition->name);
+		test_write(control, ",\"parent\":");
+		if (server->menu.parent == NULL)
+			test_write(control, "null");
+		else
+			test_write_json_string(control,
+				server->menu.parent->definition->name);
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
-			"\"row_height\":%d,\"depth\":%u,\"selected\":%d}",
+			"\"row_height\":%d,\"depth\":%u,\"selected\":%d,"
+			"\"pull_right\":%s,\"submenu_open\":%s}",
 			server->menu.x, server->menu.y, server->menu.width,
 			server->menu.height, server->menu.row_height,
-			menu_depth(&server->menu), server->menu.selected);
+			menu_depth(&server->menu), server->menu.selected,
+			pull_right ? "true" : "false",
+			server->menu.parent != NULL ? "true" : "false");
 	}
 	test_write(control, "}\n");
 }
@@ -11370,6 +11520,7 @@ int main(int argc, char **argv) {
 	wl_list_init(&server.request_cursor.link);
 	wl_list_init(&server.request_selection.link);
 	wl_list_init(&server.request_primary_selection.link);
+	wl_list_init(&server.request_start_drag.link);
 	server.input_plan = calloc(1, sizeof(*server.input_plan));
 	if (server.input_plan == NULL) goto fail_runtime;
 	server.seat = wlr_seat_create(server.display, "seat0");
@@ -11392,6 +11543,9 @@ int main(int argc, char **argv) {
 	server.request_primary_selection.notify = request_primary_selection;
 	wl_signal_add(&server.seat->events.request_set_primary_selection,
 		&server.request_primary_selection);
+	server.request_start_drag.notify = request_start_drag;
+	wl_signal_add(&server.seat->events.request_start_drag,
+		&server.request_start_drag);
 #ifdef WTWM_TEST_CONTROL
 	server.test_control.server = &server;
 	if (!test_input_add(&server.test_control, WTWM_INPUT_DEVICE_KEYBOARD,

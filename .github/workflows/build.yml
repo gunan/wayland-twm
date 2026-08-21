@@ -11,11 +11,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native x86-64 environment
         run: test "$(dpkg --print-architecture)" = amd64
       - name: Validate build-platform contract
@@ -37,11 +39,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-testing-build-packages.txt
       - name: Verify native x86-64 environment
         run: |
           test "$(dpkg --print-architecture)" = amd64
@@ -67,6 +71,10 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
       - name: Prepare persistent package evidence
         run: |
           mkdir -p /tmp/wtwm-package-artifacts
@@ -74,7 +82,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install build, package, and co-installation dependencies
         run: |
-          apt-get update
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat scripts/ci/debian-trixie-package-packages.txt
@@ -133,11 +140,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Debian Trixie dependencies
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install Debian Trixie dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native architecture
         run: test "$(dpkg --print-architecture)" = "${{ matrix.architecture }}"
       - name: Install libFuzzer toolchain
@@ -186,11 +195,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
-      - uses: actions/checkout@v4
-      - name: Install controlled X11 build environment
+      - name: Install Git for checkout
         run: |
           apt-get update
-          xargs apt-get install -y --no-install-recommends < reference/environment/debian-trixie-x11-packages.txt
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install controlled X11 build environment
+        run: xargs apt-get install -y --no-install-recommends < reference/environment/debian-trixie-x11-packages.txt
       - name: Record resolved package versions
         run: |
           xargs dpkg-query -W -f='${binary:Package}\t${Version}\n' < reference/environment/debian-trixie-x11-packages.txt
@@ -238,10 +249,13 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
       - uses: actions/checkout@v4
       - name: Install frozen reference and compositor dependencies
         run: |
-          apt-get update
           {
             cat scripts/ci/debian-trixie-build-packages.txt
             cat reference/environment/debian-trixie-x11-packages.txt
@@ -280,6 +294,15 @@ jobs:
           cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
             $(pkg-config --cflags x11) tests/integration/m7_icon_differential_client.c \
             -o /tmp/m7-icon-client $(pkg-config --libs x11)
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror -fPIC -shared \
+            tests/integration/m10_command_interposer.c \
+            -o /tmp/m10-command-interposer.so -ldl
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            tests/integration/m10_command_observer.c \
+            -o /tmp/m10-command-observer
+          cc -std=c11 -Wall -Wextra -Wpedantic -Werror \
+            $(pkg-config --cflags x11) tests/integration/m10_close_observer.c \
+            -o /tmp/m10-close-observer $(pkg-config --libs x11)
       - name: Compare identical canonical clients live
         run: |
           python3 -B tests/integration/run_x11_differential.py \
@@ -301,6 +324,7 @@ jobs:
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
             --client /tmp/m4-trace-client \
             --probe /tmp/m4-trace-probe \
+            --screenshot-observer /tmp/m7-icon-observer \
             --input-driver /tmp/m4-trace-input \
             --config "$GITHUB_WORKSPACE/tests/integration/m4_trace_differential.twmrc" \
             --contract "$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json" \
@@ -350,9 +374,54 @@ jobs:
             --config "$GITHUB_WORKSPACE/tests/integration/m7_icon_differential.twmrc" \
             --output /tmp/m7-icon-differential.json \
             --evidence /tmp/m7-icon-differential-evidence
+      - name: Compare live menu state and rendered pixels with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_menu_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --input-driver /tmp/m4-trace-input \
+            --observer /tmp/m7-icon-observer \
+            --config "$GITHUB_WORKSPACE/tests/integration/m10_menu_differential.twmrc" \
+            --output /tmp/m10-menu-differential.json \
+            --evidence /tmp/m10-menu-differential-evidence
+      - name: Compare live command dispatch with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_command_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --config-check "$GITHUB_WORKSPACE/build-differential/wtwm-config" \
+            --input-driver /tmp/m4-trace-input \
+            --observer /tmp/m7-icon-observer \
+            --command-observer /tmp/m10-command-observer \
+            --interposer /tmp/m10-command-interposer.so \
+            --output /tmp/m10-command-differential.json \
+            --evidence /tmp/m10-command-differential-evidence
+      - name: Compare live close and destruction with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_close_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --xvfb /usr/bin/Xvfb \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --config "$GITHUB_WORKSPACE/tests/integration/m10_close_differential.twmrc" \
+            --input-driver /tmp/m4-trace-input \
+            --reference-observer /tmp/m7-icon-observer \
+            --close-observer /tmp/m10-close-observer \
+            --x11-client "$GITHUB_WORKSPACE/build-differential/wtwm-stress-x11-client" \
+            --native-client "$GITHUB_WORKSPACE/build-differential/wtwm-stress-wayland-client" \
+            --output /tmp/m10-close-differential.json \
+            --evidence /tmp/m10-close-differential-evidence
       - name: Run deterministic Milestone 7 large-set lifecycle churn
         if: always()
-        timeout-minutes: 25
+        timeout-minutes: 45
         run: |
           python3 -B tests/integration/run_m7_lifecycle_churn.py \
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
@@ -412,6 +481,33 @@ jobs:
           path: |
             /tmp/m7-icon-differential.json
             /tmp/m7-icon-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 live menu differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-menu-differential
+          path: |
+            /tmp/m10-menu-differential.json
+            /tmp/m10-menu-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 live command differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-command-differential
+          path: |
+            /tmp/m10-command-differential.json
+            /tmp/m10-command-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 close/destruction differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-close-differential
+          path: |
+            /tmp/m10-close-differential.json
+            /tmp/m10-close-differential-evidence
           if-no-files-found: error
       - name: Upload Milestone 7 lifecycle churn
         if: always()

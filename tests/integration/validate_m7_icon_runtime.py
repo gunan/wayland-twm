@@ -23,11 +23,24 @@ REQUIRED = {
         "XCB_ATOM_WM_CLASS",
         "initialize_icon_managers",
         "sync_icon_manager_toplevel",
+        "wtwm_render_icon_manager_marker",
+        "view->width + 2",
+        "create_icon_manager_outline(row, 2",
+        "(row_height - 11) / 2",
+        "int text_x = 22",
+        "node->node, text_x, 4",
         "move_icon_manager_selection",
         "WTWM_CONTEXT_ICONMGR",
         'test_trace_toplevel_event(toplevel, "animation", "icon")',
     ),
-    "src/text.c": ("wtwm_render_argb_icon", "alpha << 24"),
+    "src/text.c": (
+        "wtwm_render_argb_icon",
+        "alpha << 24",
+        "wtwm_render_icon_manager_marker",
+        "static const unsigned char rows[11][2]",
+        "{0xff, 0x07}, {0x01, 0x04}, {0x0d, 0x05}, {0x9d, 0x05}",
+        "{0x85, 0x05}, {0x01, 0x04}, {0xff, 0x07}",
+    ),
     "src/icon_layout.c": ("wtwm_icon_layout_allocate", "split_entry"),
     "src/icon_manager.c": (
         "wtwm_icon_manager_entry_update",
@@ -41,6 +54,16 @@ REQUIRED = {
         "next icon manager",
         "ppm_structure",
         'structure["structured"] < 1',
+    ),
+    "tests/integration/run_m7_lifecycle_churn.py": (
+        "INITIAL_ASSOCIATION_TIMEOUT_SECONDS = 360",
+        "INITIAL_ASSOCIATION_STALL_SECONDS = 60",
+        "initial Xwayland association stalled",
+        "CLEANUP_TIMEOUT_SECONDS = 120",
+        "CLEANUP_STALL_SECONDS = 30",
+        "Xwayland stress cleanup stalled",
+        'client_command(client, "QUIT", "OK QUIT")',
+        'result["result"] = "passed"',
     ),
     "reference/icons/twm-1.0.13.1/icon-contract.json": (
         '"test_scenarios"', '"evidence"', '"sha256"',
@@ -88,6 +111,14 @@ def main() -> int:
         )
         if not validate(tampered):
             errors.append("self-test tamper was accepted")
+        marker_tampered = dict(files)
+        marker_tampered["src/text.c"] = marker_tampered["src/text.c"].replace(
+            "{0xff, 0x07}, {0x01, 0x04}",
+            "{0x00, 0x00}, {0x01, 0x04}",
+            1,
+        )
+        if not validate(marker_tampered):
+            errors.append("siconify bitmap tamper was accepted")
     if errors:
         for error in errors:
             print(f"m7 icon runtime error: {error}")

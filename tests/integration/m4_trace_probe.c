@@ -185,6 +185,22 @@ int main(void) {
 	int revert;
 	XGetInputFocus(display, &focus, &revert);
 	(void)revert;
+	Window pointer_root;
+	Window pointer_child;
+	int pointer_root_x;
+	int pointer_root_y;
+	int pointer_window_x;
+	int pointer_window_y;
+	unsigned pointer_mask;
+	if (!XQueryPointer(display, root, &pointer_root, &pointer_child,
+			&pointer_root_x, &pointer_root_y, &pointer_window_x,
+			&pointer_window_y, &pointer_mask))
+		die("could not read root pointer coordinates");
+	(void)pointer_root;
+	(void)pointer_child;
+	(void)pointer_window_x;
+	(void)pointer_window_y;
+	(void)pointer_mask;
 
 	Window query_root;
 	Window parent;
@@ -203,9 +219,9 @@ int main(void) {
 	if (children != NULL) XFree(children);
 
 	printf("{\"screen\":{\"width\":%d,\"height\":%d,\"depth\":%d},"
-		"\"focus\":\"%s\",\"stack\":[",
+		"\"pointer\":{\"x\":%d,\"y\":%d},\"focus\":\"%s\",\"stack\":[",
 		root_attributes.width, root_attributes.height, root_attributes.depth,
-		focus_role(focus, root, items));
+		pointer_root_x, pointer_root_y, focus_role(focus, root, items));
 	for (unsigned i = 0; i < stack_count; ++i) {
 		if (i != 0) putchar(',');
 		printf("\"%s\"", stack[i]);

@@ -28,6 +28,11 @@ grammar alternatives; the dedicated rejection trace must contain `stmt: error`.
 comparison contract on hosts that cannot build or run the controlled X11
 environment; it never fabricates reference observations.
 
+The final consolidated grammar report is
+`reference/certification/reports/grammar-coverage.json`. Its clean-candidate
+run observed all 167 accepted alternatives and the dedicated `stmt: error`
+alternative, covering all 51 grammar productions with no uncovered production.
+
 After the portable fixture test passes, retain the full Debian/X11 comparison
 artifact and use it to migrate the generated compatibility artifacts:
 

@@ -17,6 +17,23 @@ enum wtwm_client_size_adjustment {
 	WTWM_CLIENT_HEIGHT_CLAMPED = 1 << 3,
 };
 
+enum wtwm_client_positioner_error {
+	WTWM_POSITIONER_VALID = 0,
+	WTWM_POSITIONER_INVALID_SIZE,
+	WTWM_POSITIONER_INVALID_ANCHOR_RECT,
+	WTWM_POSITIONER_INVALID_PARENT_SIZE,
+	WTWM_POSITIONER_INVALID_OFFSET,
+	WTWM_POSITIONER_INVALID_GEOMETRY,
+};
+
+struct wtwm_client_positioner {
+	int width, height;
+	int anchor_x, anchor_y, anchor_width, anchor_height;
+	int parent_width, parent_height;
+	int offset_x, offset_y;
+	int geometry_x, geometry_y, geometry_width, geometry_height;
+};
+
 /**
  * Sanitize client-controlled geometry before it reaches compositor frame math.
  * Non-positive dimensions retain the last accepted value, while dimensions
@@ -38,5 +55,20 @@ bool wtwm_client_size_adjusted(unsigned adjustment);
  * cannot overflow a signed int.
  */
 bool wtwm_client_geometry_in_bounds(int x, int y, int width, int height);
+
+/** Return whether a client-controlled coordinate is safe for signed-int math. */
+bool wtwm_client_point_in_bounds(int x, int y);
+
+/**
+ * Validate every client-controlled xdg-positioner field that can reach wtwm's
+ * popup placement, scene, or unconstrain calculations.  A zero parent size is
+ * the public wlroots representation for an omitted set_parent_size request;
+ * otherwise both parent dimensions must be positive and bounded.
+ */
+enum wtwm_client_positioner_error wtwm_client_positioner_validate(
+	const struct wtwm_client_positioner *positioner);
+
+const char *wtwm_client_positioner_error_name(
+	enum wtwm_client_positioner_error error);
 
 #endif

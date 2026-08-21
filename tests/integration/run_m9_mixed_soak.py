@@ -628,6 +628,21 @@ def wait_process(process: subprocess.Popen[bytes], label: str) -> int:
         raise RuntimeError(f"timed out waiting for {label} process") from error
 
 
+def close_process_pipes(process: subprocess.Popen[bytes]) -> None:
+    """Release harness-owned pipes as soon as a client has been reaped."""
+    for pipe in (process.stdin, process.stdout):
+        if pipe is not None and not pipe.closed:
+            pipe.close()
+
+
+def retire_process(
+    process: subprocess.Popen[bytes], tracked: list[subprocess.Popen[bytes]]
+) -> None:
+    """Drop all harness resources for one successfully reaped client."""
+    close_process_pipes(process)
+    tracked.remove(process)
+
+
 def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
     run_profile = evidence["profile"]
     operations = evidence["operations"]
@@ -778,6 +793,7 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
                 crashed = clients[crash_protocol]
                 crashed.channel.command("CRASH", "OK CRASH")
                 status = wait_process(crashed.process, f"{crash_protocol} crash")
+                retire_process(crashed.process, all_processes)
                 if status != -signal.SIGABRT:
                     raise RuntimeError(
                         f"{crash_protocol} crash exited {status}, expected {-signal.SIGABRT}"
@@ -817,7 +833,9 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
 
             for client in clients.values():
                 client.channel.command("EXIT", "OK EXIT")
-                if wait_process(client.process, f"{client.protocol} clean exit") != 0:
+                status = wait_process(client.process, f"{client.protocol} clean exit")
+                retire_process(client.process, all_processes)
+                if status != 0:
                     raise RuntimeError(f"{client.protocol} did not exit cleanly")
             wait_state(
                 control,
@@ -848,6 +866,8 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
                 if child.poll() is None:
                     child.kill()
                     child.wait(timeout=WAIT_SECONDS)
+                close_process_pipes(child)
+            all_processes.clear()
             if control is not None:
                 control.close()
             if compositor is not None and compositor.poll() is None:

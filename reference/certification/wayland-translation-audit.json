@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "reference": "twm 1.0.13.1",
+  "scope": "Every intentional protocol, ownership, identity, placement, rendering, input, selection, session, or X-server-resource translation that prevents a literal X11 implementation on native Wayland.",
+  "entries": [
+    {
+      "id": "compositor-owned-icons",
+      "summary": "X icon windows and pixmaps become compositor-owned icon scenes.",
+      "unavoidable_reason": "Rootless Xwayland cannot transplant an arbitrary client-owned X window into a Wayland scene, and native xdg-shell has no standard icon-window request.",
+      "ledger_rows": [
+        "keyword.forceicons",
+        "keyword.iconmanagers",
+        "keyword.icons",
+        "keyword.unknownicon"
+      ],
+      "test_paths": [
+        "tests/integration/run_m7_icon_differential.py",
+        "tests/integration/run_m7_icons.py"
+      ]
+    },
+    {
+      "id": "compositor-owned-menus",
+      "summary": "twm menus become a compositor-owned scene layer.",
+      "unavoidable_reason": "Wayland compositors own composition and cannot reproduce twm's client-side X menu windows as literal root children.",
+      "ledger_rows": [
+        "keyword.f.menu",
+        "keyword.menu"
+      ],
+      "test_paths": [
+        "tests/integration/run_m10_menu_differential.py",
+        "tests/integration/run_m6_actions.py"
+      ]
+    },
+    {
+      "id": "compositor-owned-refresh",
+      "summary": "Refresh actions damage and repaint compositor-owned scene content.",
+      "unavoidable_reason": "Wayland has no X root-window exposure event that a compositor can send to native clients.",
+      "ledger_rows": [
+        "keyword.f.refresh",
+        "keyword.f.winrefresh"
+      ],
+      "test_paths": [
+        "tests/integration/run_m6_actions.py"
+      ]
+    },
+    {
+      "id": "cut-buffer-clipboard",
+      "summary": "The X cut buffer is mirrored through the Wayland CLIPBOARD selection.",
+      "unavoidable_reason": "Native Wayland has no global X-style root cut-buffer property.",
+      "ledger_rows": [
+        "keyword.f.cut",
+        "keyword.f.cutfile",
+        "keyword.f.file",
+        "lexical.cut-shorthand"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_cut_buffer.py",
+        "tests/reference/validate_reference_cut_buffer_contract.py"
+      ]
+    },
+    {
+      "id": "embedded-rootless-xwayland",
+      "summary": "X11 clients run through a compositor-owned rootless Xwayland server.",
+      "unavoidable_reason": "A Wayland compositor does not manage an existing X server root and must bridge X11 clients through Xwayland.",
+      "ledger_rows": [
+        "keyword.f.exec"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_session_lifecycle.py",
+        "tests/integration/run_xwayland_lifecycle.py"
+      ]
+    },
+    {
+      "id": "fractional-scale-rounding",
+      "summary": "Fractional output coordinates use deterministic shared-edge rounding.",
+      "unavoidable_reason": "Wayland output scale is expressed in logical coordinates and 120ths rather than X screen pixels.",
+      "ledger_rows": [
+        "keyword.defaultbackground",
+        "keyword.f.warptoscreen"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_output_topology.py",
+        "tests/reference/validate_reference_output_topology_contract.py"
+      ]
+    },
+    {
+      "id": "identify-version-log",
+      "summary": "Identify and version output is written to the compositor log.",
+      "unavoidable_reason": "Wayland has no server-owned X information window in which to display the result.",
+      "ledger_rows": [
+        "keyword.f.identify",
+        "keyword.f.version"
+      ],
+      "test_paths": [
+        "tests/integration/run_m6_actions.py"
+      ]
+    },
+    {
+      "id": "in-process-restart",
+      "summary": "Restart and twmrc reload use one atomic in-process transaction.",
+      "unavoidable_reason": "Replacing the compositor process would destroy accepted Wayland resources, focus, selections, and Xwayland ownership.",
+      "ledger_rows": [
+        "keyword.f.restart",
+        "keyword.f.source",
+        "keyword.f.twmrc"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_restart.py",
+        "tests/reference/validate_reference_restart_contract.py"
+      ]
+    },
+    {
+      "id": "legacy-bell-priority",
+      "summary": "Legacy bell and XSync priority behavior is conditional at the protocol boundary.",
+      "unavoidable_reason": "Native Wayland defines neither a compositor bell request nor twm's XSync priority control.",
+      "ledger_rows": [
+        "keyword.f.beep",
+        "keyword.f.priority",
+        "keyword.priority"
+      ],
+      "test_paths": [
+        "tests/integration/run_m6_actions.py",
+        "tests/reference/validate_m6_implementation_matrix.py"
+      ]
+    },
+    {
+      "id": "logical-seat-aggregation",
+      "summary": "Physical input devices are aggregated into one logical Wayland seat.",
+      "unavoidable_reason": "Wayland exposes input capabilities and focus through logical seats rather than twm's direct X device model.",
+      "ledger_rows": [
+        "grammar.button.1",
+        "keyword.button",
+        "keyword.f.focus"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_input_hotplug.py",
+        "tests/reference/validate_reference_input_hotplug_contract.py"
+      ]
+    },
+    {
+      "id": "native-close-only",
+      "summary": "Native delete and destroy actions both issue xdg-shell close requests.",
+      "unavoidable_reason": "xdg-shell has no protocol operation that forcibly disconnects only one arbitrary native client.",
+      "ledger_rows": [
+        "keyword.f.delete",
+        "keyword.f.destroy"
+      ],
+      "test_paths": [
+        "tests/integration/run_m10_close_differential.py",
+        "tests/integration/validate_m10_close_differential.py"
+      ]
+    },
+    {
+      "id": "native-colormap-noop",
+      "summary": "Colormap rotation is a verified no-op for native clients.",
+      "unavoidable_reason": "Native true-color Wayland buffers expose neither WM_COLORMAP_WINDOWS nor an installed-colormap protocol.",
+      "ledger_rows": [
+        "keyword.f.colormap"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_colormap.py",
+        "tests/reference/validate_reference_colormap_contract.py"
+      ]
+    },
+    {
+      "id": "native-initial-placement",
+      "summary": "Native initial placement selects an output from pointer or parent state.",
+      "unavoidable_reason": "xdg-shell supplies no X11 USPosition/PPosition hints and no blocking root placement grab.",
+      "ledger_rows": [
+        "keyword.randomplacement",
+        "keyword.usepposition"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_output_placement.py",
+        "tests/integration/run_placement.py"
+      ]
+    },
+    {
+      "id": "native-popup-hierarchy",
+      "summary": "Native application popups retain their validated xdg parent hierarchy.",
+      "unavoidable_reason": "xdg-shell popups are parented protocol objects rather than independent X override-redirect root children.",
+      "ledger_rows": [
+        "keyword.f.menu",
+        "keyword.menu"
+      ],
+      "test_paths": [
+        "tests/integration/run_m9_popup_lifecycle_stress.py",
+        "tests/integration/run_mixed_clients.py"
+      ]
+    },
+    {
+      "id": "native-size-constraints",
+      "summary": "Native resizing uses the subset of size constraints exposed by xdg-shell.",
+      "unavoidable_reason": "xdg-shell exposes minimum and maximum size but not X11 base, increment, or aspect hints.",
+      "ledger_rows": [
+        "keyword.autorelativeresize",
+        "keyword.maxwindowsize"
+      ],
+      "test_paths": [
+        "tests/integration/run_placement.py",
+        "tests/integration/run_xwayland_geometry_matrix.py"
+      ]
+    },
+    {
+      "id": "native-window-identity",
+      "summary": "Native window-list matching maps X name, instance, and class identity to title and app_id.",
+      "unavoidable_reason": "xdg-shell exposes title and app_id but has no independent WM_CLASS instance and class pair.",
+      "ledger_rows": [
+        "keyword.autoraise",
+        "keyword.maketitle",
+        "keyword.notitle",
+        "keyword.starticonified"
+      ],
+      "test_paths": [
+        "tests/integration/run_native_rules.py",
+        "tests/integration/run_xwayland_rules.py"
+      ]
+    },
+    {
+      "id": "output-root-spatial-model",
+      "summary": "Each enabled output box is a spatial root equivalent and the compositor paints its background.",
+      "unavoidable_reason": "Wayland outputs are not independent X screens with server-owned root windows, and the compositor owns every output pixel.",
+      "ledger_rows": [
+        "keyword.defaultbackground",
+        "keyword.f.fullzoom",
+        "keyword.f.warptoscreen",
+        "keyword.root"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_output_placement.py",
+        "tests/integration/run_m8_screen_output.py"
+      ]
+    },
+    {
+      "id": "rootless-cross-protocol-stacking",
+      "summary": "Native popups and Xwayland override-redirect surfaces share a map-ordered overlay.",
+      "unavoidable_reason": "An X ConfigureNotify has no native-surface identity and cannot express sibling order across protocol families.",
+      "ledger_rows": [
+        "keyword.f.circledown",
+        "keyword.f.circleup",
+        "keyword.f.lower",
+        "keyword.f.raise",
+        "keyword.f.raiselower"
+      ],
+      "test_paths": [
+        "tests/integration/run_mixed_clients.py",
+        "tests/integration/run_overlay_stacking.py"
+      ]
+    },
+    {
+      "id": "saved-state-snapshot",
+      "summary": "Session restoration uses an explicit compositor-owned state snapshot.",
+      "unavoidable_reason": "Native Wayland has no WM_SAVE_YOURSELF or X session-manager restart/discard property protocol.",
+      "ledger_rows": [
+        "keyword.f.saveyourself",
+        "keyword.restartpreviousstate"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_session_lifecycle.py",
+        "tests/integration/run_m8_session_state.py"
+      ]
+    },
+    {
+      "id": "screen-zero-global-config",
+      "summary": "The screen-zero configuration is one global configuration for all outputs.",
+      "unavoidable_reason": "Wayland outputs are not separate X screens with independently parsed root configurations.",
+      "ledger_rows": [
+        "keyword.defaultbackground",
+        "keyword.f.restart",
+        "keyword.f.twmrc",
+        "keyword.f.warptoscreen"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_screen_output.py",
+        "tests/reference/validate_reference_screen_output_contract.py"
+      ]
+    },
+    {
+      "id": "selection-bridge",
+      "summary": "Wayland CLIPBOARD and PRIMARY offers bridge to X11 selections under seat-focus rules.",
+      "unavoidable_reason": "Wayland transfers selections with focused-seat offers and file descriptors rather than X owner windows, target atoms, and properties.",
+      "ledger_rows": [
+        "keyword.f.cut",
+        "keyword.f.cutfile",
+        "keyword.f.file"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_cut_buffer.py",
+        "tests/integration/run_selection_bridge.py"
+      ]
+    },
+    {
+      "id": "startwm-in-process",
+      "summary": "A safe f.startwm self-handoff becomes an atomic in-process restart.",
+      "unavoidable_reason": "Wayland offers no generic transfer of accepted client resources to an arbitrary replacement compositor process.",
+      "ledger_rows": [
+        "keyword.f.startwm"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_startwm.py",
+        "tests/reference/validate_reference_startwm_contract.py"
+      ]
+    },
+    {
+      "id": "unicode-font-fallback",
+      "summary": "Non-ASCII decoration text falls back from X core fonts to bounded Pango rendering.",
+      "unavoidable_reason": "Native Wayland has no X core font server or XLFD glyph protocol for general Unicode text.",
+      "ledger_rows": [
+        "keyword.iconfont",
+        "keyword.iconmanagerfont",
+        "keyword.menufont",
+        "keyword.resizefont",
+        "keyword.titlefont"
+      ],
+      "test_paths": [
+        "tests/integration/run_m5_visual_differential.py",
+        "tests/integration/run_m5_visual_states.py"
+      ]
+    },
+    {
+      "id": "x11-resource-noops",
+      "summary": "Backing-store, save-under, and global-server-grab controls are verified no-ops.",
+      "unavoidable_reason": "Those resources are properties of X server windows and grabs and do not exist in a Wayland compositor scene graph.",
+      "ledger_rows": [
+        "keyword.nobackingstore",
+        "keyword.nograbserver",
+        "keyword.nosaveunders"
+      ],
+      "test_paths": [
+        "tests/integration/run_m8_noop_options.py",
+        "tests/reference/validate_reference_x11_resource_noop_contract.py"
+      ]
+    }
+  ]
+}

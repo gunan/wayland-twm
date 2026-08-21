@@ -11,7 +11,8 @@ press|release`, `KEY code press|release`, `STATE`, `TRACE`, `TRACE CLEAR`,
 `SET CURSOR x y`, `SET FONT description`, and `QUIT`. `STATE` returns JSON
 containing focus, client geometry, exact frame/title/border extents,
 advertised size constraints,
-top-to-bottom stacking order, iconified clients, menu state, cursor position,
+top-to-bottom stacking order, iconified clients, menu state (including the
+current menu's parent, selected pull-right row, and open-submenu status), cursor position,
 the per-window placement decision, next random-placement coordinate, and
 deterministic-control values. Cursor coordinates use round-trip-safe double
 precision so a valid point just inside a half-open output edge is never rounded
@@ -157,6 +158,42 @@ must have a scene decoration; the normalized results must otherwise match
 exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
 native/cross-protocol semantics assigned to separate tests and final
 certification.
+
+The same job's `run_m4_trace_differential.py` pairs a stable 260×180 full-screen
+PPM after the initial alpha/bravo state and after every one of the 21 indexed
+pointer, button, and key actions. It compares every pixel with no crop,
+tolerance, or mask. Any nonzero result fails closed and the uploaded evidence
+retains both images, hashes, and the exact mismatch count for review.
+
+The same job runs `run_m10_menu_differential.py` with one controlled fixed-font
+menu under both live window managers. A read-only GDB observer records frozen
+twm's `ActiveMenu`, `ActiveItem`, and `MenuDepth` at the upstream popup and
+motion boundaries; wtwm reports the corresponding compositor-owned state.
+Normal, title, highlighted, pull-right, and child-submenu phases must agree on
+menu name, parent, depth, selected row, pull-right state, and submenu-open
+state. Two consecutive full-output captures must stabilize for each phase and
+the reference/wtwm PPM bytes must then match exactly, with no tolerance or
+mask.
+
+`run_m10_command_differential.py` places a controlled interposer at the libc
+command boundary and a separate executable at the final process boundary. It
+compares the configured action spelling and decoded command, reference
+`system()`/`execlp()` shell text, wtwm direct `execvp()` argument vectors or
+unchanged `execl()` shell text, and the final observer argv. Explicit
+`f.exec`, the `!` alias, a shell-expansion command, an empty command, and
+`f.startwm` are covered. The empty command has no observable process effect;
+the startwm case records reference replacement and wtwm's intentional
+non-execution as the documented Wayland handoff translation.
+
+`run_m10_close_differential.py` drives the same controlled X11 client under
+frozen `twm` and wtwm. It compares cooperative `WM_DELETE_WINDOW`, an ignored
+delete followed by forced X connection destruction, and a same-title
+destroy-and-recreate cycle after complete prior cleanup, with exactly one live
+instance and no stale lifecycle or scene state. XID reuse by the X server is
+accepted only after that cleanup boundary. The wtwm half separately sends both actions to
+a native xdg-shell client, proves that each is the same close request and that
+neither can kill the client, and records this as the unavoidable native
+xdg-shell close-only translation.
 
 The `mixed native and Xwayland client integration` test maps two native xdg
 toplevels and two managed X11 toplevels together. It checks their exact

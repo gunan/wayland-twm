@@ -266,6 +266,32 @@ bool wtwm_menu_text_origin(const struct wtwm_menu_layout *layout,
 	return true;
 }
 
+bool wtwm_menu_pull_origin(const struct wtwm_menu_layout *layout,
+		unsigned int index, int pull_width, int *x, int *y) {
+	if (layout == NULL || pull_width <= 0 || x == NULL || y == NULL)
+		return false;
+	struct wtwm_visual_box row;
+	if (!wtwm_menu_row_box(layout, index, &row)) return false;
+	*x = saturate_int((int64_t)layout->content.x + layout->content.width -
+		pull_width - 5);
+	*y = row.y;
+	return true;
+}
+
+bool wtwm_menu_popup_origin(const struct wtwm_menu_layout *layout,
+		bool submenu, int anchor_x, int anchor_y, int *x, int *y) {
+	if (layout == NULL || x == NULL || y == NULL) return false;
+	int64_t origin_x = anchor_x;
+	int64_t origin_y = anchor_y;
+	if (!submenu) {
+		origin_x -= layout->content.width / 2;
+		origin_y -= layout->row_height / 2;
+	}
+	*x = saturate_int(origin_x);
+	*y = saturate_int(origin_y);
+	return true;
+}
+
 int wtwm_visual_scale_edge(int logical, unsigned int scale_120) {
 	if (scale_120 == 0) scale_120 = 120;
 	int64_t magnitude = logical;
