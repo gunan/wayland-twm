@@ -100,6 +100,13 @@ def normalize_wtwm(state: dict[str, object], screen: dict[str, int]) -> dict[str
         selected[role] = matches[0]
     focus_title = state.get("focus")
     focus = next((role for role in ROLES if focus_title == TITLES[role]), "root")
+    raw_cursor = state.get("cursor")
+    if not isinstance(raw_cursor, dict):
+        raise RuntimeError(f"wtwm STATE has no cursor coordinates: {state!r}")
+    pointer = {
+        "x": int(float(raw_cursor["x"])),
+        "y": int(float(raw_cursor["y"])),
+    }
     stack = [
         role for role, _ in sorted(
             (
@@ -137,7 +144,13 @@ def normalize_wtwm(state: dict[str, object], screen: dict[str, int]) -> dict[str
             "iconified": iconified,
             "titled": bool(item["decorated"]) and int(item["title_bar_height"]) > 0,
         })
-    return {"screen": screen, "focus": focus, "stack": stack, "windows": windows}
+    return {
+        "screen": screen,
+        "pointer": pointer,
+        "focus": focus,
+        "stack": stack,
+        "windows": windows,
+    }
 
 
 def converge(
@@ -298,6 +311,7 @@ def run_reference(
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         wait_line(client, "READY")
+        reference_input(driver, events[0], environment)
         initial = converge(
             lambda: capture_reference(probe, environment), evidence, "reference", 0
         )
@@ -373,6 +387,7 @@ def run_wtwm(
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             wait_line(client, "READY")
+            wtwm_input(control, events[0])
 
             def capture() -> dict[str, object]:
                 assert control is not None

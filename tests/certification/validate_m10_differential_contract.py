@@ -42,7 +42,7 @@ EXPECTED_COVERAGE = {
     "frame-extents": "live-reference-differential",
     "focus-owner": "live-reference-differential",
     "stacking-order": "live-reference-differential",
-    "pointer-location": "partial-existing-infrastructure",
+    "pointer-location": "live-reference-differential",
     "menu-state": "partial-existing-infrastructure",
     "icons-and-icon-managers": "live-reference-differential",
     "commands-launched": "partial-existing-infrastructure",
@@ -268,12 +268,12 @@ def self_test_tamper(contract: object, source_root: Path) -> list[str]:
     if not validate_contract(nonexistent_mapping, source_root):
         failures.append("nonexistent mapping was accepted")
 
-    overclaimed_pointer = copy.deepcopy(contract)
-    overclaimed_pointer["dimensions"][5]["coverage_status"] = (
-        "live-reference-differential"
+    underclaimed_pointer = copy.deepcopy(contract)
+    underclaimed_pointer["dimensions"][5]["coverage_status"] = (
+        "partial-existing-infrastructure"
     )
-    if not validate_contract(overclaimed_pointer, source_root):
-        failures.append("exact pointer-coordinate coverage overclaim was accepted")
+    if not validate_contract(underclaimed_pointer, source_root):
+        failures.append("exact pointer-coordinate coverage underclaim was accepted")
     return failures
 
 

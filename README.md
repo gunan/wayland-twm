@@ -269,7 +269,7 @@ acceptance procedures for this group.
 
 ### 3. Differential parity
 
-- [ ] **Agent:** Extend normalized reference and `wtwm` traces to record and
+- [x] **Agent:** Extend normalized reference and `wtwm` traces to record and
   compare exact pointer coordinates after every significant input action.
 - [ ] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
   depth, selected row, pull-right submenu state, and rendered states.

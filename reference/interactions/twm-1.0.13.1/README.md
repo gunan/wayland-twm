@@ -78,9 +78,10 @@ python3 -B tests/reference/validate_reference_interaction_contract.py \
 It reuses the committed alpha/bravo geometry as its initial oracle, then sends
 the same deterministic pointer, button, and key program to Xvfb/twm and to
 headless wtwm/Xwayland.  The live runner compares client and outer-frame geometry,
-focus, logical mapped/iconified/title state, and bottom-to-top stack
-after every input event.  The only omitted observations are volatile process,
-display, time, XID, and compositor-frame identities plus decoration and
+focus, logical mapped/iconified/title state, bottom-to-top stack, and exact
+root-relative pointer coordinates after every input event.  The only omitted
+observations are volatile process, display, time, XID, and compositor-frame
+identities plus decoration and
 temporary outline pixels.
 The shared profile enables `OpaqueMove`: pinned `menus.c` otherwise grabs the
 X server for an outlined move even with `NoGrabServer`, making an independent

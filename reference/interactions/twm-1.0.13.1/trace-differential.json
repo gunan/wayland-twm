@@ -24,6 +24,7 @@
     "wtwm_frame": "outer coordinates are the compositor scene frame origin",
     "focus": "client identity is reduced to alpha or bravo; root, PointerRoot, and no focused client normalize to root",
     "stack": "visible managed roles only, ordered bottom to top",
+    "pointer": "integer root-relative coordinates observed after initial convergence and every indexed input action",
     "volatile_fields_omitted": [
       "display_number",
       "event_time",
