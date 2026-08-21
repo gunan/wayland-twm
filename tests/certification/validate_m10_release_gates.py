@@ -64,8 +64,19 @@ def parse_time(value: Any, label: str, errors: list[str]) -> dt.datetime | None:
 
 
 def tracked(root: Path, relative: str) -> bool:
+    resolved_root = root.resolve()
     result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--error-unmatch", "--", relative],
+        [
+            "git",
+            "-c",
+            f"safe.directory={resolved_root}",
+            "-C",
+            str(resolved_root),
+            "ls-files",
+            "--error-unmatch",
+            "--",
+            relative,
+        ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         check=False,
