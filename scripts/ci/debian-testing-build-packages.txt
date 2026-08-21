@@ -3,6 +3,7 @@ debhelper
 dialog
 dpkg-dev
 emacs-gtk
+git
 libfontconfig-dev
 libpango1.0-dev
 libwayland-dev
