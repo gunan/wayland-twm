@@ -43,6 +43,13 @@ REQUIRED = {
         '"Pull right" f.menu "cert-child"',
         'NoMenuShadows',
         'MenuFont "fixed"',
+        'DefaultBackground "#000000"',
+    ),
+    "src/text.h": ("wtwm_render_menu_icon",),
+    "src/text.c": (
+        "struct wlr_buffer *wtwm_render_menu_icon",
+        "int icon_width = height * 7 / 8;",
+        "This is the pixel construction in frozen twm 1.0.13.1 CreateMenuIcon.",
     ),
     "include/wtwm/visual.h": ("wtwm_menu_popup_origin",),
     "src/visual.c": (
@@ -62,6 +69,7 @@ REQUIRED = {
         "parent->selected = -1;",
         r'\"parent\":',
         r'\"pull_right\":%s,\"submenu_open\":%s',
+        "wtwm_render_menu_icon(pull_size,",
     ),
     ".github/workflows/build.yml": (
         "Compare live menu state and rendered pixels with reference twm",

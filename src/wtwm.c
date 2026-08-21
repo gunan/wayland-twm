@@ -3645,11 +3645,12 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 		if (menu->items[i].action.type == WTWM_ACTION_MENU) {
 			int pull_size = font_height > 0 ? font_height : 1;
-			struct wlr_buffer *pull = wtwm_render_builtin_title(":menu",
-				pull_size, normal_foreground);
-			struct wlr_buffer *pull_hi = wtwm_render_builtin_title(":menu",
-				pull_size, highlight_foreground);
-			int pull_x = layout.content.x + layout.content.width - pull_size - 5;
+			int pull_width = 0;
+			struct wlr_buffer *pull = wtwm_render_menu_icon(pull_size,
+				normal_foreground, &pull_width);
+			struct wlr_buffer *pull_hi = wtwm_render_menu_icon(pull_size,
+				highlight_foreground, &pull_width);
+			int pull_x = layout.content.x + layout.content.width - pull_width - 5;
 			int pull_y = row_box.y + (row_box.height - pull_size) / 2;
 			if (pull != NULL) {
 				rows[i].pull_normal = wlr_scene_buffer_create(tree, pull);

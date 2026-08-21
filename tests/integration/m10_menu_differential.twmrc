@@ -11,7 +11,9 @@ MenuFont "fixed"
 Color
 {
     DefaultForeground "#ffffff"
-    DefaultBackground "#303030"
+    # Xvfb leaves the X11 root black; align wtwm's compositor-owned root so
+    # the stable full-screen comparison needs no crop, tolerance, or mask.
+    DefaultBackground "#000000"
     MenuForeground "#f0f0f0"
     MenuBackground "#203040"
     MenuTitleForeground "#ffffff"
