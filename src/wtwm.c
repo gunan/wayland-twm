@@ -3656,8 +3656,10 @@ static void show_menu_at(struct server *server, const char *name,
 				normal_foreground, &pull_width);
 			struct wlr_buffer *pull_hi = wtwm_render_menu_icon(pull_size,
 				highlight_foreground, &pull_width);
-			int pull_x = layout.content.x + layout.content.width - pull_width - 5;
-			int pull_y = row_box.y + (row_box.height - pull_size) / 2;
+			int pull_x = 0;
+			int pull_y = 0;
+			(void)wtwm_menu_pull_origin(&layout, (unsigned int)i, pull_width,
+				&pull_x, &pull_y);
 			if (pull != NULL) {
 				rows[i].pull_normal = wlr_scene_buffer_create(tree, pull);
 				if (rows[i].pull_normal != NULL)

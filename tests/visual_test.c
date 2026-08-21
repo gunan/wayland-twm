@@ -139,6 +139,11 @@ static void test_default_menu_layout(void) {
 	assert(wtwm_menu_text_origin(&layout, 1, 30, true, &x, &y));
 	assert(x == 32);
 	assert(y == 30);
+	assert(wtwm_menu_pull_origin(&layout, 1, 11, &x, &y));
+	assert(x == 76);
+	assert(y == 19);
+	assert(!wtwm_menu_pull_origin(&layout, 3, 11, &x, &y));
+	assert(!wtwm_menu_pull_origin(&layout, 1, 0, &x, &y));
 	assert(wtwm_menu_popup_origin(&layout, false, 130, 90, &x, &y));
 	assert(x == 85);
 	assert(y == 82);
