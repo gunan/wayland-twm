@@ -21,9 +21,9 @@ REQUIRED = {
         '"pull_right": True',
         '"submenu_open": True',
         '"break PopUpMenu\\n"',
-        '"break menus.c:561\\n"',
+        '"break PaintEntry\\n"',
         '"WTWM_MENU_POP',
-        '"WTWM_MENU_MOTION',
+        '"WTWM_MENU_PAINT',
         'capture_reference_stable',
         'capture_wtwm_stable',
         '"mismatch_pixels": mismatch',
@@ -31,6 +31,9 @@ REQUIRED = {
         '"unexplained_pixel_differences": 0',
         'compare_states(reference["states"], wtwm["states"])',
         'right["pull-right"]["pull_right"] = False',
+        'value["exposure"] is False',
+        'require_reference_pointer(',
+        'captures["title"] != captures["normal"]',
     ),
     "tests/integration/m10_menu_differential.twmrc": (
         'Button3 = : root : f.menu "cert-root"',
@@ -153,9 +156,8 @@ def validate(files: dict[str, str], reference_source: str) -> list[str]:
     for snippet in REFERENCE_SNIPPETS:
         if snippet not in reference_source:
             errors.append(f"frozen reference menus.c lacks {snippet!r}")
-    lines = reference_source.splitlines()
-    if len(lines) < 562 or "pull right entry" not in lines[560]:
-        errors.append("GDB menus.c:561 observation boundary drifted")
+    if "PaintEntry(MenuRoot *mr, MenuItem *mi, int exposure)" not in reference_source:
+        errors.append("frozen PaintEntry observation boundary drifted")
     errors.extend(validate_contract(files.get(
         "reference/certification/m10-differential-contract.json", ""
     )))

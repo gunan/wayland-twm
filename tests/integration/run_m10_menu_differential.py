@@ -147,10 +147,10 @@ def gdb_script(path: Path, display: str, config: Path) -> None:
         "printf \"WTWM_MENU_POP\\t%s\\t%d\\t%s\\t%d\\t%d\\t%d\\t%d\\t%d\\t%d\\t%d\\n\", menu->name, MenuDepth + 1, ActiveMenu == 0 ? \"-\" : ActiveMenu->name, x, y, center, menu->width, menu->height, Scr->EntryHeight, Scr->MenuBorderWidth\n"
         "continue\n"
         "end\n"
-        "break menus.c:561\n"
+        "break PaintEntry\n"
         "commands\n"
         "silent\n"
-        "printf \"WTWM_MENU_MOTION\\t%s\\t%d\\t%d\\t%d\\t%d\\n\", ActiveMenu->name, MenuDepth, ActiveItem == 0 ? -1 : ActiveItem->item_num, ActiveItem == 0 ? 0 : ActiveItem->state, ActiveItem == 0 ? 0 : ActiveItem->sub != 0\n"
+        "printf \"WTWM_MENU_PAINT\\t%s\\t%d\\t%d\\t%d\\t%d\\t%d\\n\", mr->name, MenuDepth, mi->item_num, mi->state, mi->sub != 0, exposure\n"
         "continue\n"
         "end\n"
         f"run {arguments}\n",
@@ -174,11 +174,12 @@ def parse_gdb_records(path: Path) -> list[dict[str, object]]:
                     "height": int(fields[8]), "row_height": int(fields[9]),
                     "border": int(fields[10]),
                 })
-            elif fields[0] == "WTWM_MENU_MOTION" and len(fields) == 6:
+            elif fields[0] == "WTWM_MENU_PAINT" and len(fields) == 7:
                 records.append({
-                    "kind": "motion", "name": fields[1],
+                    "kind": "paint", "name": fields[1],
                     "depth": int(fields[2]), "item": int(fields[3]),
                     "state": int(fields[4]), "has_submenu": bool(int(fields[5])),
+                    "exposure": bool(int(fields[6])),
                 })
         except ValueError:
             continue
@@ -239,6 +240,18 @@ def capture_reference_stable(observer: Path, environment: dict[str, str],
     raise RuntimeError(f"reference {phase} pixels did not converge")
 
 
+def require_reference_pointer(observer: Path, environment: dict[str, str],
+                              x: int, y: int, phase: str) -> None:
+    observed = subprocess.run(
+        [str(observer), "pointer"], env=environment, check=True, timeout=10,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    ).stdout
+    if json.loads(observed) != {"x": x, "y": y}:
+        raise RuntimeError(
+            f"reference {phase} pointer did not reach {(x, y)!r}: {observed!r}"
+        )
+
+
 def run_reference(arguments: argparse.Namespace, evidence: Path) -> dict[str, object]:
     environment = os.environ.copy()
     environment.update({"LC_ALL": "C", "GDK_BACKEND": "x11"})
@@ -291,19 +304,34 @@ def run_reference(arguments: argparse.Namespace, evidence: Path) -> dict[str, ob
             x = root_x + border + width * fraction // 4
             y = root_y + border + item * row + row // 2
             input_event(arguments.input_driver, environment, "pointer", str(x), str(y))
+            require_reference_pointer(
+                arguments.observer, environment, x, y, phase
+            )
             return wait_record(
                 log, start,
-                lambda value: value["kind"] == "motion" and
+                lambda value: value["kind"] == "paint" and
                 value["name"] == "cert-root" and value["item"] == item and
-                value["has_submenu"] == has_submenu,
-                f"{phase} motion",
+                value["state"] == 1 and
+                value["has_submenu"] == has_submenu and
+                value["exposure"] is False,
+                f"{phase} selection paint",
             )
 
-        title = move_and_observe("title", 0, 1, False)
-        states["title"] = reference_state(title)
+        title_x = root_x + border + width // 4
+        title_y = root_y + border + row // 2
+        input_event(
+            arguments.input_driver, environment, "pointer",
+            str(title_x), str(title_y),
+        )
+        require_reference_pointer(
+            arguments.observer, environment, title_x, title_y, "title"
+        )
+        states["title"] = reference_state(root)
         captures["title"] = capture_reference_stable(
             arguments.observer, environment, evidence, "title"
         )
+        if captures["title"] != captures["normal"]:
+            raise RuntimeError("reference title row changed the unselected menu pixels")
         highlighted = move_and_observe("highlight", 1, 1, False)
         states["highlight"] = reference_state(highlighted, selected=1)
         captures["highlight"] = capture_reference_stable(
