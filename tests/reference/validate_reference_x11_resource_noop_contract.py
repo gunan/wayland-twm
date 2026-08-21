@@ -8,6 +8,7 @@ import copy
 import hashlib
 import json
 import re
+import subprocess
 import sys
 import tarfile
 from pathlib import Path
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = Path(
     "reference/lifecycle/twm-1.0.13.1/x11-resource-noop-contract.json"
 )
+RUNTIME_RUNNER_PATH = Path("tests/integration/run_m8_noop_options.py")
 EXPECTED_CANONICAL_SHA256 = (
     "3685767d15ed53b1b36a73a915e3ba51888299eede726cdb18aeae700be3f4e9"
 )
@@ -669,6 +671,27 @@ def validate_wtwm_structure(sources: dict[str, str]) -> list[str]:
     return errors
 
 
+def validate_runtime_runner(source: str) -> list[str]:
+    required = (
+        "OBSERVATION_STABLE_SAMPLES = 3",
+        "OBSERVATION_MAX_ATTEMPTS = 24",
+        "consecutive >= OBSERVATION_STABLE_SAMPLES",
+        "def is_redundant_xwayland_configure_echo(",
+        'key is None or key[0] != "x11"',
+        "def canonical_trace(",
+        "if is_redundant_xwayland_configure_echo(events, index):",
+        "del events[index:index + 2]",
+        "def self_test_trace_normalization()",
+        "self_test_trace_normalization()",
+        '"state": normalized(self.control.state())',
+        '"trace": canonical_trace(normalized(self.control.trace()))',
+    )
+    return [
+        f"runtime A/B runner lacks bounded quiescence guard {needle!r}"
+        for needle in required if needle not in source
+    ]
+
+
 def validate_contract(
     contract: Any,
     inventory: Any,
@@ -872,6 +895,15 @@ def run_tamper_tests(
     invented_grab["src/wtwm.c"] += "\nvoid tampered(void) { XGrabServer(dpy); }\n"
     if not validate_wtwm_structure(invented_grab):
         failures.append("tamper self-test was not rejected: invented X server grab")
+
+    runner = (source_root / RUNTIME_RUNNER_PATH).read_text(encoding="utf-8")
+    broadened_normalization = runner.replace(
+        'key is None or key[0] != "x11"',
+        "key is None",
+        1,
+    )
+    if not validate_runtime_runner(broadened_normalization):
+        failures.append("tamper self-test was not rejected: broadened trace normalization")
     return failures
 
 
@@ -886,6 +918,25 @@ def main() -> int:
         contract = load_json(source_root / CONTRACT_PATH)
         inventory = load_json(source_root / EXPECTED_UPSTREAM["inventory"])
         errors = validate_contract(contract, inventory, source_root)
+        errors.extend(validate_runtime_runner(
+            (source_root / RUNTIME_RUNNER_PATH).read_text(encoding="utf-8")
+        ))
+        normalization_test = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                str(source_root / RUNTIME_RUNNER_PATH),
+                "--self-test-trace-normalization",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if normalization_test.returncode != 0:
+            errors.append(
+                "runtime trace-normalization self-test failed: "
+                + (normalization_test.stderr.strip() or normalization_test.stdout.strip())
+            )
         if args.self_test_tamper and isinstance(contract, dict):
             errors.extend(run_tamper_tests(contract, inventory, source_root))
     except (OSError, ValueError, json.JSONDecodeError, tarfile.TarError) as exc:
