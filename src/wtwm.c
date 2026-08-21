@@ -2368,20 +2368,26 @@ static void place_toplevel_icon(struct toplevel *toplevel, int fallback_x,
 	struct wlr_box layout = {0};
 	wlr_output_layout_get_box(toplevel->server->output_layout, NULL, &layout);
 	if (layout.width > 0 && layout.height > 0) {
-		int64_t right = (int64_t)layout.x + layout.width;
-		int64_t bottom = (int64_t)layout.y + layout.height;
-		int64_t max_x = right - toplevel->icon_width;
-		int64_t max_y = bottom - toplevel->icon_height;
-		if (max_x < layout.x) max_x = layout.x;
-		if (max_y < layout.y) max_y = layout.y;
-		if ((int64_t)toplevel->icon_x < layout.x)
-			toplevel->icon_x = layout.x;
-		else if ((int64_t)toplevel->icon_x > max_x)
-			toplevel->icon_x = (int)max_x;
-		if ((int64_t)toplevel->icon_y < layout.y)
-			toplevel->icon_y = layout.y;
-		else if ((int64_t)toplevel->icon_y > max_y)
-			toplevel->icon_y = (int)max_y;
+		if (use_fallback) {
+			(void)wtwm_icon_reference_clamp(layout.x, layout.y, layout.width,
+				layout.height, toplevel->icon_width, toplevel->icon_height,
+				&toplevel->icon_x, &toplevel->icon_y);
+		} else {
+			int64_t right = (int64_t)layout.x + layout.width;
+			int64_t bottom = (int64_t)layout.y + layout.height;
+			int64_t max_x = right - toplevel->icon_width;
+			int64_t max_y = bottom - toplevel->icon_height;
+			if (max_x < layout.x) max_x = layout.x;
+			if (max_y < layout.y) max_y = layout.y;
+			if ((int64_t)toplevel->icon_x < layout.x)
+				toplevel->icon_x = layout.x;
+			else if ((int64_t)toplevel->icon_x > max_x)
+				toplevel->icon_x = (int)max_x;
+			if ((int64_t)toplevel->icon_y < layout.y)
+				toplevel->icon_y = layout.y;
+			else if ((int64_t)toplevel->icon_y > max_y)
+				toplevel->icon_y = (int)max_y;
+		}
 	}
 	wlr_scene_node_set_position(&toplevel->icon_tree->node,
 		toplevel->icon_x, toplevel->icon_y);

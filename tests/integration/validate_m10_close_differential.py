@@ -67,7 +67,7 @@ REQUIRED = {
         "xdg-shell close-only translation",
     ),
     "docs/COMPATIBILITY.md": (
-        "records ten as live reference differentials",
+        "records all eleven as live reference differentials",
         "close/destruction differential",
         "native close-only translation",
     ),

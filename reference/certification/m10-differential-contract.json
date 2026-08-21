@@ -301,20 +301,22 @@
     {
       "id": "screenshots-after-significant-actions",
       "roadmap_text": "Screenshots after every significant action.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Exact reference/wtwm pixels exist for stable canonical phases and icons, and wtwm captures the enumerated visual states, but screenshots are not yet paired after every significant Milestone 10 action.",
+      "coverage_status": "live-reference-differential",
+      "coverage_note": "The canonical one-output interaction trace pairs stable full-screen captures after its initial state and all 21 indexed pointer, button, and key actions; the focused menu and icon differentials retain their own stable visual phases.",
       "comparison_semantics": [
-        "full PPM bytes for canonical stable phases",
-        "geometry and configured-color classifications",
-        "enumerated focus, title, border, menu, icon, and button states"
+        "full-screen PPM pixels after the initial state and every indexed canonical action",
+        "exact dimensions, hashes, and per-pixel mismatch counts with no masks",
+        "paired artifacts retained for every nonzero difference"
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m4_trace_differential.py",
           "tests/integration/run_m5_visual_differential.py",
           "tests/integration/run_m5_visual_states.py",
           "tests/integration/run_m7_icon_differential.py"
         ],
         "validators": [
+          "tests/integration/validate_m4_trace_differential.py",
           "tests/integration/validate_m5_visual.py",
           "tests/reference/validate_reference_capture.py",
           "tests/reference/validate_reference_icon_contract.py"

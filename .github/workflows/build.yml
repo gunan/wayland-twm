@@ -310,6 +310,7 @@ jobs:
             --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
             --client /tmp/m4-trace-client \
             --probe /tmp/m4-trace-probe \
+            --screenshot-observer /tmp/m7-icon-observer \
             --input-driver /tmp/m4-trace-input \
             --config "$GITHUB_WORKSPACE/tests/integration/m4_trace_differential.twmrc" \
             --contract "$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json" \

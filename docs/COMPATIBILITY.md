@@ -37,7 +37,7 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 | Xwayland ICCCM window-manager bridge | Implemented | Managed and override-redirect lifecycle, live metadata and hints, transient relationships, configure/stack requests, graceful delete, and forced termination are covered by a purpose-built XCB integration client |
 | Initial placement and `MaxWindowSize` | Exact for X11; behaviorally equivalent for native Wayland | Each first map selects one enabled output rather than the layout union. X11 `USPosition`, all `UsePPosition` modes, transient positions, the process-global `(50,50)`/`(30,30)` random sequence with selected-output edge reset, output-derived maximum-size clipping, remap stability, and the non-random outline/confirm prompt follow reference twm. Accepted X11 requests retain their exact global coordinates even in a gap or outside all outputs. Native clients have no position hints; unparented maps select the pointer output, parented maps select the managed parent's output, and non-random native maps use the pointer immediately because xdg-shell has no X11-style blocking placement grab. With zero outputs, a first map remains pending and unexposed without consuming placement state. |
 | Canonical X11 applications under wtwm | Verified smoke coverage | Debian Trixie `xterm`, `xclock`, `xload`, GUI Emacs, and a real terminal `dialog` are identity-checked while mapped through Xwayland alongside the purpose-built ICCCM normal, transient, hint, and override-redirect fixtures |
-| Canonical X11 reference differential | Exact in the canonical profile | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, stacking, and root-relative pointer coordinates after every event; a 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The canonical pixel comparison adds two stable 260×180 decoration phases, while a live five-phase menu differential compares name, parent, depth, selected and pull-right rows, submenu state, and complete stable PPM bytes. Both comparisons require zero masks and zero mismatched pixels. Native/cross-protocol visual equivalence remains a separate boundary. |
+| Canonical X11 reference differential | Exact in the canonical profile | One Debian Trixie CI job runs identical clients, configuration, and input descriptions under frozen `twm` 1.0.13.1 and wtwm/Xwayland. The base comparison covers identity, lifecycle, roles, protocols, icons, and hints; a distinct reparent frame proves reference management and a compositor scene decoration proves wtwm management. A 21-event trace compares exact geometry, focus, mapped/iconified/title state, stacking, and root-relative pointer coordinates after every event; its initial state and every indexed action also produce a stable paired full-screen PPM with no crop, tolerance, mask, or unexplained mismatch. A 48-case Cartesian product compares title, border, transient, and size-hint combinations with no numeric tolerances or geometry exclusions. The canonical pixel comparison adds two stable 260×180 decoration phases, while a live five-phase menu differential compares name, parent, depth, selected and pull-right rows, submenu state, and complete stable PPM bytes. These visual comparisons require zero masks and zero mismatched pixels; native/cross-protocol visual equivalence remains a separate boundary. |
 | Xwayland `.twmrc` window-list matching | Effective | Managed X11 windows apply title, instance, and class matches with reference ordering and case sensitivity; override-redirect windows are excluded |
 | Wayland/Xwayland selections | Effective | `wl_data_device` CLIPBOARD and primary-selection v1 PRIMARY offers, targets, ownership, and payloads bridge bidirectionally through the shared seat |
 | Mixed native Wayland/Xwayland session | Verified | One headless wlroots/Xwayland session concurrently manages two native xdg toplevels and two managed X11 toplevels in one focus and stacking model. Native→X11→native and X11→native→X11 transitions require protocol-recipient keyboard acknowledgements, while native and X11 raise/lower/restore plus one unmap/remap lifecycle per protocol prove cross-protocol cleanup without losing the other clients. Selection bridging and popup/override-redirect ordering remain separate focused scenarios. |
@@ -49,15 +49,16 @@ and `wtwm-config FILE` reports compatibility-fallback statements.
 Final 1.0 certification is tracked by three fail-closed machine-readable records
 under `reference/certification/`. The differential contract maps all eleven
 required comparison dimensions to concrete runners, validators, and frozen
-evidence, and records ten as live reference differentials. A live five-phase
+evidence, and records all eleven as live reference differentials. A live five-phase
 command differential observes the libc launch boundary and executed argv for
 `f.exec`, its `!` alias, shell expansion, empty commands, and `f.startwm`; the
 last records wtwm's intentional non-execution as the unavoidable Wayland
 handoff translation. A three-phase live close/destruction differential compares
 cooperative `WM_DELETE_WINDOW`, ignored-delete forced X client destruction, and
 destroy-and-recreate cleanup; the same run separately records native
-xdg-shell's unavoidable native close-only translation. Screenshots after every
-significant action remain partial and therefore are not parity claims.
+xdg-shell's unavoidable native close-only translation. The canonical trace
+retains paired stable screenshots after its initial state and all 21 significant
+actions, fails on every nonzero pixel difference, and uses no masks.
 
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is
@@ -593,7 +594,9 @@ icons allocate the first fitting border-inclusive cell from configured
 `IconRegion` records, with X-geometry negative offsets, reference gravity
 split order, independent grid rounding, centered contents, collision avoidance,
 release coalescing, and client `IconPositionHint` precedence. A manually moved
-icon leaves its region allocation, as in reference twm.
+icon leaves its region allocation, as in reference twm. Initial pointer-based
+placement also preserves twm's asymmetric boundary rule: an icon whose origin
+is still on-screen may extend past the right or bottom edge.
 
 The portable icon-manager model retains stable insertion order, optional
 case-sensitive or folded icon-name sorting, partial-row packing, active and

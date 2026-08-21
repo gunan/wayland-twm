@@ -166,6 +166,25 @@ bool wtwm_icon_layout_region_from_config(const struct wtwm_icon_region *config,
 	return true;
 }
 
+bool wtwm_icon_reference_clamp(int screen_x, int screen_y, int screen_width,
+		int screen_height, int icon_width, int icon_height, int *x, int *y) {
+	if (screen_width <= 0 || screen_height <= 0 || icon_width <= 0 ||
+			icon_height <= 0 || x == NULL || y == NULL) return false;
+
+	int64_t right = (int64_t)screen_x + screen_width;
+	int64_t bottom = (int64_t)screen_y + screen_height;
+	int64_t adjusted_x = *x;
+	int64_t adjusted_y = *y;
+	if (adjusted_x > right) adjusted_x = right - icon_width;
+	if (adjusted_y > bottom) adjusted_y = bottom - icon_height;
+	if (adjusted_x < INT_MIN || adjusted_x > INT_MAX ||
+			adjusted_y < INT_MIN || adjusted_y > INT_MAX) return false;
+
+	*x = (int)adjusted_x;
+	*y = (int)adjusted_y;
+	return true;
+}
+
 static void free_entries(struct icon_entry *entry) {
 	while (entry != NULL) {
 		struct icon_entry *next = entry->next;

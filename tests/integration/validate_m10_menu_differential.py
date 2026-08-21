@@ -100,7 +100,7 @@ REQUIRED = {
     ),
     "docs/COMPATIBILITY.md": (
         "a live five-phase menu differential compares name, parent, depth",
-        "records ten as live reference differentials",
+        "records all eleven as live reference differentials",
     ),
     "tests/certification/validate_m10_differential_contract.py": (
         '"menu-state": "live-reference-differential"',

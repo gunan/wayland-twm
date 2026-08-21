@@ -36,5 +36,6 @@ Color
     TitleForeground "#ffffff"
     TitleBackground "#204060"
     DefaultForeground "#ffffff"
-    DefaultBackground "#303030"
+    # Xvfb leaves the X11 root black; align wtwm's root for mask-free capture.
+    DefaultBackground "#000000"
 }

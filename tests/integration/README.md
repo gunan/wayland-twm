@@ -159,6 +159,12 @@ exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
 native/cross-protocol semantics assigned to separate tests and final
 certification.
 
+The same job's `run_m4_trace_differential.py` pairs a stable 260×180 full-screen
+PPM after the initial alpha/bravo state and after every one of the 21 indexed
+pointer, button, and key actions. It compares every pixel with no crop,
+tolerance, or mask. Any nonzero result fails closed and the uploaded evidence
+retains both images, hashes, and the exact mismatch count for review.
+
 The same job runs `run_m10_menu_differential.py` with one controlled fixed-font
 menu under both live window managers. A read-only GDB observer records frozen
 twm's `ActiveMenu`, `ActiveItem`, and `MenuDepth` at the upstream popup and

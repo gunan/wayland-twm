@@ -58,6 +58,14 @@ bool wtwm_icon_layout_region_from_config(const struct wtwm_icon_region *config,
 	struct wtwm_icon_layout_region *region);
 
 /*
+ * Apply twm's initial icon fallback boundary rule. An icon whose origin is
+ * inside the screen may extend past its right or bottom edge; only an origin
+ * strictly beyond an edge is moved back by the icon's full size.
+ */
+bool wtwm_icon_reference_clamp(int screen_x, int screen_y, int screen_width,
+	int screen_height, int icon_width, int icon_height, int *x, int *y);
+
+/*
  * Create an allocator containing regions in configuration order. Region
  * dimensions must be positive and the two directions must be perpendicular.
  * Non-positive grid dimensions have the reference twm meaning of one pixel.

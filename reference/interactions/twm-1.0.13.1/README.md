@@ -79,10 +79,12 @@ It reuses the committed alpha/bravo geometry as its initial oracle, then sends
 the same deterministic pointer, button, and key program to Xvfb/twm and to
 headless wtwm/Xwayland.  The live runner compares client and outer-frame geometry,
 focus, logical mapped/iconified/title state, bottom-to-top stack, and exact
-root-relative pointer coordinates after every input event.  The only omitted
-observations are volatile process, display, time, XID, and compositor-frame
-identities plus decoration and
-temporary outline pixels.
+root-relative pointer coordinates after every input event. It also waits for a
+stable full-screen PPM after the initial state and all 21 indexed actions, then
+compares every pixel with no crop, tolerance, or mask. Any nonzero difference
+fails the job while retaining both images for review. The normalized state trace
+alone omits volatile process, display, time, XID, compositor-frame identities,
+decoration pixels, and temporary outline pixels; the paired screenshots do not.
 The shared profile enables `OpaqueMove`: pinned `menus.c` otherwise grabs the
 X server for an outlined move even with `NoGrabServer`, making an independent
 post-input geometry observer impossible until button release.

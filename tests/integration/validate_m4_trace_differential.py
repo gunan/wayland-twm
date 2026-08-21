@@ -152,6 +152,14 @@ def validate_sources(
         'evidence / "reference-trace.json"',
         'evidence / "wtwm-trace.json"',
         'evidence / "runner-error.log"',
+        "def capture_reference_screenshot(",
+        "def compare_screenshots(",
+        'default=Path("/usr/bin/Xvfb")',
+        '[str(xvfb_binary), "-displayfd", "1"',
+        '"screenshot_masks": [],',
+        '"unexplained_pixel_differences": unexplained,',
+        '"exact": mismatches == 0,',
+        "paired stable screenshots contain nonzero differences for review",
     ):
         if marker not in runner:
             errors.append(f"trace differential runner lacks {marker!r}")
@@ -201,6 +209,7 @@ def validate_sources(
         'Button3 = : window|title|frame : f.focus',
         '"F1" = : all : f.raise', '"F2" = : all : f.lower',
         '"F3" = : all : f.iconify',
+        'DefaultBackground "#000000"',
     ):
         if marker not in config:
             errors.append(f"trace differential configuration lacks {marker!r}")
@@ -210,6 +219,7 @@ def validate_sources(
         "client and outer-frame geometry",
         "bottom-to-top stack",
         "m4-trace-differential",
+        "no crop, tolerance, or mask",
     ):
         if marker not in readme:
             errors.append(f"trace differential documentation lacks {marker!r}")
@@ -221,6 +231,7 @@ def validate_sources(
         "tests/integration/m4_trace_probe.c",
         "tests/integration/m4_trace_input.c",
         "tests/integration/run_m4_trace_differential.py",
+        "--screenshot-observer /tmp/m7-icon-observer",
         "--reference-twm /tmp/reference-build/twm",
         "--contract \"$GITHUB_WORKSPACE/reference/interactions/twm-1.0.13.1/trace-differential.json\"",
         "name: m4-trace-differential",
@@ -301,6 +312,9 @@ def self_test_tamper(source_root: Path) -> list[str]:
         ("live-CI", runner, client, probe, input_driver, config, readme,
          workflow.replace("name: m4-trace-differential",
                           "name: removed-trace-artifact", 1), meson),
+        ("exact-pixels", runner.replace(
+            '"exact": mismatches == 0,', '"exact": True,', 1),
+         client, probe, input_driver, config, readme, workflow, meson),
     )
     for label, *sources in mutations:
         if not validate_sources(*sources):
