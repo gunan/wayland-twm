@@ -10,6 +10,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import tempfile
+import time
 from typing import Any
 
 from run_client_stress import ClientChannel, wait_path, wait_process, wait_state
@@ -40,6 +41,8 @@ PORTABLE_UNIX_SOCKET_PATH_BYTES = 103
 FULL_OUTPUT_HEADER = b"P6\n640 480\n255\n"
 FULL_OUTPUT_CAPTURE_BYTES = len(FULL_OUTPUT_HEADER) + 640 * 480 * 3
 READINESS_CAPTURE_ATTEMPTS = 12
+OBSERVATION_STABLE_SAMPLES = 3
+OBSERVATION_MAX_ATTEMPTS = 24
 
 
 def session_socket_names(
@@ -236,15 +239,36 @@ class Session:
         self.observations: dict[str, dict[str, object]] = {}
 
     def observe(self, root: Path, phase: str) -> None:
-        self.control.command("WAIT 3")
-        state = normalized(self.control.state())
-        trace = normalized(self.control.trace())
+        previous: dict[str, object] | None = None
+        consecutive = 0
+        observation: dict[str, object] | None = None
+        for _ in range(OBSERVATION_MAX_ATTEMPTS):
+            self.control.command("WAIT 3")
+            observation = {
+                "state": normalized(self.control.state()),
+                "trace": normalized(self.control.trace()),
+            }
+            if observation == previous:
+                consecutive += 1
+            else:
+                previous = observation
+                consecutive = 1
+            if consecutive >= OBSERVATION_STABLE_SAMPLES:
+                break
+            time.sleep(0.01)
+        else:
+            raise RuntimeError(
+                f"{phase} state/trace did not converge after "
+                f"{OBSERVATION_MAX_ATTEMPTS} samples"
+            )
+        if observation is None:
+            raise RuntimeError(f"{phase} produced no state/trace observation")
         capture = root / f"{phase}.ppm"
         self.control.command(f"CAPTURE {capture}")
         pixels = read_full_output_capture(capture, phase)
         self.observations[phase] = {
-            "state": state,
-            "trace": trace,
+            "state": observation["state"],
+            "trace": observation["trace"],
             "pixels": pixels,
         }
 
