@@ -271,7 +271,7 @@ acceptance procedures for this group.
 
 - [x] **Agent:** Extend normalized reference and `wtwm` traces to record and
   compare exact pointer coordinates after every significant input action.
-- [ ] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
+- [x] **Agent:** Add a live reference/`wtwm` menu differential covering menu name,
   depth, selected row, pull-right submenu state, and rendered states.
 - [ ] **Agent:** Add controlled command observers and compare the action spelling,
   decoded command, direct argument vector or unchanged shell text, execution,

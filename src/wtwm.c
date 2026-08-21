@@ -3670,8 +3670,12 @@ static void show_menu_at(struct server *server, const char *name,
 		}
 	}
 	free(widths); free(heights); free(palettes);
-	int menu_x = submenu ? requested_x : (int)server->cursor->x;
-	int menu_y = submenu ? requested_y : (int)server->cursor->y;
+	int anchor_x = submenu ? requested_x : (int)server->cursor->x;
+	int anchor_y = submenu ? requested_y : (int)server->cursor->y;
+	int menu_x = 0;
+	int menu_y = 0;
+	(void)wtwm_menu_popup_origin(&layout, submenu, anchor_x, anchor_y,
+		&menu_x, &menu_y);
 	int64_t output_right = (int64_t)output_area.x + output_area.width;
 	int64_t output_bottom = (int64_t)output_area.y + output_area.height;
 	if ((int64_t)menu_x + layout.outer.width > output_right) {
@@ -3695,6 +3699,23 @@ static void show_menu_at(struct server *server, const char *name,
 			return;
 		}
 		*parent = server->menu;
+		if (parent->selected >= 0 &&
+				(size_t)parent->selected < parent->row_count) {
+			struct menu_row_view *row = &parent->rows[parent->selected];
+			if (row->normal_background != NULL)
+				wlr_scene_node_set_enabled(&row->normal_background->node, true);
+			if (row->highlight_background != NULL)
+				wlr_scene_node_set_enabled(&row->highlight_background->node, false);
+			if (row->normal_text != NULL)
+				wlr_scene_node_set_enabled(&row->normal_text->node, true);
+			if (row->highlight_text != NULL)
+				wlr_scene_node_set_enabled(&row->highlight_text->node, false);
+			if (row->pull_normal != NULL)
+				wlr_scene_node_set_enabled(&row->pull_normal->node, true);
+			if (row->pull_highlight != NULL)
+				wlr_scene_node_set_enabled(&row->pull_highlight->node, false);
+			parent->selected = -1;
+		}
 	} else {
 		hide_menu(server);
 	}
@@ -3764,10 +3785,13 @@ static void update_menu_selection(struct server *server) {
 			server->cursor->x >= server->menu.x + server->menu.width / 2.0) {
 		const struct wtwm_action *pull =
 			&server->menu.definition->items[selected].action;
+		int border = server->config.menu_border_width;
+		if (border < 0) border = 0;
+		int content_width = server->menu.width - 2 * border;
+		if (content_width < 1) content_width = 1;
 		show_menu_at(server, pull->argument, server->menu.target, true,
-			server->menu.x + server->menu.width / 2,
-			server->menu.y + server->config.menu_border_width +
-				selected * server->menu.row_height);
+			server->menu.x + content_width / 2,
+			server->menu.y + selected * server->menu.row_height);
 	}
 }
 
@@ -10338,14 +10362,27 @@ static void test_write_state(struct test_control *control) {
 	if (server->menu.tree == NULL) {
 		test_write(control, "null");
 	} else {
+		bool pull_right = server->menu.selected >= 0 &&
+			(size_t)server->menu.selected < server->menu.definition->item_count &&
+			server->menu.definition->items[server->menu.selected].action.type ==
+				WTWM_ACTION_MENU;
 		test_write(control, "{\"name\":");
 		test_write_json_string(control, server->menu.definition->name);
+		test_write(control, ",\"parent\":");
+		if (server->menu.parent == NULL)
+			test_write(control, "null");
+		else
+			test_write_json_string(control,
+				server->menu.parent->definition->name);
 		test_write(control,
 			",\"x\":%d,\"y\":%d,\"width\":%d,\"height\":%d,"
-			"\"row_height\":%d,\"depth\":%u,\"selected\":%d}",
+			"\"row_height\":%d,\"depth\":%u,\"selected\":%d,"
+			"\"pull_right\":%s,\"submenu_open\":%s}",
 			server->menu.x, server->menu.y, server->menu.width,
 			server->menu.height, server->menu.row_height,
-			menu_depth(&server->menu), server->menu.selected);
+			menu_depth(&server->menu), server->menu.selected,
+			pull_right ? "true" : "false",
+			server->menu.parent != NULL ? "true" : "false");
 	}
 	test_write(control, "}\n");
 }

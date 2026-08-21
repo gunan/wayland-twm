@@ -43,7 +43,7 @@ EXPECTED_COVERAGE = {
     "focus-owner": "live-reference-differential",
     "stacking-order": "live-reference-differential",
     "pointer-location": "live-reference-differential",
-    "menu-state": "partial-existing-infrastructure",
+    "menu-state": "live-reference-differential",
     "icons-and-icon-managers": "live-reference-differential",
     "commands-launched": "partial-existing-infrastructure",
     "client-close-and-destruction": "partial-existing-infrastructure",
@@ -274,6 +274,14 @@ def self_test_tamper(contract: object, source_root: Path) -> list[str]:
     )
     if not validate_contract(underclaimed_pointer, source_root):
         failures.append("exact pointer-coordinate coverage underclaim was accepted")
+
+    underclaimed_menu = copy.deepcopy(contract)
+    underclaimed_menu["dimensions"][6]["coverage_status"] = (
+        "partial-existing-infrastructure"
+    )
+    underclaimed_menu["dimensions"][6]["coverage_note"] = "tampered"
+    if not validate_contract(underclaimed_menu, source_root):
+        failures.append("live menu differential coverage underclaim was accepted")
     return failures
 
 

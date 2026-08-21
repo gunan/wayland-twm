@@ -1093,6 +1093,24 @@ test(
   ],
 )
 test(
+  'Milestone 10 live menu differential contract',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/integration/validate_m10_menu_differential.py'),
+    '--source-root', meson.project_source_root(),
+    '--self-test-tamper',
+  ],
+)
+test(
+  'Milestone 10 live menu differential model',
+  find_program('python3'),
+  args: [
+    '-B', files('tests/integration/run_m10_menu_differential.py'),
+    '--self-test',
+  ],
+)
+test(
   'Milestone 10 certification corpus',
   find_program('python3'),
   args: [

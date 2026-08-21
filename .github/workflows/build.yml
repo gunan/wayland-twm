@@ -350,6 +350,19 @@ jobs:
             --config "$GITHUB_WORKSPACE/tests/integration/m7_icon_differential.twmrc" \
             --output /tmp/m7-icon-differential.json \
             --evidence /tmp/m7-icon-differential-evidence
+      - name: Compare live menu state and rendered pixels with reference twm
+        if: always()
+        timeout-minutes: 10
+        run: |
+          python3 -B tests/integration/run_m10_menu_differential.py \
+            --source-root "$GITHUB_WORKSPACE" \
+            --reference-twm /tmp/reference-build/twm \
+            --compositor "$GITHUB_WORKSPACE/build-differential/wtwm-test-compositor" \
+            --input-driver /tmp/m4-trace-input \
+            --observer /tmp/m7-icon-observer \
+            --config "$GITHUB_WORKSPACE/tests/integration/m10_menu_differential.twmrc" \
+            --output /tmp/m10-menu-differential.json \
+            --evidence /tmp/m10-menu-differential-evidence
       - name: Run deterministic Milestone 7 large-set lifecycle churn
         if: always()
         timeout-minutes: 25
@@ -412,6 +425,15 @@ jobs:
           path: |
             /tmp/m7-icon-differential.json
             /tmp/m7-icon-differential-evidence
+          if-no-files-found: error
+      - name: Upload Milestone 10 live menu differential
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-menu-differential
+          path: |
+            /tmp/m10-menu-differential.json
+            /tmp/m10-menu-differential-evidence
           if-no-files-found: error
       - name: Upload Milestone 7 lifecycle churn
         if: always()

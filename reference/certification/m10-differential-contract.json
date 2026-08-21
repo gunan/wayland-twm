@@ -180,8 +180,7 @@
     {
       "id": "menu-state",
       "roadmap_text": "Menu state.",
-      "coverage_status": "partial-existing-infrastructure",
-      "coverage_note": "Existing runtime and visual-state runners cover wtwm menus and the frozen action contract covers reference semantics, but no complete live reference/wtwm menu-state differential is recorded.",
+      "coverage_status": "live-reference-differential",
       "comparison_semantics": [
         "open menu name and depth",
         "selected row and pull-right submenu state",
@@ -189,10 +188,12 @@
       ],
       "mappings": {
         "runners": [
+          "tests/integration/run_m10_menu_differential.py",
           "tests/integration/run_m6_actions.py",
           "tests/integration/run_m5_visual_states.py"
         ],
         "validators": [
+          "tests/integration/validate_m10_menu_differential.py",
           "tests/reference/validate_m6_implementation_matrix.py",
           "tests/integration/validate_m5_visual.py"
         ],

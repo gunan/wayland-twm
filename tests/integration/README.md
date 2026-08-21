@@ -11,7 +11,8 @@ press|release`, `KEY code press|release`, `STATE`, `TRACE`, `TRACE CLEAR`,
 `SET CURSOR x y`, `SET FONT description`, and `QUIT`. `STATE` returns JSON
 containing focus, client geometry, exact frame/title/border extents,
 advertised size constraints,
-top-to-bottom stacking order, iconified clients, menu state, cursor position,
+top-to-bottom stacking order, iconified clients, menu state (including the
+current menu's parent, selected pull-right row, and open-submenu status), cursor position,
 the per-window placement decision, next random-placement coordinate, and
 deterministic-control values. Cursor coordinates use round-trip-safe double
 precision so a valid point just inside a half-open output edge is never rounded
@@ -157,6 +158,16 @@ must have a scene decoration; the normalized results must otherwise match
 exactly. The uploaded JSON deliberately excludes frame geometry, pixels, and
 native/cross-protocol semantics assigned to separate tests and final
 certification.
+
+The same job runs `run_m10_menu_differential.py` with one controlled fixed-font
+menu under both live window managers. A read-only GDB observer records frozen
+twm's `ActiveMenu`, `ActiveItem`, and `MenuDepth` at the upstream popup and
+motion boundaries; wtwm reports the corresponding compositor-owned state.
+Normal, title, highlighted, pull-right, and child-submenu phases must agree on
+menu name, parent, depth, selected row, pull-right state, and submenu-open
+state. Two consecutive full-output captures must stabilize for each phase and
+the reference/wtwm PPM bytes must then match exactly, with no tolerance or
+mask.
 
 The `mixed native and Xwayland client integration` test maps two native xdg
 toplevels and two managed X11 toplevels together. It checks their exact
