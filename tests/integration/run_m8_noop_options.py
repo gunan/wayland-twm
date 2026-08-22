@@ -95,6 +95,16 @@ def mapped_pair(state: dict[str, object]) -> bool:
     )
 
 
+def canonical_title_geometry(state: dict[str, object]) -> bool:
+    if not mapped_pair(state):
+        return False
+    title_geometry = {
+        (item["title_bar_height"], item["title_height"])
+        for item in state["windows"]
+    }
+    return len(title_geometry) == 1
+
+
 def window(state: dict[str, object], title: str) -> dict[str, object]:
     matches = [item for item in state["windows"] if item["title"] == title]
     if len(matches) != 1:
@@ -374,6 +384,15 @@ class Session:
             X11_TITLE: x11_process,
         }
         wait_state(self.control, mapped_pair, f"{label} mixed client pair")
+        # Reapply the controlled font after both protocol paths have mapped so
+        # every A/B process compares the same rebuilt decoration cache.  The
+        # initial command remains before mapping to control first-frame output.
+        self.control.command("SET FONT DejaVu Sans 10")
+        wait_state(
+            self.control,
+            canonical_title_geometry,
+            f"{label} canonical mixed title geometry",
+        )
         wait_for_stable_full_output(self.control, root, label)
         self.control.command("TRACE CLEAR")
         self.observations: dict[str, dict[str, object]] = {}
