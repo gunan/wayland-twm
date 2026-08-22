@@ -22,7 +22,7 @@ from typing import Any
 from run_compositor import Control
 
 
-SCHEMA = "wtwm-mixed-soak-v2"
+SCHEMA = "wtwm-mixed-soak-v3"
 DEFAULT_DURATION_SECONDS = 72 * 60 * 60
 SMOKE_ITERATIONS = 2
 DEFAULT_MAX_RSS_GROWTH_BYTES = 256 * 1024 * 1024
@@ -77,26 +77,54 @@ def expected_operations(iterations: int) -> dict[str, int]:
 
 
 class ContinuityLedger:
-    """Detect guest suspension with Linux clocks unaffected by wall-time steps."""
+    """Detect guest suspension and VM pauses through independent clock pairs."""
 
     def __init__(self, limit_seconds: float = SUSPEND_GAP_LIMIT_SECONDS) -> None:
         self.limit_seconds = limit_seconds
-        self.baseline_offset: float | None = None
+        self.baseline_boottime_offset: float | None = None
+        self.baseline_wallclock_offset: float | None = None
+        self.current_boottime_gap_seconds = 0.0
+        self.max_boottime_gap_seconds = 0.0
+        self.current_wallclock_gap_seconds = 0.0
+        self.max_wallclock_gap_seconds = 0.0
         self.current_gap_seconds = 0.0
         self.max_gap_seconds = 0.0
         self.samples = 0
 
     def observe(
-        self, monotonic_now: float, boottime_now: float | None = None
+        self,
+        monotonic_now: float,
+        boottime_now: float | None = None,
+        wallclock_now: float | None = None,
     ) -> None:
         if boottime_now is None:
             if not hasattr(time, "CLOCK_BOOTTIME"):
                 raise RuntimeError("Linux CLOCK_BOOTTIME is unavailable")
             boottime_now = time.clock_gettime(time.CLOCK_BOOTTIME)
-        offset = boottime_now - monotonic_now
-        if self.baseline_offset is None:
-            self.baseline_offset = offset
-        self.current_gap_seconds = max(0.0, offset - self.baseline_offset)
+        if wallclock_now is None:
+            wallclock_now = time.clock_gettime(time.CLOCK_REALTIME)
+        boottime_offset = boottime_now - monotonic_now
+        wallclock_offset = wallclock_now - monotonic_now
+        if self.baseline_boottime_offset is None:
+            self.baseline_boottime_offset = boottime_offset
+        if self.baseline_wallclock_offset is None:
+            self.baseline_wallclock_offset = wallclock_offset
+        self.current_boottime_gap_seconds = max(
+            0.0, boottime_offset - self.baseline_boottime_offset
+        )
+        self.max_boottime_gap_seconds = max(
+            self.max_boottime_gap_seconds, self.current_boottime_gap_seconds
+        )
+        self.current_wallclock_gap_seconds = max(
+            0.0, wallclock_offset - self.baseline_wallclock_offset
+        )
+        self.max_wallclock_gap_seconds = max(
+            self.max_wallclock_gap_seconds, self.current_wallclock_gap_seconds
+        )
+        self.current_gap_seconds = max(
+            self.current_boottime_gap_seconds,
+            self.current_wallclock_gap_seconds,
+        )
         self.max_gap_seconds = max(self.max_gap_seconds, self.current_gap_seconds)
         self.samples += 1
 
@@ -105,11 +133,19 @@ class ContinuityLedger:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "sampler": "linux-clock-boottime-minus-monotonic-v1",
+            "sampler": "linux-clock-pause-detector-v2",
             "samples_observed": self.samples,
             "suspend_gap_limit_seconds": self.limit_seconds,
             "current_suspend_gap_seconds": round(self.current_gap_seconds, 6),
             "max_suspend_gap_seconds": round(self.max_gap_seconds, 6),
+            "current_boottime_gap_seconds": round(
+                self.current_boottime_gap_seconds, 6
+            ),
+            "max_boottime_gap_seconds": round(self.max_boottime_gap_seconds, 6),
+            "current_wallclock_gap_seconds": round(
+                self.current_wallclock_gap_seconds, 6
+            ),
+            "max_wallclock_gap_seconds": round(self.max_wallclock_gap_seconds, 6),
             "uninterrupted": self.uninterrupted(),
         }
 
@@ -120,7 +156,7 @@ def validate_evidence(
     """Return contract violations without trusting the result label."""
     errors: list[str] = []
     if evidence.get("schema") != SCHEMA:
-        errors.append("schema is not wtwm-mixed-soak-v2")
+        errors.append("schema is not wtwm-mixed-soak-v3")
     run_profile = evidence.get("profile")
     if not isinstance(run_profile, dict):
         return errors + ["profile is not an object"]
@@ -229,12 +265,16 @@ def validate_evidence(
     if not isinstance(continuity, dict):
         errors.append("continuity is not an object")
     else:
-        if continuity.get("sampler") != "linux-clock-boottime-minus-monotonic-v1":
+        if continuity.get("sampler") != "linux-clock-pause-detector-v2":
             errors.append("continuity sampler is invalid")
         continuity_samples = continuity.get("samples_observed")
         limit = continuity.get("suspend_gap_limit_seconds")
         current_gap = continuity.get("current_suspend_gap_seconds")
         max_gap = continuity.get("max_suspend_gap_seconds")
+        current_boottime_gap = continuity.get("current_boottime_gap_seconds")
+        max_boottime_gap = continuity.get("max_boottime_gap_seconds")
+        current_wallclock_gap = continuity.get("current_wallclock_gap_seconds")
+        max_wallclock_gap = continuity.get("max_wallclock_gap_seconds")
         if (
             not isinstance(continuity_samples, int)
             or isinstance(continuity_samples, bool)
@@ -248,12 +288,28 @@ def validate_evidence(
             isinstance(value, (int, float))
             and not isinstance(value, bool)
             and value >= 0
-            for value in (current_gap, max_gap)
+            for value in (
+                current_gap,
+                max_gap,
+                current_boottime_gap,
+                max_boottime_gap,
+                current_wallclock_gap,
+                max_wallclock_gap,
+            )
         )
         if not gaps_valid:
             errors.append("continuity suspend-gap measurements are invalid")
-        elif max_gap < current_gap:
-            errors.append("maximum suspend gap is below the current gap")
+        else:
+            if max_gap < current_gap:
+                errors.append("maximum suspend gap is below the current gap")
+            if max_boottime_gap < current_boottime_gap:
+                errors.append("maximum boottime gap is below the current gap")
+            if max_wallclock_gap < current_wallclock_gap:
+                errors.append("maximum wallclock gap is below the current gap")
+            if current_gap != max(current_boottime_gap, current_wallclock_gap):
+                errors.append("current suspend gap disagrees with clock components")
+            if max_gap != max(max_boottime_gap, max_wallclock_gap):
+                errors.append("maximum suspend gap disagrees with clock components")
         continuity_ok = (
             continuity_samples > 0
             and gaps_valid
@@ -844,8 +900,11 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
                 continuity.observe(monotonic_now)
                 if not continuity.uninterrupted():
                     raise RuntimeError(
-                        "system suspend interrupted the soak: maximum "
-                        f"CLOCK_BOOTTIME gap {continuity.max_gap_seconds:.3f}s "
+                        "system suspend or VM pause interrupted the soak: maximum "
+                        f"combined gap {continuity.max_gap_seconds:.3f}s "
+                        "(boottime "
+                        f"{continuity.max_boottime_gap_seconds:.3f}s, wallclock "
+                        f"{continuity.max_wallclock_gap_seconds:.3f}s) "
                         f"exceeds {continuity.limit_seconds:.3f}s"
                     )
                 elapsed = monotonic_now - monotonic_start

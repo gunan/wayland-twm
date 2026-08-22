@@ -389,8 +389,8 @@ def soak(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         errors.append(f"{prefix}.raw_evidence_path cannot be read as JSON: {error}")
         return
-    if raw.get("schema") != "wtwm-mixed-soak-v2":
-        errors.append(f"{prefix}.raw_evidence_path must use wtwm-mixed-soak-v2")
+    if raw.get("schema") != "wtwm-mixed-soak-v3":
+        errors.append(f"{prefix}.raw_evidence_path must use wtwm-mixed-soak-v3")
     if raw.get("result") != "pass" or raw.get("qualified_72_hour") is not True:
         errors.append(f"{prefix}.raw_evidence_path must be a qualified passing run")
     if raw.get("started_at_utc") != result["started_at"]:
