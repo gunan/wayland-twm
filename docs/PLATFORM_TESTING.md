@@ -196,8 +196,19 @@ python3 -B tests/integration/validate_m9_mixed_soak.py \
 Omit `--smoke` for the default 259200-second run. The evidence is qualified as
 a 72-hour result only when measured elapsed time reaches that value, every
 mixed-client workload counter is complete, bounded resource growth passes, and
-the one compositor exits cleanly. Preserve the JSON and both adjacent log
-files.
+the one compositor exits cleanly. The runner also samples Linux
+`CLOCK_BOOTTIME` against `CLOCK_MONOTONIC` on every workload iteration. A new
+suspend gap greater than five seconds fails the run, sets
+`continuous_runtime=false`, and prevents 72-hour qualification even when every
+PID survives the suspend. Preserve the JSON and both adjacent log files.
+
+Prevent both guest and host suspension for the full run. A VM pause, laptop
+sleep, or closed-lid interval invalidates continuity and requires a fresh
+start. On macOS, a `caffeinate` assertion does not override closed-lid sleep,
+and its system-sleep assertion applies only while connected to AC power. Keep
+the UTM host connected to power and open, or use an always-on host whose power
+policy is independently verified. Do not infer continuity merely from stable
+PIDs or process start records after resume.
 
 Test the GPU renderer on representative physical AMD and Intel systems and the
 software renderer through the controlled pixman/headless profile. ARM coverage

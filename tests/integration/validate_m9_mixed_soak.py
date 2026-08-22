@@ -50,6 +50,11 @@ RUNNER_MARKERS = {
         'child.wait(timeout=WAIT_SECONDS)\n'
         '                close_process_pipes(child)'
     ),
+    "Linux suspend clock is sampled": "time.clock_gettime(time.CLOCK_BOOTTIME)",
+    "suspend detection gates live workload": (
+        'if not continuity.uninterrupted():\n'
+        '                    raise RuntimeError('
+    ),
 }
 
 
@@ -99,6 +104,7 @@ def baseline(module, *, long: bool = False) -> dict[str, Any]:
             "workload_completed": True,
             "resource_limits_met": True,
             "compositor_clean_exit": True,
+            "continuous_runtime": True,
         },
         "operations": module.expected_operations(iterations),
         "resources": {
@@ -111,6 +117,14 @@ def baseline(module, *, long: bool = False) -> dict[str, Any]:
             "growth_limits": limits,
             "current_growth": {key: current[key] - initial[key] for key in initial},
             "hourly_and_endpoint_checkpoints": [],
+        },
+        "continuity": {
+            "sampler": "linux-clock-boottime-minus-monotonic-v1",
+            "samples_observed": iterations + 2,
+            "suspend_gap_limit_seconds": module.SUSPEND_GAP_LIMIT_SECONDS,
+            "current_suspend_gap_seconds": 0.0,
+            "max_suspend_gap_seconds": 0.0,
+            "uninterrupted": True,
         },
         "error": None,
         "provenance": {"harness_sha256": "a" * 64},
@@ -140,6 +154,17 @@ def self_test(module) -> None:
         raise RuntimeError("default soak duration is not exactly 72 hours")
     if module.SMOKE_ITERATIONS != EXPECTED_SMOKE_ITERATIONS:
         raise RuntimeError("bounded smoke iteration contract changed")
+    if module.SUSPEND_GAP_LIMIT_SECONDS != 5.0:
+        raise RuntimeError("suspend-gap limit changed")
+
+    continuity = module.ContinuityLedger()
+    continuity.observe(100.0, 1000.0)
+    continuity.observe(101.0, 1001.25)
+    if not continuity.uninterrupted() or continuity.max_gap_seconds != 0.25:
+        raise RuntimeError("ordinary clock movement failed continuity check")
+    continuity.observe(102.0, 1008.0)
+    if continuity.uninterrupted() or continuity.max_gap_seconds != 6.0:
+        raise RuntimeError("system suspend was not detected")
 
     child = subprocess.Popen(
         [sys.executable, "-c", "import sys; sys.stdout.write('x')"],
@@ -217,6 +242,18 @@ def self_test(module) -> None:
     mutation = copy.deepcopy(long)
     mutation["elapsed_seconds"] = EXPECTED_DURATION - 0.001
     require_rejected(module, mutation, "under-duration 72-hour pass")
+
+    mutation = copy.deepcopy(long)
+    mutation["continuity"]["max_suspend_gap_seconds"] = 5.001
+    require_rejected(module, mutation, "suspended run claimed uninterrupted")
+
+    mutation = copy.deepcopy(long)
+    mutation["continuity"]["suspend_gap_limit_seconds"] = 60.0
+    require_rejected(module, mutation, "relaxed suspend-gap limit")
+
+    mutation = copy.deepcopy(long)
+    mutation["schema"] = "wtwm-mixed-soak-v1"
+    require_rejected(module, mutation, "legacy evidence without continuity contract")
 
     mutation = copy.deepcopy(smoke)
     mutation["operations"]["resize_commits"] -= 1
