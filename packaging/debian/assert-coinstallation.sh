@@ -39,6 +39,7 @@ binary=$(path usr/bin/wtwm)
 config_tool=$(path usr/bin/wtwm-config)
 session_launcher=$(path usr/bin/wtwm-session)
 session=$(path usr/share/wayland-sessions/wtwm.desktop)
+portal_config=$(path usr/share/xdg-desktop-portal/wtwm-portals.conf)
 x11_session=$(path usr/share/xsessions/wtwm.desktop)
 system_config=$(path usr/share/wtwm/system.twmrc)
 wtwm_man=$(path usr/share/man/man1/wtwm.1)
@@ -52,7 +53,7 @@ exists_plain_or_gz()
 
 if test "$expected" = absent; then
 	for installed_path in "$binary" "$config_tool" "$session_launcher" \
-			"$session" "$x11_session" "$system_config"; do
+			"$session" "$portal_config" "$x11_session" "$system_config"; do
 		test ! -e "$installed_path" && test ! -L "$installed_path" ||
 			fail "path remains after purge: $installed_path"
 	done
@@ -70,6 +71,9 @@ test -x "$config_tool" || fail 'wtwm-config is missing or not executable'
 test -x "$session_launcher" || fail 'wtwm-session is missing or not executable'
 test -f "$system_config" || fail 'packaged system.twmrc is missing'
 test -f "$session" || fail 'Wayland session entry is missing'
+if test "$expected" = installed; then
+	test -f "$portal_config" || fail 'desktop portal policy is missing'
+fi
 exists_plain_or_gz "$wtwm_man" || fail 'wtwm(1) manual is missing'
 exists_plain_or_gz "$config_man" || fail 'wtwm-config(1) manual is missing'
 if test "$expected" = installed; then
@@ -103,6 +107,10 @@ fi
 if grep -Eq '^Hidden=(true|1|yes)$' "$session"; then
 	fail 'Wayland session entry is hidden'
 fi
+if test "$expected" = installed; then
+	test "$(sed -n 's/^default=//p' "$portal_config")" = gtk ||
+		fail 'desktop portal policy does not select the GTK backend'
+fi
 
 if test -n "$manifest"; then
 	test -f "$manifest" || fail "package manifest not found: $manifest"
@@ -124,6 +132,10 @@ if test -n "$manifest"; then
 		manifest_has "$required_path" ||
 			fail "package manifest omits required path: /$required_path"
 	done
+	if test "$expected" = installed; then
+		manifest_has usr/share/xdg-desktop-portal/wtwm-portals.conf ||
+			fail 'package manifest omits desktop portal policy'
+	fi
 	manifest_has_manual usr/share/man/man1/wtwm.1 ||
 		fail 'package manifest omits wtwm(1)'
 	manifest_has_manual usr/share/man/man1/wtwm-config.1 ||

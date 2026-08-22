@@ -26,6 +26,10 @@ mock=$test_dir/mock-wtwm
 printf '%s\n' \
 	'#!/bin/sh' \
 	'printf "mock-args=%s\\n" "$*"' \
+	'printf "managed=%s\\n" "${WTWM_MANAGED_SESSION:-}"' \
+	'printf "current-desktop=%s\\n" "${XDG_CURRENT_DESKTOP:-}"' \
+	'printf "session-desktop=%s\\n" "${XDG_SESSION_DESKTOP:-}"' \
+	'printf "session-type=%s\\n" "${XDG_SESSION_TYPE:-}"' \
 	'exit "${MOCK_STATUS:-0}"' > "$mock"
 chmod +x "$mock"
 mkdir -m 700 "$test_dir/runtime" "$test_dir/state"
@@ -37,6 +41,14 @@ log=$test_dir/state/wtwm/session.log
 test -f "$log" || fail 'private session log was not created'
 grep -F 'mock-args=-d -f fixture.twmrc' "$log" >/dev/null ||
 	fail 'arguments were not passed unchanged'
+grep -F 'managed=1' "$log" >/dev/null ||
+	fail 'managed login marker was not exported'
+grep -F 'current-desktop=wtwm' "$log" >/dev/null ||
+	fail 'current desktop was not namespaced'
+grep -F 'session-desktop=wtwm' "$log" >/dev/null ||
+	fail 'session desktop was not namespaced'
+grep -F 'session-type=wayland' "$log" >/dev/null ||
+	fail 'session type was not exported'
 grep -F 'compositor exit=0' "$log" >/dev/null ||
 	fail 'successful exit was not logged'
 

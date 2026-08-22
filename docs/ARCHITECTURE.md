@@ -171,7 +171,14 @@ gestures are deliberately outside the persistence boundary.
 The login-session boundary remains outside the compositor. The installed
 `wtwm-session` wrapper supervises exactly one foreground child, forwards
 controlling signals as `SIGTERM`, reaps that child, and returns its exact status
-to the display manager without a restart loop. Inside wtwm, `f.quit` and
+to the display manager without a restart loop. It also supplies the namespaced
+desktop identity and a managed-session marker. After its display sockets are
+allocated, the compositor synchronously publishes `WAYLAND_DISPLAY`, `DISPLAY`,
+and the XDG session identity through `dbus-update-activation-environment
+--systemd` before any `-s` child runs. Direct nested or command-line launches do
+not mutate the persistent per-user activation environment. The packaged
+`wtwm-portals.conf` selects the GTK portal backend for that desktop identity.
+Inside wtwm, `f.quit` and
 `SIGINT`, `SIGHUP`, `SIGQUIT`, and `SIGTERM` only terminate the Wayland event
 loop; the shared normal-exit path then releases Xwayland, native resources,
 input, scenes, the backend, and the display before returning success. Command

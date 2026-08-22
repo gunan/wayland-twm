@@ -18,6 +18,17 @@ test -n "${XDG_RUNTIME_DIR:-}" && test -d "$XDG_RUNTIME_DIR" &&
 	exit 1
 }
 
+# Desktop services are activated by the persistent per-user D-Bus/systemd
+# manager, not as direct compositor children.  Mark this as a managed login and
+# give wtwm the stable session identity it will publish once its display sockets
+# exist.
+WTWM_MANAGED_SESSION=1
+XDG_CURRENT_DESKTOP=wtwm
+XDG_SESSION_DESKTOP=wtwm
+XDG_SESSION_TYPE=wayland
+export WTWM_MANAGED_SESSION XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
+	XDG_SESSION_TYPE
+
 state_home=${XDG_STATE_HOME:-${HOME:?HOME is not set}/.local/state}
 log_dir=$state_home/wtwm
 umask 077
