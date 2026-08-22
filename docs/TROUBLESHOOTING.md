@@ -43,6 +43,30 @@ runtime directory, run wtwm as root, or start the DRM backend over SSH.
 Physical DRM success requires visible output plus keyboard and pointer input;
 it cannot be established by the portable tests or a headless CI job.
 
+## Portal-backed applications stall or crash during startup
+
+Use the packaged **Wayland twm** login entry rather than starting `wtwm`
+directly as a display-manager session. The launcher identifies the desktop as
+`wtwm`; after its sockets exist, the compositor imports `WAYLAND_DISPLAY`,
+`DISPLAY`, and the XDG session identity into the per-user D-Bus/systemd
+activation environment. The Debian package also recommends the GTK portal
+backend and installs `/usr/share/xdg-desktop-portal/wtwm-portals.conf`.
+
+Check the activation environment and portal service as the affected login user:
+
+```sh
+systemctl --user show-environment | \
+  grep -E '^(WAYLAND_DISPLAY|DISPLAY|XDG_CURRENT_DESKTOP|XDG_SESSION_DESKTOP|XDG_SESSION_TYPE)='
+systemctl --user status xdg-desktop-portal.service \
+  xdg-desktop-portal-gtk.service --no-pager
+```
+
+The display variables must name the current wtwm sockets, both desktop values
+must be `wtwm`, and the session type must be `wayland`. A portal backend error
+such as `cannot open display` means the application was activated with a stale
+or incomplete login environment; log out fully and retry with the packaged
+session after preserving the journal and any application crash dump.
+
 ## Native applications work but X11 applications do not
 
 wtwm continues without X11 support when the Xwayland executable is unavailable

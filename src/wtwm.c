@@ -669,6 +669,7 @@ struct server {
 
 static void new_xwayland_surface(struct wl_listener *listener, void *data);
 static bool spawn_command(const char *command);
+static bool publish_activation_environment(const struct server *server);
 #if WTWM_WLROOTS_API_MINOR >= 20
 static bool xwayland_user_event(struct wlr_xwayland *xwayland,
 	xcb_generic_event_t *event);
@@ -3396,6 +3397,57 @@ static bool spawn_command(const char *command) {
 	}
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
 		wlr_log(WLR_ERROR, "%s", "failed to launch command");
+		return false;
+	}
+	return true;
+}
+
+static bool publish_activation_environment(const struct server *server) {
+	const char *managed = getenv("WTWM_MANAGED_SESSION");
+	if (managed == NULL || strcmp(managed, "1") != 0) return true;
+	char *with_display[] = {
+		"dbus-update-activation-environment",
+		"--systemd",
+		"WAYLAND_DISPLAY",
+		"DISPLAY",
+		"XDG_CURRENT_DESKTOP",
+		"XDG_SESSION_DESKTOP",
+		"XDG_SESSION_TYPE",
+		NULL,
+	};
+	char *without_display[] = {
+		"dbus-update-activation-environment",
+		"--systemd",
+		"WAYLAND_DISPLAY",
+		"XDG_CURRENT_DESKTOP",
+		"XDG_SESSION_DESKTOP",
+		"XDG_SESSION_TYPE",
+		NULL,
+	};
+	char **arguments = server->xwayland_display_exported ?
+		with_display : without_display;
+
+	pid_t child = fork();
+	if (child < 0) {
+		wlr_log_errno(WLR_ERROR, "%s",
+			"failed to fork activation-environment publisher");
+		return false;
+	}
+	if (child == 0) {
+		execvp(arguments[0], arguments);
+		_exit(errno == ENOENT ? 127 : 126);
+	}
+	int status;
+	while (waitpid(child, &status, 0) < 0) {
+		if (errno == EINTR) continue;
+		wlr_log_errno(WLR_ERROR, "%s",
+			"failed to reap activation-environment publisher");
+		return false;
+	}
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != EXIT_SUCCESS) {
+		wlr_log(WLR_ERROR,
+			"dbus-update-activation-environment failed with status %d",
+			WIFEXITED(status) ? WEXITSTATUS(status) : -1);
 		return false;
 	}
 	return true;
@@ -11594,7 +11646,9 @@ int main(int argc, char **argv) {
 #endif
 	setenv("WAYLAND_DISPLAY", socket, true);
 	server.startup_command = startup;
-	if (!xwayland_start(&server)) {
+	bool xwayland_started = xwayland_start(&server);
+	(void)publish_activation_environment(&server);
+	if (!xwayland_started) {
 		server.startup_command = NULL;
 		if (startup != NULL) spawn_command(startup);
 	}

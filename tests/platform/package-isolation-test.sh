@@ -25,8 +25,12 @@ grep -Eq '^ libwlroots-0\.18-dev \| libwlroots-0\.20-dev,$' \
 	fail 'Debian stable/testing wlroots build dependency is missing'
 grep -Eq '^Depends: .*xkb-data' "$source_root/debian/control" ||
 	fail 'runtime keyboard data dependency is missing'
+grep -Eq '^Depends: .*dbus-bin' "$source_root/debian/control" ||
+	fail 'D-Bus activation helper dependency is missing'
 grep -Eq '^Recommends: .*xwayland' "$source_root/debian/control" ||
 	fail 'optional Xwayland runtime recommendation is missing'
+grep -Eq '^Recommends: .*xdg-desktop-portal-gtk' "$source_root/debian/control" ||
+	fail 'GTK desktop portal runtime recommendation is missing'
 if grep -Eq '^(Conflicts|Replaces|Breaks):.*(^|[, ])twm([, ]|$)' \
 		"$source_root/debian/control"; then
 	fail 'package metadata conflicts with X11 twm'
@@ -42,7 +46,8 @@ for documented_file in \
 done
 
 mkdir -p "$test_dir/usr/bin" "$test_dir/usr/share/wayland-sessions" \
-	"$test_dir/usr/share/wtwm" "$test_dir/usr/share/man/man1" \
+	"$test_dir/usr/share/xdg-desktop-portal" "$test_dir/usr/share/wtwm" \
+	"$test_dir/usr/share/man/man1" \
 	"$test_dir/usr/share/man/man5"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "$test_dir/usr/bin/wtwm"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "$test_dir/usr/bin/wtwm-config"
@@ -52,6 +57,8 @@ chmod +x "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
 cp "$source_root/data/system.twmrc" "$test_dir/usr/share/wtwm/system.twmrc"
 cp "$source_root/data/wtwm.desktop" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop"
+cp "$source_root/data/wtwm-portals.conf" \
+	"$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf"
 cp "$source_root/data/wtwm.1" "$test_dir/usr/share/man/man1/wtwm.1"
 cp "$source_root/data/wtwm-config.1" \
 	"$test_dir/usr/share/man/man1/wtwm-config.1"
@@ -61,6 +68,7 @@ printf '%s\n' \
 	'/usr/bin/wtwm-config' \
 	'/usr/bin/wtwm-session' \
 	'/usr/share/wayland-sessions/wtwm.desktop' \
+	'/usr/share/xdg-desktop-portal/wtwm-portals.conf' \
 	'/usr/share/wtwm/system.twmrc' \
 	'/usr/share/man/man1/wtwm.1.gz' \
 	'/usr/share/man/man1/wtwm-config.1.gz' \
@@ -87,6 +95,22 @@ if "$assert_script" "$test_dir" installed "$test_dir/manifest.missing" \
 		>/dev/null 2>&1; then
 	fail 'a package manifest missing the system configuration was accepted'
 fi
+
+sed '\|^/usr/share/xdg-desktop-portal/wtwm-portals.conf$|d' \
+	"$test_dir/manifest" > "$test_dir/manifest.portal-missing"
+if "$assert_script" "$test_dir" installed "$test_dir/manifest.portal-missing" \
+		>/dev/null 2>&1; then
+	fail 'a package manifest missing the desktop portal policy was accepted'
+fi
+cp "$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf" \
+	"$test_dir/portal.candidate"
+printf '%s\n' '[preferred]' 'default=gnome' \
+	> "$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf"
+if "$assert_script" "$test_dir" installed "$test_dir/manifest" >/dev/null 2>&1; then
+	fail 'a desktop portal policy selecting another desktop was accepted'
+fi
+mv "$test_dir/portal.candidate" \
+	"$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf"
 
 mkdir -p "$test_dir/usr/share/xsessions"
 cp "$source_root/data/wtwm.desktop" "$test_dir/usr/share/xsessions/wtwm.desktop"
@@ -126,6 +150,7 @@ fi
 rm "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
 	"$test_dir/usr/bin/wtwm-session" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop" \
+	"$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf" \
 	"$test_dir/usr/share/wtwm/system.twmrc" \
 	"$test_dir/usr/share/man/man1/wtwm.1" \
 	"$test_dir/usr/share/man/man1/wtwm-config.1" \

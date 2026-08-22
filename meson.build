@@ -1515,6 +1515,15 @@ if wlroots.found()
     is_parallel: false,
   )
   test(
+    'managed session activation environment integration',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_session_environment.py'),
+      '--compositor', wtwm_test_compositor,
+    ],
+    timeout: 60,
+  )
+  test(
     'initial placement integration',
     integration_runner,
     args: [
@@ -1900,6 +1909,10 @@ endif
 install_data(
   'data/system.twmrc',
   install_dir: get_option('datadir') / 'wtwm',
+)
+install_data(
+  'data/wtwm-portals.conf',
+  install_dir: get_option('datadir') / 'xdg-desktop-portal',
 )
 install_data(
   'scripts/platform/wtwm-session',

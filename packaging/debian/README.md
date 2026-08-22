@@ -27,7 +27,8 @@ same artifact is not an upgrade test.  `--rollback` defaults to the last
 `--old` argument.  At every phase the script checks the exact protected-file
 hashes, the user `.twmrc` sentinel, installed version, baseline prior-release
 contents, candidate binaries/manuals/configuration, the uniquely named Wayland
-session, the absence of an X11 session, and package ownership boundaries.  Copy
+session, the namespaced GTK desktop-portal policy, the absence of an X11
+session, and package ownership boundaries.  Copy
 the evidence directory out of the VM before restoring the snapshot.  Each
 installed phase also executes `wtwm --help` and parses the installed
 `system.twmrc`, catching missing shared libraries or unusable package content.

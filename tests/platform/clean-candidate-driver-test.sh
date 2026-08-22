@@ -36,6 +36,7 @@ mock_command()
 						'/usr/bin/wtwm-config' \
 						'/usr/bin/wtwm-session' \
 						'/usr/share/wayland-sessions/wtwm.desktop' \
+						'/usr/share/xdg-desktop-portal/wtwm-portals.conf' \
 						'/usr/share/wtwm/system.twmrc' \
 						'/usr/share/man/man1/wtwm.1.gz' \
 						'/usr/share/man/man1/wtwm-config.1.gz' \
@@ -60,6 +61,7 @@ mock_command()
 					printf '%s\n' "$version" > "$WTWM_MOCK_STATE"
 					mkdir -p "$WTWM_PACKAGE_ROOT/usr/bin" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wayland-sessions" \
+						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man5"
@@ -72,6 +74,8 @@ mock_command()
 						"$WTWM_PACKAGE_ROOT/usr/bin/wtwm-session"
 					cp "$WTWM_SOURCE_ROOT/data/wtwm.desktop" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wayland-sessions/wtwm.desktop"
+					cp "$WTWM_SOURCE_ROOT/data/wtwm-portals.conf" \
+						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal/wtwm-portals.conf"
 					cp "$WTWM_SOURCE_ROOT/data/system.twmrc" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm/system.twmrc"
 					for manual in wtwm.1 wtwm-config.1; do
@@ -91,6 +95,7 @@ mock_command()
 						"$WTWM_PACKAGE_ROOT/usr/bin/wtwm-config" \
 						"$WTWM_PACKAGE_ROOT/usr/bin/wtwm-session" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wayland-sessions/wtwm.desktop" \
+						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal/wtwm-portals.conf" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm/system.twmrc" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1/wtwm.1.gz" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1/wtwm-config.1.gz" \
