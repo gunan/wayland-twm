@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "xdg-shell-client-protocol.h"
+#include "xdg-decoration-unstable-v1-client-protocol.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -33,14 +34,17 @@ struct client {
 	struct wl_compositor *compositor;
 	struct wl_shm *shm;
 	struct xdg_wm_base *wm_base;
+	struct zxdg_decoration_manager_v1 *decoration_manager;
 	struct role_surface toplevel_surface;
 	struct xdg_toplevel *toplevel;
+	struct zxdg_toplevel_decoration_v1 *decoration;
 	struct role_surface popup;
 	struct role_surface nested_popup;
 	unsigned map_generation;
 	const char *title;
 	const char *app_id;
 	bool closed;
+	bool server_side_decoration;
 };
 
 static void wm_base_ping(void *data, struct xdg_wm_base *wm_base, uint32_t serial) {
@@ -64,6 +68,9 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
 		client->wm_base = wl_registry_bind(registry, name,
 			&xdg_wm_base_interface, version < 3 ? version : 3);
 		xdg_wm_base_add_listener(client->wm_base, &wm_base_listener, client);
+	} else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0) {
+		client->decoration_manager = wl_registry_bind(registry, name,
+			&zxdg_decoration_manager_v1_interface, 1);
 	}
 }
 
@@ -130,6 +137,18 @@ static const struct xdg_toplevel_listener toplevel_listener = {
 	.close = toplevel_close,
 	.configure_bounds = toplevel_configure_bounds,
 	.wm_capabilities = toplevel_wm_capabilities,
+};
+
+static void decoration_configure(void *data,
+	struct zxdg_toplevel_decoration_v1 *decoration, uint32_t mode) {
+	(void)decoration;
+	struct client *client = data;
+	client->server_side_decoration =
+		mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
+}
+
+static const struct zxdg_toplevel_decoration_v1_listener decoration_listener = {
+	.configure = decoration_configure,
 };
 
 static void popup_configure(void *data, struct xdg_popup *popup,
@@ -205,6 +224,10 @@ static bool map_toplevel(struct client *client) {
 	role->mapped = false;
 	wl_surface_commit(role->surface);
 	if (!wait_until_mapped(role)) return false;
+	if (!client->server_side_decoration) {
+		fprintf(stderr, "xdg lifecycle client: server-side decoration was not configured\n");
+		return false;
+	}
 	client->map_generation++;
 	printf("MAPPED %u\n", client->map_generation);
 	return true;
@@ -300,6 +323,10 @@ static bool handle_command(struct client *client, const char *command, bool *don
 		return true;
 	}
 	if (strcmp(command, "DESTROY_TOPLEVEL") == 0) {
+		if (client->decoration != NULL) {
+			zxdg_toplevel_decoration_v1_destroy(client->decoration);
+			client->decoration = NULL;
+		}
 		xdg_toplevel_destroy(client->toplevel);
 		client->toplevel = NULL;
 		destroy_role_surface(&client->toplevel_surface);
@@ -317,9 +344,13 @@ static bool handle_command(struct client *client, const char *command, bool *don
 
 static void finish_client(struct client *client) {
 	destroy_popups(client);
+	if (client->decoration != NULL)
+		zxdg_toplevel_decoration_v1_destroy(client->decoration);
 	if (client->toplevel != NULL) xdg_toplevel_destroy(client->toplevel);
 	destroy_role_surface(&client->toplevel_surface);
 	if (client->wm_base != NULL) xdg_wm_base_destroy(client->wm_base);
+	if (client->decoration_manager != NULL)
+		zxdg_decoration_manager_v1_destroy(client->decoration_manager);
 	if (client->shm != NULL) wl_shm_destroy(client->shm);
 	if (client->compositor != NULL) wl_compositor_destroy(client->compositor);
 }
@@ -338,7 +369,8 @@ int main(void) {
 	struct wl_registry *registry = wl_display_get_registry(client.display);
 	wl_registry_add_listener(registry, &registry_listener, &client);
 	if (wl_display_roundtrip(client.display) < 0 || client.compositor == NULL ||
-		client.shm == NULL || client.wm_base == NULL) {
+		client.shm == NULL || client.wm_base == NULL ||
+		client.decoration_manager == NULL) {
 		fprintf(stderr, "xdg lifecycle client: required globals are unavailable\n");
 		return 1;
 	}
@@ -352,6 +384,12 @@ int main(void) {
 		&xdg_surface_listener, &client.toplevel_surface);
 	client.toplevel = xdg_surface_get_toplevel(client.toplevel_surface.xdg_surface);
 	xdg_toplevel_add_listener(client.toplevel, &toplevel_listener, &client);
+	client.decoration = zxdg_decoration_manager_v1_get_toplevel_decoration(
+		client.decoration_manager, client.toplevel);
+	zxdg_toplevel_decoration_v1_add_listener(client.decoration,
+		&decoration_listener, &client);
+	zxdg_toplevel_decoration_v1_set_mode(client.decoration,
+		ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 	client.title = "wtwm-lifecycle-initial";
 	client.app_id = "org.wtwm.LifecycleInitial";
 	xdg_toplevel_set_title(client.toplevel, client.title);

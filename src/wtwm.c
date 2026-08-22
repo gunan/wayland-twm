@@ -413,7 +413,9 @@ struct output {
 struct decoration {
 	struct wlr_xdg_toplevel_decoration_v1 *wlr;
 	struct wl_listener request_mode;
+	struct wl_listener commit;
 	struct wl_listener destroy;
+	bool waiting_for_initial_commit;
 };
 
 struct menu_view {
@@ -9693,17 +9695,34 @@ static void new_popup(struct wl_listener *listener, void *data) {
 	wl_signal_add(&xdg->events.destroy, &popup->destroy);
 }
 
+static void decoration_set_server_side(struct decoration *decoration) {
+	if (!decoration->wlr->toplevel->base->initialized) return;
+	if (decoration->waiting_for_initial_commit) {
+		wl_list_remove(&decoration->commit.link);
+		decoration->waiting_for_initial_commit = false;
+	}
+	wlr_xdg_toplevel_decoration_v1_set_mode(decoration->wlr,
+		WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+}
+
 static void decoration_request_mode(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct decoration *decoration = wl_container_of(listener, decoration, request_mode);
-	wlr_xdg_toplevel_decoration_v1_set_mode(decoration->wlr,
-		WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+	decoration_set_server_side(decoration);
+}
+
+static void decoration_surface_commit(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct decoration *decoration = wl_container_of(listener, decoration, commit);
+	decoration_set_server_side(decoration);
 }
 
 static void decoration_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct decoration *decoration = wl_container_of(listener, decoration, destroy);
 	wl_list_remove(&decoration->request_mode.link);
+	if (decoration->waiting_for_initial_commit)
+		wl_list_remove(&decoration->commit.link);
 	wl_list_remove(&decoration->destroy.link);
 	free(decoration);
 }
@@ -9715,10 +9734,13 @@ static void new_decoration(struct wl_listener *listener, void *data) {
 	decoration->wlr = data;
 	decoration->request_mode.notify = decoration_request_mode;
 	wl_signal_add(&decoration->wlr->events.request_mode, &decoration->request_mode);
+	decoration->commit.notify = decoration_surface_commit;
+	wl_signal_add(&decoration->wlr->toplevel->base->surface->events.commit,
+		&decoration->commit);
+	decoration->waiting_for_initial_commit = true;
 	decoration->destroy.notify = decoration_destroy;
 	wl_signal_add(&decoration->wlr->events.destroy, &decoration->destroy);
-	wlr_xdg_toplevel_decoration_v1_set_mode(decoration->wlr,
-		WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+	decoration_set_server_side(decoration);
 }
 
 #ifdef WTWM_TEST_CONTROL
