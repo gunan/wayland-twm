@@ -6886,8 +6886,8 @@ static bool dispatch_cursor_button(struct server *server,
 		const struct wtwm_action *action =
 			&hit.toplevel->title_buttons[hit.title_button_index].action;
 		if (action->type == WTWM_ACTION_RESIZE) {
-			begin_interactive(hit.toplevel, CURSOR_RESIZE, 0, false, true,
-				event->time_msec);
+			begin_interactive(hit.toplevel, CURSOR_RESIZE,
+				WLR_EDGE_RIGHT | WLR_EDGE_BOTTOM, false, true, event->time_msec);
 		} else execute_pointer_action(server, hit.toplevel, action,
 			WTWM_CONTEXT_TITLE);
 		handled = true;
