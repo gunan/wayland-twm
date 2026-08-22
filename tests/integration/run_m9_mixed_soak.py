@@ -22,12 +22,13 @@ from typing import Any
 from run_compositor import Control
 
 
-SCHEMA = "wtwm-mixed-soak-v1"
+SCHEMA = "wtwm-mixed-soak-v2"
 DEFAULT_DURATION_SECONDS = 72 * 60 * 60
 SMOKE_ITERATIONS = 2
 DEFAULT_MAX_RSS_GROWTH_BYTES = 256 * 1024 * 1024
 DEFAULT_MAX_FD_GROWTH = 32
 DEFAULT_MAX_THREAD_GROWTH = 8
+SUSPEND_GAP_LIMIT_SECONDS = 5.0
 WAIT_SECONDS = 10.0
 
 
@@ -75,13 +76,51 @@ def expected_operations(iterations: int) -> dict[str, int]:
     }
 
 
+class ContinuityLedger:
+    """Detect guest suspension with Linux clocks unaffected by wall-time steps."""
+
+    def __init__(self, limit_seconds: float = SUSPEND_GAP_LIMIT_SECONDS) -> None:
+        self.limit_seconds = limit_seconds
+        self.baseline_offset: float | None = None
+        self.current_gap_seconds = 0.0
+        self.max_gap_seconds = 0.0
+        self.samples = 0
+
+    def observe(
+        self, monotonic_now: float, boottime_now: float | None = None
+    ) -> None:
+        if boottime_now is None:
+            if not hasattr(time, "CLOCK_BOOTTIME"):
+                raise RuntimeError("Linux CLOCK_BOOTTIME is unavailable")
+            boottime_now = time.clock_gettime(time.CLOCK_BOOTTIME)
+        offset = boottime_now - monotonic_now
+        if self.baseline_offset is None:
+            self.baseline_offset = offset
+        self.current_gap_seconds = max(0.0, offset - self.baseline_offset)
+        self.max_gap_seconds = max(self.max_gap_seconds, self.current_gap_seconds)
+        self.samples += 1
+
+    def uninterrupted(self) -> bool:
+        return self.samples > 0 and self.max_gap_seconds <= self.limit_seconds
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "sampler": "linux-clock-boottime-minus-monotonic-v1",
+            "samples_observed": self.samples,
+            "suspend_gap_limit_seconds": self.limit_seconds,
+            "current_suspend_gap_seconds": round(self.current_gap_seconds, 6),
+            "max_suspend_gap_seconds": round(self.max_gap_seconds, 6),
+            "uninterrupted": self.uninterrupted(),
+        }
+
+
 def validate_evidence(
     evidence: dict[str, Any], expected_harness_sha256: str | None = None
 ) -> list[str]:
     """Return contract violations without trusting the result label."""
     errors: list[str] = []
     if evidence.get("schema") != SCHEMA:
-        errors.append("schema is not wtwm-mixed-soak-v1")
+        errors.append("schema is not wtwm-mixed-soak-v2")
     run_profile = evidence.get("profile")
     if not isinstance(run_profile, dict):
         return errors + ["profile is not an object"]
@@ -185,9 +224,57 @@ def validate_evidence(
             if criteria.get("resource_limits_met") is not resource_limit_ok:
                 errors.append("resource_limits_met disagrees with current growth")
 
-    qualifying = result == "pass" and elapsed >= DEFAULT_DURATION_SECONDS
+    continuity = evidence.get("continuity")
+    continuity_ok = False
+    if not isinstance(continuity, dict):
+        errors.append("continuity is not an object")
+    else:
+        if continuity.get("sampler") != "linux-clock-boottime-minus-monotonic-v1":
+            errors.append("continuity sampler is invalid")
+        continuity_samples = continuity.get("samples_observed")
+        limit = continuity.get("suspend_gap_limit_seconds")
+        current_gap = continuity.get("current_suspend_gap_seconds")
+        max_gap = continuity.get("max_suspend_gap_seconds")
+        if (
+            not isinstance(continuity_samples, int)
+            or isinstance(continuity_samples, bool)
+            or continuity_samples < 0
+        ):
+            errors.append("continuity sample count is invalid")
+            continuity_samples = 0
+        if limit != SUSPEND_GAP_LIMIT_SECONDS:
+            errors.append("continuity suspend-gap limit is invalid")
+        gaps_valid = all(
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and value >= 0
+            for value in (current_gap, max_gap)
+        )
+        if not gaps_valid:
+            errors.append("continuity suspend-gap measurements are invalid")
+        elif max_gap < current_gap:
+            errors.append("maximum suspend gap is below the current gap")
+        continuity_ok = (
+            continuity_samples > 0
+            and gaps_valid
+            and max_gap <= SUSPEND_GAP_LIMIT_SECONDS
+        )
+        if continuity.get("uninterrupted") is not continuity_ok:
+            errors.append("continuity uninterrupted label disagrees with measurements")
+        if result == "pass" and continuity_samples < 1:
+            errors.append("passing continuity evidence has no observations")
+    if criteria.get("continuous_runtime") is not continuity_ok:
+        errors.append("continuous_runtime disagrees with suspend measurements")
+
+    qualifying = (
+        result == "pass"
+        and elapsed >= DEFAULT_DURATION_SECONDS
+        and continuity_ok
+    )
     if evidence.get("qualified_72_hour") is not qualifying:
-        errors.append("qualified_72_hour disagrees with measured elapsed time")
+        errors.append(
+            "qualified_72_hour disagrees with result, duration, or continuity"
+        )
     if result == "pass":
         if evidence.get("error") is not None:
             errors.append("passing evidence contains an error")
@@ -652,7 +739,9 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
         "threads": arguments.max_thread_growth,
     }
     ledger = ResourceLedger(limits)
+    continuity = ContinuityLedger()
     evidence["resources"] = ledger.as_dict()
+    evidence["continuity"] = continuity.as_dict()
     monotonic_start = time.monotonic()
     compositor: subprocess.Popen[str] | None = None
     control: Control | None = None
@@ -733,6 +822,7 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
             return SoakClient(protocol, child, channel, title, generation, xid=xid)
 
         try:
+            continuity.observe(monotonic_start)
             control = Control(control_path, compositor)
             control.socket.settimeout(WAIT_SECONDS)
             control.command("SET ANIMATION_MS 0")
@@ -750,7 +840,15 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
             ledger.observe(compositor.pid, 0, time.monotonic() - monotonic_start)
 
             while True:
-                elapsed = time.monotonic() - monotonic_start
+                monotonic_now = time.monotonic()
+                continuity.observe(monotonic_now)
+                if not continuity.uninterrupted():
+                    raise RuntimeError(
+                        "system suspend interrupted the soak: maximum "
+                        f"CLOCK_BOOTTIME gap {continuity.max_gap_seconds:.3f}s "
+                        f"exceeds {continuity.limit_seconds:.3f}s"
+                    )
+                elapsed = monotonic_now - monotonic_start
                 requested_iterations = run_profile["requested_iterations"]
                 requested_duration = run_profile["requested_duration_seconds"]
                 if requested_iterations is not None:
@@ -860,8 +958,14 @@ def run_live(arguments: argparse.Namespace, evidence: dict[str, Any]) -> None:
             )
             evidence["pass_criteria"]["resource_limits_met"] = ledger.limits_met()
         finally:
-            evidence["elapsed_seconds"] = round(time.monotonic() - monotonic_start, 6)
+            monotonic_now = time.monotonic()
+            continuity.observe(monotonic_now)
+            evidence["elapsed_seconds"] = round(monotonic_now - monotonic_start, 6)
             evidence["resources"] = ledger.as_dict()
+            evidence["continuity"] = continuity.as_dict()
+            evidence["pass_criteria"]["continuous_runtime"] = (
+                continuity.uninterrupted()
+            )
             for child in all_processes:
                 if child.poll() is None:
                     child.kill()
@@ -896,9 +1000,11 @@ def make_initial_evidence(arguments: argparse.Namespace) -> dict[str, Any]:
             "workload_completed": False,
             "resource_limits_met": False,
             "compositor_clean_exit": False,
+            "continuous_runtime": False,
         },
         "operations": {key: 0 for key in expected_operations(0)},
         "resources": {},
+        "continuity": {},
         "error": None,
         "provenance": {
             "harness": str(runner),
@@ -1024,6 +1130,7 @@ def main() -> int:
         evidence["qualified_72_hour"] = (
             evidence["result"] == "pass"
             and evidence["elapsed_seconds"] >= DEFAULT_DURATION_SECONDS
+            and evidence.get("continuity", {}).get("uninterrupted") is True
         )
         contract_errors = validate_evidence(
             evidence, sha256_file(Path(__file__).resolve())

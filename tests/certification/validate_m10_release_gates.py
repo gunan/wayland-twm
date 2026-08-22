@@ -10,6 +10,7 @@ import json
 import re
 import struct
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Callable
@@ -328,6 +329,7 @@ def soak(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
         "protocol_violations",
         "unbounded_resource_leaks",
         "log_path",
+        "raw_evidence_path",
     }
     if not exact_fields(result, fields, prefix, errors):
         return
@@ -348,6 +350,62 @@ def soak(result: Any, prefix: str, root: Path, errors: list[str]) -> None:
         if result[field] != 0:
             errors.append(f"{prefix}.{field} must equal zero")
     require_repo_path(result, "log_path", prefix, root, errors)
+    raw_path = repo_file(
+        result["raw_evidence_path"],
+        f"{prefix}.raw_evidence_path",
+        root,
+        errors,
+        json_only=True,
+    )
+    if raw_path is None:
+        return
+    runner = root / "tests/integration/run_m9_mixed_soak.py"
+    validator = root / "tests/integration/validate_m9_mixed_soak.py"
+    try:
+        checked = subprocess.run(
+            [
+                sys.executable,
+                "-B",
+                str(validator),
+                "--runner",
+                str(runner),
+                "--evidence",
+                str(raw_path),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
+    except OSError as error:
+        errors.append(f"{prefix}.raw_evidence_path cannot be validated: {error}")
+        return
+    if checked.returncode != 0:
+        detail = checked.stdout.strip().replace("\n", "; ")
+        errors.append(f"{prefix}.raw_evidence_path fails the soak contract: {detail}")
+        return
+    try:
+        raw = json.loads(raw_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        errors.append(f"{prefix}.raw_evidence_path cannot be read as JSON: {error}")
+        return
+    if raw.get("schema") != "wtwm-mixed-soak-v2":
+        errors.append(f"{prefix}.raw_evidence_path must use wtwm-mixed-soak-v2")
+    if raw.get("result") != "pass" or raw.get("qualified_72_hour") is not True:
+        errors.append(f"{prefix}.raw_evidence_path must be a qualified passing run")
+    if raw.get("started_at_utc") != result["started_at"]:
+        errors.append(f"{prefix}.started_at must match the raw evidence")
+    if raw.get("ended_at_utc") != result["ended_at"]:
+        errors.append(f"{prefix}.ended_at must match the raw evidence")
+    raw_elapsed = raw.get("elapsed_seconds")
+    if (
+        isinstance(raw_elapsed, (int, float))
+        and not isinstance(raw_elapsed, bool)
+        and isinstance(duration, (int, float))
+        and not isinstance(duration, bool)
+        and abs(raw_elapsed / 3600 - duration) > 0.01
+    ):
+        errors.append(f"{prefix}.duration_hours must match the raw evidence")
 
 
 def platform_tuple(value: Any, prefix: str, errors: list[str]) -> tuple[str, str, str] | None:
