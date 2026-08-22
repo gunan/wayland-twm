@@ -9392,8 +9392,8 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 		xcb_connection_t *connection =
 			wlr_xwayland_get_xwm_connection(server->xwayland);
 		bool root_ready = xwayland_root_has_area(connection);
-		wake_xwayland_event_source(server, connection);
 		if (!root_ready && toplevel != NULL) {
+			wake_xwayland_event_source(server, connection);
 			if (enabled_output_count(server) == 0 &&
 					create_xwayland_frame_scene(toplevel))
 				map_xwayland_toplevel(toplevel);
