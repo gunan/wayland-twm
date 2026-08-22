@@ -16,7 +16,7 @@ import tempfile
 import time
 from typing import Callable
 
-from run_client_stress import ClientChannel
+from run_client_stress import ClientChannel, wait_state
 from run_compositor import Control
 
 
@@ -686,7 +686,7 @@ class Session:
         self.native.expect(f"OK READY {NATIVE_TITLE}")
         self.x11.expect_prefix(f"OK READY {X11_TITLE} ")
         self.x11.command("FREEZE", "OK FROZEN 0x007030a0")
-        state = bounded_state(
+        state = wait_state(
             self.control, state_windows_ready, "one mapped native and Xwayland client"
         )
         windows = state["windows"]
