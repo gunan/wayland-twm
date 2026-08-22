@@ -599,7 +599,15 @@ test(
     '--self-test',
   ],
 )
-test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
+test(
+  'packaged twmrc',
+  find_program('sh'),
+  args: [
+    files('tests/platform/packaged-config-test.sh'),
+    config_tool,
+    files('data/system.twmrc'),
+  ],
+)
 test(
   'upstream reference freeze',
   find_program('sh'),
