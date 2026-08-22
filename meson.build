@@ -599,7 +599,15 @@ test(
     '--self-test',
   ],
 )
-test('packaged twmrc', config_tool, args: files('data/system.twmrc'))
+test(
+  'packaged twmrc',
+  find_program('sh'),
+  args: [
+    files('tests/platform/packaged-config-test.sh'),
+    config_tool,
+    files('data/system.twmrc'),
+  ],
+)
 test(
   'upstream reference freeze',
   find_program('sh'),
@@ -1193,6 +1201,7 @@ if wlroots.found()
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
+  xdg_decoration_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml'
   primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
   xdg_shell_header = custom_target(
     'xdg-shell-protocol-header',
@@ -1238,6 +1247,18 @@ if wlroots.found()
     output: 'xdg-shell-client-protocol.c',
     command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
   )
+  xdg_decoration_client_header = custom_target(
+    'xdg-decoration-client-protocol-header',
+    input: xdg_decoration_xml,
+    output: 'xdg-decoration-unstable-v1-client-protocol.h',
+    command: [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+  )
+  xdg_decoration_client_code = custom_target(
+    'xdg-decoration-client-protocol-code',
+    input: xdg_decoration_xml,
+    output: 'xdg-decoration-unstable-v1-client-protocol.c',
+    command: [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+  )
   primary_selection_client_header = custom_target(
     'primary-selection-client-protocol-header',
     input: primary_selection_xml,
@@ -1266,6 +1287,8 @@ if wlroots.found()
       'tests/integration/xdg_lifecycle_client.c',
       xdg_shell_client_header,
       xdg_shell_client_code,
+      xdg_decoration_client_header,
+      xdg_decoration_client_code,
     ],
     dependencies: wayland_client,
     install: false,

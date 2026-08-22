@@ -62,7 +62,7 @@ Every report has these exact top-level fields:
 | `canonical-geometry` | The canonical one-output 1x profile, at least one scenario, zero geometry differences, and a checked-in comparison artifact. |
 | `focus-stacking` | At least one scenario, zero unexplained focus and stacking differences, and a checked-in differential trace. |
 | `golden-images` | A positive image count, review counts with zero unreviewed differences, and a checked-in review log. |
-| `soak-72-hours` | RFC 3339 start/end times covering at least 72 continuous hours, matching duration, a tracked successful `wtwm-mixed-soak-v2` raw-evidence path with no Linux suspend gap over five seconds, zero crashes/hangs/protocol violations/unbounded leaks, and a checked-in log. |
+| `soak-72-hours` | RFC 3339 start/end times covering at least 72 continuous hours, matching duration, a tracked successful `wtwm-mixed-soak-v3` raw-evidence path with no guest-suspend or VM-pause gap over five seconds, zero crashes/hangs/protocol violations/unbounded leaks, and a checked-in log. |
 | `supported-package-matrix` | The checked-in support policy and successful install, upgrade, uninstall, and reinstall evidence for amd64 and arm64 on one selected release line: Debian 13 (Trixie) or Debian 14 (Forky). Evidence from both releases is not required. |
 | `deployment-environments` | Passing, checked-in results for exactly nested Wayland, VM login, and physical hardware. Physical evidence must identify the hardware and report `virtualized=false`. |
 | `blind-ab-evaluation` | The canonical profile, a checked-in blind protocol, at least two distinct experienced-`twm` reviewers with trial results, and no repeatable distinguishing behavior. |
@@ -94,8 +94,10 @@ particular, do not promote the soak gate from the short stability smoke run;
 the recorded timestamps must cover a successful continuous 72 hours. Stable
 PIDs across host or guest suspension are not continuous execution; the raw
 evidence must report `continuous_runtime=true`, `uninterrupted=true`, and a
-maximum `CLOCK_BOOTTIME`/`CLOCK_MONOTONIC` gap within the fixed five-second
-limit. Do not
+maximum `CLOCK_BOOTTIME`/`CLOCK_MONOTONIC` and
+`CLOCK_REALTIME`/`CLOCK_MONOTONIC` gaps within the fixed five-second limit. The
+second channel is required because a hypervisor pause can freeze both guest
+monotonic clocks together. Do not
 promote package coverage from compiler jobs; package lifecycle results are
 required for every declared distribution/architecture pair. The package gate
 accepts exactly two pairs: amd64 and arm64 for either Debian 13 or Debian 14;

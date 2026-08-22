@@ -196,11 +196,13 @@ python3 -B tests/integration/validate_m9_mixed_soak.py \
 Omit `--smoke` for the default 259200-second run. The evidence is qualified as
 a 72-hour result only when measured elapsed time reaches that value, every
 mixed-client workload counter is complete, bounded resource growth passes, and
-the one compositor exits cleanly. The runner also samples Linux
-`CLOCK_BOOTTIME` against `CLOCK_MONOTONIC` on every workload iteration. A new
-suspend gap greater than five seconds fails the run, sets
-`continuous_runtime=false`, and prevents 72-hour qualification even when every
-PID survives the suspend. Preserve the JSON and both adjacent log files.
+the one compositor exits cleanly. The runner samples both Linux
+`CLOCK_BOOTTIME` and `CLOCK_REALTIME` against `CLOCK_MONOTONIC` on every
+workload iteration. The boottime channel detects a guest suspend; the realtime
+channel also detects a hypervisor pause where all guest monotonic clocks freeze
+together. A new gap greater than five seconds in either channel fails the run,
+sets `continuous_runtime=false`, and prevents 72-hour qualification even when
+every PID survives. Preserve the v3 JSON and both adjacent log files.
 
 Prevent both guest and host suspension for the full run. A VM pause, laptop
 sleep, or closed-lid interval invalidates continuity and requires a fresh

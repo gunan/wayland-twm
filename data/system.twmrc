@@ -31,6 +31,10 @@ Button2 = m : window|icon : f.iconify
 Button3 = m : window|icon : f.function "move-or-raise"
 Button1 = : title : f.function "move-or-raise"
 Button2 = : title : f.raiselower
+Button1 = : icon : f.function "move-or-iconify"
+Button2 = : icon : f.iconify
+Button1 = : iconmgr : f.iconify
+Button2 = : iconmgr : f.iconify
 
 # A terminal shortcut that does not depend on opening the root menu.
 "Return" = m : all : f.exec "foot"
