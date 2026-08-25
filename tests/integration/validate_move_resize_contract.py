@@ -54,6 +54,7 @@ SOURCE_FRAGMENTS = (
     "wtwm_delta_stop_continues(server->last_interaction_moved)",
     "resume_action_continuation(server);",
     "server->interaction.required_button_valid = false;",
+    "WLR_EDGE_RIGHT | WLR_EDGE_BOTTOM, false, true, event->time_msec",
 )
 
 RUNNER_FRAGMENTS = (
@@ -73,6 +74,8 @@ RUNNER_FRAGMENTS = (
     "left/top constrained anchoring drifted",
     "AutoRelativeResize did not select top-left",
     "AutoRelativeResize did not select bottom-right",
+    "default title resize button did not select bottom-right",
+    "default title resize did not commit",
     "OpaqueMove did not select the live-window path",
     "NoRaiseOnMove did not preserve stacking",
     "NoRaiseOnResize did not preserve stacking",

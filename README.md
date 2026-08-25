@@ -54,7 +54,7 @@ sudo apt install ../wtwm_0.1.0_*.deb
 ```
 
 The package installs `wtwm`, `wtwm-config`, `wtwm-session`, manual pages, the
-fallback `system.twmrc`, and a distinct
+fallback `system.twmrc`, a GTK desktop-portal policy, and a distinct
 `/usr/share/wayland-sessions/wtwm.desktop`. It does not install an X11 session,
 replace `/usr/bin/twm`, use the alternatives system, or change the display
 manager's default session.
@@ -140,8 +140,11 @@ After installing the Debian package, log out, choose **Wayland twm** in the
 display manager, and log in normally. The `wtwm-session` wrapper starts one
 foreground compositor, writes a private log to
 `${XDG_STATE_HOME:-$HOME/.local/state}/wtwm/session.log`, and returns the exact
-exit status to the display manager. A normal exit or failed startup should
-therefore return to the greeter.
+exit status to the display manager. Once the Wayland and Xwayland sockets exist,
+wtwm also publishes their display variables and its desktop identity to the
+per-user D-Bus/systemd activation environment so portal-backed applications
+start in the current session. A normal exit or failed startup should therefore
+return to the greeter.
 
 Do not force the DRM backend from SSH. A direct DRM session requires an active
 local logind session, a usable DRM device, and local keyboard and pointer

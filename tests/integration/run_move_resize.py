@@ -236,6 +236,36 @@ def resize_scenario(control: Control) -> None:
     release(control, 273)
 
 
+def default_title_resize_scenario(control: Control) -> None:
+    item = state_window(control)
+    original = {
+        key: int(item[key]) for key in ("x", "y", "width", "height", "border_width")
+    }
+    # With the reference default title layout, the rightmost button is the
+    # built-in :resize button.  Its 11-pixel box starts 14 pixels from the
+    # right edge of the client-width title and 3 pixels below its top.
+    resize_button = (
+        original["x"] + original["border_width"] + original["width"] - 9,
+        original["y"] + original["border_width"] + 8,
+    )
+    press_at(control, resize_button)
+    active = interaction(control)
+    if int(active["edges"]) != 10:
+        raise RuntimeError(
+            f"default title resize button did not select bottom-right: {active!r}"
+        )
+    control.command(f"POINTER {resize_button[0] + 20} {resize_button[1] + 10}")
+    preview = interaction(control)["preview"]
+    if (int(preview["width"]), int(preview["height"])) != (
+            original["width"] + 20, original["height"] + 10):
+        raise RuntimeError(f"default title resize did not change its preview: {preview!r}")
+    release(control)
+    resized = state_window(control)
+    if (int(resized["width"]), int(resized["height"])) != (
+            int(preview["width"]), int(preview["height"])):
+        raise RuntimeError(f"default title resize did not commit: {resized!r}")
+
+
 def opaque_and_no_raise_scenario(control: Control) -> None:
     item = state_window(control)
     original = (int(item["x"]), int(item["y"]))
@@ -425,6 +455,7 @@ def main() -> None:
          "Button1 = : title : f.move\n", constrained_scenario),
         (common + "MoveDelta 3\nAutoRelativeResize\n"
          "Button3 = : window : f.resize\n", resize_scenario),
+        (common + "MoveDelta 0\n", default_title_resize_scenario),
         (common + "MoveDelta 3\nOpaqueMove\nAutoRelativeResize\n"
          "NoRaiseOnMove\nNoRaiseOnResize\n"
          "Button1 = : title : f.move\nButton2 = : window : f.resize\n"
