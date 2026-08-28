@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+from functools import lru_cache
 import json
 import re
 import sys
@@ -273,6 +274,21 @@ def _sorted_unique_strings(value: object, label: str, errors: list[str]) -> bool
     return True
 
 
+@lru_cache(maxsize=None)
+def _is_file(path: Path) -> bool:
+    return path.is_file()
+
+
+@lru_cache(maxsize=None)
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=None)
+def _line_count(path: Path) -> int:
+    return len(_read_text(path).splitlines())
+
+
 def _location(
     value: object, source_root: Path, label: str, errors: list[str]
 ) -> None:
@@ -285,11 +301,11 @@ def _location(
         errors.append(f"{label} is not an exact repository path:line location")
         return
     full_path = source_root / path
-    if not full_path.is_file():
+    if not _is_file(full_path):
         errors.append(f"{label} path does not exist: {path_text}")
         return
     try:
-        line_count = len(full_path.read_text(encoding="utf-8").splitlines())
+        line_count = _line_count(full_path)
     except (OSError, UnicodeDecodeError) as error:
         errors.append(f"{label} cannot be read: {error}")
         return
@@ -337,12 +353,12 @@ def _validate_mapping(
     if path is not None:
         if not path.parts or path.parts[0] != "tests":
             errors.append(f"{label}.path must be below tests/")
-        elif not (source_root / path).is_file():
+        elif not _is_file(source_root / path):
             errors.append(f"{label}.path does not exist")
     if not isinstance(value["case"], str) or not value["case"].strip():
         errors.append(f"{label}.case must identify the exact test case")
-    elif path is not None and path.suffix == ".c" and (source_root / path).is_file():
-        source = (source_root / path).read_text(encoding="utf-8")
+    elif path is not None and path.suffix == ".c" and _is_file(source_root / path):
+        source = _read_text(source_root / path)
         case_pattern = re.compile(
             rf"\bstatic\s+void\s+{re.escape(value['case'])}\s*\(\s*void\s*\)"
         )
