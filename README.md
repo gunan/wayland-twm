@@ -253,7 +253,7 @@ acceptance procedures for this group.
   The contract is explicitly limited to the public APIs of supported wlroots
   0.18/0.20; the dependency-owned exceptions are recorded in
   [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
-- [ ] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
+- [x] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
   clean candidate commit, with bounded resource samples and no compositor
   restart.
 - [ ] **Shared:** Test both the controlled pixman/software renderer and real GPU
@@ -305,7 +305,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
   report showing zero unexplained differences.
 - [x] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.
-- [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
+- [x] **Shared:** Promote the successful continuous 72-hour soak evidence.
 - [ ] **Shared:** Check in successful package lifecycle evidence for amd64 and
   arm64 on the selected supported release line, either Debian 13 or Debian 14.
 - [ ] **Manual/shared:** Check in passing nested Wayland, VM login, and

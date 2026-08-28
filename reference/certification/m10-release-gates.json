@@ -61,9 +61,11 @@
     {
       "id": "soak-72-hours",
       "title": "Successful 72-hour soak testing.",
-      "status": "pending",
-      "evidence": [],
-      "pending_reason": "A continuous successful 72-hour soak has not been recorded as checked-in release evidence."
+      "status": "passed",
+      "evidence": [
+        "reference/certification/reports/soak-72-hours.json"
+      ],
+      "pending_reason": null
     },
     {
       "id": "supported-package-matrix",
