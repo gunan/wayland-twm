@@ -1,7 +1,11 @@
 #!/usr/bin/make -f
 
+ifneq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+WTWM_MESON_OPTIONS += -Dintegration_tests=false
+endif
+
 %:
 	dh $@ --buildsystem=meson
 
 override_dh_auto_configure:
-	dh_auto_configure -- -Dcompositor=enabled
+	dh_auto_configure -- -Dcompositor=enabled $(WTWM_MESON_OPTIONS)
