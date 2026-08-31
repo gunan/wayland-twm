@@ -109,6 +109,34 @@ jobs:
           path: /tmp/wtwm-package-artifacts
           if-no-files-found: error
 
+  debian-minimal-package:
+    name: Debian Trixie minimal nocheck package
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      DEB_BUILD_OPTIONS: nocheck
+      DEB_BUILD_PROFILES: nocheck
+    steps:
+      - name: Install package-build bootstrap
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential ca-certificates dpkg-dev git
+      - uses: actions/checkout@v4
+      - name: Install production build dependencies
+        run: apt-get build-dep -y --no-install-recommends -Pnocheck .
+      - name: Build package without integration fixtures
+        run: |
+          dpkg-checkbuilddeps -Pnocheck
+          dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
+      - name: Verify minimal package artifact
+        run: |
+          candidate=$(find .. -maxdepth 1 -type f -name 'wtwm_*_amd64.deb' -print -quit)
+          test -n "$candidate"
+          test "$(dpkg-deb -f "$candidate" Package)" = wtwm
+          test -n "$(dpkg-deb -f "$candidate" Depends)"
+
   debian-trixie-configurations:
     name: Debian Trixie ${{ matrix.name }}
     strategy:
