@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "gate_id": "soak-72-hours",
+  "reference": "twm 1.0.13.1",
+  "recorded_at": "2026-08-28T15:56:47Z",
+  "revision": {
+    "commit": "6d53b42a7592a4005b891d1fd78910d8457d6f6c",
+    "clean": true
+  },
+  "result": {
+    "started_at": "2026-08-25T04:21:40.458186Z",
+    "ended_at": "2026-08-28T04:21:40.488441Z",
+    "duration_hours": 72.000008,
+    "successful": true,
+    "crashes": 0,
+    "hangs": 0,
+    "protocol_violations": 0,
+    "unbounded_resource_leaks": 0,
+    "log_path": "reference/certification/evidence/6d53b42a7592/soak-72-hours/supervisor.log",
+    "raw_evidence_path": "reference/certification/evidence/6d53b42a7592/soak-72-hours/wtwm-mixed-soak-v3.json"
+  }
+}

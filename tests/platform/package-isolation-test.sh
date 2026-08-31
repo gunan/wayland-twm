@@ -16,13 +16,42 @@ fail()
 	exit 1
 }
 
-for direct_build_dependency in libx11-dev libxcb1-dev; do
+for direct_build_dependency in \
+	libpango1.0-dev \
+	libwayland-dev \
+	libxcb1-dev \
+	libxkbcommon-dev \
+	wayland-protocols; do
 	grep -Eq "^ ${direct_build_dependency},?$" "$source_root/debian/control" ||
 		fail "missing direct build dependency: $direct_build_dependency"
 done
 grep -Eq '^ libwlroots-0\.18-dev \| libwlroots-0\.20-dev,$' \
 	"$source_root/debian/control" ||
 	fail 'Debian stable/testing wlroots build dependency is missing'
+for test_build_dependency in \
+	dialog \
+	emacs-gtk \
+	libfontconfig-dev \
+	libx11-dev \
+	python3 \
+	x11-apps \
+	xfonts-base \
+	xkb-data \
+	xterm \
+	xwayland; do
+	grep -Eq "^ ${test_build_dependency} <!nocheck>,?$" \
+		"$source_root/debian/control" ||
+		fail "missing nocheck-only test dependency: $test_build_dependency"
+done
+grep -F '$(filter nocheck,$(DEB_BUILD_OPTIONS))' \
+	"$source_root/debian/rules" >/dev/null ||
+	fail 'Debian rules do not recognize the standard nocheck option'
+grep -F 'WTWM_MESON_OPTIONS += -Dintegration_tests=false' \
+	"$source_root/debian/rules" >/dev/null ||
+	fail 'nocheck package builds do not disable integration test targets'
+grep -F 'dh_auto_configure -- -Dcompositor=enabled $(WTWM_MESON_OPTIONS)' \
+	"$source_root/debian/rules" >/dev/null ||
+	fail 'Debian configure does not apply the profile-specific Meson options'
 grep -Eq '^Depends: .*xkb-data' "$source_root/debian/control" ||
 	fail 'runtime keyboard data dependency is missing'
 grep -Eq '^Depends: .*dbus-bin' "$source_root/debian/control" ||

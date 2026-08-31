@@ -1197,12 +1197,9 @@ if wlroots.found()
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
   xcb = dependency('xcb')
-  x11 = dependency('x11')
   wayland_protocols = dependency('wayland-protocols')
   wayland_scanner = find_program('wayland-scanner', native: true)
   xdg_shell_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'stable/xdg-shell/xdg-shell.xml'
-  xdg_decoration_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml'
-  primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
   xdg_shell_header = custom_target(
     'xdg-shell-protocol-header',
     input: xdg_shell_xml,
@@ -1216,6 +1213,12 @@ if wlroots.found()
     c_args: wlroots_c_args,
     install: true,
   )
+endif
+
+if wlroots.found() and get_option('integration_tests')
+  x11 = dependency('x11')
+  xdg_decoration_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml'
+  primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
   wtwm_test_compositor = executable(
     'wtwm-test-compositor',
     ['src/wtwm.c', 'src/text.c', 'src/test_control.c', xdg_shell_header],
@@ -1895,6 +1898,9 @@ if wlroots.found()
     ],
     timeout: 60,
   )
+endif
+
+if wlroots.found()
   install_data(
     'data/wtwm.desktop',
     install_dir: get_option('datadir') / 'wayland-sessions',

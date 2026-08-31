@@ -1,0 +1,11 @@
+recorded_at_utc=2026-08-28T15:56:47Z
+host=gr5-3.local
+boot_id=95a86f9c-e2ca-44ff-b404-0bc2b8cecc08
+ntp_synchronized=yes
+service_result=success
+service_exec_main_status=0
+service_active_state=inactive
+service_sub_state=dead
+command=sudo vcgencmd get_throttled
+execution=authorized interactive user terminal
+output=throttled=0x0

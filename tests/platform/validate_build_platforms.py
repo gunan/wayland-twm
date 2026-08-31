@@ -190,6 +190,25 @@ def validate(source_root: Path) -> list[str]:
             if marker not in package_job:
                 errors.append(f"debian-package job is missing contract marker: {marker!r}")
 
+    minimal_package_job = job_block(workflow, "debian-minimal-package")
+    if not minimal_package_job:
+        errors.append("workflow is missing the required debian-minimal-package job")
+    else:
+        for marker in (
+            "container: debian:trixie",
+            "DEB_BUILD_OPTIONS: nocheck",
+            "DEB_BUILD_PROFILES: nocheck",
+            "apt-get build-dep -y --no-install-recommends -Pnocheck .",
+            "dpkg-checkbuilddeps -Pnocheck",
+            "dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source",
+            "dpkg-deb -f \"$candidate\" Depends",
+        ):
+            if marker not in minimal_package_job:
+                errors.append(
+                    "debian-minimal-package job is missing contract marker: "
+                    f"{marker!r}"
+                )
+
     reference = job_block(workflow, "reference-twm")
     if not reference:
         errors.append("workflow is missing the required reference-twm job")
@@ -315,7 +334,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
                 "test -f /usr/share/wayland-sessions/weston.desktop",
                 "test -f /tmp/unprotected-weston.desktop",
                 1,
-            ).replace("container: debian:testing", "container: debian:trixie", 1),
+            ).replace("container: debian:testing", "container: debian:trixie", 1).replace(
+                "apt-get build-dep -y --no-install-recommends -Pnocheck .",
+                "apt-get build-dep -y --no-install-recommends .",
+                1,
+            ),
             encoding="utf-8",
         )
         (root / "scripts/ci/run-meson-build.sh").write_text(
@@ -362,6 +385,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
         for error in tamper_errors
     ):
         return ["self-test failed: removing the validator git dependency was not detected"]
+    if not any(
+        "debian-minimal-package job" in error and "-Pnocheck" in error
+        for error in tamper_errors
+    ):
+        return ["self-test failed: removing the nocheck dependency profile was not detected"]
     return []
 
 

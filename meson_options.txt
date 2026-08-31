@@ -4,3 +4,9 @@ option(
   value: 'auto',
   description: 'Build the Linux wlroots compositor (portable parser tools are always built)',
 )
+option(
+  'integration_tests',
+  type: 'boolean',
+  value: true,
+  description: 'Build compositor integration test executables and resolve their runtime tools',
+)

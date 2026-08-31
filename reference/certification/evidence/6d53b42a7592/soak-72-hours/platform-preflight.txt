@@ -1,0 +1,11 @@
+candidate=6d53b42a7592a4005b891d1fd78910d8457d6f6c
+hostname=gr5-3
+architecture=arm64
+kernel=6.18.34+rpt-rpi-2712
+os=debian 13 (trixie)
+model=Raspberry Pi 5 Model B Rev 1.0
+boot_id=95a86f9c-e2ca-44ff-b404-0bc2b8cecc08
+ntp_synchronized=yes
+throttled=throttled=0x0
+temperature_millic=41900
+started_utc=2026-08-25T04:21:40Z

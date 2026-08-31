@@ -36,22 +36,28 @@ and displays that matter to you.
 
 ### Install a Debian package
 
-Install the package build dependencies, clone the source, build the binary
-package, and install the resulting artifact:
+For a minimal binary-package build, use the `nocheck` build profile. This makes
+`apt-get` resolve the production build dependencies from `debian/control`
+without installing the integration-test fixtures. Debian 13 resolves wlroots
+0.18; Debian 14 resolves wlroots 0.20.
 
 ```sh
-wlroots_dev=libwlroots-0.18-dev # Debian 14/Forky: libwlroots-0.20-dev
-sudo apt update
-sudo apt install build-essential debhelper devscripts dpkg-dev meson ninja-build \
-  pkgconf libfontconfig-dev libpango1.0-dev libwayland-dev \
-  "$wlroots_dev" libx11-dev libxcb1-dev libxkbcommon-dev \
-  wayland-protocols lintian mandoc xkb-data xwayland foot xfonts-base \
-  dialog emacs-gtk x11-apps xterm
+sudo apt-get update
+sudo apt-get install --no-install-recommends \
+  build-essential ca-certificates dpkg-dev git
 git clone https://github.com/gunan/wayland-twm.git
 cd wayland-twm
-dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
-sudo apt install ../wtwm_0.1.0_*.deb
+sudo apt-get build-dep --no-install-recommends -Pnocheck .
+DEB_BUILD_OPTIONS=nocheck DEB_BUILD_PROFILES=nocheck \
+  dpkg-buildpackage --build=binary --unsigned-changes --unsigned-source
+sudo apt-get install ../wtwm_0.1.0_*.deb
 ```
+
+The package declares `dbus-bin` and `xkb-data` in addition to its generated
+shared-library dependencies. By default, the final `apt-get install` also
+installs its `foot`, `xdg-desktop-portal-gtk`, and `xwayland` recommendations.
+Build tools and test applications do not need to be installed separately on
+the machine that runs the resulting package.
 
 The package installs `wtwm`, `wtwm-config`, `wtwm-session`, manual pages, the
 fallback `system.twmrc`, a GTK desktop-portal policy, and a distinct
@@ -70,26 +76,45 @@ place.
 
 ### Build and test from source
 
-For a development build without Debian packaging:
+For a production source build without Debian packaging, install only the
+direct compiler and library dependencies. The wlroots package name is the only
+difference between the supported Debian releases.
 
 ```sh
 wlroots_dev=libwlroots-0.18-dev # Debian 14/Forky: libwlroots-0.20-dev
-sudo apt update
-sudo apt install build-essential meson ninja-build pkgconf \
-  libfontconfig-dev libpango1.0-dev libwayland-dev \
-  "$wlroots_dev" libx11-dev libxcb1-dev libxkbcommon-dev \
-  wayland-protocols xkb-data xwayland foot xfonts-base \
-  dialog emacs-gtk x11-apps xterm
+sudo apt-get update
+sudo apt-get install --no-install-recommends \
+  build-essential meson ninja-build pkgconf libpango1.0-dev \
+  libwayland-dev "$wlroots_dev" libxcb1-dev libxkbcommon-dev \
+  wayland-protocols
 git clone https://github.com/gunan/wayland-twm.git
 cd wayland-twm
-meson setup build -Dcompositor=enabled -Dwerror=true
+meson setup build --buildtype=release -Dcompositor=enabled \
+  -Dintegration_tests=false
 meson compile -C build
-meson test -C build --print-errorlogs
 ```
 
-If the repository is already cloned, start at `meson setup`. Reconfigure an
-existing build directory with `meson setup build --reconfigure` rather than
-deleting it. To install the development build under `/usr/local`:
+For the complete development and integration suite, use the dependency
+manifest exercised by CI. Select the Trixie manifest for Debian 13 or the
+testing manifest for Debian 14/Forky:
+
+```sh
+ci_packages=scripts/ci/debian-trixie-build-packages.txt
+# Debian 14/Forky: ci_packages=scripts/ci/debian-testing-build-packages.txt
+sudo apt-get update
+xargs sudo apt-get install -y --no-install-recommends < "$ci_packages"
+meson setup build-dev -Dcompositor=enabled -Dintegration_tests=true \
+  -Dwerror=true
+meson compile -C build-dev
+meson test -C build-dev --print-errorlogs
+```
+
+The CI manifests include applications, fonts, Xwayland, and other fixtures that
+the integration tests exercise. They are not an additional runtime dependency
+list. If the repository is already cloned, start at `meson setup`. Reconfigure
+an existing build directory with `meson setup build --reconfigure` (or the
+corresponding `build-dev` command) rather than deleting it. To install the
+production source build under `/usr/local`:
 
 ```sh
 sudo meson install -C build
@@ -253,7 +278,7 @@ acceptance procedures for this group.
   The contract is explicitly limited to the public APIs of supported wlroots
   0.18/0.20; the dependency-owned exceptions are recorded in
   [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
-- [ ] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
+- [x] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
   clean candidate commit, with bounded resource samples and no compositor
   restart.
 - [ ] **Shared:** Test both the controlled pixman/software renderer and real GPU
@@ -305,7 +330,7 @@ not final pass evidence until the complete clean-candidate run is checked in.
   report showing zero unexplained differences.
 - [x] **Shared:** Review every golden image and check in a review log with zero
   unreviewed differences.
-- [ ] **Shared:** Promote the successful continuous 72-hour soak evidence.
+- [x] **Shared:** Promote the successful continuous 72-hour soak evidence.
 - [ ] **Shared:** Check in successful package lifecycle evidence for amd64 and
   arm64 on the selected supported release line, either Debian 13 or Debian 14.
 - [ ] **Manual/shared:** Check in passing nested Wayland, VM login, and
