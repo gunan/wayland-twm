@@ -44,9 +44,9 @@ those tests build on any ordinary Unix host. `src/wtwm.c` is the Linux
 compositor adapter and targets released wlroots minor APIs from 0.18 onward
 through a small version-selected compatibility boundary. Automatic discovery
 currently maps `wlroots-0.20`, `wlroots-0.19`, and `wlroots-0.18`, newest first;
-0.18 and 0.20 have CI coverage, while discovery of 0.19 is not itself a
-verification claim. Each later minor must add or confirm its boundary mapping
-and pass the enabled compositor suite before it becomes supported.
+all three have required CI coverage. Each later minor must add or confirm its
+boundary mapping and pass the enabled compositor suite before it becomes
+supported.
 
 `src/bindings.c` owns exact trigger selection, including twm's global
 `mods_used` mask, concrete/all contexts, case-sensitive key names, and named

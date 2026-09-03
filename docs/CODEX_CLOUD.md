@@ -2,10 +2,10 @@
 
 Codex Cloud is useful for this project as a reviewable Linux workspace for
 parser work, documentation, CI diagnosis, and bounded implementation tasks.
-GitHub Actions on Debian Trixie and Debian testing remain the authoritative full
-compositor verification for wlroots 0.18 and 0.20. Source compatibility has a
-broader released-minor policy, but an automatically discovered ABI is not
-verified until it has its own passing enabled CI lane.
+GitHub Actions on Debian Trixie, Debian sid, and Debian testing remain the
+authoritative full compositor verification for wlroots 0.18, 0.19, and 0.20.
+Source compatibility has a broader released-minor policy, but an automatically
+discovered ABI is not verified until it has its own passing enabled CI lane.
 
 Official references:
 

@@ -103,8 +103,8 @@ one found. To select a particular installed ABI, or to prepare support for a
 later released minor, configure with
 `-Dwlroots_pkgconfig=wlroots-X.Y`. An override only selects a module; a new
 minor is supported after its compatibility changes and enabled compositor tests
-pass in CI. Current CI verification covers 0.18 and 0.20, not 0.19 or future
-minors.
+pass in CI. Required CI lanes verify 0.18, 0.19, and 0.20; future minors remain
+unverified until they pass the same gate.
 
 For the complete development and integration suite, use the dependency
 manifest exercised by CI. Select the Trixie manifest for Debian 13 or the
@@ -288,7 +288,7 @@ acceptance procedures for this group.
 
 - [x] **Shared:** Validate every Wayland request serial and client-supplied size.
   The contract is explicitly limited to the public APIs of admitted released
-  wlroots 0.18+ minors, currently CI-verified on 0.18 and 0.20; the
+  wlroots 0.18+ minors, currently CI-verified on 0.18, 0.19, and 0.20; the
   dependency-owned exceptions are recorded in
   [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - [x] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a

@@ -32,9 +32,8 @@ minor, but finding its `pkg-config` module is not enough to claim support. A new
 minor is admitted only after any required compatibility-boundary changes land
 and its enabled compositor build and tests pass in CI. The wlroots upstream
 `master` branch is advisory for preparing those changes; it is not a supported
-or certification target. Current CI verification covers 0.18 and 0.20. The
-0.19 discovery path and future minors must not be reported as verified without
-their own passing lane.
+or certification target. Required CI lanes verify 0.18, 0.19, and 0.20. Future
+minors must not be reported as verified without their own passing lane.
 
 This policy applies to builds from source. A binary Debian package records
 shared-library dependencies for the wlroots ABI it was built against, so a
@@ -92,13 +91,14 @@ of Debian testing compatibility.
 ## Continuous integration
 
 GitHub Actions preserves the Debian Trixie/wlroots 0.18 debug job and the
-controlled reference-`twm` job, and adds a Debian testing/wlroots 0.20 debug
-lane. These are the currently verified source ABIs, not a restriction of the
-source compatibility policy to those two minors. Additional jobs cover release,
-AddressSanitizer, and UndefinedBehaviorSanitizer builds on x86-64; debug and
-release builds run on native ARM64 hardware. The workflow explicitly checks
-the architecture reported inside each Debian container, so an accidentally
-emulated or mislabeled build fails instead of being counted as native coverage.
+controlled reference-`twm` job. It also requires a Debian sid/wlroots 0.19
+compatibility lane and a Debian testing/wlroots 0.20 debug lane. These are the
+currently verified source ABIs, not a restriction of the source compatibility
+policy to those three minors. Additional jobs cover release, AddressSanitizer,
+and UndefinedBehaviorSanitizer builds on x86-64; debug and release builds run
+on native ARM64 hardware. The workflow explicitly checks the architecture
+reported inside each Debian container, so an accidentally emulated or
+mislabeled build fails instead of being counted as native coverage.
 
 Portable builds run natively on macOS x86-64 and ARM64. GitHub documents the
 standard Linux ARM64 runner label in its
