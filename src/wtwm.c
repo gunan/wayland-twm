@@ -11570,7 +11570,13 @@ int main(int argc, char **argv) {
 	wl_signal_add(&server.xdg_shell->events.new_toplevel, &server.new_toplevel);
 	server.new_popup.notify = new_popup;
 	wl_signal_add(&server.xdg_shell->events.new_popup, &server.new_popup);
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 21
+	/* Keep advertising the protocol version provided by wlroots 0.18-0.20. */
+	server.decoration_manager = wlr_xdg_decoration_manager_v1_create(
+		server.display, 1);
+#else
 	server.decoration_manager = wlr_xdg_decoration_manager_v1_create(server.display);
+#endif
 	server.new_decoration.notify = new_decoration;
 	wl_signal_add(&server.decoration_manager->events.new_toplevel_decoration,
 		&server.new_decoration);
