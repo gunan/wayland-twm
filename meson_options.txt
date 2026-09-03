@@ -10,3 +10,9 @@ option(
   value: true,
   description: 'Build compositor integration test executables and resolve their runtime tools',
 )
+option(
+  'wlroots_pkgconfig',
+  type: 'string',
+  value: '',
+  description: 'Override the wlroots pkg-config module name (untested versions may not build)',
+)

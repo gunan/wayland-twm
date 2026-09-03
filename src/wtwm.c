@@ -86,17 +86,17 @@
 #include <wlr/types/wlr_xdg_decoration_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
+#include <wlr/version.h>
 #include <wlr/xwayland/xwayland.h>
 #include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon.h>
-
-#ifndef WTWM_WLROOTS_API_MINOR
-#error "WTWM_WLROOTS_API_MINOR must identify the selected wlroots API"
+#if WLR_VERSION_MAJOR == 0 && WLR_VERSION_MINOR < 18
+#error "wtwm requires wlroots 0.18 or newer"
 #endif
 
 static void wtwm_xdg_surface_get_geometry(struct wlr_xdg_surface *surface,
 		struct wlr_box *geometry) {
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 	*geometry = surface->geometry;
 #else
 	wlr_xdg_surface_get_geometry(surface, geometry);
@@ -105,7 +105,7 @@ static void wtwm_xdg_surface_get_geometry(struct wlr_xdg_surface *surface,
 
 static bool wtwm_xwayland_override_redirect_wants_focus(
 		const struct wlr_xwayland_surface *surface) {
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 	return wlr_xwayland_surface_override_redirect_wants_focus(surface);
 #else
 	return wlr_xwayland_or_surface_wants_focus(surface);
@@ -670,7 +670,7 @@ struct server {
 static void new_xwayland_surface(struct wl_listener *listener, void *data);
 static bool spawn_command(const char *command);
 static bool publish_activation_environment(const struct server *server);
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 static bool xwayland_user_event(struct wlr_xwayland *xwayland,
 	xcb_generic_event_t *event);
 #else
@@ -1162,7 +1162,7 @@ static unsigned sanitize_toplevel_client_size(struct toplevel *toplevel,
 
 static bool normalize_xdg_surface_geometry(struct toplevel *toplevel,
 		const char *boundary) {
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 	struct wlr_box *geometry = &toplevel->xdg->base->geometry;
 	if (wtwm_client_geometry_in_bounds(geometry->x, geometry->y,
 			geometry->width, geometry->height)) return false;
@@ -2758,7 +2758,7 @@ static void configure_xwayland_frame(struct toplevel *toplevel,
 	if (client_y > INT16_MAX) client_y = INT16_MAX;
 	wlr_xwayland_surface_configure(toplevel->xwayland,
 		(int16_t)client_x, (int16_t)client_y, (uint16_t)width, (uint16_t)height);
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	/* wlroots 0.20 schedules XWM writes for a later writable callback. Flush
 	 * now so client repaint and ConfigureNotify ordering stays twm-compatible. */
 	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
@@ -2869,7 +2869,7 @@ static void set_xwayland_input_focus(struct server *server,
 	xcb_flush(connection);
 }
 
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 #define WTWM_XWAYLAND_WAKE_MAGIC_0 UINT32_C(0x5754574d)
 #define WTWM_XWAYLAND_WAKE_MAGIC_1 UINT32_C(0x57414b45)
 
@@ -8873,7 +8873,7 @@ static void xwayland_deferred_sync(void *data) {
 		update_toplevel_metadata(toplevel, false);
 		position_xwayland_transient(toplevel);
 	}
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	wake_xwayland_event_source(toplevel->server, connection);
 #endif
 	manage_bufferless_start_iconified(toplevel);
@@ -8886,7 +8886,7 @@ static void schedule_xwayland_sync(struct toplevel *toplevel) {
 		xwayland_deferred_sync, toplevel);
 }
 
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 static bool xwayland_root_has_area(xcb_connection_t *connection) {
 	if (connection == NULL) return false;
 	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
@@ -8978,7 +8978,7 @@ static void xwayland_associate(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct toplevel *toplevel = wl_container_of(listener, toplevel, associate);
 	if (toplevel->associated || toplevel->xwayland->surface == NULL) return;
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	finish_xwayland_map_retry(toplevel);
 #endif
 	initialize_xwayland_border(toplevel);
@@ -9248,7 +9248,7 @@ static void xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 	if (toplevel->tree != NULL) destroy_xwayland_scene(toplevel);
 	if (toplevel->xwayland_sync_idle != NULL)
 		wl_event_source_remove(toplevel->xwayland_sync_idle);
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	finish_xwayland_map_retry(toplevel);
 #endif
 	wl_list_remove(&toplevel->associate.link);
@@ -9376,7 +9376,7 @@ static void configure_override_redirect(xcb_connection_t *connection,
 	xcb_flush(connection);
 }
 
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 static bool xwayland_user_event(struct wlr_xwayland *xwayland,
 		xcb_generic_event_t *event) {
 	(void)xwayland;
@@ -9387,7 +9387,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	struct server *server = xwayland_event_server;
 	if (server == NULL || server->xwayland == NULL) return 0;
 	uint8_t type = event->response_type & ~UINT8_C(0x80);
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	if (type == XCB_CLIENT_MESSAGE) {
 		xcb_client_message_event_t *message =
 			(xcb_client_message_event_t *)event;
@@ -9425,7 +9425,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
 			schedule_xwayland_sync(toplevel);
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 		wake_xwayland_event_source(server,
 			wlr_xwayland_get_xwm_connection(server->xwayland));
 #endif
@@ -9442,7 +9442,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 			reserve_icon_manager_toplevel(toplevel);
 			manage_bufferless_start_iconified(toplevel);
 		}
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 		xcb_connection_t *connection =
 			wlr_xwayland_get_xwm_connection(server->xwayland);
 		bool root_ready = xwayland_root_has_area(connection);
@@ -9478,7 +9478,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	}
 	uint16_t geometry = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 		XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-#if WTWM_WLROOTS_API_MINOR >= 20
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 20
 	if (configure->value_mask & geometry) {
 		struct wlr_xwayland_surface_configure_event request = {
 			.surface = toplevel->xwayland,
