@@ -69,6 +69,7 @@ WLROOTS_MASTER_REQUIRED_PACKAGES = (
     WLROOTS_019_REQUIRED_PACKAGES - {"libwlroots-0.19-dev"}
 ) | {
     "libdrm-dev",
+    "libegl1",
     "libpixman-1-dev",
     "libxcb-composite0-dev",
     "libxcb-ewmh-dev",

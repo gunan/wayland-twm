@@ -3,6 +3,7 @@ dialog
 emacs-gtk
 git
 libdrm-dev
+libegl1
 libfontconfig-dev
 libpango1.0-dev
 libpixman-1-dev
