@@ -3,7 +3,9 @@
 Codex Cloud is useful for this project as a reviewable Linux workspace for
 parser work, documentation, CI diagnosis, and bounded implementation tasks.
 GitHub Actions on Debian Trixie and Debian testing remain the authoritative full
-compositor builds for the supported wlroots 0.18 and 0.20 public APIs.
+compositor verification for wlroots 0.18 and 0.20. Source compatibility has a
+broader released-minor policy, but an automatically discovered ABI is not
+verified until it has its own passing enabled CI lane.
 
 Official references:
 
@@ -45,10 +47,11 @@ bash scripts/codex-cloud/maintenance.sh
 
 The setup installs the project's portable build dependencies, then configures,
 builds, and tests the checkout with warnings as errors. It uses the full
-compositor build when `wlroots-0.18` or `wlroots-0.20` is available through
-`pkg-config`; otherwise it runs the portable parser build required by
-`AGENTS.md`. The maintenance script reconfigures and retests after a cached
-environment checks out the task branch.
+compositor build when `wlroots-0.20`, `wlroots-0.19`, or `wlroots-0.18` is
+available through `pkg-config`, checking in that newest-first order; otherwise
+it runs the portable parser build required by `AGENTS.md`. The maintenance
+script reconfigures and retests after a cached environment checks out the task
+branch.
 
 No secrets are required to build this repository. Do not add personal GitHub,
 OpenAI, SSH, signing, or package-registry credentials to the environment.
@@ -64,10 +67,13 @@ Optional environment variables:
 | `CODEX_CLOUD_BUILD_DIR` | `build` | Selects the disposable Meson build directory. |
 
 Use `auto` for the first environment. Set `enabled` only after confirming that
-the environment provides `wlroots-0.18` or `wlroots-0.20`. A parser-only pass is
-not evidence that compositor or interaction changes are complete; the agent
-must report that the enabled suite did not run, and any task item requiring
-runtime behavior stays unchecked.
+the environment provides one of the automatically discovered wlroots modules.
+A parser-only pass is not evidence that compositor or interaction changes are
+complete; the agent must report that the enabled suite did not run, and any
+task item requiring runtime behavior stays unchecked. For a later released
+minor, configure Meson explicitly with
+`-Dwlroots_pkgconfig=wlroots-X.Y`; treat upstream `master` as advisory, and do
+not call that minor supported until its enabled suite passes in CI.
 
 Codex caches cloud containers. Use **Reset cache** in the environment settings
 after changing setup, maintenance, variables, secrets, or installed system
@@ -107,7 +113,8 @@ Start a task on the remote `agent` branch with this read-only prompt:
 ```text
 Read and follow the root AGENTS.md. Do not edit files, commit, or push.
 Run `git branch --show-current`, `git status --short`,
-`pkg-config --modversion wlroots-0.18 || pkg-config --modversion wlroots-0.20`
+`pkg-config --modversion wlroots-0.20 ||`
+`pkg-config --modversion wlroots-0.19 || pkg-config --modversion wlroots-0.18`
 if available,
 `meson compile -C build`, and `meson test -C build --print-errorlogs`.
 Report the branch, whether the compositor or portable parser build was

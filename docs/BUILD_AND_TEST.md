@@ -16,6 +16,31 @@ sh scripts/ci/run-meson-build.sh build-host disabled debug
 This is the supported host-native path for parser work on macOS. It compiles the
 portable targets and runs every test registered by the parser-only Meson build.
 
+## wlroots source compatibility
+
+Source builds target released wlroots minor APIs from 0.18 onward. Meson
+automatically probes `wlroots-0.20`, `wlroots-0.19`, then `wlroots-0.18`, and
+uses the newest installed module. Select one explicitly with:
+
+```sh
+meson setup build -Dcompositor=enabled \
+  -Dwlroots_pkgconfig=wlroots-X.Y
+```
+
+The override is also the forward-compatibility entry point for a later released
+minor, but finding its `pkg-config` module is not enough to claim support. A new
+minor is admitted only after any required compatibility-boundary changes land
+and its enabled compositor build and tests pass in CI. The wlroots upstream
+`master` branch is advisory for preparing those changes; it is not a supported
+or certification target. Current CI verification covers 0.18 and 0.20. The
+0.19 discovery path and future minors must not be reported as verified without
+their own passing lane.
+
+This policy applies to builds from source. A binary Debian package records
+shared-library dependencies for the wlroots ABI it was built against, so a
+`.deb` built on the Trixie 0.18 stack does not retarget itself to Forky's 0.20
+stack, or vice versa. Build and validate the `.deb` on its target Debian release.
+
 ## Debian Trixie profiles
 
 Debian 13 (Trixie) remains the pinned package and reference-comparison baseline.
@@ -66,13 +91,14 @@ of Debian testing compatibility.
 
 ## Continuous integration
 
-GitHub Actions preserves the baseline Debian Trixie debug job and the controlled
-reference-`twm` job, and adds a Debian testing/wlroots 0.20 debug lane. Additional
-jobs cover release, AddressSanitizer, and UndefinedBehaviorSanitizer builds on
-x86-64; debug and release builds run on native ARM64 hardware. The workflow
-explicitly checks the architecture reported inside each Debian container, so an
-accidentally emulated or mislabeled build fails instead of being counted as
-native coverage.
+GitHub Actions preserves the Debian Trixie/wlroots 0.18 debug job and the
+controlled reference-`twm` job, and adds a Debian testing/wlroots 0.20 debug
+lane. These are the currently verified source ABIs, not a restriction of the
+source compatibility policy to those two minors. Additional jobs cover release,
+AddressSanitizer, and UndefinedBehaviorSanitizer builds on x86-64; debug and
+release builds run on native ARM64 hardware. The workflow explicitly checks
+the architecture reported inside each Debian container, so an accidentally
+emulated or mislabeled build fails instead of being counted as native coverage.
 
 Portable builds run natively on macOS x86-64 and ARM64. GitHub documents the
 standard Linux ARM64 runner label in its
