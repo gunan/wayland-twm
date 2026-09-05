@@ -560,6 +560,14 @@ test(
   ],
 )
 test(
+  'Codex Cloud wlroots dependency selection',
+  find_program('sh'),
+  args: [
+    files('tests/platform/codex-cloud-wlroots-test.sh'),
+    meson.project_source_root(),
+  ],
+)
+test(
   'session backend entrypoints',
   find_program('sh'),
   args: [files('tests/platform/session-entrypoints-test.sh')],
@@ -1185,14 +1193,43 @@ test(
   ],
 )
 
-wlroots_api_minor = '18'
-wlroots = dependency('wlroots-0.18', required: false)
-if not wlroots.found()
-  wlroots_api_minor = '20'
-  wlroots = dependency('wlroots-0.20', required: get_option('compositor'))
+compositor_option = get_option('compositor')
+wlroots_found = false
+wlroots_search = 'wlroots-0.20, wlroots-0.19, wlroots-0.18'
+if not compositor_option.disabled()
+  wlroots_override = get_option('wlroots_pkgconfig')
+  if wlroots_override != ''
+    wlroots_package = wlroots_override
+    wlroots = dependency(wlroots_package, required: false)
+    wlroots_search = wlroots_package
+  else
+    wlroots_package = 'wlroots-0.20'
+    wlroots = dependency(wlroots_package, required: false)
+    if not wlroots.found()
+      wlroots_package = 'wlroots-0.19'
+      wlroots = dependency(wlroots_package, required: false)
+    endif
+    if not wlroots.found()
+      wlroots_package = 'wlroots-0.18'
+      wlroots = dependency(wlroots_package, required: false)
+    endif
+  endif
+  if wlroots.found()
+    if not wlroots.version().version_compare('>=0.18')
+      error('wlroots >= 0.18 is required; @0@ reports @1@'.format(
+        wlroots_package, wlroots.version()))
+    endif
+    if wlroots.version().version_compare('>=0.21')
+      warning('wlroots @0@ from @1@ is outside the tested 0.18-0.20 range; -Dwlroots_pkgconfig enables source compatibility work, not a supported ABI promise'.format(
+        wlroots.version(), wlroots_package))
+    else
+      message('Using supported wlroots @0@ from @1@'.format(
+        wlroots.version(), wlroots_package))
+    endif
+    wlroots_found = true
+  endif
 endif
-if wlroots.found()
-  wlroots_c_args = ['-DWTWM_WLROOTS_API_MINOR=' + wlroots_api_minor]
+if wlroots_found
   pangocairo = dependency('pangocairo')
   wayland_server = dependency('wayland-server')
   xkbcommon = dependency('xkbcommon')
@@ -1210,12 +1247,11 @@ if wlroots.found()
     'wtwm',
     ['src/wtwm.c', 'src/text.c', xdg_shell_header],
     dependencies: [config_dep, geometry_dep, interaction_dep, placement_dep, wlroots, actions_dep, output_order_dep, output_restore_dep, input_hotplug_dep, command_dep, hardening_dep, session_state_dep, bindings_dep, font_dep, color_dep, visual_dep, xbm_dep, pangocairo, wayland_server, xkbcommon, xcb, focus_stack_dep, icon_layout_dep, icon_manager_dep],
-    c_args: wlroots_c_args,
     install: true,
   )
 endif
 
-if wlroots.found() and get_option('integration_tests')
+if wlroots_found and get_option('integration_tests')
   x11 = dependency('x11')
   xdg_decoration_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/xdg-decoration/xdg-decoration-unstable-v1.xml'
   primary_selection_xml = wayland_protocols.get_variable(pkgconfig: 'pkgdatadir') / 'unstable/primary-selection/primary-selection-unstable-v1.xml'
@@ -1234,7 +1270,7 @@ if wlroots.found() and get_option('integration_tests')
       xkbcommon,
       xcb,
     ],
-    c_args: wlroots_c_args + ['-DWTWM_TEST_CONTROL'],
+    c_args: ['-DWTWM_TEST_CONTROL'],
     install: false,
   )
   wayland_client = dependency('wayland-client')
@@ -1900,16 +1936,18 @@ if wlroots.found() and get_option('integration_tests')
   )
 endif
 
-if wlroots.found()
+if wlroots_found
   install_data(
     'data/wtwm.desktop',
     install_dir: get_option('datadir') / 'wayland-sessions',
   )
   install_man('data/wtwm.1')
-elif get_option('compositor').enabled()
-  error('wlroots 0.18 or 0.20 is required when -Dcompositor=enabled')
+elif compositor_option.enabled()
+  error('No usable wlroots pkg-config module found (tried @0@); wlroots >= 0.18 is required when -Dcompositor=enabled'.format(wlroots_search))
+elif compositor_option.auto()
+  warning('No usable wlroots pkg-config module found (tried @0@); building wtwm-config and portable tests only'.format(wlroots_search))
 else
-  warning('wlroots 0.18 or 0.20 was not found; building wtwm-config and parser tests only')
+  message('wlroots compositor explicitly disabled; building wtwm-config and portable tests only')
 endif
 
 install_data(

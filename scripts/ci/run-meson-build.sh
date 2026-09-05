@@ -2,8 +2,8 @@
 
 set -eu
 
-if [ "$#" -ne 3 ]; then
-	echo "usage: run-meson-build.sh BUILD_DIRECTORY COMPOSITOR PROFILE" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+	echo "usage: run-meson-build.sh BUILD_DIRECTORY COMPOSITOR PROFILE [WLROOTS_PKGCONFIG]" >&2
 	echo "profiles: debug, release, asan, ubsan" >&2
 	exit 2
 fi
@@ -11,6 +11,7 @@ fi
 build_dir=$1
 compositor=$2
 profile=$3
+wlroots_pkgconfig=${4:-}
 
 case "$compositor" in
 	enabled|disabled) ;;
@@ -43,10 +44,33 @@ case "$profile" in
 		;;
 esac
 
-echo "Configuring $profile build in $build_dir (compositor=$compositor)"
+case "$wlroots_pkgconfig" in
+	""|wlroots-0.18|wlroots-0.19|wlroots-0.20|wlroots-0.21) ;;
+	*)
+		echo "unsupported wlroots pkg-config dependency: $wlroots_pkgconfig" >&2
+		exit 2
+		;;
+esac
+
+if [ -n "$wlroots_pkgconfig" ]; then
+	expected_version=${wlroots_pkgconfig#wlroots-}
+	actual_version=$(pkg-config --modversion "$wlroots_pkgconfig")
+	case "$actual_version" in
+		"$expected_version"|"$expected_version".*) ;;
+		*)
+			echo "$wlroots_pkgconfig resolved to unexpected version $actual_version" >&2
+			exit 1
+			;;
+	esac
+fi
+
+echo "Configuring $profile build in $build_dir (compositor=$compositor, wlroots=${wlroots_pkgconfig:-auto})"
 
 configure_build()
 {
+	if [ -n "$wlroots_pkgconfig" ]; then
+		set -- "$@" "-Dwlroots_pkgconfig=$wlroots_pkgconfig"
+	fi
 	if [ "$sanitize" = none ]; then
 		meson setup "$build_dir" "$@" \
 			-Dcompositor="$compositor" \

@@ -23,12 +23,15 @@ drop-in compatibility.
 
 `wtwm` targets Debian 13 (Trixie) with wlroots 0.18 and Debian 14 (Forky) with
 wlroots 0.20. Forky is exercised through Debian testing until Debian 14 is
-released. The 1.0 candidate may be certified on either release; certification
-does not require both releases or submission to an official Debian repository.
-Build either a co-installable Debian package or a local development tree. The
-Debian package is recommended for a real display-manager login because it
-installs and tracks the complete session entry; a source-tree build is the
-quickest way to test `wtwm` nested inside an existing Wayland desktop.
+released. The source compatibility policy covers released wlroots minor APIs
+from 0.18 onward, after each minor passes the compositor CI gate in
+[docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md). The 1.0 candidate may be
+certified on either Debian release; certification does not require both
+releases or submission to an official Debian repository. Build either a
+co-installable Debian package or a local development tree. The Debian package
+is recommended for a real display-manager login because it installs and tracks
+the complete session entry; a source-tree build is the quickest way to test
+`wtwm` nested inside an existing Wayland desktop.
 
 Do not run `wtwm` or `wtwm-session` as root. Keep your existing compositor
 available until you have tested the applications, configuration, input devices,
@@ -93,6 +96,15 @@ meson setup build --buildtype=release -Dcompositor=enabled \
   -Dintegration_tests=false
 meson compile -C build
 ```
+
+Without an override, Meson checks `wlroots-0.20`, `wlroots-0.19`, and
+`wlroots-0.18` through `pkg-config`, in that order, and builds against the first
+one found. To select a particular installed ABI, or to prepare support for a
+later released minor, configure with
+`-Dwlroots_pkgconfig=wlroots-X.Y`. An override only selects a module; a new
+minor is supported after its compatibility changes and enabled compositor tests
+pass in CI. Required CI lanes verify 0.18, 0.19, and 0.20; future minors remain
+unverified until they pass the same gate.
 
 For the complete development and integration suite, use the dependency
 manifest exercised by CI. Select the Trixie manifest for Debian 13 or the
@@ -275,8 +287,9 @@ acceptance procedures for this group.
 ### 2. Hardening and endurance
 
 - [x] **Shared:** Validate every Wayland request serial and client-supplied size.
-  The contract is explicitly limited to the public APIs of supported wlroots
-  0.18/0.20; the dependency-owned exceptions are recorded in
+  The contract is explicitly limited to the public APIs of admitted released
+  wlroots 0.18+ minors, currently CI-verified on 0.18, 0.19, and 0.20; the
+  dependency-owned exceptions are recorded in
   [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - [x] **Shared:** Run one uninterrupted 72-hour mixed native/Xwayland soak from a
   clean candidate commit, with bounded resource samples and no compositor

@@ -3,6 +3,9 @@ name: build
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 5 * * 1'
 
 jobs:
   debian-trixie:
@@ -19,11 +22,14 @@ jobs:
       - name: Install dependencies
         run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-trixie-build-packages.txt
       - name: Verify native x86-64 environment
-        run: test "$(dpkg --print-architecture)" = amd64
+        run: |
+          test "$(dpkg --print-architecture)" = amd64
+          pkg-config --atleast-version=0.18 wlroots-0.18
+          pkg-config --max-version=0.18.999 wlroots-0.18
       - name: Validate build-platform contract
         run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
       - name: Build and test debug configuration
-        run: sh scripts/ci/run-meson-build.sh build enabled debug
+        run: sh scripts/ci/run-meson-build.sh build enabled debug wlroots-0.18
       - name: Upload Milestone 9 mixed soak smoke diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,7 +61,7 @@ jobs:
       - name: Validate build-platform contract
         run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
       - name: Build and test debug configuration
-        run: sh scripts/ci/run-meson-build.sh build-testing enabled debug
+        run: sh scripts/ci/run-meson-build.sh build-testing enabled debug wlroots-0.20
       - name: Upload Milestone 9 mixed soak smoke diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -137,6 +143,57 @@ jobs:
           test "$(dpkg-deb -f "$candidate" Package)" = wtwm
           test -n "$(dpkg-deb -f "$candidate" Depends)"
 
+  wlroots-019:
+    name: wlroots 0.19 compatibility (Debian sid)
+    runs-on: ubuntu-latest
+    container: debian:sid
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install wlroots 0.19 build and integration dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-sid-wlroots-0.19-build-packages.txt
+      - name: Verify wlroots 0.19 environment
+        run: |
+          test "$(dpkg --print-architecture)" = amd64
+          pkg-config --atleast-version=0.19 wlroots-0.19
+          pkg-config --max-version=0.19.999 wlroots-0.19
+          ! pkg-config --exists wlroots-0.18
+          ! pkg-config --exists wlroots-0.20
+      - name: Validate released-minor coverage contract
+        run: python3 -B tests/platform/validate_build_platforms.py --source-root "$GITHUB_WORKSPACE" --self-test-tamper
+      - name: Build and test against wlroots 0.19
+        run: sh scripts/ci/run-meson-build.sh build-wlroots-019 enabled debug wlroots-0.19
+
+  wlroots-upstream-advisory:
+    name: wlroots upstream 0.21-dev advisory
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    container: debian:sid
+    env:
+      DEBIAN_FRONTEND: noninteractive
+    steps:
+      - name: Install Git for checkout
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Install upstream source-build and integration dependencies
+        run: xargs apt-get install -y --no-install-recommends < scripts/ci/debian-sid-wlroots-master-build-packages.txt
+      - name: Build current wlroots master from source
+        run: sh scripts/ci/install-wlroots-source.sh master 0.21.0-dev wlroots-0.21 /opt/wlroots-master "$GITHUB_ENV"
+      - name: Record upstream revision and verify selection
+        run: |
+          test -n "$WLROOTS_SOURCE_COMMIT"
+          printf 'wlroots master commit: %s\n' "$WLROOTS_SOURCE_COMMIT"
+          test "$(pkg-config --modversion wlroots-0.21)" = 0.21.0-dev
+      - name: Build and test against current wlroots master
+        run: sh scripts/ci/run-meson-build.sh build-wlroots-master enabled debug wlroots-0.21
+
   debian-trixie-configurations:
     name: Debian Trixie ${{ matrix.name }}
     strategy:
@@ -181,7 +238,7 @@ jobs:
         if: matrix.profile == 'asan'
         run: apt-get install -y --no-install-recommends clang libclang-rt-dev
       - name: Build and test
-        run: sh scripts/ci/run-meson-build.sh "build-${{ matrix.profile }}" enabled "${{ matrix.profile }}"
+        run: sh scripts/ci/run-meson-build.sh "build-${{ matrix.profile }}" enabled "${{ matrix.profile }}" wlroots-0.18
       - name: Upload Milestone 9 mixed soak smoke diagnostics
         if: always()
         uses: actions/upload-artifact@v4

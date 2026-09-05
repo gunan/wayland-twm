@@ -41,6 +41,45 @@ REQUIRED_PACKAGE_JOB_PACKAGES = {
     "weston",
 }
 
+WLROOTS_019_REQUIRED_PACKAGES = {
+    "build-essential",
+    "dialog",
+    "emacs-gtk",
+    "git",
+    "libfontconfig-dev",
+    "libpango1.0-dev",
+    "libwayland-dev",
+    "libwlroots-0.19-dev",
+    "libx11-dev",
+    "libxcb1-dev",
+    "libxkbcommon-dev",
+    "meson",
+    "ninja-build",
+    "pkgconf",
+    "python3",
+    "wayland-protocols",
+    "x11-apps",
+    "xfonts-base",
+    "xkb-data",
+    "xterm",
+    "xwayland",
+}
+
+WLROOTS_MASTER_REQUIRED_PACKAGES = (
+    WLROOTS_019_REQUIRED_PACKAGES - {"libwlroots-0.19-dev"}
+) | {
+    "libdrm-dev",
+    "libegl1",
+    "libpixman-1-dev",
+    "libxcb-composite0-dev",
+    "libxcb-ewmh-dev",
+    "libxcb-icccm4-dev",
+    "libxcb-render0-dev",
+    "libxcb-res0-dev",
+    "libxcb-shape0-dev",
+    "libxcb-xfixes0-dev",
+}
+
 PLATFORM_CONFIGURATIONS = (
     ("x86-64 release", "ubuntu-24.04", "amd64", "release"),
     ("x86-64 AddressSanitizer", "ubuntu-24.04", "amd64", "asan"),
@@ -79,6 +118,13 @@ def validate(source_root: Path) -> list[str]:
     testing_packages_path = source_root / "scripts/ci/debian-testing-build-packages.txt"
     package_script_path = source_root / "scripts/ci/run-debian-package-ci.sh"
     package_packages_path = source_root / "scripts/ci/debian-trixie-package-packages.txt"
+    wlroots_019_packages_path = (
+        source_root / "scripts/ci/debian-sid-wlroots-0.19-build-packages.txt"
+    )
+    wlroots_master_packages_path = (
+        source_root / "scripts/ci/debian-sid-wlroots-master-build-packages.txt"
+    )
+    wlroots_source_script_path = source_root / "scripts/ci/install-wlroots-source.sh"
     candidate_script_path = source_root / "packaging/debian/clean-candidate-test.sh"
     candidate_test_path = source_root / "tests/platform/clean-candidate-driver-test.sh"
 
@@ -89,6 +135,9 @@ def validate(source_root: Path) -> list[str]:
         testing_packages_path,
         package_script_path,
         package_packages_path,
+        wlroots_019_packages_path,
+        wlroots_master_packages_path,
+        wlroots_source_script_path,
         candidate_script_path,
         candidate_test_path,
     ):
@@ -116,6 +165,17 @@ def validate(source_root: Path) -> list[str]:
     }
     package_script = package_script_path.read_text(encoding="utf-8")
     candidate_script = candidate_script_path.read_text(encoding="utf-8")
+    wlroots_019_packages = {
+        line.strip()
+        for line in wlroots_019_packages_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    wlroots_master_packages = {
+        line.strip()
+        for line in wlroots_master_packages_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    wlroots_source_script = wlroots_source_script_path.read_text(encoding="utf-8")
 
     missing_packages = sorted(REQUIRED_PACKAGES - packages)
     if missing_packages:
@@ -130,6 +190,46 @@ def validate(source_root: Path) -> list[str]:
         errors.append(
             "Debian package job list is missing: " + ", ".join(missing_package_job_packages)
         )
+    missing_wlroots_019_packages = sorted(
+        WLROOTS_019_REQUIRED_PACKAGES - wlroots_019_packages
+    )
+    if missing_wlroots_019_packages:
+        errors.append(
+            "Debian sid wlroots 0.19 package list is missing: "
+            + ", ".join(missing_wlroots_019_packages)
+        )
+    unexpected_wlroots_019_packages = sorted(
+        package
+        for package in wlroots_019_packages
+        if package.startswith("libwlroots") and package != "libwlroots-0.19-dev"
+    )
+    if unexpected_wlroots_019_packages:
+        errors.append(
+            "Debian sid wlroots 0.19 package list mixes API minors: "
+            + ", ".join(unexpected_wlroots_019_packages)
+        )
+    missing_wlroots_master_packages = sorted(
+        WLROOTS_MASTER_REQUIRED_PACKAGES - wlroots_master_packages
+    )
+    if missing_wlroots_master_packages:
+        errors.append(
+            "Debian sid wlroots master package list is missing: "
+            + ", ".join(missing_wlroots_master_packages)
+        )
+    packaged_wlroots_master_dependencies = sorted(
+        package
+        for package in wlroots_master_packages
+        if package.startswith("libwlroots")
+    )
+    if packaged_wlroots_master_dependencies:
+        errors.append(
+            "wlroots master must be built from source, not distro packages: "
+            + ", ".join(packaged_wlroots_master_dependencies)
+        )
+
+    for marker in ("workflow_dispatch:", "schedule:", "cron: '23 5 * * 1'"):
+        if marker not in workflow:
+            errors.append(f"workflow is missing advisory trigger: {marker!r}")
 
     baseline = job_block(workflow, "debian-trixie")
     if not baseline:
@@ -139,7 +239,9 @@ def validate(source_root: Path) -> list[str]:
             "runs-on: ubuntu-latest",
             "container: debian:trixie",
             'test "$(dpkg --print-architecture)" = amd64',
-            "scripts/ci/run-meson-build.sh build enabled debug",
+            "pkg-config --atleast-version=0.18 wlroots-0.18",
+            "pkg-config --max-version=0.18.999 wlroots-0.18",
+            "scripts/ci/run-meson-build.sh build enabled debug wlroots-0.18",
         ):
             if marker not in baseline:
                 errors.append(f"debian-trixie job is missing contract marker: {marker!r}")
@@ -163,7 +265,7 @@ def validate(source_root: Path) -> list[str]:
             "pkg-config --atleast-version=0.20 wlroots-0.20",
             "pkg-config --max-version=0.20.999 wlroots-0.20",
             "dpkg-checkbuilddeps",
-            "scripts/ci/run-meson-build.sh build-testing enabled debug",
+            "scripts/ci/run-meson-build.sh build-testing enabled debug wlroots-0.20",
         ):
             if marker not in testing:
                 errors.append(f"debian-testing job is missing contract marker: {marker!r}")
@@ -209,6 +311,41 @@ def validate(source_root: Path) -> list[str]:
                     f"{marker!r}"
                 )
 
+    wlroots_019 = job_block(workflow, "wlroots-019")
+    if not wlroots_019:
+        errors.append("workflow is missing the required wlroots-019 job")
+    else:
+        for marker in (
+            "container: debian:sid",
+            "scripts/ci/debian-sid-wlroots-0.19-build-packages.txt",
+            'test "$(dpkg --print-architecture)" = amd64',
+            "pkg-config --atleast-version=0.19 wlroots-0.19",
+            "pkg-config --max-version=0.19.999 wlroots-0.19",
+            "! pkg-config --exists wlroots-0.18",
+            "! pkg-config --exists wlroots-0.20",
+            "scripts/ci/run-meson-build.sh build-wlroots-019 enabled debug wlroots-0.19",
+        ):
+            if marker not in wlroots_019:
+                errors.append(f"wlroots-019 job is missing contract marker: {marker!r}")
+
+    wlroots_advisory = job_block(workflow, "wlroots-upstream-advisory")
+    if not wlroots_advisory:
+        errors.append("workflow is missing the wlroots upstream advisory job")
+    else:
+        for marker in (
+            "github.event_name == 'schedule'",
+            "github.event_name == 'workflow_dispatch'",
+            "container: debian:sid",
+            "scripts/ci/debian-sid-wlroots-master-build-packages.txt",
+            "scripts/ci/install-wlroots-source.sh master 0.21.0-dev wlroots-0.21",
+            'test "$(pkg-config --modversion wlroots-0.21)" = 0.21.0-dev',
+            "scripts/ci/run-meson-build.sh build-wlroots-master enabled debug wlroots-0.21",
+        ):
+            if marker not in wlroots_advisory:
+                errors.append(
+                    f"wlroots upstream advisory job is missing contract marker: {marker!r}"
+                )
+
     reference = job_block(workflow, "reference-twm")
     if not reference:
         errors.append("workflow is missing the required reference-twm job")
@@ -244,6 +381,7 @@ def validate(source_root: Path) -> list[str]:
             "scripts/ci/run-meson-build.sh",
             "enabled",
             '"${{ matrix.profile }}"',
+            "wlroots-0.18",
         ):
             if marker not in platforms:
                 errors.append(f"platform matrix is missing contract marker: {marker!r}")
@@ -285,9 +423,26 @@ def validate(source_root: Path) -> list[str]:
         "meson test -C \"$build_dir\" --print-errorlogs",
         "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
         "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+        'actual_version=$(pkg-config --modversion "$wlroots_pkgconfig")',
+        '"-Dwlroots_pkgconfig=$wlroots_pkgconfig"',
     ):
         if marker not in script:
             errors.append(f"Meson profile runner is missing contract marker: {marker!r}")
+
+    for marker in (
+        "https://gitlab.freedesktop.org/wlroots/wlroots.git",
+        'git clone --depth 1 --branch "$ref"',
+        "0.21.0-dev:wlroots-0.21",
+        "-Dauto_features=disabled",
+        "-Dbackends=[]",
+        "-Drenderers=[]",
+        "-Dxwayland=enabled",
+        'printf \'PKG_CONFIG_PATH=%s\\n\'',
+        'printf \'LD_LIBRARY_PATH=%s\\n\'',
+        'printf \'WLROOTS_SOURCE_COMMIT=%s\\n\'',
+    ):
+        if marker not in wlroots_source_script:
+            errors.append(f"wlroots source installer is missing contract marker: {marker!r}")
 
     for marker in (
         "dpkg-buildpackage -us -uc -b",
@@ -338,6 +493,10 @@ def self_test_tamper(source_root: Path) -> list[str]:
                 "apt-get build-dep -y --no-install-recommends -Pnocheck .",
                 "apt-get build-dep -y --no-install-recommends .",
                 1,
+            ).replace(
+                "pkg-config --max-version=0.19.999 wlroots-0.19",
+                "pkg-config --max-version=0.20.999 wlroots-0.19",
+                1,
             ),
             encoding="utf-8",
         )
@@ -360,6 +519,9 @@ def self_test_tamper(source_root: Path) -> list[str]:
         for relative in (
             "scripts/ci/run-debian-package-ci.sh",
             "scripts/ci/debian-trixie-package-packages.txt",
+            "scripts/ci/debian-sid-wlroots-0.19-build-packages.txt",
+            "scripts/ci/debian-sid-wlroots-master-build-packages.txt",
+            "scripts/ci/install-wlroots-source.sh",
             "packaging/debian/clean-candidate-test.sh",
             "tests/platform/clean-candidate-driver-test.sh",
         ):
@@ -390,6 +552,11 @@ def self_test_tamper(source_root: Path) -> list[str]:
         for error in tamper_errors
     ):
         return ["self-test failed: removing the nocheck dependency profile was not detected"]
+    if not any(
+        "wlroots-019 job" in error and "0.19.999" in error
+        for error in tamper_errors
+    ):
+        return ["self-test failed: widening the wlroots 0.19 range was not detected"]
     return []
 
 
@@ -409,8 +576,8 @@ def main() -> int:
         return 1
 
     print(
-        "build-platform validation passed: Debian stable/testing, native hosts, "
-        "architectures, and profiles are covered"
+        "build-platform validation passed: wlroots 0.18/0.19/0.20, upstream "
+        "advisory, native hosts, architectures, and profiles are covered"
     )
     return 0
 
