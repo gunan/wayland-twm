@@ -103,6 +103,53 @@ def assert_geometry(item: dict[str, object], expected: tuple[int, int]) -> None:
         raise RuntimeError(f"expected geometry {expected!r}, got {actual!r}: {item!r}")
 
 
+def ppm_pixel(path: Path, x: int, y: int) -> tuple[int, int, int]:
+    fields = path.read_bytes().split(b"\n", 3)
+    if len(fields) != 4 or fields[0] != b"P6" or fields[2] != b"255":
+        raise RuntimeError("resize capture is not an 8-bit PPM P6 image")
+    width, height = (int(value) for value in fields[1].split())
+    if len(fields[3]) != width * height * 3:
+        raise RuntimeError("resize capture has a truncated pixel payload")
+    if x < 0 or y < 0 or x >= width or y >= height:
+        raise RuntimeError(f"resize outline sample ({x}, {y}) is outside {width}x{height}")
+    offset = (y * width + x) * 3
+    return tuple(fields[3][offset:offset + 3])
+
+
+def assert_resize_wireframe(control: Control, preview: dict[str, object],
+                            item: dict[str, object]) -> None:
+    x, y = int(preview["x"]), int(preview["y"])
+    border = int(item["border_width"])
+    title = int(item["title_height"])
+    outer_width = int(preview["width"]) + 2 * border
+    outer_height = int(preview["height"]) + title + 2 * border
+    inner_left, inner_right = border, outer_width - 1 - border
+    inner_top, inner_bottom = title + border, outer_height - 1 - border
+    x_third = (inner_right - inner_left) // 3
+    y_third = (inner_bottom - inner_top) // 3
+    vertical_y = inner_top + y_third + max(2, y_third // 2)
+    horizontal_x = inner_left + x_third + max(2, x_third // 2)
+
+    with tempfile.TemporaryDirectory(prefix="wtwm-resize-outline-") as directory:
+        capture = Path(directory) / "resize.ppm"
+        control.command("WAIT 2")
+        control.command(f"CAPTURE {capture}")
+        for line_x in (inner_left + x_third, inner_left + 2 * x_third):
+            if (ppm_pixel(capture, x + line_x, y + vertical_y) !=
+                    (255, 255, 255) or
+                    ppm_pixel(capture, x + line_x - 1, y + vertical_y) !=
+                    (0, 0, 0)):
+                raise RuntimeError("resize capture is missing an inner vertical third")
+        for line_y in (inner_top + y_third, inner_top + 2 * y_third):
+            if (ppm_pixel(capture, x + horizontal_x, y + line_y) !=
+                    (255, 255, 255) or
+                    ppm_pixel(capture, x + horizontal_x, y + line_y - 1) !=
+                    (0, 0, 0)):
+                raise RuntimeError("resize capture is missing an inner horizontal third")
+        if ppm_pixel(capture, x + 5, y + title) != (255, 255, 255):
+            raise RuntimeError("resize capture is missing the title-bottom separator")
+
+
 def outline_scenario(control: Control) -> None:
     item = state_window(control)
     original = (int(item["x"]), int(item["y"]))
@@ -208,6 +255,7 @@ def resize_scenario(control: Control) -> None:
             int(preview["y"]) + height != original["y"] + original["height"]):
         raise RuntimeError(f"left/top constrained anchoring drifted: {preview!r}")
     assert_geometry(state_window(control), (original["x"], original["y"]))
+    assert_resize_wireframe(control, preview, item)
     release(control, 273)
     item = state_window(control)
     if (int(item["x"]), int(item["y"]), int(item["width"]), int(item["height"])) != (

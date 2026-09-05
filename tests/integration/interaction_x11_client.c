@@ -95,7 +95,7 @@ static xcb_window_t create_window(struct client *client, int16_t x, int16_t y,
 		const char *instance) {
 	xcb_window_t window = xcb_generate_id(client->connection);
 	uint32_t values[] = {
-		client->screen->white_pixel,
+		client->screen->black_pixel,
 		XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_EXPOSURE,
 	};
 	xcb_create_window(client->connection, XCB_COPY_FROM_PARENT, window,

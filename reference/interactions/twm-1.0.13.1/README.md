@@ -37,6 +37,10 @@ python3 -B tests/reference/validate_reference_interaction_contract.py \
   either path and restores or preserves the original geometry.
 - twm 1.0.13.1 has no `OpaqueResize` directive or path.  Interactive resize
   always rubber-bands an outline and commits with `SetupWindow` on release.
+  `MoveOutline` draws the outer four edges, two vertical and two horizontal
+  third lines over the border-inset client area, and a separate title-bottom
+  line when a title is present. The thirds use C integer division, so lines
+  intentionally coincide when the inner span is smaller than three pixels.
 - `AutoRelativeResize` divides the client/frame into thirds, offsetting the
   vertical calculation by title height.  It preselects the nearest outer edge
   or corner, but not a middle third, and is disabled for titlebutton starts.

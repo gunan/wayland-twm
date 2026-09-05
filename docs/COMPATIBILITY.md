@@ -212,7 +212,8 @@ larger than the output, while `f.forcemove` bypasses that clamp.
 `AutoRelativeResize` selects left/right and top/bottom edges from thirds after
 the title offset and is disabled for title-bar invocation. Size constraints
 preserve the opposite edge during left/top resizing. Non-opaque moves and every
-resize keep client geometry unchanged while an overlay outline is displayed;
+resize keep client geometry unchanged while a compositor-owned overlay draws
+the source-exact outer frame, title-bottom separator, and 3x3 inner wireframe;
 release commits it, and a second button press cancels it. `OpaqueMove` changes
 the live window during motion and restores the saved origin on cancel.
 `f.deltastop` resumes its function only after the asynchronous interaction has

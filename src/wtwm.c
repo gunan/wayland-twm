@@ -482,10 +482,7 @@ struct interaction_session {
 	struct wtwm_interaction_box original;
 	struct wtwm_interaction_box preview;
 	struct wlr_scene_tree *outline;
-	struct wlr_scene_rect *outline_top;
-	struct wlr_scene_rect *outline_bottom;
-	struct wlr_scene_rect *outline_left;
-	struct wlr_scene_rect *outline_right;
+	struct wlr_scene_rect *outline_lines[WTWM_VISUAL_OUTLINE_MAX_LINES];
 	uint32_t resize_edges;
 	enum wtwm_constrained_axis constrained_axis;
 	double pointer_start_x;
@@ -3098,10 +3095,8 @@ static void clear_interaction_outline(struct server *server) {
 	if (server->interaction.outline != NULL)
 		wlr_scene_node_destroy(&server->interaction.outline->node);
 	server->interaction.outline = NULL;
-	server->interaction.outline_top = NULL;
-	server->interaction.outline_bottom = NULL;
-	server->interaction.outline_left = NULL;
-	server->interaction.outline_right = NULL;
+	memset(server->interaction.outline_lines, 0,
+		sizeof(server->interaction.outline_lines));
 }
 
 static void show_interaction_outline(struct server *server) {
@@ -3117,40 +3112,34 @@ static void show_interaction_outline(struct server *server) {
 		server->interaction.preview.width : geometry.outer_width;
 	int outer_height = server->interaction.icon_move ?
 		server->interaction.preview.height : geometry.outer_height;
+	struct wtwm_outline_layout layout;
+	wtwm_outline_layout_compute(outer_width, outer_height,
+		geometry.border_width,
+		server->interaction.icon_move ? 0 : geometry.title_extent, &layout);
 	if (server->interaction.outline == NULL) {
 		float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		server->interaction.outline = wlr_scene_tree_create(server->overlay_tree);
 		if (server->interaction.outline == NULL) return;
-		server->interaction.outline_top = wlr_scene_rect_create(
-			server->interaction.outline, 1, 1, color);
-		server->interaction.outline_bottom = wlr_scene_rect_create(
-			server->interaction.outline, 1, 1, color);
-		server->interaction.outline_left = wlr_scene_rect_create(
-			server->interaction.outline, 1, 1, color);
-		server->interaction.outline_right = wlr_scene_rect_create(
-			server->interaction.outline, 1, 1, color);
-		if (server->interaction.outline_top == NULL ||
-				server->interaction.outline_bottom == NULL ||
-				server->interaction.outline_left == NULL ||
-				server->interaction.outline_right == NULL) {
-			clear_interaction_outline(server);
-			return;
+		for (unsigned int i = 0; i < WTWM_VISUAL_OUTLINE_MAX_LINES; ++i) {
+			server->interaction.outline_lines[i] = wlr_scene_rect_create(
+				server->interaction.outline, 1, 1, color);
+			if (server->interaction.outline_lines[i] == NULL) {
+				clear_interaction_outline(server);
+				return;
+			}
 		}
 	}
 	wlr_scene_node_set_position(&server->interaction.outline->node,
 		server->interaction.preview.x, server->interaction.preview.y);
-	wlr_scene_rect_set_size(server->interaction.outline_top,
-		outer_width, 1);
-	wlr_scene_rect_set_size(server->interaction.outline_bottom,
-		outer_width, 1);
-	wlr_scene_rect_set_size(server->interaction.outline_left,
-		1, outer_height);
-	wlr_scene_rect_set_size(server->interaction.outline_right,
-		1, outer_height);
-	wlr_scene_node_set_position(&server->interaction.outline_bottom->node,
-		0, outer_height > 0 ? outer_height - 1 : 0);
-	wlr_scene_node_set_position(&server->interaction.outline_right->node,
-		outer_width > 0 ? outer_width - 1 : 0, 0);
+	for (unsigned int i = 0; i < WTWM_VISUAL_OUTLINE_MAX_LINES; ++i) {
+		struct wlr_scene_rect *line = server->interaction.outline_lines[i];
+		bool enabled = i < layout.line_count;
+		wlr_scene_node_set_enabled(&line->node, enabled);
+		if (!enabled) continue;
+		const struct wtwm_visual_box *box = &layout.lines[i];
+		wlr_scene_node_set_position(&line->node, box->x, box->y);
+		wlr_scene_rect_set_size(line, box->width, box->height);
+	}
 	test_trace_toplevel_event_at(toplevel, "outline",
 		server->cursor_mode == CURSOR_MOVE ? "move" : "resize",
 		server->interaction.preview.x, server->interaction.preview.y,
