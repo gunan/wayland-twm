@@ -58,7 +58,7 @@ sudo apt-get install ../wtwm_0.1.0_*.deb
 
 The package declares `dbus-bin` and `xkb-data` in addition to its generated
 shared-library dependencies. By default, the final `apt-get install` also
-installs its `foot`, `xdg-desktop-portal-gtk`, and `xwayland` recommendations.
+installs its `xdg-desktop-portal-gtk`, `xterm`, and `xwayland` recommendations.
 Build tools and test applications do not need to be installed separately on
 the machine that runs the resulting package.
 
@@ -150,8 +150,9 @@ wtwm-config "$HOME/.twmrc"
 
 For an uninstalled source build, use `build/wtwm-config` instead. Review every
 `f.exec` command in an imported configuration because it runs with your user
-privileges. The packaged default binds `Meta+Return` to `foot`; install `foot`
-or change that command to your preferred terminal.
+privileges. The packaged default binds `Meta+Return` to `xterm` through
+Xwayland; install the recommended `xterm` and `xwayland` packages or change
+that command to your preferred terminal.
 
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for exact support and
 Wayland translations, and [docs/MIGRATING_FROM_TWM.md](docs/MIGRATING_FROM_TWM.md)
@@ -163,13 +164,13 @@ Nested mode is the safest first run. From a terminal inside an existing Wayland
 desktop, confirm that `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` are set, then run:
 
 ```sh
-WLR_BACKENDS=wayland wtwm -s foot
+WLR_BACKENDS=wayland wtwm -s xterm
 ```
 
 From an uninstalled source tree, replace `wtwm` with `build/wtwm`. A new window
-containing the nested compositor should appear, and `foot` should open inside
-it. `Alt+Escape` is the emergency exit. Use `-d` for verbose logging or
-`-f /path/to/file` to select a specific configuration.
+containing the nested compositor should appear, and `xterm` should open inside
+it through Xwayland. `Alt+Escape` is the emergency exit. Use `-d` for verbose
+logging or `-f /path/to/file` to select a specific configuration.
 
 ### Run as a login session
 

@@ -110,10 +110,11 @@ check `PATH`, and run the command as the same unprivileged user. Shell syntax is
 only invoked when the command requires it. Quoting that works in an interactive
 shell may represent different literal text in `.twmrc`.
 
-The packaged sample expects `foot`. Install it or change both the Meta+Return
-binding and terminal menu entry.
+The packaged sample expects `xterm` and an operational Xwayland runtime.
+Install both recommended packages or change the Meta+Return binding and
+terminal menu entry to a native Wayland terminal.
 
-## A foot titlebar always says `foot`
+## A configured foot titlebar always says `foot`
 
 `foot` uses `foot` as both its initial title and its default `TERM` value. It
 changes the Wayland title only after the shell or terminal application writes

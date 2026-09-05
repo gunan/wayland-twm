@@ -194,7 +194,7 @@ MoveDelta 3
 
 Function "move-or-raise" { f.move f.deltastop f.raise }
 Button1 = m : window|icon : f.function "move-or-raise"
-"Return" = m : all : f.exec "foot"
+"Return" = m : all : f.exec "xterm"
 
 Menu "operations"
 {
@@ -202,7 +202,7 @@ Menu "operations"
     "Move"       f.move
     "Resize"     f.resize
     "Iconify"    f.iconify
-    "Terminal"   f.exec "foot"
+    "Terminal"   f.exec "xterm"
     "Exit"       f.quit
 }
 Button1 = : root : f.menu "operations"

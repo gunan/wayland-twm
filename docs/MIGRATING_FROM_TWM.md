@@ -22,7 +22,7 @@ applications and hardware important to you have been exercised.
    terminal:
 
    ```sh
-   WLR_BACKENDS=wayland wtwm -s foot
+   WLR_BACKENDS=wayland wtwm -s xterm
    ```
 
    Check decorations, pointer and keyboard bindings, menus, focus, iconify,
@@ -91,10 +91,11 @@ Legacy X core font descriptions are matched against installed fonts. Install
 the expected bitmap fonts for reference-like metrics, or choose an available
 Fontconfig/Pango description. A fallback can change title and menu geometry.
 
-The packaged sample binds Meta+Return and its terminal menu entry to `foot`.
-Change those commands if another terminal is installed. `f.exec` is run with
-your user privileges; shell syntax is honored, so imported configurations need
-the same security review as shell scripts.
+The packaged sample binds Meta+Return and its terminal menu entry to `xterm`,
+matching the reference twm configuration through Xwayland. Change those
+commands if another terminal is installed. `f.exec` is run with your user
+privileges; shell syntax is honored, so imported configurations need the same
+security review as shell scripts.
 
 X11 applications require the optional Xwayland runtime. wtwm continues with
 native Wayland support if Xwayland is unavailable. Keep native and X11 test

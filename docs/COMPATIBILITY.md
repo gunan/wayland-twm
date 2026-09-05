@@ -173,6 +173,11 @@ be created or its display
 cannot be exported, wtwm keeps the inherited `DISPLAY` unchanged and continues
 with native Wayland support.
 
+The packaged `system.twmrc` starts `xterm` from both Meta+Return and the root
+menu, matching the reference terminal's X11 `WM_NAME` path through rootless
+Xwayland. Users can still select a native Wayland terminal with ordinary
+`f.exec` configuration.
+
 Xwayland windows have independent create, Wayland-surface association, map,
 unmap, dissociation, remap, and destruction handling. Managed windows share the
 native decoration, focus, move, resize, iconify, raise/lower, menu-target, and

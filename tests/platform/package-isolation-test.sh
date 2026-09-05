@@ -58,6 +58,11 @@ grep -Eq '^Depends: .*dbus-bin' "$source_root/debian/control" ||
 	fail 'D-Bus activation helper dependency is missing'
 grep -Eq '^Recommends: .*xwayland' "$source_root/debian/control" ||
 	fail 'optional Xwayland runtime recommendation is missing'
+grep -Eq '^Recommends: .*xterm' "$source_root/debian/control" ||
+	fail 'default xterm runtime recommendation is missing'
+if grep -Eq '^Recommends: .*foot' "$source_root/debian/control"; then
+	fail 'unused foot runtime remains recommended by the package'
+fi
 grep -Eq '^Recommends: .*xdg-desktop-portal-gtk' "$source_root/debian/control" ||
 	fail 'GTK desktop portal runtime recommendation is missing'
 if grep -Eq '^(Conflicts|Replaces|Breaks):.*(^|[, ])twm([, ]|$)' \
