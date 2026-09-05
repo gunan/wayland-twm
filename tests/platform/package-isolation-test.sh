@@ -66,6 +66,12 @@ test -x "$source_root/debian/wtwm.postrm" ||
 	fail 'Debian post-removal script source is not executable'
 grep -Fx '#DEBHELPER#' "$source_root/debian/wtwm.postrm" >/dev/null ||
 	fail 'Debian post-removal script omits debhelper menu cleanup'
+grep -Eq '^[[:space:]]*remove\|purge\)' \
+	"$source_root/debian/wtwm.postrm" ||
+	fail 'Debian post-removal script leaves generated menu state after remove'
+grep -F 'rm -f /etc/wtwm/menudefs.hook /etc/wtwm/system.twmrc' \
+	"$source_root/debian/wtwm.postrm" >/dev/null ||
+	fail 'Debian post-removal script does not remove generated menu files'
 grep -Eq '^Depends: .*xkb-data' "$source_root/debian/control" ||
 	fail 'runtime keyboard data dependency is missing'
 grep -Eq '^Depends: .*dbus-bin' "$source_root/debian/control" ||
