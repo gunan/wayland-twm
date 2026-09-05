@@ -16,3 +16,9 @@ option(
   value: '',
   description: 'Override the wlroots pkg-config module name (untested versions may not build)',
 )
+option(
+  'generated_system_config',
+  type: 'string',
+  value: '',
+  description: 'Generated system configuration tried before the packaged static fallback',
+)

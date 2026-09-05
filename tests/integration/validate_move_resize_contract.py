@@ -27,6 +27,9 @@ REQUIRED_CASES = {
     "outline-move-preview",
     "opaque-move-preview",
     "resize-is-always-outline",
+    "resize-outline-titled-nine-lines",
+    "resize-outline-titleless-eight-lines",
+    "resize-outline-tiny-thirds-collapse",
     "abort-outline-move-keeps-original-geometry",
     "abort-opaque-move-restores-original-geometry",
     "abort-resize-keeps-original-geometry",
@@ -45,6 +48,7 @@ SOURCE_FRAGMENTS = (
     "wtwm_clamp_move(",
     "wtwm_auto_relative_resize_edges(",
     "wtwm_anchor_constrained_resize(",
+    "wtwm_outline_layout_compute(outer_width, outer_height,",
     'test_trace_toplevel_event_at(toplevel, "outline",',
     'test_trace_toplevel_event_at(toplevel, "abort",',
     'test_trace_toplevel_event_at(toplevel, "commit",',
@@ -72,6 +76,9 @@ RUNNER_FRAGMENTS = (
     "resize increments were not applied",
     "resize aspect constraints were not applied",
     "left/top constrained anchoring drifted",
+    "resize capture is missing an inner vertical third",
+    "resize capture is missing an inner horizontal third",
+    "resize capture is missing the title-bottom separator",
     "AutoRelativeResize did not select top-left",
     "AutoRelativeResize did not select bottom-right",
     "default title resize button did not select bottom-right",
@@ -116,6 +123,14 @@ def validate(source_root: Path, *, wtwm_override: str | None = None) -> None:
     ):
         if function not in unit:
             raise ValueError(f"portable interaction test omits {function}")
+    visual_unit = (source_root / "tests/visual_test.c").read_text(encoding="utf-8")
+    for fragment in (
+        "wtwm_outline_layout_compute(101, 83, 2, 18, &layout)",
+        "wtwm_outline_layout_compute(101, 83, 2, 0, &layout)",
+        "wtwm_outline_layout_compute(6, 7, 2, 1, &layout)",
+    ):
+        if fragment not in visual_unit:
+            raise ValueError(f"portable outline test omits {fragment}")
     runner = (source_root / "tests/integration/run_move_resize.py").read_text(
         encoding="utf-8")
     require_fragments(runner, RUNNER_FRAGMENTS, "headless interaction runner")

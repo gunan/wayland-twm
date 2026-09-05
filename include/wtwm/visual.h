@@ -14,6 +14,7 @@
 #define WTWM_VISUAL_MENU_SHADOW_OFFSET 5
 #define WTWM_VISUAL_MENU_HORIZONTAL_PADDING 10
 #define WTWM_VISUAL_MENU_PULL_ALLOWANCE 26
+#define WTWM_VISUAL_OUTLINE_MAX_LINES 9
 
 struct wtwm_visual_config {
 	int border_width;
@@ -30,6 +31,11 @@ struct wtwm_visual_box {
 	int y;
 	int width;
 	int height;
+};
+
+struct wtwm_outline_layout {
+	struct wtwm_visual_box lines[WTWM_VISUAL_OUTLINE_MAX_LINES];
+	unsigned int line_count;
 };
 
 enum wtwm_title_justification {
@@ -73,6 +79,14 @@ struct wtwm_menu_layout {
 };
 
 struct wtwm_visual_config wtwm_visual_config_defaults(void);
+
+/*
+ * Reproduce twm's MoveOutline wireframe. title_height is twm's full title
+ * extent (title bar plus its lower border), not just the title bar pixels.
+ * A titled frame has nine lines; a titleless frame has eight.
+ */
+void wtwm_outline_layout_compute(int outer_width, int outer_height,
+	int border_width, int title_height, struct wtwm_outline_layout *layout);
 
 /*
  * Reproduce InitTitlebarButtons, ComputeCommonTitleOffsets, and

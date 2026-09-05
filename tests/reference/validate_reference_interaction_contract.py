@@ -46,6 +46,9 @@ EXPECTED_CASE_IDS = [
     "outline-move-preview",
     "opaque-move-preview",
     "resize-is-always-outline",
+    "resize-outline-titled-nine-lines",
+    "resize-outline-titleless-eight-lines",
+    "resize-outline-tiny-thirds-collapse",
     "abort-outline-move-keeps-original-geometry",
     "abort-opaque-move-restores-original-geometry",
     "abort-resize-keeps-original-geometry",
@@ -164,6 +167,34 @@ def evaluate(operation: str, values: dict[str, Any]) -> dict[str, Any]:
                 "commit": "release",
                 "opaque_resize_directive": False,
             }
+
+    if operation == "outline-layout":
+        width, height = values["outer_size"]
+        border = values["border_width"]
+        title = values["title_height"]
+        left, right = 0, width - 1
+        top, bottom = 0, height - 1
+        inner_left, inner_right = left + border, right - border
+        inner_top, inner_bottom = top + title + border, bottom - border
+        width_third = c_div(inner_right - inner_left, 3)
+        height_third = c_div(inner_bottom - inner_top, 3)
+        segments = [
+            [left, top, right, top],
+            [left, bottom, right, bottom],
+            [left, top, left, bottom],
+            [right, top, right, bottom],
+            [inner_left + width_third, inner_top,
+             inner_left + width_third, inner_bottom],
+            [inner_left + 2 * width_third, inner_top,
+             inner_left + 2 * width_third, inner_bottom],
+            [inner_left, inner_top + height_third,
+             inner_right, inner_top + height_third],
+            [inner_left, inner_top + 2 * height_third,
+             inner_right, inner_top + 2 * height_third],
+        ]
+        if title != 0:
+            segments.append([left, top + title, right, top + title])
+        return {"segments": segments}
 
     if operation == "abort-path":
         return {"geometry": "original", "preview_cleared": True}

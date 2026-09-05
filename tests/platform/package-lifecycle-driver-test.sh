@@ -44,6 +44,8 @@ mock_command()
 					'/usr/share/wayland-sessions/wtwm.desktop' \
 					'/usr/share/xdg-desktop-portal/wtwm-portals.conf' \
 					'/usr/share/wtwm/system.twmrc' \
+					'/etc/menu-methods/wtwm' \
+					'/etc/wtwm/system.twmrc-menu' \
 					'/usr/share/man/man1/wtwm.1.gz' \
 					'/usr/share/man/man1/wtwm-config.1.gz' \
 					'/usr/share/man/man5/wtwmrc.5.gz'
@@ -65,7 +67,9 @@ mock_command()
 					test -f "$package" || exit 2
 					version=$(sed -n 's/^Version: //p' "$package")
 					printf '%s\n' "$version" > "$WTWM_MOCK_STATE"
-					mkdir -p "$WTWM_PACKAGE_ROOT/usr/bin" \
+					mkdir -p "$WTWM_PACKAGE_ROOT/etc/menu-methods" \
+						"$WTWM_PACKAGE_ROOT/etc/wtwm" \
+						"$WTWM_PACKAGE_ROOT/usr/bin" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wayland-sessions" \
 						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm" \
@@ -84,6 +88,19 @@ mock_command()
 						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal/wtwm-portals.conf"
 					cp "$WTWM_SOURCE_ROOT/data/system.twmrc" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm/system.twmrc"
+					cp "$WTWM_SOURCE_ROOT/data/system.twmrc-menu" \
+						"$WTWM_PACKAGE_ROOT/etc/wtwm/system.twmrc-menu"
+					cp "$WTWM_SOURCE_ROOT/debian/wtwm.menu-method" \
+						"$WTWM_PACKAGE_ROOT/etc/menu-methods/wtwm"
+					chmod +x "$WTWM_PACKAGE_ROOT/etc/menu-methods/wtwm"
+					awk '
+$0 == "include-menu-defs" {
+	print "Menu \"/Debian\" { \"Example\" f.exec \"example-app &\" }"
+	next
+}
+{ print }
+' "$WTWM_SOURCE_ROOT/data/system.twmrc-menu" \
+						> "$WTWM_PACKAGE_ROOT/etc/wtwm/system.twmrc"
 					cp "$WTWM_SOURCE_ROOT/data/wtwm.1" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1/wtwm.1.gz"
 					cp "$WTWM_SOURCE_ROOT/data/wtwm-config.1" \
@@ -100,6 +117,9 @@ mock_command()
 						"$WTWM_PACKAGE_ROOT/usr/share/wayland-sessions/wtwm.desktop" \
 						"$WTWM_PACKAGE_ROOT/usr/share/xdg-desktop-portal/wtwm-portals.conf" \
 						"$WTWM_PACKAGE_ROOT/usr/share/wtwm/system.twmrc" \
+						"$WTWM_PACKAGE_ROOT/etc/menu-methods/wtwm" \
+						"$WTWM_PACKAGE_ROOT/etc/wtwm/system.twmrc" \
+						"$WTWM_PACKAGE_ROOT/etc/wtwm/system.twmrc-menu" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1/wtwm.1.gz" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man1/wtwm-config.1.gz" \
 						"$WTWM_PACKAGE_ROOT/usr/share/man/man5/wtwmrc.5.gz"

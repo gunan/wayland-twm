@@ -8,4 +8,11 @@ endif
 	dh $@ --buildsystem=meson
 
 override_dh_auto_configure:
-	dh_auto_configure -- -Dcompositor=enabled $(WTWM_MESON_OPTIONS)
+	dh_auto_configure -- -Dcompositor=enabled \
+		-Dgenerated_system_config=/etc/wtwm/system.twmrc \
+		$(WTWM_MESON_OPTIONS)
+
+override_dh_auto_install:
+	dh_auto_install
+	install -D -m 0644 data/system.twmrc-menu \
+		debian/wtwm/etc/wtwm/system.twmrc-menu

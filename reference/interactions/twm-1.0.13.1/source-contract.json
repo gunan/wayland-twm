@@ -142,6 +142,22 @@
       ]
     },
     {
+      "id": "outline-wireframe",
+      "member": "twm-1.0.13.1/src/util.c",
+      "lines": [88, 175],
+      "anchors": [
+        "xinnerl = xl + lastBW;",
+        "xinnerr = xr - lastBW;",
+        "yinnert = yt + lastTH + lastBW;",
+        "yinnerb = yb - lastBW;",
+        "xthird = (xinnerr - xinnerl) / 3;",
+        "ythird = (yinnerb - yinnert) / 3;",
+        "r->x1 = (short)(xinnerl + xthird);",
+        "r->y1 = (short)(yinnert + ythird);",
+        "if (lastTH != 0) {"
+      ]
+    },
+    {
       "id": "interaction-abort",
       "member": "twm-1.0.13.1/src/events.c",
       "lines": [1726, 1745],
@@ -525,6 +541,30 @@
       "input": {"action": "resize", "opaque_move": true},
       "expected": {"during_motion": "outline", "commit": "release", "opaque_resize_directive": false},
       "sources": ["resize-outline-commit", "no-opaque-resize"]
+    },
+    {
+      "id": "resize-outline-titled-nine-lines",
+      "group": "resize-rendering",
+      "operation": "outline-layout",
+      "input": {"outer_size": [101, 83], "border_width": 2, "title_height": 18},
+      "expected": {"segments": [[0, 0, 100, 0], [0, 82, 100, 82], [0, 0, 0, 82], [100, 0, 100, 82], [34, 20, 34, 80], [66, 20, 66, 80], [2, 40, 98, 40], [2, 60, 98, 60], [0, 18, 100, 18]]},
+      "sources": ["outline-wireframe"]
+    },
+    {
+      "id": "resize-outline-titleless-eight-lines",
+      "group": "resize-rendering",
+      "operation": "outline-layout",
+      "input": {"outer_size": [101, 83], "border_width": 2, "title_height": 0},
+      "expected": {"segments": [[0, 0, 100, 0], [0, 82, 100, 82], [0, 0, 0, 82], [100, 0, 100, 82], [34, 2, 34, 80], [66, 2, 66, 80], [2, 28, 98, 28], [2, 54, 98, 54]]},
+      "sources": ["outline-wireframe"]
+    },
+    {
+      "id": "resize-outline-tiny-thirds-collapse",
+      "group": "resize-rendering",
+      "operation": "outline-layout",
+      "input": {"outer_size": [6, 7], "border_width": 2, "title_height": 1},
+      "expected": {"segments": [[0, 0, 5, 0], [0, 6, 5, 6], [0, 0, 0, 6], [5, 0, 5, 6], [2, 3, 2, 4], [2, 3, 2, 4], [2, 3, 3, 3], [2, 3, 3, 3], [0, 1, 5, 1]]},
+      "sources": ["outline-wireframe"]
     },
     {
       "id": "abort-outline-move-keeps-original-geometry",

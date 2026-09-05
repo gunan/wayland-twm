@@ -297,6 +297,27 @@ static bool unmap_toplevel(struct client *client) {
 }
 
 static bool handle_command(struct client *client, const char *command, bool *done) {
+	if (strcmp(command, "TITLE_FOOT") == 0) {
+		client->title = "foot";
+		xdg_toplevel_set_title(client->toplevel, client->title);
+		if (wl_display_roundtrip(client->display) < 0) return false;
+		printf("TITLE_FOOT_UPDATED\n");
+		return true;
+	}
+	if (strcmp(command, "TITLE_DYNAMIC") == 0) {
+		client->title = "project-shell-title";
+		xdg_toplevel_set_title(client->toplevel, client->title);
+		if (wl_display_roundtrip(client->display) < 0) return false;
+		printf("TITLE_DYNAMIC_UPDATED\n");
+		return true;
+	}
+	if (strcmp(command, "APP_ID_DYNAMIC") == 0) {
+		client->app_id = "org.wtwm.DynamicIdentity";
+		xdg_toplevel_set_app_id(client->toplevel, client->app_id);
+		if (wl_display_roundtrip(client->display) < 0) return false;
+		printf("APP_ID_DYNAMIC_UPDATED\n");
+		return true;
+	}
 	if (strcmp(command, "METADATA") == 0) {
 		client->title = "wtwm-lifecycle-updated";
 		client->app_id = "org.wtwm.LifecycleUpdated";

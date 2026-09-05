@@ -3,7 +3,6 @@ ca-certificates
 dbus-user-session
 debhelper
 devscripts
-foot
 gdm3
 git
 libfontconfig-dev
@@ -19,4 +18,5 @@ seatd
 sudo
 wayland-protocols
 weston
+xterm
 xwayland

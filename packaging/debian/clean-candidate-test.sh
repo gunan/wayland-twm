@@ -135,8 +135,10 @@ dpkg -L wtwm > "$evidence_dir/candidate-package-files.txt"
 binary=$(root_path /usr/bin/wtwm)
 config_tool=$(root_path /usr/bin/wtwm-config)
 system_config=$(root_path /usr/share/wtwm/system.twmrc)
+generated_config=$(root_path /etc/wtwm/system.twmrc)
 "$binary" --help > "$evidence_dir/wtwm-help.txt"
 "$config_tool" "$system_config" > "$evidence_dir/system-config-dump.txt"
+"$config_tool" "$generated_config" > "$evidence_dir/generated-menu-config-dump.txt"
 ldd "$binary" > "$evidence_dir/wtwm-ldd.txt"
 if grep -F 'not found' "$evidence_dir/wtwm-ldd.txt" > /dev/null; then
 	fail 'installed wtwm has an unresolved shared-library dependency'
@@ -171,6 +173,11 @@ verify_protected install
 verify_candidate_files_absent()
 {
 	while IFS= read -r owned_path; do
+		case $1:$owned_path in
+			remove:/etc/menu-methods/wtwm|remove:/etc/wtwm/system.twmrc-menu)
+				continue
+				;;
+		esac
 		installed_path=$(root_path "$owned_path")
 		test ! -e "$installed_path" && test ! -L "$installed_path" ||
 			fail "candidate-owned file remains during $1: $owned_path"

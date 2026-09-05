@@ -30,8 +30,10 @@ contents, candidate binaries/manuals/configuration, the uniquely named Wayland
 session, the namespaced GTK desktop-portal policy, the absence of an X11
 session, and package ownership boundaries.  Copy
 the evidence directory out of the VM before restoring the snapshot.  Each
-installed phase also executes `wtwm --help` and parses the installed
-`system.twmrc`, catching missing shared libraries or unusable package content.
+installed phase also executes `wtwm --help` and parses the installed static
+`system.twmrc`. Candidate phases additionally parse the Debian-menu-generated
+`/etc/wtwm/system.twmrc`, catching a broken `install-menu` method or unusable
+package content.
 
 `tests/platform/package-isolation-test.sh` is the non-root self-test for the
 filesystem and package-manifest assertions.  It does not mutate packages.

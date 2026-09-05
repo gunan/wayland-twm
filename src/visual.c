@@ -51,6 +51,74 @@ struct wtwm_visual_config wtwm_visual_config_defaults(void) {
 	};
 }
 
+static struct wtwm_visual_box outline_line_box(int64_t x1, int64_t y1,
+		int64_t x2, int64_t y2) {
+	if (x2 < x1) {
+		int64_t swap = x1;
+		x1 = x2;
+		x2 = swap;
+	}
+	if (y2 < y1) {
+		int64_t swap = y1;
+		y1 = y2;
+		y2 = swap;
+	}
+	return (struct wtwm_visual_box){
+		.x = saturate_int(x1),
+		.y = saturate_int(y1),
+		.width = saturate_int(x2 - x1 + 1),
+		.height = saturate_int(y2 - y1 + 1),
+	};
+}
+
+void wtwm_outline_layout_compute(int outer_width, int outer_height,
+		int border_width, int title_height,
+		struct wtwm_outline_layout *layout) {
+	if (layout == NULL) return;
+	outer_width = positive(outer_width);
+	outer_height = positive(outer_height);
+	border_width = nonnegative(border_width);
+	title_height = nonnegative(title_height);
+
+	int64_t left = 0;
+	int64_t right = (int64_t)outer_width - 1;
+	int64_t top = 0;
+	int64_t bottom = (int64_t)outer_height - 1;
+	int64_t inner_left = left + border_width;
+	int64_t inner_right = right - border_width;
+	int64_t inner_top = top + title_height + border_width;
+	int64_t inner_bottom = bottom - border_width;
+	int64_t width_third = (inner_right - inner_left) / 3;
+	int64_t height_third = (inner_bottom - inner_top) / 3;
+
+	struct wtwm_outline_layout result = {0};
+	result.lines[result.line_count++] =
+		outline_line_box(left, top, right, top);
+	result.lines[result.line_count++] =
+		outline_line_box(left, bottom, right, bottom);
+	result.lines[result.line_count++] =
+		outline_line_box(left, top, left, bottom);
+	result.lines[result.line_count++] =
+		outline_line_box(right, top, right, bottom);
+	result.lines[result.line_count++] = outline_line_box(
+		inner_left + width_third, inner_top,
+		inner_left + width_third, inner_bottom);
+	result.lines[result.line_count++] = outline_line_box(
+		inner_left + 2 * width_third, inner_top,
+		inner_left + 2 * width_third, inner_bottom);
+	result.lines[result.line_count++] = outline_line_box(
+		inner_left, inner_top + height_third,
+		inner_right, inner_top + height_third);
+	result.lines[result.line_count++] = outline_line_box(
+		inner_left, inner_top + 2 * height_third,
+		inner_right, inner_top + 2 * height_third);
+	if (title_height != 0) {
+		result.lines[result.line_count++] = outline_line_box(
+			left, top + title_height, right, top + title_height);
+	}
+	*layout = result;
+}
+
 void wtwm_title_layout_compute(const struct wtwm_visual_config *config,
 		int title_width, int font_height, int font_ascent, int text_width,
 		unsigned int left_button_count, unsigned int right_button_count,

@@ -1,8 +1,6 @@
-# wtwm's packaged default.  It intentionally retains ordinary twm syntax so it
-# can also serve as a small migration example.  Xwayland lists match WM_NAME,
-# then WM_CLASS instance/class; native lists match title, then app_id.
-# Meta+Return starts xterm through Xwayland.  Alt+Escape remains the
-# compositor's emergency exit.
+# Debian menu template for wtwm.  update-menus replaces the final placeholder
+# with menus generated from the legacy Debian menu database.  Keep ordinary
+# user configuration in ~/.twmrc; this file is package-managed.
 DecorateTransients
 OpaqueMove
 TitleFont "-adobe-helvetica-bold-r-normal--*-120-*-*-*-*-*-*"
@@ -26,7 +24,8 @@ Function "move-or-lower" { f.move f.deltastop f.lower }
 Function "move-or-raise" { f.move f.deltastop f.raise }
 Function "move-or-iconify" { f.move f.deltastop f.iconify }
 
-Button1 = : root : f.menu "defops"
+Button1 = : root : f.menu "/Debian"
+Button2 = : root : f.menu "defops"
 Button1 = m : window|icon : f.function "move-or-lower"
 Button2 = m : window|icon : f.iconify
 Button3 = m : window|icon : f.function "move-or-raise"
@@ -54,3 +53,5 @@ Menu "defops"
     "Delete"     f.delete
     "Exit"       f.quit
 }
+
+include-menu-defs

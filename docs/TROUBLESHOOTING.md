@@ -110,8 +110,48 @@ check `PATH`, and run the command as the same unprivileged user. Shell syntax is
 only invoked when the command requires it. Quoting that works in an interactive
 shell may represent different literal text in `.twmrc`.
 
-The packaged sample expects `foot`. Install it or change both the Meta+Return
-binding and terminal menu entry.
+The packaged sample expects `xterm` and an operational Xwayland runtime.
+Install both recommended packages or change the Meta+Return binding and
+terminal menu entry to a native Wayland terminal.
+
+## The Debian application menu is missing
+
+The Debian package generates `/etc/wtwm/system.twmrc` through `update-menus`.
+Validate that file and confirm the `/Debian` root menu exists:
+
+```sh
+sudo update-menus
+wtwm-config /etc/wtwm/system.twmrc | grep '/Debian'
+```
+
+With no explicit `-f`, `~/.twmrc.0` and `~/.twmrc` are tried first. Either file
+therefore hides the generated system configuration; wtwm does not merge
+configuration files. Temporarily move the selected user file aside to test the
+system default, or copy `/etc/wtwm/system.twmrc` to the selected user path and
+customize that snapshot. The legacy Debian menu only lists packages that
+publish Debian menu records, so an installed application with only a modern
+`.desktop` file may still be absent.
+
+## A configured foot titlebar always says `foot`
+
+`foot` uses `foot` as both its initial title and its default `TERM` value. It
+changes the Wayland title only after the shell or terminal application writes
+an OSC 0 or OSC 2 title sequence. wtwm displays that xdg-shell title directly;
+the stable application identity remains the separate `app_id` and is not used
+as titlebar text.
+
+First test the terminal-to-compositor path from inside the affected terminal:
+
+```sh
+printf '\033]2;wtwm title probe\033\\'
+```
+
+If the titlebar changes, configure the shell's prompt/title hook to emit OSC 2
+under `TERM=foot` instead of restricting the hook to names such as `xterm*`.
+Do not work around the hook by making foot advertise `xterm-256color`: `TERM`
+selects terminal capabilities, and foot's own terminfo is the accurate default.
+If the probe does not change the titlebar, include that result and the exact
+foot and wtwm versions in the report.
 
 ## Reload did not take effect
 

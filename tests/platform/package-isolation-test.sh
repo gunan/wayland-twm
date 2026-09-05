@@ -49,15 +49,42 @@ grep -F '$(filter nocheck,$(DEB_BUILD_OPTIONS))' \
 grep -F 'WTWM_MESON_OPTIONS += -Dintegration_tests=false' \
 	"$source_root/debian/rules" >/dev/null ||
 	fail 'nocheck package builds do not disable integration test targets'
-grep -F 'dh_auto_configure -- -Dcompositor=enabled $(WTWM_MESON_OPTIONS)' \
+grep -F 'dh_auto_configure -- -Dcompositor=enabled \' \
 	"$source_root/debian/rules" >/dev/null ||
 	fail 'Debian configure does not apply the profile-specific Meson options'
+grep -F -- '-Dgenerated_system_config=/etc/wtwm/system.twmrc \' \
+	"$source_root/debian/rules" >/dev/null ||
+	fail 'Debian build does not prefer the generated menu configuration'
+grep -F '$(WTWM_MESON_OPTIONS)' "$source_root/debian/rules" >/dev/null ||
+	fail 'Debian configure drops the profile-specific Meson options'
+grep -F 'install -D -m 0644 data/system.twmrc-menu \' \
+	"$source_root/debian/rules" >/dev/null ||
+	fail 'Debian install does not stage the menu template'
+test -x "$source_root/debian/wtwm.menu-method" ||
+	fail 'Debian menu method source is not executable'
+test -x "$source_root/debian/wtwm.postrm" ||
+	fail 'Debian post-removal script source is not executable'
+grep -Fx '#DEBHELPER#' "$source_root/debian/wtwm.postrm" >/dev/null ||
+	fail 'Debian post-removal script omits debhelper menu cleanup'
+grep -Eq '^[[:space:]]*remove\|purge\)' \
+	"$source_root/debian/wtwm.postrm" ||
+	fail 'Debian post-removal script leaves generated menu state after remove'
+grep -F 'rm -f /etc/wtwm/menudefs.hook /etc/wtwm/system.twmrc' \
+	"$source_root/debian/wtwm.postrm" >/dev/null ||
+	fail 'Debian post-removal script does not remove generated menu files'
 grep -Eq '^Depends: .*xkb-data' "$source_root/debian/control" ||
 	fail 'runtime keyboard data dependency is missing'
 grep -Eq '^Depends: .*dbus-bin' "$source_root/debian/control" ||
 	fail 'D-Bus activation helper dependency is missing'
+grep -Eq '^Depends: .*menu \(>= 2\.1\.26\)' "$source_root/debian/control" ||
+	fail 'Debian menu generator dependency is missing'
 grep -Eq '^Recommends: .*xwayland' "$source_root/debian/control" ||
 	fail 'optional Xwayland runtime recommendation is missing'
+grep -Eq '^Recommends: .*xterm' "$source_root/debian/control" ||
+	fail 'default xterm runtime recommendation is missing'
+if grep -Eq '^Recommends: .*foot' "$source_root/debian/control"; then
+	fail 'unused foot runtime remains recommended by the package'
+fi
 grep -Eq '^Recommends: .*xdg-desktop-portal-gtk' "$source_root/debian/control" ||
 	fail 'GTK desktop portal runtime recommendation is missing'
 if grep -Eq '^(Conflicts|Replaces|Breaks):.*(^|[, ])twm([, ]|$)' \
@@ -74,7 +101,8 @@ for documented_file in \
 		fail "listed package documentation is missing: $documented_file"
 done
 
-mkdir -p "$test_dir/usr/bin" "$test_dir/usr/share/wayland-sessions" \
+mkdir -p "$test_dir/etc/menu-methods" "$test_dir/etc/wtwm" \
+	"$test_dir/usr/bin" "$test_dir/usr/share/wayland-sessions" \
 	"$test_dir/usr/share/xdg-desktop-portal" "$test_dir/usr/share/wtwm" \
 	"$test_dir/usr/share/man/man1" \
 	"$test_dir/usr/share/man/man5"
@@ -84,6 +112,17 @@ cp "$source_root/scripts/platform/wtwm-session" "$test_dir/usr/bin/wtwm-session"
 chmod +x "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
 	"$test_dir/usr/bin/wtwm-session"
 cp "$source_root/data/system.twmrc" "$test_dir/usr/share/wtwm/system.twmrc"
+cp "$source_root/data/system.twmrc-menu" \
+	"$test_dir/etc/wtwm/system.twmrc-menu"
+cp "$source_root/debian/wtwm.menu-method" "$test_dir/etc/menu-methods/wtwm"
+chmod +x "$test_dir/etc/menu-methods/wtwm"
+awk '
+$0 == "include-menu-defs" {
+	print "Menu \"/Debian\" { \"Example\" f.exec \"example-app &\" }"
+	next
+}
+{ print }
+' "$source_root/data/system.twmrc-menu" > "$test_dir/etc/wtwm/system.twmrc"
 cp "$source_root/data/wtwm.desktop" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop"
 cp "$source_root/data/wtwm-portals.conf" \
@@ -99,6 +138,8 @@ printf '%s\n' \
 	'/usr/share/wayland-sessions/wtwm.desktop' \
 	'/usr/share/xdg-desktop-portal/wtwm-portals.conf' \
 	'/usr/share/wtwm/system.twmrc' \
+	'/etc/menu-methods/wtwm' \
+	'/etc/wtwm/system.twmrc-menu' \
 	'/usr/share/man/man1/wtwm.1.gz' \
 	'/usr/share/man/man1/wtwm-config.1.gz' \
 	'/usr/share/man/man5/wtwmrc.5.gz' > "$test_dir/manifest"
@@ -181,6 +222,9 @@ rm "$test_dir/usr/bin/wtwm" "$test_dir/usr/bin/wtwm-config" \
 	"$test_dir/usr/share/wayland-sessions/wtwm.desktop" \
 	"$test_dir/usr/share/xdg-desktop-portal/wtwm-portals.conf" \
 	"$test_dir/usr/share/wtwm/system.twmrc" \
+	"$test_dir/etc/menu-methods/wtwm" \
+	"$test_dir/etc/wtwm/system.twmrc" \
+	"$test_dir/etc/wtwm/system.twmrc-menu" \
 	"$test_dir/usr/share/man/man1/wtwm.1" \
 	"$test_dir/usr/share/man/man1/wtwm-config.1" \
 	"$test_dir/usr/share/man/man5/wtwmrc.5"

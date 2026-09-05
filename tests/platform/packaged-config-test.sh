@@ -24,6 +24,15 @@ fail()
 dump=$test_dir/system-twmrc.dump
 "$config_tool" "$system_twmrc" > "$dump"
 
+grep -Fx '  key=Return mods=0x8 contexts=0x3f action=f.exec xterm' \
+	"$dump" >/dev/null ||
+	fail 'Meta+Return does not start the reference xterm client'
+test "$(grep -Fc 'f.exec "xterm"' "$system_twmrc")" -eq 2 ||
+	fail 'packaged terminal binding and menu entry do not both start xterm'
+if grep -F 'f.exec "foot"' "$system_twmrc" >/dev/null; then
+	fail 'packaged configuration still selects foot as a default terminal'
+fi
+
 grep -Fx '  button=1 mods=0x0 contexts=0x8 action=f.function move-or-iconify' \
 	"$dump" >/dev/null ||
 	fail 'plain Button1 on an icon does not restore or move the window'

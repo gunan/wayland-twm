@@ -69,6 +69,94 @@ def assert_popups_constrained(state: dict[str, object]) -> None:
             raise RuntimeError(f"popup escaped the usable output area: {popup!r}")
 
 
+def parse_ppm(data: bytes) -> tuple[int, int, bytes]:
+    fields = data.split(b"\n", 3)
+    if len(fields) != 4 or fields[0] != b"P6" or fields[2] != b"255":
+        raise RuntimeError("capture is not an 8-bit PPM P6 image")
+    width, height = (int(value) for value in fields[1].split())
+    if len(fields[3]) != width * height * 3:
+        raise RuntimeError("capture has a truncated pixel payload")
+    return width, height, fields[3]
+
+
+def capture(control: Control, path: Path) -> bytes:
+    control.command("WAIT 3")
+    control.command(f"CAPTURE {path}")
+    first = path.read_bytes()
+    control.command("WAIT 3")
+    control.command(f"CAPTURE {path}")
+    second = path.read_bytes()
+    if first != second:
+        raise RuntimeError("title lifecycle capture was not stable")
+    return second
+
+
+def titlebar_pixels(data: bytes, window: dict[str, object]) -> bytes:
+    width, height, pixels = parse_ppm(data)
+    border = int(window["border_width"])
+    left = int(window["x"]) + border
+    top = int(window["y"]) + border
+    right = left + int(window["width"])
+    bottom = top + int(window["title_bar_height"])
+    if left < 0 or top < 0 or right > width or bottom > height:
+        raise RuntimeError(f"titlebar lies outside capture: {window!r}")
+    row_bytes = width * 3
+    return b"".join(
+        pixels[y * row_bytes + left * 3:y * row_bytes + right * 3]
+        for y in range(top, bottom)
+    )
+
+
+def exercise_dynamic_title_rendering(
+    control: Control, client: subprocess.Popen[str], temporary: Path,
+) -> dict[str, object]:
+    client_command(client, "TITLE_FOOT", "TITLE_FOOT_UPDATED")
+    state = wait_state(
+        control,
+        lambda item: item["windows"] and
+        item["windows"][0]["title"] == "foot" and
+        item["windows"][0]["app_id"] == "org.wtwm.LifecycleInitial",
+        "foot title without app_id mutation",
+    )
+    window = state["windows"][0]
+    foot_pixels = titlebar_pixels(
+        capture(control, temporary / "title-foot.ppm"), window,
+    )
+
+    client_command(client, "TITLE_DYNAMIC", "TITLE_DYNAMIC_UPDATED")
+    state = wait_state(
+        control,
+        lambda item: item["windows"] and
+        item["windows"][0]["title"] == "project-shell-title" and
+        item["windows"][0]["app_id"] == "org.wtwm.LifecycleInitial",
+        "dynamic title without app_id mutation",
+    )
+    window = state["windows"][0]
+    dynamic_pixels = titlebar_pixels(
+        capture(control, temporary / "title-dynamic.ppm"), window,
+    )
+    if dynamic_pixels == foot_pixels:
+        raise RuntimeError(
+            "xdg title metadata changed but the visible titlebar stayed at foot"
+        )
+
+    client_command(client, "APP_ID_DYNAMIC", "APP_ID_DYNAMIC_UPDATED")
+    state = wait_state(
+        control,
+        lambda item: item["windows"] and
+        item["windows"][0]["title"] == "project-shell-title" and
+        item["windows"][0]["app_id"] == "org.wtwm.DynamicIdentity",
+        "app_id mutation without title mutation",
+    )
+    window = state["windows"][0]
+    app_id_pixels = titlebar_pixels(
+        capture(control, temporary / "app-id-dynamic.ppm"), window,
+    )
+    if app_id_pixels != dynamic_pixels:
+        raise RuntimeError("app_id text replaced the visible xdg title")
+    return state
+
+
 def exercise_target_cleanup(control: Control, state: dict[str, object]) -> None:
     window = state["windows"][0]
     control.command(f"POINTER {window['x'] + 100} {window['y'] + 8}")
@@ -146,6 +234,8 @@ def run(compositor: Path, client_binary: Path) -> None:
             if (window["title"], window["app_id"]) != (
                     "wtwm-lifecycle-initial", "org.wtwm.LifecycleInitial"):
                 raise RuntimeError(f"initial metadata is stale: {window!r}")
+
+            state = exercise_dynamic_title_rendering(control, client, temporary)
 
             client_command(client, "METADATA", "METADATA_UPDATED")
             state = wait_state(

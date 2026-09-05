@@ -137,9 +137,10 @@ receives selection and release.
 The compositor holds at most one interactive session. It saves original and
 preview client geometry, the initiating pointer coordinates, selected resize
 edges or constrained-move axis, the pinned output box for spatial operations,
-and whether `MoveDelta` was crossed. A scene
-overlay renders the outline path; only opaque moves mutate the managed scene
-during motion. Release or second-button abort is the single terminal boundary,
+and whether `MoveDelta` was crossed. A scene overlay renders twm's
+outer/title/third-grid wireframe from the portable visual layout model; only
+opaque moves mutate the managed scene during motion. Release or second-button
+abort is the single terminal boundary,
 which also resumes a bounded function-continuation stack so `f.deltastop`
 observes the completed asynchronous interaction. Unmap and destruction clear
 both the session and any continuation before releasing the toplevel.

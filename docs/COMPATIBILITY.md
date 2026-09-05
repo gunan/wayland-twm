@@ -173,6 +173,17 @@ be created or its display
 cannot be exported, wtwm keeps the inherited `DISPLAY` unchanged and continues
 with native Wayland support.
 
+The packaged static `system.twmrc` starts `xterm` from both Meta+Return and the
+root menu, matching the reference terminal's X11 `WM_NAME` path through
+rootless Xwayland. Debian package installation also registers an `update-menus`
+method in the wtwm namespace. It generates `/etc/wtwm/system.twmrc`, binds root
+Button1 to `/Debian`, retains the operations menu on Button2, translates `x11`
+and `text` application records to `f.exec`, and intentionally omits `wm`
+records because another compositor cannot inherit live Wayland clients. User
+screen/general configurations still replace all system fallbacks rather than
+being merged. Users can select a native Wayland terminal with ordinary
+`f.exec` configuration.
+
 Xwayland windows have independent create, Wayland-surface association, map,
 unmap, dissociation, remap, and destruction handling. Managed windows share the
 native decoration, focus, move, resize, iconify, raise/lower, menu-target, and
@@ -212,7 +223,8 @@ larger than the output, while `f.forcemove` bypasses that clamp.
 `AutoRelativeResize` selects left/right and top/bottom edges from thirds after
 the title offset and is disabled for title-bar invocation. Size constraints
 preserve the opposite edge during left/top resizing. Non-opaque moves and every
-resize keep client geometry unchanged while an overlay outline is displayed;
+resize keep client geometry unchanged while a compositor-owned overlay draws
+the source-exact outer frame, title-bottom separator, and 3x3 inner wireframe;
 release commits it, and a second button press cancels it. `OpaqueMove` changes
 the live window during motion and restores the saved origin on cancel.
 `f.deltastop` resumes its function only after the asynchronous interaction has
@@ -255,7 +267,8 @@ Reference twm gives each managed X screen a distinct root and parses its
 screen-specific startup search independently. Wayland outputs are not separate
 root namespaces, so wtwm uses one compositor-global configuration instead.
 Without `-f`, screen zero is the sole compatibility source: wtwm tries
-`$HOME/.twmrc.0`, then `$HOME/.twmrc`, then the system and built-in defaults.
+`$HOME/.twmrc.0`, then `$HOME/.twmrc`, then an optional generated system
+configuration, the packaged static system configuration, and built-in defaults.
 It never reads or merges `.twmrc.1` or a higher suffix because another output
 appeared. With `-f`, the exact unsuffixed file is the single global candidate;
 HOME screen files are ignored. The configuration remains active with zero
@@ -743,11 +756,12 @@ replace only overlapping indexed trigger/modifier/context slots, and ordered
 generic records retain the original declaration sequence.
 
 Without an explicit path, search uses the reference precedence:
-`$HOME/.twmrc.<screen>`, `$HOME/.twmrc`, the packaged system file, then the
-substantive compiled-in frozen system defaults. An explicit path suppresses
-both home-file probes; if missing, it falls directly to the system file and
-then built-in defaults. The screen-aware API makes the screen suffix explicit;
-the original load API is a screen-zero wrapper.
+`$HOME/.twmrc.<screen>`, `$HOME/.twmrc`, an optional package-generated system
+file, the packaged static system file, then the substantive compiled-in frozen
+system defaults. An explicit path suppresses both home-file probes; if missing,
+it falls directly through the same system files and then built-in defaults. The
+screen-aware API makes the screen suffix explicit; the original load API is a
+screen-zero wrapper.
 
 Reference window lists do not provide shell wildcards: matching is an exact,
 case-sensitive comparison against X11 `WM_NAME`, then resource name, then

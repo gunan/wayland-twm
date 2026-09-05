@@ -31,8 +31,8 @@ Rules-Requires-Root: no
 
 Package: wtwm
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, dbus-bin, xkb-data
-Recommends: foot, xdg-desktop-portal-gtk, xwayland
+Depends: ${misc:Depends}, ${shlibs:Depends}, dbus-bin, menu (>= 2.1.26), xkb-data
+Recommends: xdg-desktop-portal-gtk, xterm, xwayland
 Description: classic twm-style Wayland compositor
  wtwm is a small wlroots compositor with classic server-side title bars and a
  compatibility parser for twm configuration files. It installs as a separate

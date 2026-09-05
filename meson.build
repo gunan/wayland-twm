@@ -12,6 +12,7 @@ inc = include_directories('include')
 
 config_args = [
   '-DWTWM_SYSTEM_CONFIG="' + get_option('prefix') / get_option('datadir') / 'wtwm/system.twmrc' + '"',
+  '-DWTWM_GENERATED_SYSTEM_CONFIG="' + get_option('generated_system_config') + '"',
 ]
 
 font_lib = static_library(
@@ -614,6 +615,16 @@ test(
     files('tests/platform/packaged-config-test.sh'),
     config_tool,
     files('data/system.twmrc'),
+  ],
+)
+test(
+  'Debian menu integration contract',
+  find_program('sh'),
+  args: [
+    files('tests/platform/debian-menu-integration-test.sh'),
+    config_tool,
+    files('data/system.twmrc-menu'),
+    files('debian/wtwm.menu-method'),
   ],
 )
 test(

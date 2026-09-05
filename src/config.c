@@ -13,6 +13,9 @@
 #ifndef WTWM_SYSTEM_CONFIG
 #define WTWM_SYSTEM_CONFIG "/usr/share/wtwm/system.twmrc"
 #endif
+#ifndef WTWM_GENERATED_SYSTEM_CONFIG
+#define WTWM_GENERATED_SYSTEM_CONFIG ""
+#endif
 
 enum token_type {
 	TOK_EOF,
@@ -1490,10 +1493,13 @@ bool wtwm_config_load_for_screen(struct wtwm_config *config, const char *path,
 	const char *system_override = getenv("WTWM_SYSTEM_CONFIG");
 	const char *system_path = system_override && system_override[0] ?
 		system_override : WTWM_SYSTEM_CONFIG;
+	const char *generated_path = system_override && system_override[0] ? NULL :
+		WTWM_GENERATED_SYSTEM_CONFIG;
 	const char *candidates[] = {
 		path,
 		path == NULL ? screen_path : NULL,
 		path == NULL ? general_path : NULL,
+		generated_path,
 		system_path,
 	};
 	for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {

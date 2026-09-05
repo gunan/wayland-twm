@@ -12,6 +12,37 @@ static void assert_box(struct wtwm_visual_box box, int x, int y,
 	assert(box.height == height);
 }
 
+static void test_outline_layout(void) {
+	struct wtwm_outline_layout layout;
+	wtwm_outline_layout_compute(101, 83, 2, 18, &layout);
+	assert(layout.line_count == 9);
+	assert_box(layout.lines[0], 0, 0, 101, 1);
+	assert_box(layout.lines[1], 0, 82, 101, 1);
+	assert_box(layout.lines[2], 0, 0, 1, 83);
+	assert_box(layout.lines[3], 100, 0, 1, 83);
+	assert_box(layout.lines[4], 34, 20, 1, 61);
+	assert_box(layout.lines[5], 66, 20, 1, 61);
+	assert_box(layout.lines[6], 2, 40, 97, 1);
+	assert_box(layout.lines[7], 2, 60, 97, 1);
+	assert_box(layout.lines[8], 0, 18, 101, 1);
+
+	wtwm_outline_layout_compute(101, 83, 2, 0, &layout);
+	assert(layout.line_count == 8);
+	assert_box(layout.lines[4], 34, 2, 1, 79);
+	assert_box(layout.lines[5], 66, 2, 1, 79);
+	assert_box(layout.lines[6], 2, 28, 97, 1);
+	assert_box(layout.lines[7], 2, 54, 97, 1);
+
+	/* Sub-three-pixel inner spans collapse both thirds as in MoveOutline. */
+	wtwm_outline_layout_compute(6, 7, 2, 1, &layout);
+	assert(layout.line_count == 9);
+	assert_box(layout.lines[4], 2, 3, 1, 2);
+	assert_box(layout.lines[5], 2, 3, 1, 2);
+	assert_box(layout.lines[6], 2, 3, 2, 1);
+	assert_box(layout.lines[7], 2, 3, 2, 1);
+	assert_box(layout.lines[8], 0, 1, 6, 1);
+}
+
 static void test_default_title_layout(void) {
 	struct wtwm_visual_config config = wtwm_visual_config_defaults();
 	assert(config.border_width == 2);
@@ -196,6 +227,7 @@ static void test_fractional_scale_projection(void) {
 }
 
 int main(void) {
+	test_outline_layout();
 	test_default_title_layout();
 	test_configured_title_spacing();
 	test_title_squeezing_and_justification();

@@ -1,0 +1,25 @@
+#!/usr/bin/install-menu
+compat="menu-1"
+!include menu.h
+compat="menu-2"
+
+outputencoding="ASCII";
+
+function quote($value)=esc($value, "\"");
+function item($command)=
+    "  \"" quote(title()) "\" f.exec \"" quote($command) " &\"\n";
+
+supported;
+    x11=item($command);
+    text=item(term());
+endsupported;
+
+startmenu="menu \"" quote($section) "\"\n{\n";
+endmenu="}\n";
+submenutitle="  \"" quote(title()) "\" f.menu \"" quote($section) "\"\n";
+
+genmenu="menudefs.hook";
+rcfile="system.twmrc";
+examplercfile="system.twmrc-menu";
+rootprefix="/etc/wtwm/";
+userprefix="/.wtwm/";
