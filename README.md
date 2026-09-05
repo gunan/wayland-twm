@@ -56,17 +56,22 @@ DEB_BUILD_OPTIONS=nocheck DEB_BUILD_PROFILES=nocheck \
 sudo apt-get install ../wtwm_0.1.0_*.deb
 ```
 
-The package declares `dbus-bin` and `xkb-data` in addition to its generated
+The package declares `dbus-bin`, Debian's legacy `menu` generator, and
+`xkb-data` in addition to its generated
 shared-library dependencies. By default, the final `apt-get install` also
 installs its `xdg-desktop-portal-gtk`, `xterm`, and `xwayland` recommendations.
 Build tools and test applications do not need to be installed separately on
 the machine that runs the resulting package.
 
 The package installs `wtwm`, `wtwm-config`, `wtwm-session`, manual pages, the
-fallback `system.twmrc`, a GTK desktop-portal policy, and a distinct
-`/usr/share/wayland-sessions/wtwm.desktop`. It does not install an X11 session,
-replace `/usr/bin/twm`, use the alternatives system, or change the display
-manager's default session.
+fallback `system.twmrc`, a GTK desktop-portal policy, a Debian menu method, and
+a distinct `/usr/share/wayland-sessions/wtwm.desktop`. It does not install an
+X11 session, replace `/usr/bin/twm`, use the alternatives system, or change the
+display manager's default session. Debian's `update-menus` generates
+`/etc/wtwm/system.twmrc`; Button1 on the root opens `/Debian`, while Button2
+retains wtwm's operations menu. The generated menu contains packages that
+publish legacy Debian menu entries, which can be a smaller set than the
+applications represented by modern `.desktop` files.
 
 To remove the package later:
 
@@ -138,9 +143,17 @@ Debian package above when you need a reliable login-session entry.
 ### Configure wtwm
 
 With no `-f` option, `wtwm` tries `~/.twmrc.0`, then `~/.twmrc`, then the
-packaged `system.twmrc`, and finally its compiled-in defaults. Existing files
-are read in place and are never rewritten by installation, reload, upgrade, or
-removal.
+Debian-generated `/etc/wtwm/system.twmrc` when that path was enabled by the
+package build, then the packaged static `system.twmrc`, and finally its
+compiled-in defaults. Existing user files are read in place and are never
+rewritten by installation, reload, upgrade, or removal.
+
+An existing `~/.twmrc.0` or `~/.twmrc` replaces the system default rather than
+being merged with it, just as it does under twm. To try the generated Debian
+menu without a personal configuration, validate and temporarily move the
+selected user file aside. To keep a personal configuration, copy the generated
+file as a starting point; run `sudo update-menus` and repeat the copy whenever
+installed application menu entries change.
 
 Validate an existing configuration before starting a session:
 
@@ -191,9 +204,9 @@ previous session and follow [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Configuration compatibility
 
-`wtwm` searches `~/.twmrc.0`, `~/.twmrc`, and the packaged `system.twmrc`, in
-that order. Existing files are not rewritten. Check one before starting a
-session:
+`wtwm` searches `~/.twmrc.0`, `~/.twmrc`, a package-enabled generated system
+configuration, and the packaged static `system.twmrc`, in that order. Existing
+user files are not rewritten. Check one before starting a session:
 
 ```sh
 build/wtwm-config ~/.twmrc

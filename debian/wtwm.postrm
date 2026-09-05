@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+#DEBHELPER#
+
+if test "$1" = purge && test -d /etc/wtwm; then
+	rm -f /etc/wtwm/menudefs.hook /etc/wtwm/system.twmrc
+	rmdir --ignore-fail-on-non-empty /etc/wtwm
+fi

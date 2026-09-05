@@ -42,6 +42,9 @@ session=$(path usr/share/wayland-sessions/wtwm.desktop)
 portal_config=$(path usr/share/xdg-desktop-portal/wtwm-portals.conf)
 x11_session=$(path usr/share/xsessions/wtwm.desktop)
 system_config=$(path usr/share/wtwm/system.twmrc)
+generated_config=$(path etc/wtwm/system.twmrc)
+menu_template=$(path etc/wtwm/system.twmrc-menu)
+menu_method=$(path etc/menu-methods/wtwm)
 wtwm_man=$(path usr/share/man/man1/wtwm.1)
 config_man=$(path usr/share/man/man1/wtwm-config.1)
 twmrc_man=$(path usr/share/man/man5/wtwmrc.5)
@@ -53,7 +56,8 @@ exists_plain_or_gz()
 
 if test "$expected" = absent; then
 	for installed_path in "$binary" "$config_tool" "$session_launcher" \
-			"$session" "$portal_config" "$x11_session" "$system_config"; do
+			"$session" "$portal_config" "$x11_session" "$system_config" \
+			"$generated_config"; do
 		test ! -e "$installed_path" && test ! -L "$installed_path" ||
 			fail "path remains after purge: $installed_path"
 	done
@@ -73,6 +77,9 @@ test -f "$system_config" || fail 'packaged system.twmrc is missing'
 test -f "$session" || fail 'Wayland session entry is missing'
 if test "$expected" = installed; then
 	test -f "$portal_config" || fail 'desktop portal policy is missing'
+	test -f "$generated_config" || fail 'generated Debian menu configuration is missing'
+	test -f "$menu_template" || fail 'Debian menu template is missing'
+	test -x "$menu_method" || fail 'Debian menu method is missing or not executable'
 fi
 exists_plain_or_gz "$wtwm_man" || fail 'wtwm(1) manual is missing'
 exists_plain_or_gz "$config_man" || fail 'wtwm-config(1) manual is missing'
@@ -133,6 +140,10 @@ if test -n "$manifest"; then
 			fail "package manifest omits required path: /$required_path"
 	done
 	if test "$expected" = installed; then
+		for required_path in etc/menu-methods/wtwm etc/wtwm/system.twmrc-menu; do
+			manifest_has "$required_path" ||
+				fail "package manifest omits required path: /$required_path"
+		done
 		manifest_has usr/share/xdg-desktop-portal/wtwm-portals.conf ||
 			fail 'package manifest omits desktop portal policy'
 	fi
@@ -144,7 +155,7 @@ if test -n "$manifest"; then
 		manifest_has_manual usr/share/man/man5/wtwmrc.5 ||
 			fail 'package manifest omits wtwmrc(5)'
 	fi
-	if grep -Eq '^/?usr/bin/twm$|^/?usr/share/xsessions/|^/?etc/alternatives/|^/?etc/(gdm|gdm3|lightdm|sddm)/' "$manifest"; then
+	if grep -Eq '^/?usr/bin/twm$|^/?usr/share/xsessions/|^/?etc/X11/twm/|^/?etc/alternatives/|^/?etc/(gdm|gdm3|lightdm|sddm)/' "$manifest"; then
 		fail 'package owns an X11 twm path or desktop/login-manager policy path'
 	fi
 	if grep -E '^/?usr/share/wayland-sessions/' "$manifest" |

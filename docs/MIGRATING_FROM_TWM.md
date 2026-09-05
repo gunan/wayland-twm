@@ -97,6 +97,15 @@ commands if another terminal is installed. `f.exec` is run with your user
 privileges; shell syntax is honored, so imported configurations need the same
 security review as shell scripts.
 
+On Debian, the package also registers a `wtwm` method with `update-menus` and
+uses the resulting `/etc/wtwm/system.twmrc` as its first system fallback.
+Button1 on the root opens `/Debian`; Button2 opens the fixed operations menu.
+Only packages that publish legacy Debian menu entries appear there. A personal
+`~/.twmrc.0` or `~/.twmrc` replaces this system configuration rather than
+including it. To customize the generated menu, copy the generated file to the
+selected user path and remember that later `update-menus` runs update the
+system copy, not the user copy.
+
 X11 applications require the optional Xwayland runtime. wtwm continues with
 native Wayland support if Xwayland is unavailable. Keep native and X11 test
 applications distinct when checking rule matching and protocol behavior.

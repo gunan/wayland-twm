@@ -189,7 +189,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:73",
+              "location": "src/config.c:76",
               "contains": "ACT(\"f.deiconify\","
             },
             {
@@ -233,7 +233,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:74",
+              "location": "src/config.c:77",
               "contains": "{\"f.delete\","
             },
             {
@@ -312,7 +312,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:76",
+              "location": "src/config.c:79",
               "contains": "{\"f.destroy\","
             },
             {
@@ -356,7 +356,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:78",
+              "location": "src/config.c:81",
               "contains": "ACT_ARG(\"f.exec\","
             },
             {
@@ -400,7 +400,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:516",
+              "location": "src/config.c:519",
               "contains": "strcmp(spelling, \"!\")"
             },
             {
@@ -444,7 +444,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:80",
+              "location": "src/config.c:83",
               "contains": "ACT(\"f.focus\","
             },
             {
@@ -517,7 +517,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:80",
+              "location": "src/config.c:83",
               "contains": "ACT(\"f.forcemove\","
             },
             {
@@ -597,7 +597,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:83",
+              "location": "src/config.c:86",
               "contains": "ACT_ARG(\"f.function\","
             },
             {
@@ -725,7 +725,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:88",
+              "location": "src/config.c:91",
               "contains": "ACT(\"f.iconify\","
             },
             {
@@ -790,7 +790,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:91",
+              "location": "src/config.c:94",
               "contains": "ACT(\"f.lower\","
             },
             {
@@ -849,7 +849,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:92",
+              "location": "src/config.c:95",
               "contains": "ACT_ARG(\"f.menu\","
             },
             {
@@ -922,7 +922,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:92",
+              "location": "src/config.c:95",
               "contains": "ACT(\"f.move\","
             },
             {
@@ -1002,7 +1002,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:96",
+              "location": "src/config.c:99",
               "contains": "ACT(\"f.quit\","
             },
             {
@@ -1046,7 +1046,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:96",
+              "location": "src/config.c:99",
               "contains": "ACT(\"f.raise\","
             },
             {
@@ -1090,7 +1090,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:97",
+              "location": "src/config.c:100",
               "contains": "ACT(\"f.raiselower\","
             },
             {
@@ -1169,7 +1169,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:98",
+              "location": "src/config.c:101",
               "contains": "ACT(\"f.resize\","
             },
             {
@@ -1346,7 +1346,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:108",
+              "location": "src/config.c:111",
               "contains": "ACT(\"f.unfocus\","
             },
             {
@@ -1390,7 +1390,7 @@
           "fixture": "",
           "checks": [
             {
-              "location": "src/config.c:111",
+              "location": "src/config.c:114",
               "contains": "ACT(\"f.warpnext\","
             },
             {

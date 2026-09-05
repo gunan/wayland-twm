@@ -178,6 +178,11 @@ verify_version()
 	"$installed_prefix/usr/bin/wtwm-config" \
 		"$installed_prefix/usr/share/wtwm/system.twmrc" \
 		> "$evidence_dir/$2-config-dump.txt"
+	if test "$3" = installed; then
+		"$installed_prefix/usr/bin/wtwm-config" \
+			"$installed_prefix/etc/wtwm/system.twmrc" \
+			> "$evidence_dir/$2-generated-menu-config-dump.txt"
+	fi
 	verify_protected "$2"
 }
 

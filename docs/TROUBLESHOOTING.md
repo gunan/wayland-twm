@@ -114,6 +114,24 @@ The packaged sample expects `xterm` and an operational Xwayland runtime.
 Install both recommended packages or change the Meta+Return binding and
 terminal menu entry to a native Wayland terminal.
 
+## The Debian application menu is missing
+
+The Debian package generates `/etc/wtwm/system.twmrc` through `update-menus`.
+Validate that file and confirm the `/Debian` root menu exists:
+
+```sh
+sudo update-menus
+wtwm-config /etc/wtwm/system.twmrc | grep '/Debian'
+```
+
+With no explicit `-f`, `~/.twmrc.0` and `~/.twmrc` are tried first. Either file
+therefore hides the generated system configuration; wtwm does not merge
+configuration files. Temporarily move the selected user file aside to test the
+system default, or copy `/etc/wtwm/system.twmrc` to the selected user path and
+customize that snapshot. The legacy Debian menu only lists packages that
+publish Debian menu records, so an installed application with only a modern
+`.desktop` file may still be absent.
+
 ## A configured foot titlebar always says `foot`
 
 `foot` uses `foot` as both its initial title and its default `TERM` value. It
