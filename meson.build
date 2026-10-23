@@ -206,6 +206,11 @@ visual_test = executable(
 )
 test('twm visual layout', visual_test)
 test(
+  'Milestone 5 visual capture synchronization',
+  find_program('python3'),
+  args: ['-B', files('tests/integration/m5_visual_sync_test.py')],
+)
+test(
   'Milestone 5 visual contract',
   find_program('python3'),
   args: [

@@ -160,7 +160,50 @@ def diff_ppm(reference: bytes, actual: bytes) -> bytes:
     return f"P6\n{width} {height}\n255\n".encode("ascii") + bytes(result)
 
 
-def capture_stable(control: Control, first: Path, second: Path) -> bytes:
+def wait_phase_ready(control: Control, phase: str, evidence: Path,
+                     timeout: float = 10) -> None:
+    # XSync acknowledges X11 requests, not delivery of Xwayland's next buffer
+    # to the compositor. WAIT renders the current scene without dispatching
+    # pending client events. Observe the requested phase and a point in each
+    # fixture rectangle before the independent, exact screenshot comparison.
+    # These client-local points remain visible in both canonical stack orders.
+    probes = {
+        "Reference Alpha": ((10, 10), (26, 32)),
+        "Reference Bravo": ((80, 12), (90, 40)),
+    }
+    title = f"Reference {phase.title()}"
+    deadline = time.monotonic() + timeout
+    state: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        state = control.state()
+        windows = {item["title"]: item for item in state["windows"]
+                   if item["mapped"]}
+        if set(probes).issubset(windows) and windows[title]["stack"] == 0:
+            control.command("WAIT 3")
+            control.command(f"CAPTURE {evidence}")
+            width, height, payload = parse_ppm(evidence.read_bytes())
+            painted = True
+            for name, points in probes.items():
+                window = windows[name]
+                color = bytes(REFERENCE_COLORS[name.split()[-1].lower() + "_accent"])
+                for local_x, local_y in points:
+                    x = window["x"] + window["content_x"] + local_x
+                    y = window["y"] + window["content_y"] + local_y
+                    offset = (y * width + x) * 3
+                    if not (0 <= x < width and 0 <= y < height and
+                            payload[offset:offset + 3] == color):
+                        painted = False
+            if painted:
+                return
+        time.sleep(0.01)
+    evidence.with_suffix(".json").write_text(
+        json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    raise RuntimeError(f"timed out waiting for {phase} stacking and client paint")
+
+
+def capture_stable(control: Control, first: Path, second: Path, phase: str) -> bytes:
+    wait_phase_ready(control, phase, first.with_suffix(".ready.ppm"))
     control.command("WAIT 3")
     control.command(f"CAPTURE {first}")
     control.command("WAIT 3")
@@ -226,8 +269,8 @@ def run(arguments: argparse.Namespace) -> None:
                 client_command(client, f"PHASE {phase}", f"PHASE {phase}")
                 wait_windows(control)
                 first = arguments.evidence / f"phase-{phase}.actual.ppm"
-                second = temporary / f"phase-{phase}.repeat.ppm"
-                actual = capture_stable(control, first, second)
+                second = arguments.evidence / f"phase-{phase}.repeat.ppm"
+                actual = capture_stable(control, first, second, phase)
                 reference = gzip.decompress(
                     (arguments.baseline / f"phase-{phase}.ppm.gz").read_bytes()
                 )

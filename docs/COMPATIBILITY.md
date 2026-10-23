@@ -60,6 +60,13 @@ xdg-shell's unavoidable native close-only translation. The canonical trace
 retains paired stable screenshots after its initial state and all 21 significant
 actions, fails on every nonzero pixel difference, and uses no masks.
 
+The canonical decoration capture waits until the requested stacking state and
+each client-drawn rectangle are visible in the compositor. An X11
+roundtrip alone does not establish that Xwayland has delivered its painted
+buffer. After this readiness check, two independent full-frame captures must
+still match each other and the frozen reference exactly; both captures are
+retained as evidence if the comparison fails.
+
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is
 an inventory fact, not proof that one complete certification run passed. The
