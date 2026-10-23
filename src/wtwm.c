@@ -613,6 +613,7 @@ struct server {
 	struct wl_listener xwayland_new_surface;
 	const char *startup_command;
 	struct wl_event_source *startup_idle;
+	struct wl_event_source *xwayland_wake_idle;
 	xcb_atom_t atom_wm_protocols;
 	xcb_atom_t atom_wm_take_focus;
 	xcb_atom_t atom_wm_delete_window;
@@ -678,6 +679,10 @@ static void process_cursor_motion(struct server *server, uint32_t time_msec);
 static void refresh_pointer_after_restart(struct server *server);
 static void suspend_toplevel(struct toplevel *toplevel, bool suspended);
 static void clear_keyboard_focus(struct server *server);
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
+static void wake_xwayland_event_source(struct server *server,
+		xcb_connection_t *connection);
+#endif
 static void set_xwayland_input_focus(struct server *server,
 	struct toplevel *toplevel);
 static struct toplevel *xwayland_toplevel_for_window(struct server *server,
@@ -712,6 +717,18 @@ static bool store_cut_buffer(struct server *server, const char *bytes,
 	size_t length);
 static struct server *xwayland_event_server;
 
+static xcb_connection_t *xwayland_connection(struct server *server) {
+	if (server == NULL || server->xwayland == NULL) return NULL;
+	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
+	/* Our XWM reads and writes also run outside wlroots' X event handler.
+	 * Both replies and flushes may queue incoming events in libxcb, leaving
+	 * no readable fd for wlroots >= 0.19. Wake it after this dispatch. */
+	wake_xwayland_event_source(server, connection);
+#endif
+	return connection;
+}
+
 static xcb_atom_t xwayland_atom(xcb_connection_t *connection, const char *name) {
 	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(
 		connection, false, (uint16_t)strlen(name), name);
@@ -733,7 +750,7 @@ static void xwayland_startup_idle(void *data) {
 static void xwayland_ready(struct wl_listener *listener, void *data) {
 	struct server *server = wl_container_of(listener, server, xwayland_ready);
 	(void)data;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(server);
 	if (connection != NULL) {
 		server->xwayland_text_connection = xcb_connect(
 			server->xwayland->display_name, NULL);
@@ -797,6 +814,11 @@ static void xwayland_finish(struct server *server) {
 		wlr_xwayland_destroy(server->xwayland);
 		server->xwayland = NULL;
 		if (xwayland_event_server == server) xwayland_event_server = NULL;
+	}
+	/* Surface destruction can schedule a final focus-change wake. */
+	if (server->xwayland_wake_idle != NULL) {
+		wl_event_source_remove(server->xwayland_wake_idle);
+		server->xwayland_wake_idle = NULL;
 	}
 	server->startup_command = NULL;
 	if (server->xwayland_display_exported) {
@@ -991,7 +1013,7 @@ static bool xwayland_color(struct server *server, const char *name,
 	if (server->xwayland == NULL || name == NULL || strlen(name) > UINT16_MAX)
 		return false;
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(server->xwayland);
+		xwayland_connection(server);
 	if (connection == NULL) return false;
 	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
 		xcb_get_setup(connection));
@@ -2758,8 +2780,7 @@ static void configure_xwayland_frame(struct toplevel *toplevel,
 #if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 	/* wlroots 0.19+ schedules XWM writes for a later writable callback. Flush
 	 * now so client repaint and ConfigureNotify ordering stays twm-compatible. */
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(toplevel->server);
 	if (connection != NULL) xcb_flush(connection);
 #endif
 	if (toplevel->tree != NULL && toplevel->content != NULL)
@@ -2835,7 +2856,7 @@ static bool xwayland_accepts_input(const struct toplevel *toplevel) {
 static void send_xwayland_take_focus(struct toplevel *toplevel, uint32_t time) {
 	struct server *server = toplevel->server;
 	if (!xwayland_supports_protocol(toplevel, server->atom_wm_take_focus)) return;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(server);
 	if (connection == NULL) return;
 	xcb_client_message_event_t event = {
 		.response_type = XCB_CLIENT_MESSAGE,
@@ -2855,7 +2876,7 @@ static void send_xwayland_take_focus(struct toplevel *toplevel, uint32_t time) {
 static void set_xwayland_input_focus(struct server *server,
 		struct toplevel *toplevel) {
 	if (server->xwayland == NULL) return;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(server);
 	if (connection == NULL) return;
 	xcb_window_t focus = toplevel != NULL ? toplevel->xwayland->window_id :
 		XCB_INPUT_FOCUS_POINTER_ROOT;
@@ -2870,9 +2891,18 @@ static void set_xwayland_input_focus(struct server *server,
 #define WTWM_XWAYLAND_WAKE_MAGIC_0 UINT32_C(0x5754574d)
 #define WTWM_XWAYLAND_WAKE_MAGIC_1 UINT32_C(0x57414b45)
 
-static void wake_xwayland_event_source(struct server *server,
-		xcb_connection_t *connection) {
-	if (server == NULL || connection == NULL) return;
+static void xwayland_wake_idle(void *data) {
+	struct server *server = data;
+	server->xwayland_wake_idle = NULL;
+	if (server->xwayland == NULL) return;
+	/* Use the independent text connection: flushing the XWM connection can
+	 * itself read incoming events and swallow the wake it is sending. */
+	xcb_connection_t *connection = server->xwayland_text_connection;
+	/* Preserve best-effort operation when the optional text connection could
+	 * not be opened, as before the independent-connection wake was added. */
+	if (connection == NULL)
+		connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	if (connection == NULL) return;
 	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
 		xcb_get_setup(connection));
 	if (screens.data == NULL) return;
@@ -2887,6 +2917,18 @@ static void wake_xwayland_event_source(struct server *server,
 	xcb_send_event(connection, false, screens.data->root,
 		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char *)&event);
 	xcb_flush(connection);
+}
+
+static void wake_xwayland_event_source(struct server *server,
+		xcb_connection_t *connection) {
+	if (server == NULL || connection == NULL ||
+			server->xwayland_wake_idle != NULL) return;
+	/* Synchronous XCB replies may read XWM events into libxcb's queue without
+	 * leaving its fd readable. Send our wake after the current callbacks have
+	 * finished: another reply in this dispatch could otherwise consume the
+	 * wake too. Coalesce clients sharing the same XWM connection. */
+	server->xwayland_wake_idle = wl_event_loop_add_idle(
+		wl_display_get_event_loop(server->display), xwayland_wake_idle, server);
 }
 #endif
 
@@ -3883,7 +3925,7 @@ static bool xwayland_supports_delete(struct toplevel *toplevel) {
 static bool ring_bell(struct server *server) {
 	if (server->xwayland == NULL) return false;
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(server->xwayland);
+		xwayland_connection(server);
 	if (connection == NULL) return false;
 	xcb_bell(connection, 0);
 	xcb_flush(connection);
@@ -3902,7 +3944,7 @@ static void delete_toplevel(struct toplevel *toplevel) {
 		return;
 	}
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection == NULL) return;
 	xcb_client_message_event_t event = {
 		.response_type = XCB_CLIENT_MESSAGE,
@@ -3924,7 +3966,7 @@ static void destroy_toplevel_client(struct toplevel *toplevel) {
 		return;
 	}
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection == NULL) return;
 	xcb_kill_client(connection, toplevel->xwayland->window_id);
 	xcb_flush(connection);
@@ -4797,8 +4839,7 @@ static bool send_save_yourself(struct toplevel *toplevel) {
 			toplevel->server->atom_wm_save_yourself == XCB_ATOM_NONE ||
 			!xwayland_supports_protocol(toplevel,
 			toplevel->server->atom_wm_save_yourself)) return false;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(toplevel->server);
 	if (connection == NULL) return false;
 	xcb_client_message_event_t event = {
 		.response_type = XCB_CLIENT_MESSAGE,
@@ -5060,7 +5101,7 @@ static void apply_colormap_action(struct server *server,
 	if (server->xwayland == NULL ||
 			server->atom_wm_colormap_windows == XCB_ATOM_NONE) return;
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(server->xwayland);
+		xwayland_connection(server);
 	if (connection == NULL) return;
 	bool reset = strcmp(argument, "default") == 0;
 	if (!refresh_xwayland_colormap_cache(toplevel, connection, reset) ||
@@ -5089,7 +5130,7 @@ static bool xwayland_root(struct server *server,
 		xcb_connection_t **connection, xcb_window_t *root) {
 	if (server->xwayland == NULL || server->atom_cut_buffer0 == XCB_ATOM_NONE)
 		return false;
-	*connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+	*connection = xwayland_connection(server);
 	if (*connection == NULL) return false;
 	xcb_screen_iterator_t screens = xcb_setup_roots_iterator(
 		xcb_get_setup(*connection));
@@ -8640,7 +8681,7 @@ static void xwayland_surface_commit(struct wl_listener *listener, void *data) {
 
 static void read_xwayland_icon_name(struct toplevel *toplevel) {
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection == NULL || toplevel->server->atom_wm_icon_name == XCB_ATOM_NONE)
 		return;
 	xcb_get_property_cookie_t cookie = xcb_get_property(connection, false,
@@ -8674,7 +8715,7 @@ static void read_xwayland_net_wm_icon(struct toplevel *toplevel) {
 	toplevel->net_wm_icon_checksum = 0;
 	toplevel->net_wm_icon_truncated = false;
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection == NULL || toplevel->server->atom_net_wm_icon == XCB_ATOM_NONE)
 		return;
 	/* Bound untrusted icon data while accepting one complete 256x256 icon. */
@@ -8730,8 +8771,7 @@ static void read_xwayland_wm_hints_icon(struct toplevel *toplevel) {
 	toplevel->wm_hints_icon_window_width = 0;
 	toplevel->wm_hints_icon_window_height = 0;
 	xcb_icccm_wm_hints_t *hints = toplevel->xwayland->hints;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(toplevel->server);
 	if (hints == NULL || connection == NULL) {
 		refresh_toplevel_icon(toplevel);
 		return;
@@ -8802,7 +8842,7 @@ static void xwayland_deferred_sync(void *data) {
 	bool parent_changed = false;
 	toplevel->xwayland_sync_idle = NULL;
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection != NULL && toplevel->server->atom_wm_protocols != XCB_ATOM_NONE) {
 		xcb_get_property_cookie_t cookie = xcb_get_property(connection, false,
 			toplevel->xwayland->window_id, toplevel->server->atom_wm_protocols,
@@ -8862,9 +8902,6 @@ static void xwayland_deferred_sync(void *data) {
 		update_toplevel_metadata(toplevel, false);
 		position_xwayland_transient(toplevel);
 	}
-#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
-	wake_xwayland_event_source(toplevel->server, connection);
-#endif
 	manage_bufferless_start_iconified(toplevel);
 }
 
@@ -8900,10 +8937,8 @@ static int xwayland_map_retry(void *data) {
 		finish_xwayland_map_retry(toplevel);
 		return 0;
 	}
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(toplevel->server);
 	if (!xwayland_root_has_area(connection)) {
-		wake_xwayland_event_source(toplevel->server, connection);
 		int delay_ms = enabled_output_count(toplevel->server) == 0 ? 100 : 10;
 		(void)wl_event_source_timer_update(toplevel->xwayland_map_retry, delay_ms);
 		return 0;
@@ -8917,7 +8952,6 @@ static int xwayland_map_retry(void *data) {
 			toplevel->xwayland->window_id, error->error_code);
 		free(error);
 	}
-	wake_xwayland_event_source(toplevel->server, connection);
 	finish_xwayland_map_retry(toplevel);
 	return 0;
 }
@@ -8942,7 +8976,7 @@ static void initialize_xwayland_border(struct toplevel *toplevel) {
 		return;
 	}
 	xcb_connection_t *connection =
-		wlr_xwayland_get_xwm_connection(toplevel->server->xwayland);
+		xwayland_connection(toplevel->server);
 	if (connection != NULL) {
 		xcb_get_geometry_cookie_t cookie = xcb_get_geometry(connection,
 			toplevel->xwayland->window_id);
@@ -9057,8 +9091,7 @@ static void xwayland_request_configure(struct wl_listener *listener, void *data)
 static char *read_xwayland_property_bytes(struct toplevel *toplevel,
 		xcb_atom_t atom, size_t *length) {
 	*length = 0;
-	xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(
-		toplevel->server->xwayland);
+	xcb_connection_t *connection = xwayland_connection(toplevel->server);
 	if (connection == NULL) return NULL;
 	xcb_get_property_reply_t *reply = xcb_get_property_reply(connection,
 		xcb_get_property(connection, false, toplevel->xwayland->window_id,
@@ -9414,10 +9447,6 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 				property->atom == server->atom_wm_protocols ||
 				property->atom == server->atom_wm_transient_for)
 			schedule_xwayland_sync(toplevel);
-#if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
-		wake_xwayland_event_source(server,
-			wlr_xwayland_get_xwm_connection(server->xwayland));
-#endif
 		return 0;
 	}
 	if (type == XCB_MAP_REQUEST) {
@@ -9433,10 +9462,9 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 		}
 #if WLR_VERSION_MAJOR > 0 || WLR_VERSION_MINOR >= 19
 		xcb_connection_t *connection =
-			wlr_xwayland_get_xwm_connection(server->xwayland);
+			xwayland_connection(server);
 		bool root_ready = xwayland_root_has_area(connection);
 		if (!root_ready && toplevel != NULL) {
-			wake_xwayland_event_source(server, connection);
 			if (enabled_output_count(server) == 0 &&
 					create_xwayland_frame_scene(toplevel))
 				map_xwayland_toplevel(toplevel);
@@ -9456,7 +9484,7 @@ static int xwayland_user_event(struct wlr_xwm *xwm, xcb_generic_event_t *event) 
 	if (toplevel == NULL) return 0;
 	toplevel->pending_configure_mask = configure->value_mask;
 	if (toplevel->xwayland->override_redirect) {
-		xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+		xcb_connection_t *connection = xwayland_connection(server);
 		if (connection != NULL) configure_override_redirect(connection, configure);
 		return 1;
 	}

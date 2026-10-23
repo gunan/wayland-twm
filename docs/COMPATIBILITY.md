@@ -173,7 +173,10 @@ inherit a parent session's display. X11 font rendering uses a separate XCB
 connection so synchronous text queries cannot consume XWM events. On wlroots
 0.19 and later, a redirected map waits for Xwayland to report a nonzero root
 geometry; zero-output windows retain wtwm's hidden placement record and resume
-when an output appears. Xwayland is wired to the compositor seat, reports every
+when an output appears. Compositor-owned XWM requests schedule a coalesced idle
+wake through the separate XCB connection, so events read into libxcb during
+synchronous replies or flushes still reach wlroots without another client event.
+Xwayland is wired to the compositor seat, reports every
 successful readiness event including a wlroots-managed restart, and is
 destroyed before the remaining Wayland clients and display. If Xwayland cannot
 be created or its display

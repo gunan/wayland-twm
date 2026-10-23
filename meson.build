@@ -1806,6 +1806,26 @@ if wlroots_found and get_option('integration_tests')
     timeout: 180,
     is_parallel: false,
   )
+  wtwm_xcb_queue_fixture = shared_library(
+    'wtwm-xcb-queue-fixture',
+    'tests/integration/xcb_queue_fixture.c',
+    dependencies: [xcb, cc.find_library('dl')],
+    install: false,
+  )
+  test(
+    'Xwayland queued event dispatch',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_queued_events.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--fixture', wtwm_xcb_queue_fixture,
+    ],
+    timeout: 30,
+    is_parallel: false,
+  )
   test(
     'Milestone 8 output topology transactions',
     integration_runner,
