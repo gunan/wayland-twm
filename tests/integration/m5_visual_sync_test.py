@@ -7,6 +7,7 @@ import gzip
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import run_m5_visual_differential as visual
 
@@ -92,8 +93,12 @@ class VisualSyncTests(unittest.TestCase):
     def test_missing_paint_times_out_with_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             ready = Path(directory) / "ready.ppm"
-            with self.assertRaisesRegex(RuntimeError, "timed out.*paint"):
-                visual.wait_phase_ready(Control([unpainted()]), "bravo", ready, timeout=0.03)
+            # Advance a virtual clock so loaded CI hosts cannot exhaust the
+            # test deadline before the first diagnostic capture is written.
+            with patch.object(visual.time, "monotonic", side_effect=[0, 0, 1]), \
+                    patch.object(visual.time, "sleep"), \
+                    self.assertRaisesRegex(RuntimeError, "timed out.*paint"):
+                visual.wait_phase_ready(Control([unpainted()]), "bravo", ready, timeout=1)
             self.assertEqual(ready.read_bytes(), unpainted())
 
     def test_stable_rendering_regression_is_still_compared_exactly(self):
