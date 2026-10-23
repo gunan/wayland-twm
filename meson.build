@@ -566,6 +566,16 @@ test(
   ],
 )
 test(
+  'wlroots source installer',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/wlroots-source-installer-test.py'),
+    meson.project_source_root(),
+  ],
+  timeout: 30,
+)
+test(
   'Codex Cloud wlroots dependency selection',
   find_program('sh'),
   args: [
