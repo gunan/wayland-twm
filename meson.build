@@ -1007,6 +1007,12 @@ test(
   ],
 )
 test(
+  'Milestone 8 input hotplug X11 report synchronization',
+  find_program('python3'),
+  args: ['-B', files('tests/integration/input_hotplug_report_test.py')],
+  timeout: 30,
+)
+test(
   'Milestone 6 action implementation matrix',
   find_program('python3'),
   args: [

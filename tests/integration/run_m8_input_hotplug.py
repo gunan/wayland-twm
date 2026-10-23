@@ -643,6 +643,33 @@ def arm_observer(channel: ClientChannel, token: str) -> None:
     channel.command(f"ARM {token}", f"OK ARMED {token}")
 
 
+def x11_key_report(channel: ClientChannel, token: str) -> None:
+    # An X11 roundtrip can finish before Xwayland reads its Wayland input.
+    # As in the mixed-client runner, gate the snapshot on actual key delivery.
+    deadline = time.monotonic() + 10
+    focus_events = {
+        f"EVENT {action} {token} {role}"
+        for action in ("ENTER", "LEAVE")
+        for role in ("x11-a", "x11-b")
+    }
+
+    def expect_line(expected: str) -> None:
+        while True:
+            line = channel.line(deadline)
+            if line == expected:
+                return
+            if line not in focus_events:
+                raise RuntimeError(
+                    f"unexpected X11 key report event {line!r}; expected {expected!r}"
+                )
+
+    expect_line(f"EVENT KEY {token} x11-a {KEY_A} press")
+    expect_line(f"EVENT KEY {token} x11-a {KEY_A} release")
+    channel.stdin.write(f"REPORT {token}\n".encode("utf-8"))
+    channel.stdin.flush()
+    expect_line(f"OK REPORT {token} x11-a=2 x11-b=0 focus=x11-a")
+
+
 def input_add(control: Control, kind: str, name: str) -> dict[str, object]:
     expect_command(
         control,
@@ -1247,10 +1274,7 @@ def run(
             x11.command("ARM x-key", "OK ARMED x-key")
             input_key(control, "K6", KEY_A, "press")
             input_key(control, "K6", KEY_A, "release")
-            x11.command(
-                "REPORT x-key",
-                "OK REPORT x-key x11-a=2 x11-b=0 focus=x11-a",
-            )
+            x11_key_report(x11, "x-key")
 
             x11.command("ARM restart-held", "OK ARMED restart-held")
             input_key(control, "K6", KEY_A, "press")
@@ -1279,10 +1303,7 @@ def run(
                 )
             input_button(control, "P7", BTN_TASK, "release")
             input_key(control, "K6", KEY_A, "release")
-            x11.command(
-                "REPORT restart-held",
-                "OK REPORT restart-held x11-a=2 x11-b=0 focus=x11-a",
-            )
+            x11_key_report(x11, "restart-held")
 
             session.config.write_text('Button1 = : window : f.move\n"unterminated\n',
                                       encoding="utf-8")
