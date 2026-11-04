@@ -60,6 +60,13 @@ xdg-shell's unavoidable native close-only translation. The canonical trace
 retains paired stable screenshots after its initial state and all 21 significant
 actions, fails on every nonzero pixel difference, and uses no masks.
 
+The canonical decoration capture waits until the requested stacking state and
+each client-drawn rectangle are visible in the compositor. An X11
+roundtrip alone does not establish that Xwayland has delivered its painted
+buffer. After this readiness check, two independent full-frame captures must
+still match each other and the frozen reference exactly; both captures are
+retained as evidence if the comparison fails.
+
 The certification corpus contains nineteen cases across all seven required
 source, client, output/color, and interaction categories. Corpus inclusion is
 an inventory fact, not proof that one complete certification run passed. The
@@ -166,7 +173,10 @@ inherit a parent session's display. X11 font rendering uses a separate XCB
 connection so synchronous text queries cannot consume XWM events. On wlroots
 0.19 and later, a redirected map waits for Xwayland to report a nonzero root
 geometry; zero-output windows retain wtwm's hidden placement record and resume
-when an output appears. Xwayland is wired to the compositor seat, reports every
+when an output appears. Compositor-owned XWM requests schedule a coalesced idle
+wake through the separate XCB connection, so events read into libxcb during
+synchronous replies or flushes still reach wlroots without another client event.
+Xwayland is wired to the compositor seat, reports every
 successful readiness event including a wlroots-managed restart, and is
 destroyed before the remaining Wayland clients and display. If Xwayland cannot
 be created or its display

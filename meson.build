@@ -206,6 +206,11 @@ visual_test = executable(
 )
 test('twm visual layout', visual_test)
 test(
+  'Milestone 5 visual capture synchronization',
+  find_program('python3'),
+  args: ['-B', files('tests/integration/m5_visual_sync_test.py')],
+)
+test(
   'Milestone 5 visual contract',
   find_program('python3'),
   args: [
@@ -559,6 +564,16 @@ test(
     '--source-root', meson.project_source_root(),
     '--self-test-tamper',
   ],
+)
+test(
+  'wlroots source installer',
+  find_program('python3'),
+  args: [
+    '-B',
+    files('tests/platform/wlroots-source-installer-test.py'),
+    meson.project_source_root(),
+  ],
+  timeout: 30,
 )
 test(
   'Codex Cloud wlroots dependency selection',
@@ -990,6 +1005,12 @@ test(
     '--self-test-model',
     '--config-tool', config_tool,
   ],
+)
+test(
+  'Milestone 8 input hotplug X11 report synchronization',
+  find_program('python3'),
+  args: ['-B', files('tests/integration/input_hotplug_report_test.py')],
+  timeout: 30,
 )
 test(
   'Milestone 6 action implementation matrix',
@@ -1783,6 +1804,26 @@ if wlroots_found and get_option('integration_tests')
       '--native-client', wtwm_stress_wayland_client,
     ],
     timeout: 180,
+    is_parallel: false,
+  )
+  wtwm_xcb_queue_fixture = shared_library(
+    'wtwm-xcb-queue-fixture',
+    'tests/integration/xcb_queue_fixture.c',
+    dependencies: [xcb, cc.find_library('dl')],
+    install: false,
+  )
+  test(
+    'Xwayland queued event dispatch',
+    integration_runner,
+    args: [
+      '-B', files('tests/integration/run_xwayland_queued_events.py'),
+      '--compositor', wtwm_test_compositor,
+      '--config-tool', config_tool,
+      '--wayland-client', wtwm_stress_wayland_client,
+      '--x11-client', wtwm_stress_x11_client,
+      '--fixture', wtwm_xcb_queue_fixture,
+    ],
+    timeout: 30,
     is_parallel: false,
   )
   test(

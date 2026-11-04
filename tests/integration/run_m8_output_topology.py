@@ -151,6 +151,18 @@ def frame_barrier_reached(before: int, response: str, after: int) -> bool:
     return sequence > before and after >= sequence
 
 
+def assert_failed_output_atomic(
+    before: dict[str, object], after: dict[str, object], label: str
+) -> None:
+    # Headless frame callbacks may run between these separate STATE requests.
+    # Their monotonically increasing counter is independent of the rejected
+    # transaction; every other state field must remain exactly unchanged.
+    before_state = {key: value for key, value in before.items() if key != "frame"}
+    after_state = {key: value for key, value in after.items() if key != "frame"}
+    if after["frame"] < before["frame"] or after_state != before_state:
+        raise RuntimeError(f"{label} was not atomic: before={before!r}, after={after!r}")
+
+
 def validate_model() -> None:
     if TRANSFORMS != (
         "normal",
@@ -169,6 +181,60 @@ def validate_model() -> None:
         raise RuntimeError("a non-advancing frame response was accepted")
     if frame_barrier_reached(0, "OK FRAME 2", 1):
         raise RuntimeError("STATE before the acknowledged frame was accepted")
+
+    before_failure = {
+        "frame": 63,
+        "topology_epoch": 10,
+        "outputs": [{"name": "HEADLESS-1", "enabled": True}],
+        "windows": [{"id": 2, "x": 990}],
+        "focus": None,
+        "seat_pressed_keys": [],
+    }
+    after_failure = {**before_failure, "frame": 66}
+    assert_failed_output_atomic(before_failure, after_failure, "asynchronous frame")
+    for key, value in (
+        ("frame", 62),
+        ("topology_epoch", 11),
+        ("outputs", [{"name": "HEADLESS-1", "enabled": False}]),
+        ("windows", [{"id": 2, "x": 991}]),
+        ("focus", "changed"),
+        ("seat_pressed_keys", [30]),
+        ("unexpected", True),
+    ):
+        try:
+            assert_failed_output_atomic(
+                before_failure, {**after_failure, key: value}, "changed state"
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError(f"failed-output atomicity missed changed {key}")
+    if before_failure["frame"] != 63 or after_failure["frame"] != 66:
+        raise RuntimeError("atomicity comparison mutated its evidence")
+
+    starting = {
+        "windows": [
+            {"title": NATIVE_TITLE, "mapped": True},
+            {"title": X11_TITLE, "mapped": True, "xid": 42},
+        ],
+        "xwayland_lifecycle": [],
+    }
+    if state_windows_ready(starting):
+        raise RuntimeError("an X11 placement frame was accepted before association")
+    live_x11 = {
+        "xid": 42, "associated": True, "mapped": True, "has_buffer": True,
+        "override_redirect": False,
+    }
+    if not state_windows_ready({**starting, "xwayland_lifecycle": [live_x11]}):
+        raise RuntimeError("a mapped X11 client buffer was rejected")
+    for key, value in (
+        ("xid", 43), ("associated", False), ("mapped", False),
+        ("has_buffer", False), ("override_redirect", True),
+    ):
+        if state_windows_ready({
+            **starting, "xwayland_lifecycle": [{**live_x11, key: value}],
+        }):
+            raise RuntimeError(f"X11 readiness missed incomplete {key}")
 
     reordered = TopologyModel()
     reordered.add("HEADLESS-3", 320, 240)
@@ -420,10 +486,25 @@ def assert_output(
 
 def state_windows_ready(state: dict[str, object]) -> bool:
     windows = state.get("windows")
-    return isinstance(windows, list) and len(windows) == 2 and {
+    if not (isinstance(windows, list) and len(windows) == 2 and {
         item.get("title") for item in windows if isinstance(item, dict)
     } == {NATIVE_TITLE, X11_TITLE} and all(
         item.get("mapped") is True for item in windows if isinstance(item, dict)
+    )):
+        return False
+    # A zero-output MapRequest creates a managed placement frame before the
+    # Xwayland client surface and its metadata are associated. Transactions
+    # must start with real client content, not that provisional frame.
+    x11 = next(item for item in windows if item.get("title") == X11_TITLE)
+    lifecycle = state.get("xwayland_lifecycle")
+    return isinstance(lifecycle, list) and len(lifecycle) == 1 and all(
+        isinstance(item, dict)
+        and item.get("xid") == x11.get("xid")
+        and item.get("associated") is True
+        and item.get("mapped") is True
+        and item.get("has_buffer") is True
+        and item.get("override_redirect") is False
+        for item in lifecycle
     )
 
 
@@ -935,10 +1016,7 @@ def run(
             if error != "ERROR OUTPUT unknown output: MISSING":
                 raise RuntimeError(f"unknown-output error changed: {error!r}")
             after = control.state()
-            if after != before:
-                raise RuntimeError(
-                    f"unknown-output failure was not atomic: before={before!r}, after={after!r}"
-                )
+            assert_failed_output_atomic(before, after, "unknown-output failure")
 
             state = output_transaction(
                 control,
@@ -968,10 +1046,7 @@ def run(
             if error != "ERROR OUTPUT MODE requires enabled output: HEADLESS-2":
                 raise RuntimeError(f"disabled MODE error changed: {error!r}")
             after = control.state()
-            if after != before:
-                raise RuntimeError(
-                    f"failed disabled MODE was not atomic: before={before!r}, after={after!r}"
-                )
+            assert_failed_output_atomic(before, after, "failed disabled MODE")
             session.clients_alive("disabled")
 
             state = output_transaction(

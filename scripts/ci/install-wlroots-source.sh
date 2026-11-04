@@ -37,16 +37,19 @@ trap cleanup EXIT HUP INT TERM
 git clone --depth 1 --branch "$ref" \
 	https://gitlab.freedesktop.org/wlroots/wlroots.git "$source_dir"
 source_commit=$(git -C "$source_dir" rev-parse HEAD)
+source_version=$(sed -n "s/^[[:space:]]*version: '\([^']*\)',/\1/p" \
+	"$source_dir/meson.build" | head -n 1)
+printf 'wlroots_source_ref\t%s\n' "$ref"
+printf 'wlroots_source_commit\t%s\n' "$source_commit"
+printf 'wlroots_source_version\t%s\n' "$source_version"
 test "$(git -C "$source_dir" rev-parse --abbrev-ref HEAD)" = "$ref"
-test "$(sed -n "s/^[[:space:]]*version: '\([^']*\)',/\1/p" \
-	"$source_dir/meson.build" | head -n 1)" = "$expected_version"
+test "$source_version" = "$expected_version"
 
 meson setup "$build_dir" "$source_dir" \
 	--prefix="$install_prefix" \
 	-Dauto_features=disabled \
 	-Dallocators=[] \
 	-Dbackends=[] \
-	-Dcolor-management=disabled \
 	-Dexamples=false \
 	-Dlibliftoff=disabled \
 	-Drenderers=[] \
@@ -69,7 +72,3 @@ test -n "$library_file"
 	printf 'LD_LIBRARY_PATH=%s\n' "$(dirname -- "$library_file")"
 	printf 'WLROOTS_SOURCE_COMMIT=%s\n' "$source_commit"
 } >> "$environment_file"
-
-printf 'wlroots_source_ref\t%s\n' "$ref"
-printf 'wlroots_source_commit\t%s\n' "$source_commit"
-printf 'wlroots_source_version\t%s\n' "$expected_version"
